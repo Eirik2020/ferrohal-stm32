@@ -1,0 +1,63 @@
+[package]
+name = "ferrohal-stm32"
+version = "0.1.0"
+edition = "2024"
+description = "A scheduler-agnostic STM32 HAL on stm32-metapac: RTIC-first, never RTIC-only."
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+# Pinned exactly: a metapac upgrade is a deliberate, reviewed change. It also
+# pins the metadata the hand-written routing tables were checked against.
+stm32-metapac = { version = "=21.0.0", default-features = false, features = ["pac"] }
+cortex-m = "0.7.7"
+embedded-hal = "1.0.0"
+embedded-io = "0.7.1"
+defmt = { version = "1.0.1", optional = true }
+
+[features]
+default = []
+
+# The vector table and the svd2rust-shaped device module RTIC needs. The
+# backend turns this on; nothing else should enable metapac's `rt`.
+rt = ["stm32-metapac/rt"]
+defmt = ["dep:defmt", "stm32-metapac/defmt"]
+
+# Vendor > family > chip > IP version. A chip names its family and every IP
+# version it carries; the IP modules compile only behind their own feature.
+_vendor-st = []
+_family-stm32f4 = ["_vendor-st"]
+_family-stm32h7 = ["_vendor-st"]
+
+# IP versions. Each needs an RCC module and, for the UART, a stream DMA;
+# the chip feature supplies them.
+usart_v2 = []
+usart_v4 = []
+dma_v1 = []
+dma_v2 = []
+gpio_v2 = []
+rcc_f4 = []
+rcc_h7rm0433 = []
+
+# Chip features are metapac's chip names, passed straight through.
+stm32f401re = [
+    "stm32-metapac/stm32f401re",
+    "_family-stm32f4",
+    "usart_v2",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f4",
+]
+stm32h753zi = [
+    "stm32-metapac/stm32h753zi",
+    "_family-stm32h7",
+    "usart_v4",
+    "dma_v1",
+    "gpio_v2",
+    "rcc_h7rm0433",
+]
+
+[package.metadata.docs.rs]
+features = ["stm32f401re", "rt"]
+default-target = "thumbv7em-none-eabihf"
+[workspace]

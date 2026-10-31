@@ -1,0 +1,235 @@
+# FerroHAL: known debt and issues to fix
+
+Status as of 2026-10-31: UART over DMA runs on two chips.
+
+- **F401:** `hil/run-f401.sh` passes 45 of 45 checks across three runs.
+- **H753ZI:** the loopback test passes 12 of 12, with the I-cache and D-cache on.
+- **Both chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac) passes.
+
+| Chip | Board | IP versions | Hardware-tested |
+|---|---|---|---|
+| STM32F401RE | Nucleo-F401RE | `usart_v2`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 DMA routes (RM0368 tables 28 and 29). USART2 runs through a host echo on the ST-LINK virtual COM port. |
+| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | USART2 on PD5/PD6, DMA1 streams 1 (TX) and 0 (RX) |
+
+Severity:
+
+- **High** can give wrong behaviour, or blocks a planned use (FerroWasp, F405).
+- **Medium** is a gap someone will hit soon.
+- **Low** is cleanup, or a limit worth knowing about.
+
+Section numbers (§) refer to `ferrohal-architecture.md`.
+
+---
+
+## 1. Crate-wide (every chip)
+
+### Correctness and robustness
+
+- **Done: no reachable panic, proven per chip** (§5, §13).
+  - `checks/no-panic` calls every public UART, DMA, GPIO and RCC operation with optimiser-opaque inputs, under a panic handler that calls an undefined symbol, so the release build links only if no panic path survives. It found five metapac bounds asserts (fixed by masking stream indices) and two divisions in the H7 clock check (now `checked_div`).
+  - **Limit:** it proves the paths it exercises. A new public function must be added to it.
+- **Done: lap detection counts pending flags** ([uart/stream_dma.rs](src/uart/stream_dma.rs), `write_count`).
+  - `read` adds the receive stream's unserved half and complete flags to the interrupt's count, so the interrupt may now be almost a full lap late, not half. The HIL check "receive interrupt late by most of a lap" masks the vector across both marks: it fails with a false `BufferOverrun` without the fix and passes with it, on both chips.
+  - **Remaining limits, documented on `Buffers::rx`:** the interrupt must be served within one ring's worth of bytes, and the reading code must never preempt `UartIrq`.
+- **Medium: the v2 error clear can take a good byte** ([usart_v2](src/usart_v2/mod.rs), `Line::take_errors`).
+  - **Issue:** clearing errors needs an SR read followed by a DR read. If DMA hasn't yet taken the byte in DR, the DR read consumes it.
+  - **Fix:** none; it's inherent to v2. Document it as "one byte may be lost per reported line error". v4 clears through ICR and is unaffected.
+- **Medium: the v2 parity-error clear sequence isn't followed.**
+  - **Issue:** RM0368 says to wait for RXNE before clearing PE. The driver clears PE at once.
+  - **Fix:** follow the manual's sequence, or confirm on hardware that clearing early is harmless.
+- **Medium: TX DMA errors are reported late.**
+  - **Issue:** a transfer error on a write shows up in the *next* `write` or `flush`. The call that started the transfer has already returned `Ok`.
+  - **Fix:** document it, or add a TX DMA interrupt path through `UartIrq`.
+- **Medium: errors aren't tied to a byte position.**
+  - **Issue:** `read` reports line errors and data separately, so the caller can't tell which byte was bad.
+  - **Fix:** this needs the chunked RX API (see FerroWasp below), which records the ring position at each error.
+- **Done: counted waits mean what they say.**
+  - Each timed loop now counts a measured minimum of cycles per pass (`RX_PASS_CYCLES` 128, `TX_PASS_CYCLES` 48: half the fastest pass measured). `read_within(buf, 100)` waits 3.4 (F401) and 2.4 (H753ZI, caches on) times the frame time, against about 100 times before, and the F401 bench went from 3 min 17 s to 21 s.
+  - **Limit:** the floors are measurements, not proofs. The HIL check "counted waits within their bounds" fails if a pass ever gets faster than its floor (a bound would run short), or a wait exceeds 8 times its time. Every new chip must pass it. Register-only polls (TC, break) still count one cycle per pass.
+- **Low: a corner case can fail to keep NDTR and the half-lap count in step.**
+  - **Issue:** if interrupts keep landing between the reads, `write_count` gives up after `COUNT_TRIES` and uses the last sample.
+  - **Fix:** this is theoretical at UART rates. Count how often it happens, if anyone wants a number.
+
+### API gaps
+
+- **High: there's no FerroWasp backend** (§11).
+  - **Issue:** FerroWasp's `UartRxDmaTransfer` (double-buffer `next_transfer`, idle-line chunks) and `UartTxDmaTransfer` (padded fixed-size TX) are not implemented. The driver has only a ring and an `embedded-io` API.
+  - **Fix:** add a chunked RX mode (idle-line interrupt plus a buffer swap) next to the ring, then write the thin backend crate.
+- **Medium: `Uart::new` drops its tokens on error.**
+  - **Issue:** if `new` fails, the pin, stream and USART tokens are consumed.
+  - **Fix:** return them with the error, or check everything before taking them.
+- **Medium: there's no `release()`/`free()`.**
+  - **Issue:** once `Uart::new` has the pins and streams it never gives them back, so there's no way to tear the driver down.
+- **Medium: the blocking `embedded_io::Read::read` has no bound.**
+  - **Issue:** the trait requires it to block until data arrives. `read_within(buf, frames)` is the bounded alternative.
+  - **Fix:** document `read_within` as the form to use in FerroForge tasks.
+- **Medium: the frame format is limited.**
+  - **Issue:** data is always 8 bits, with optional parity as a ninth. There's no 7- or 9-bit data, no RTS/CTS, no half-duplex, no RS-485 driver enable, no LIN and no idle-line event.
+- **Medium: interrupts can't be masked from the handle** (§7 hook 1).
+  - **Issue:** `UartIrq` reads and clears flags but can't turn the peripheral's interrupt-enable bits on or off.
+- **Medium: there's no timer handover** (§7 hook 5, §8 foot-gun 1).
+  - **Issue:** there's no timer driver, and no path for rtic-monotonics 3 to consume a FerroHAL timer token.
+- **Low: `set_config` exists only on the whole `Uart`.**
+  - **Issue:** after `split()` the frame can't be changed, and a byte arriving during the change is lost. `Uart::halves()` lends both halves without giving up `set_config`.
+- **Low: parts of the DMA API are untested.**
+  - **Issue:** double buffering (`Transfer::double_buffer`, `set_idle_buffer`, `current_target`), FIFO threshold mode and the raw `Channel::start` used directly by a caller have never run on hardware.
+
+### Architecture and process
+
+- **Mitigated: routing tables are hand-written, and now checked** (§5, §10).
+  - `tools/check_glue.py` compares every routed U(S)ART's pins and alternate functions, RCC enable bit, and DMA routes or DMAMUX request IDs, plus every GPIO port and DMA controller enable bit and the DMAMUX bases, with the pinned metapac's metadata: 17 facts on the F401, 39 on the H753ZI. Planting a wrong alternate function, stream, RCC bit, DMAMUX request, extra pin or DMAMUX base fails it.
+  - **Still open:** the generator itself. The check reads the glue's macro rows as text, so their layout must stay as it is.
+- **Medium: two source files each serve two IP versions** (§2, §9).
+  - **Issue:** [dma_stream.rs](src/dma_stream.rs) serves both `dma_v1` and `dma_v2`, and [uart/stream_dma.rs](src/uart/stream_dma.rs) serves both `usart_v2` and `usart_v4`. That removes duplicate code, but it conflicts with "one self-contained module per IP version, with a stable hash".
+  - **Fix:** decide whether a module's hash covers its shared sources, or split the files once they diverge.
+- **Medium: the feature hierarchy departs from §2.**
+  - **Issue:** each chip feature turns on its family marker, rather than the family bundling its chips. Two chip features together are caught only by `compile_error!`, which has to be updated for every new chip.
+- **Medium: requirements tooling is missing** (§9).
+  - **Issue:** there are no `requirements.yaml` files, no schema, no requirement IDs in module docs and no publish tool.
+- **Low: kernel clock equals bus clock.**
+  - **Issue:** `Uart::new` uses the bus clock as the USART kernel clock. That holds on F4, and on H7 only because `freeze` forces the kernel clock mux to the bus clock.
+  - **Fix:** add a kernel-clock field to `Info` before offering other muxes.
+- **Low: the crate isn't in git.**
+  - **Issue:** it isn't a repository yet, and the architecture doc says it should get its own (§1).
+
+### GPIO
+
+- **Medium: `split()` doesn't know the package.**
+  - **Issue:** it hands out all 16 pins on every port the register map has, whether or not the package bonds them out.
+  - **Fix:** add a per-package pin list to the glue.
+- **Low: missing GPIO features.**
+  - **Issue:** there's no open-drain mode, no EXTI and no runtime mode switching (`with_*` style temporary modes).
+
+### Test harness (`hil/`)
+
+- **Medium: some error paths are never exercised.**
+  - **Issue:** there are no checks for DMA transfer errors (the metapac spike's `inject-dma-error` wasn't ported), USART-level overrun, noise or a stop timeout.
+  - **Covered so far:** ring overrun, a late receive interrupt and break on every jumpered link. On the F401's cross-wired run, a baud mismatch must be reported as a framing error, and a parity mismatch as a parity error.
+- **Medium: the H753ZI has run one instance only.**
+  - **Issue:** only USART2 has run on hardware. Its other seven U(S)ARTs and the DMAMUX "any stream" routing are unverified. The F401 covers its whole routing table.
+- **Low: USART2 on the F401 is checked through the ST-LINK.**
+  - **Issue:** break, baud and parity changes don't survive the virtual COM port bridge, so USART2 runs echo, stream and ring overrun only. Solder bridges SB13/SB14 off and SB62/SB63 on would allow a direct link.
+- **Low: probes are picked by VID:PID.**
+  - **Issue:** `0483:374b` and `0483:374e` work only while there's one probe of each type. Switch to serial numbers for a shared bench.
+- **Low: clock checks are indirect.**
+  - **Issue:** a clock tree counts as verified when `freeze`'s record matches the `const` one and the baud rates work. Nothing measures it, for example with MCO on a scope.
+
+---
+
+## 2. STM32F401RE (Nucleo-F401RE)
+
+### Clocks (`rcc_f4`)
+
+- **High: blocks the F405** (§6 known trap).
+  - **Issue:** the voltage scale (PWR VOS) is never written. The F401 reaches 84 MHz in its reset scale (scale 2), but an F405 at 168 MHz needs scale 1.
+  - **Fix:** before adding any other F4, add a per-chip VOS field, checked against that chip's reference manual.
+- **Medium: the limits are the F401's alone.**
+  - **Issue:** `Limits` holds F401 values (84/42/84 MHz, VCO 192–432 MHz, at most 2 wait states). Other F4s need their own, and some share PLLM between PLLs.
+- **Medium: HSE is untested.**
+  - **Issue:** only HSI to PLL has run on hardware. The Nucleo's 8 MHz ST-LINK MCO bypass path has never been exercised.
+- **Low: the USB clock isn't checked.**
+  - **Issue:** `pll_q` is reported but not required to be 48 MHz.
+- **Low: only one supply range.**
+  - **Issue:** `Supply` offers 2.7–3.6 V only.
+
+### USART (`usart_v2`)
+
+- **High: blocks the F405.**
+  - **Issue:** `Regs` is metapac's `usart::Usart`. UART4 and UART5 on the F405 are `usart::Uart`, a different type.
+  - **Fix:** cast, or make `Line` generic over both.
+- **Medium: parity errors can be lost while transmitting** (ES0299 2.10.2).
+  - **Issue:** in full duplex, reading SR and then writing DR clears PE. The TX DMA writes DR, so a USART that is transmitting while it receives a parity error can lose the PE flag before `UartIrq` runs.
+  - **Fix:** none in hardware. Document that parity detection on `usart_v2` is reliable only when the receiving USART isn't transmitting at the same time.
+- **Done: every route runs on hardware.** `hil/run-f401.sh` covers all three USARTs on every TX/RX pin and DMA stream RM0368 lists for them.
+
+### DMA (`dma_v2`)
+
+- **Errata review: done** (ES0299 Rev 6, which applies to all silicon revisions A, 1 and Z):
+  - **2.2.7, delay after enabling an RCC clock:** handled. `Rcc::enable` reads the register back.
+  - **2.2.11, DMA2 corruption with concurrent AHB and APB2 requests:** doesn't affect the UART, because USART1/6 are on APB2 and their buffers are in SRAM. It does hit DMA2 writes to GPIO, which is how DShot works. Before any GPIO-DMA driver, route those writes through DMA2's memory port as the erratum describes.
+  - **Medium, 2.10.2: PE cleared by a write to DR** (see USART below).
+  - **Medium, 2.10.1: IDLE isn't detected when the sender's clock runs faster than the receiver's.** No workaround exists. This hits the planned idle-line chunk RX for FerroWasp, which will need a timeout (a timer or RTOR-like fallback) and not IDLE alone.
+- **Low: FIFO errors are advisory.**
+  - **Issue:** a FIFO error on the TX stream is cleared and ignored, matching FerroWasp's policy. On the RX ring it's reported as `DmaOverrun`. Confirm both on hardware.
+
+### GPIO and package
+
+- **Low: phantom pins.**
+  - **Issue:** the LQFP64 package has only PD2, PH0 and PH1 outside ports A to C, and no port E, but `split()` hands them all out.
+
+### Docs for this chip
+
+- **Done:** RM0368, DS10086, ES0299 and UM1724 are in `docs/` (workspace root).
+  - RM0368's DMA request tables (28 and 29) match the glue.
+  - UM1724's connector and solder-bridge tables confirm the pins.
+  - ES0222, also in `docs/`, is for the F401xB/C and doesn't apply to this chip.
+
+---
+
+## 3. STM32H753ZI (Nucleo-H753ZI)
+
+### Memory and cache
+
+- **Done: the D-cache can be on.**
+  - With it on, `check_dma_buffer` (now public, and run by `Uart::new`) requires each buffer to lie wholly in one enabled MPU region with non-cacheable attributes (TEX, C and B; subregions honoured) that no higher-numbered region overlaps. Otherwise it returns `BufferCacheable`.
+  - The H7 HIL turns both caches on, puts the buffers in a 16 KiB block marked non-cacheable by MPU region 0 (`DMA_NC` in memory.x), and passes every check. A buffer in cached RAM and one in the DTCM are both refused.
+  - **Limits:** FerroHAL reads the MPU (stepping RNR, then restoring it), so the firmware must not reprogram the MPU while a `Uart` is being opened. There's no cache-maintenance mode for buffers in cacheable memory.
+- **Medium: the DTCM goes unused.**
+  - **Issue:** DMA1/DMA2 can't reach the DTCM, so the test firmware's `memory.x` puts everything in AXI SRAM, including the stack. `check_dma_buffer` enforces the DMA-reachable ranges.
+  - **Fix:** a firmware that wants the DTCM for speed needs a linker section for DMA buffers.
+
+### Clocks and power (`rcc_h7rm0433`)
+
+- **Medium: no VOS0 (480 MHz).**
+  - **Issue:** VOS0 exists only on silicon rev V, needs SYSCFG ODEN, and has its own flash table. The silicon revision isn't read (DBGMCU IDCODE).
+- **Medium: limits are the lowest common denominator.**
+  - **Issue:** the wide VCO is capped at 836 MHz (rev Y, DS12117 table 39), even though rev V allows 960 MHz (table 136). Embassy uses 960 MHz.
+  - **Fix:** detect the revision if the headroom matters.
+- **Medium: LDO only, and the supply write is once-only.**
+  - **Issue:** only `Supply::Ldo` is offered (the H753 has no SMPS), and PWR_CR3 can be written once per power-on reset. If something has already locked another configuration, `freeze` returns `SupplyTimeout`.
+- **Medium: much of the clock tree isn't offered.**
+  - **Issue:** PLL2, PLL3, the fractional PLL mode, CSI, HSI48, HSIDIV other than 1, and TIMPRE.
+- **Medium: kernel clock muxes are forced.**
+  - **Issue:** `freeze` always sets USART16910SEL = PCLK2 and USART234578SEL = PCLK1, so no other kernel clock is possible.
+- **Medium: HSE is untested.**
+  - **Issue:** only HSI to PLL1 has run. The MB1364 MCO bypass at 8 MHz has never been exercised.
+- **Low: no IO compensation cell.**
+  - **Issue:** SYSCFG CCCSR isn't enabled. It's needed for fast GPIO above about 50 MHz, not for a UART.
+- **Low: wait-state tables are transcribed.**
+  - **Issue:** the RM0433 table 17 values were checked once, against both embassy and the manual. They are a transcription, not generated.
+
+### USART (`usart_v4`)
+
+- **Medium: no LPUART1.**
+  - **Issue:** it uses the `Lpuart` register block (20-bit BRR), sits in the D3 domain, and its DMA comes through DMAMUX2 and the BDMA.
+- **Low: hardware FIFOs unused.**
+  - **Issue:** the RX/TX FIFOs (`FIFOEN`) are off. DMA serves one byte per request.
+- **Low: most instances untested.**
+  - **Issue:** USART1/3/6 and UART4/5/7/8 are routed but untested. USART3 is the ST-LINK VCP on PD8/PD9.
+
+### DMA (`dma_v1`, DMAMUX1)
+
+- **Medium: only DMA1 and DMA2 are supported.**
+  - **Issue:** there's no BDMA (needed for D3 peripherals such as LPUART1 and SPI6) and no MDMA.
+- **Low: DMAMUX overruns aren't watched.**
+  - **Issue:** the overrun flags (CSR SOFx) aren't read. ES0392 2.5.1 says writing CFR doesn't assert them anyway.
+- **Errata covered:**
+  - ES0392 2.20.4 (a USART's DMA stream can lock up): TRBUFF is set on every UART transfer.
+  - ES0392 2.5.4 (wrong DMAMUX routing): never triggered, because SE stays 0 and SPOL stays 00.
+
+### GPIO and package
+
+- **Low: phantom pins.**
+  - **Issue:** ports I to K are handed out though LQFP144 doesn't bond them, and port H only has PH0 and PH1.
+
+### Errata review
+
+- **Medium: the review is partial.**
+  - **Issue:** ES0392 was checked only for USART, DMA, DMAMUX and the flash table. Review the rest (cache, system, flash ECC) before relying on those areas.
+
+---
+
+## 4. Open questions carried from the architecture doc
+
+- **Kill condition for the prototype** (§11): still undecided.
+- **How to measure reuse** (§11): the shared UART engine now runs unchanged on `usart_v2` and `usart_v4`, which gives a data point. The per-IP `Line` is about 150 lines; the shared engine is about 800.

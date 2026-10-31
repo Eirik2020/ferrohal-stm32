@@ -1,0 +1,5 @@
+# Build output, for the crate and every firmware and check package in it.
+target/
+
+# Written by the HIL scripts on every run.
+hil/logs/

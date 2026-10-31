@@ -1,0 +1,36 @@
+[package]
+name = "nucleo-h753zi-loopback"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "nucleo-h753zi-loopback"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+ferrohal-stm32 = { path = "../..", features = ["stm32h753zi", "rt", "defmt"] }
+embedded-io = "0.7.1"
+
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.6"
+cortex-m-semihosting = "0.5.0"
+rtic = { version = "2.4.0", features = ["thumbv7-backend"] }
+
+defmt = "1.0.1"
+defmt-rtt = "1.3.0"
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+
+[profile.dev]
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = true
+opt-level = "s"
+
+# Not part of any workspace around it.
+[workspace]
