@@ -28,6 +28,24 @@ path = "src/bin/run_d.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "run-e"
+path = "src/bin/run_e.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "run-f"
+path = "src/bin/run_f.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "run-g"
+path = "src/bin/run_g.rs"
+test = false
+bench = false
+
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32f401re", "rt", "defmt"] }
 embedded-io = "0.7.1"

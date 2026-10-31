@@ -12,6 +12,15 @@
 //! | J2 | CN10-14 (PA11) | CN10-12 (PA12) |
 //! | J3 | CN5-3 (D10, PB6) | CN5-2 (D9, PC7) |
 //! | J4 | CN10-4 (PC6) | CN7-21 (PB7) |
+//! | S1 | CN10-15 (PA7) | CN10-13 (PA6) |
+//! | S2 | CN10-29 (PB5) | CN10-27 (PB4) |
+//! | S3 | CN10-26 (PB15) | CN10-28 (PB14) |
+//! | S4 | CN7-37 (PC3) | CN7-35 (PC2) |
+//! | S5 | CN7-3 (PC12) | CN7-2 (PC11) |
+//!
+//! J1 to J4 are UART links. S1 to S5 run each SPI's MOSI into its MISO
+//! (runs E to G); every SPI's SCK is also routed to EXTI, which counts its
+//! edges. Run E's EXTI checks drive PA11 into PA12 over J2.
 //!
 //! USART2 (PA2, PA3) needs no link: SB13 and SB14 wire it to the ST-LINK's
 //! virtual COM port, where `hil/vcp_echo.py` sends every byte back.
@@ -23,13 +32,16 @@
 #![allow(dead_code)]
 
 use ferrohal_stm32::{
-    chip::{Peripherals, USART1, USART2, USART6},
+    chip::{Peripherals, SPI1, SPI2, SPI3, USART1, USART2, USART6},
     dma::Stream,
+    exti,
     gpio::{Alternate, Ctrl, Output, Parts, Pin, Port, PortInstance, Pull, Speed},
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP, PllSource,
         Rcc, Supply, Sysclk,
     },
+    spi::{self, Spi},
+    time::Hertz,
     uart::{self, ConfigError, Parity, RxWiring, StopBits, Uart, Wiring},
 };
 
@@ -271,6 +283,199 @@ pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
             rx_dma: dma2.s1,
         },
     })
+}
+
+// Runs E to G: SPI over the S links, every pin and DMA route RM0368 lists
+// for SPI1 to SPI3, each instance and stream once per run.
+
+/// The SPI links' normal setting: 10 MHz at most, so 5.25 MHz on every SPI
+/// (SPI1 from PCLK2 / 16, SPI2 and SPI3 from PCLK1 / 8).
+pub const SPI: spi::Config = spi::Config::new(Hertz::mhz(10));
+const _: () = assert!(matches!(
+    Spi::check::<SPI1>(&CLOCKS, &SPI),
+    Ok(Hertz(5_250_000))
+));
+const _: () = assert!(matches!(
+    Spi::check::<SPI2>(&CLOCKS, &SPI),
+    Ok(Hertz(5_250_000))
+));
+
+type Af5<const P: char, const N: u8> = Pin<P, N, Alternate<5>>;
+type Af6<const P: char, const N: u8> = Pin<P, N, Alternate<6>>;
+
+/// SPI1 on the Foxeer F405's IMU pins and streams, over S1. SCK is LD2.
+pub type Spi1Foxeer =
+    spi::Wiring<SPI1, Af5<'A', 5>, Af5<'A', 6>, Af5<'A', 7>, Stream<2, 3>, Stream<2, 0>>;
+/// SPI3 on port C, over S5.
+pub type Spi3PortC =
+    spi::Wiring<SPI3, Af6<'C', 10>, Af6<'C', 11>, Af6<'C', 12>, Stream<1, 7>, Stream<1, 2>>;
+/// SPI2 on port B, over S3.
+pub type Spi2PortB =
+    spi::Wiring<SPI2, Af5<'B', 13>, Af5<'B', 14>, Af5<'B', 15>, Stream<1, 4>, Stream<1, 3>>;
+/// SPI1 on port B, over S2.
+pub type Spi1PortB =
+    spi::Wiring<SPI1, Af5<'B', 3>, Af5<'B', 4>, Af5<'B', 5>, Stream<2, 5>, Stream<2, 2>>;
+/// SPI2 with SCK on PB10, MISO and MOSI on port C, over S4.
+pub type Spi2PortC =
+    spi::Wiring<SPI2, Af5<'B', 10>, Af5<'C', 2>, Af5<'C', 3>, Stream<1, 4>, Stream<1, 3>>;
+/// SPI3 on port B, over S2.
+pub type Spi3PortB =
+    spi::Wiring<SPI3, Af6<'B', 3>, Af6<'B', 4>, Af6<'B', 5>, Stream<1, 5>, Stream<1, 0>>;
+
+pub struct RunE {
+    pub rcc: Rcc,
+    pub exti: exti::Parts,
+    pub spi1: Spi1Foxeer,
+    pub spi3: Spi3PortC,
+    pub spi2: Spi2PortB,
+    /// PA11, driving PA12 over J2 for the EXTI checks.
+    pub feed: Pin<'A', 11, Output>,
+}
+
+pub struct RunF {
+    pub rcc: Rcc,
+    pub exti: exti::Parts,
+    pub spi1: Spi1PortB,
+    pub spi2: Spi2PortC,
+}
+
+pub struct RunG {
+    pub rcc: Rcc,
+    pub exti: exti::Parts,
+    pub spi3: Spi3PortB,
+    /// Free in run G: SPI1 isn't on PA5 here.
+    pub led: Led,
+}
+
+pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let mut feed = a.p11.into_push_pull_output(&mut a.ctrl);
+    feed.set_low();
+    let mut sense = a.p12.into_input(&mut a.ctrl);
+    sense.set_pull(&mut a.ctrl, Pull::Down);
+    Ok(RunE {
+        exti,
+        spi1: spi::Wiring {
+            spi: p.SPI1,
+            sck: sck(a.p5, &mut a.ctrl),
+            miso: miso(a.p6, &mut a.ctrl),
+            mosi: mosi(a.p7, &mut a.ctrl),
+            tx_dma: dma2.s3,
+            rx_dma: dma2.s0,
+        },
+        spi3: spi::Wiring {
+            spi: p.SPI3,
+            sck: sck(c.p10, &mut c.ctrl),
+            miso: miso(c.p11, &mut c.ctrl),
+            mosi: mosi(c.p12, &mut c.ctrl),
+            tx_dma: dma1.s7,
+            rx_dma: dma1.s2,
+        },
+        spi2: spi::Wiring {
+            spi: p.SPI2,
+            sck: sck(b.p13, &mut b.ctrl),
+            miso: miso(b.p14, &mut b.ctrl),
+            mosi: mosi(b.p15, &mut b.ctrl),
+            tx_dma: dma1.s4,
+            rx_dma: dma1.s3,
+        },
+        feed,
+        rcc,
+    })
+}
+
+pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut b = p.GPIOB.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    Ok(RunF {
+        exti,
+        spi1: spi::Wiring {
+            spi: p.SPI1,
+            sck: sck(b.p3, &mut b.ctrl),
+            miso: miso(b.p4, &mut b.ctrl),
+            mosi: mosi(b.p5, &mut b.ctrl),
+            tx_dma: dma2.s5,
+            rx_dma: dma2.s2,
+        },
+        spi2: spi::Wiring {
+            spi: p.SPI2,
+            sck: sck(b.p10, &mut b.ctrl),
+            miso: miso(c.p2, &mut c.ctrl),
+            mosi: mosi(c.p3, &mut c.ctrl),
+            tx_dma: dma1.s4,
+            rx_dma: dma1.s3,
+        },
+        rcc,
+    })
+}
+
+pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    Ok(RunG {
+        exti,
+        spi3: spi::Wiring {
+            spi: p.SPI3,
+            sck: sck(b.p3, &mut b.ctrl),
+            miso: miso(b.p4, &mut b.ctrl),
+            mosi: mosi(b.p5, &mut b.ctrl),
+            tx_dma: dma1.s5,
+            rx_dma: dma1.s0,
+        },
+        led,
+        rcc,
+    })
+}
+
+/// An SCK or MOSI pin: driven, at high speed for the edges.
+fn sck<const P: char, const N: u8, const AF: u8>(
+    pin: Pin<P, N>,
+    ctrl: &mut Ctrl<P>,
+) -> Pin<P, N, Alternate<AF>>
+where
+    Port<P>: PortInstance,
+{
+    let mut pin = pin.into_alternate::<AF>(ctrl);
+    pin.set_speed(ctrl, Speed::High);
+    pin
+}
+
+fn mosi<const P: char, const N: u8, const AF: u8>(
+    pin: Pin<P, N>,
+    ctrl: &mut Ctrl<P>,
+) -> Pin<P, N, Alternate<AF>>
+where
+    Port<P>: PortInstance,
+{
+    sck(pin, ctrl)
+}
+
+/// A MISO pin, pulled down: without its link it reads zeros, and the check
+/// reports a mismatch rather than noise.
+fn miso<const P: char, const N: u8, const AF: u8>(
+    pin: Pin<P, N>,
+    ctrl: &mut Ctrl<P>,
+) -> Pin<P, N, Alternate<AF>>
+where
+    Port<P>: PortInstance,
+{
+    let mut pin = pin.into_alternate::<AF>(ctrl);
+    pin.set_pull(ctrl, Pull::Down);
+    pin
 }
 
 /// A TX and an RX pin of one port, in alternate function `AF`. RX is pulled

@@ -181,7 +181,9 @@ where
         set_mask(N, true);
     }
 
-    /// Masks the line's interrupt. Edges still set it pending.
+    /// Masks the line. A masked line ignores its edges altogether: they
+    /// neither raise the interrupt nor set it pending (RM0368 10.2.4,
+    /// RM0433 20.3.1, confirmed on the F401).
     pub fn unlisten(&mut self, _ctrl: &mut Ctrl) {
         set_mask(N, false);
     }

@@ -10,7 +10,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$here/logs"
 
 status=0
-for run in a b c d e; do
+for run in a b c d e f g h; do
     log="$here/logs/h753-run-$run.log"
     (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo run --release --bin "run-$run") > "$log" 2>&1
     code=$?

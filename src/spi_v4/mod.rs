@@ -41,6 +41,9 @@ impl Unit {
     pub(crate) fn configure(self, code: u8, config: &Config) {
         let regs = self.0;
         regs.cr1().modify(|w| w.set_spe(false));
+        // SSI first: with SSM set, NSS reads SSI, and a master that sees NSS
+        // low takes a mode fault, which clears MASTER at once.
+        regs.cr1().write(|w| w.set_ssi(true));
         regs.ier().write(|_| {});
         regs.cfg1().write(|w| {
             w.set_mbr(Mbr::from_bits(code & 7));
@@ -67,7 +70,6 @@ impl Unit {
             w.set_ssm(true);
             w.set_afcntr(true);
         });
-        regs.cr1().write(|w| w.set_ssi(true));
         self.clear_flags();
     }
 
@@ -126,8 +128,8 @@ impl Unit {
         let modf = regs.sr().read().modf();
         self.end();
         if modf {
-            regs.cfg2().modify(|w| w.set_master(Master::MASTER));
             regs.cr1().write(|w| w.set_ssi(true));
+            regs.cfg2().modify(|w| w.set_master(Master::MASTER));
         }
     }
 
