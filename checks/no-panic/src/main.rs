@@ -201,6 +201,37 @@ fn exercise_uart(uart: &mut Uart) {
     uart.set_clock(None);
 }
 
+/// EXTI: route, every operation, release. Each chip's `wire` calls it on
+/// a spare pin's line.
+pub fn exercise_exti<const P: char, const N: u8>(
+    ctrl: &mut ferrohal_stm32::exti::Ctrl,
+    line: ferrohal_stm32::exti::Line<N>,
+) where
+    ferrohal_stm32::gpio::Port<P>: ferrohal_stm32::gpio::PortInstance,
+{
+    use embedded_hal::digital::InputPin;
+    use ferrohal_stm32::exti::Edge;
+
+    let mut exti = line.route::<P>(ctrl, black_box(Edge::Both));
+    keep(exti.interrupt());
+    keep(exti.is_pending());
+    exti.trigger();
+    exti.clear();
+    keep(exti.is_high());
+    keep(InputPin::is_low(&mut exti));
+    exti.set_edge(ctrl, black_box(Edge::Falling));
+    exti.unlisten(ctrl);
+    exti.listen(ctrl);
+    let handle = exti.handle();
+    keep(handle.is_pending());
+    handle.clear();
+    handle.trigger();
+    keep(handle.interrupt());
+    keep(handle.line());
+    keep(ferrohal_stm32::exti::vector(black_box(12)));
+    keep(exti.release(ctrl));
+}
+
 fn exercise_spi(bus: &mut Spi) {
     use embedded_hal::spi::SpiBus;
 
@@ -336,7 +367,10 @@ mod chip {
         let out = a.p5.into_push_pull_output(&mut a.ctrl);
         let input = a.p0.into_input(&mut a.ctrl);
         let rx6 = a.p12.into_alternate::<8>(&mut a.ctrl);
-        let _analog = a.p1.into_analog(&mut a.ctrl);
+        let analog = a.p1.into_analog(&mut a.ctrl);
+        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
+        let _ = analog;
         Some((
             rcc,
             Wiring {
@@ -450,7 +484,10 @@ mod chip {
         let out = b.p0.into_push_pull_output(&mut b.ctrl);
         let input = b.p1.into_input(&mut b.ctrl);
         let rx4 = a.p1.into_alternate::<8>(&mut a.ctrl);
-        let _analog = b.p2.into_analog(&mut b.ctrl);
+        let analog = b.p2.into_analog(&mut b.ctrl);
+        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
+        let _ = analog;
         Some((
             rcc,
             Wiring {
@@ -564,7 +601,10 @@ mod chip {
         let out = b.p0.into_push_pull_output(&mut b.ctrl);
         let input = b.p1.into_input(&mut b.ctrl);
         let rx3 = b.p11.into_alternate::<7>(&mut b.ctrl);
-        let _analog = b.p2.into_analog(&mut b.ctrl);
+        let analog = b.p2.into_analog(&mut b.ctrl);
+        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
+        let _ = analog;
         Some((
             rcc,
             Wiring {

@@ -40,6 +40,8 @@ usart_v2 = []
 usart_v4 = []
 spi_v2 = []
 spi_v4 = []
+exti_v1 = []
+exti_h7 = []
 dma_v1 = []
 dma_v2 = []
 gpio_v2 = []
@@ -52,6 +54,7 @@ stm32f401re = [
     "_family-stm32f4",
     "usart_v2",
     "spi_v2",
+    "exti_v1",
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
@@ -61,6 +64,7 @@ stm32f405rg = [
     "_family-stm32f4",
     "usart_v2",
     "spi_v2",
+    "exti_v1",
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
@@ -70,6 +74,7 @@ stm32h743vi = [
     "_family-stm32h7",
     "usart_v4",
     "spi_v4",
+    "exti_h7",
     "dma_v1",
     "gpio_v2",
     "rcc_h7rm0433",
@@ -79,6 +84,7 @@ stm32h753zi = [
     "_family-stm32h7",
     "usart_v4",
     "spi_v4",
+    "exti_h7",
     "dma_v1",
     "gpio_v2",
     "rcc_h7rm0433",

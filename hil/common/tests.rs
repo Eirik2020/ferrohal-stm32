@@ -67,6 +67,18 @@ pub enum Fail {
     /// A counted wait ran short of its floor, or far past it, in cycles;
     /// or a wait loop ran faster than the HAL's per-pass floor.
     Bound { waited: u32, floor: u32 },
+    /// The SPI driver reported an error the check did not expect.
+    Spi(ferrohal_stm32::spi::Error),
+    /// The SPI refused a configuration the check needs.
+    SpiConfig(ferrohal_stm32::spi::ConfigError),
+    /// An SPI refusal the check provokes never came: what it got instead.
+    SpiNotRefused(Option<ferrohal_stm32::spi::Error>),
+    /// Fewer or more events (edges, interrupts) than expected.
+    Count { expected: u32, got: u32 },
+    /// A pin sat at the wrong level.
+    Level { expected_high: bool },
+    /// A transfer took this many CPU cycles, outside `min..=max`.
+    Time { cycles: u32, min: u32, max: u32 },
 }
 
 /// Passes if `result` is the refusal `expected`.

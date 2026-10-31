@@ -9,13 +9,13 @@
 //! # Layout
 //!
 //! - One module per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`,
-//!   `spi_v4`, `dma_v1`, `dma_v2`, `gpio_v2`, `rcc_f4`, `rcc_h7rm0433`),
-//!   each behind its own feature. They speak registers only.
+//!   `spi_v4`, `dma_v1`, `dma_v2`, `exti_v1`, `exti_h7`, `gpio_v2`,
+//!   `rcc_f4`, `rcc_h7rm0433`), each behind its own feature. They speak registers only.
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
 //!   map) and the svd2rust-style [`chip::Peripherals`].
-//! - Neutral names: [`uart`], [`spi`], and `rcc`, `gpio`, `dma` for whichever IP
-//!   version the chip carries.
+//! - Neutral names: [`uart`] and [`spi`], and `exti`, `rcc`, `gpio`, `dma`
+//!   for whichever IP version the chip carries.
 //! - [`device`] (feature `rt`): the module RTIC's `device = ...` names.
 //!
 //! # Ownership
@@ -50,6 +50,14 @@ pub mod time;
 pub mod uart;
 mod wait;
 
+// EXTI: one source, two IP versions (see the module).
+#[cfg(feature = "exti_h7")]
+#[path = "exti.rs"]
+pub mod exti_h7;
+#[cfg(feature = "exti_v1")]
+#[path = "exti.rs"]
+pub mod exti_v1;
+
 // The stream DMA: one source, two IP versions (see the module).
 #[cfg(feature = "dma_v1")]
 #[path = "dma_stream.rs"]
@@ -76,6 +84,10 @@ pub mod usart_v4;
 pub use dma_v1 as dma;
 #[cfg(feature = "dma_v2")]
 pub use dma_v2 as dma;
+#[cfg(feature = "exti_h7")]
+pub use exti_h7 as exti;
+#[cfg(feature = "exti_v1")]
+pub use exti_v1 as exti;
 #[cfg(feature = "gpio_v2")]
 pub use gpio_v2 as gpio;
 #[cfg(feature = "rcc_f4")]

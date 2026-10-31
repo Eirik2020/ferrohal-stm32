@@ -301,6 +301,9 @@ dma!(
     UART8: rx 81, tx 82;
 );
 
+/// SYSCFG's clock enable, which EXTI's port selection (EXTICR) needs.
+pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb4, 1);
+
 // SPI instances: (bus, enable bit, kernel clock). `freeze` sets SPI1 to SPI3
 // to PLL1Q and SPI4 and SPI5 to PCLK2. SPI6 (D3, on the BDMA) is left out.
 
