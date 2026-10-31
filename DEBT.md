@@ -4,8 +4,8 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-10-31:
 
-- **F401:** `hil/run-f401.sh` passes 182 of 182 checks across ten runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J).
-- **H753ZI:** `hil/run-h753.sh` passes 403 of 403 checks across eleven runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K).
+- **F401:** `hil/run-f401.sh` passes 188 of 188 checks across ten runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J).
+- **H753ZI:** `hil/run-h753.sh` passes 411 of 411 checks across eleven runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K).
 - **F405RG, H743VI:** build, glue checked against metapac, values checked against their docs. Not yet run on hardware.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
@@ -38,7 +38,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: line-error positions are approximate.** A mark sits where DMA had written to when the interrupt ran, so the damaged byte is the chunk's last or near it. A full mark queue (16 marks between reads) reports the error without a position.
 - **Low: counted-wait floors are measurements** (`RX_PASS_CYCLES` 224, `TX_PASS_CYCLES` 48). Without a `CycleClock`, waits run 2.5–7 times long. The HIL check "counted and clocked waits within their bounds" must pass on every new chip.
 - **Low: the no-panic check proves only the paths it calls.** A new public function must be added to `checks/no-panic`.
-- **Low: the SPI's counted-wait floor is a guess.** `PASS_CYCLES` (8) is set low so a blocking SPI wait without a `CycleClock` is never short, not measured as the UART's were; such a wait can run well past its bound before reporting `Timeout`.
+- **Low: SPI counted waits run long without a `CycleClock`.** `PASS_CYCLES` (112) is half the fastest polling pass measured (233 cycles, H753 with caches on, measured once by hand); the bench checks the floor on every SPI link, but its SPI runs keep the caches off, so the cached figure isn't rechecked. Waits run up to about 3 times long on the F401 and 6 on the uncached H753.
 
 ### API gaps
 

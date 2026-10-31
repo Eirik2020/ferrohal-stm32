@@ -48,10 +48,14 @@ use crate::{
 
 /// Spins allowed for a DMA stream to report itself stopped.
 const STOP_SPINS: u32 = 10_000;
-/// The fewest CPU cycles one pass of the completion wait can take: two DMA
-/// flag reads and the checks between them. Deliberately low, so a counted
-/// bound is never short; a `CycleClock` makes it exact.
-const PASS_CYCLES: u32 = 8;
+/// The fewest CPU cycles one pass of the completion wait can take, used
+/// when no [`CycleClock`] is set: the fastest pass measured with the DWT
+/// (`hil` "a polling pass takes no less than the driver's floor"), halved.
+/// H753 at 400 MHz with caches on, 233 cycles; the F401 at 84 MHz takes
+/// 324 and the H753 with caches off about 690, so their counted waits run
+/// up to about 3 and 6 times the time asked. A `CycleClock` makes every
+/// wait exact.
+const PASS_CYCLES: u32 = 112;
 /// Added to every blocking bound, in CPU cycles: the start-up and the
 /// interrupt latency a transfer can see before its first SCK edge.
 const MARGIN_CYCLES: u32 = 20_000;

@@ -25,6 +25,10 @@ use rtic::Mutex;
 
 use crate::tests::{Fail, Report};
 
+/// The SPI driver's `PASS_CYCLES`: the fewest cycles it counts one pass
+/// of its completion wait as.
+const PASS_FLOOR: u32 = 112;
+
 /// What the handlers share with the checks task.
 pub struct Bus {
     pub spi: Option<Spi>,
@@ -400,6 +404,37 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
             bus.lock(|b| compare(&sent, b.spi.as_ref().map_or(&[][..], |s| s.received())))
         })(),
     );
+
+    report.check(name, "a polling pass takes no less than the driver's floor", (|| {
+        // Polls a slow transfer with the vector masked, as a blocking wait
+        // does, and times the passes: none may beat `PASS_CYCLES`.
+        let slow = slowest(bus)?;
+        set_config(bus, &slow)?;
+        let sent: [u8; 64] = pattern(9);
+        NVIC::mask(rx_vector);
+        let started = bus.lock(|b| b.spi.as_mut().map_or(Ok(()), |s| s.start(&sent)));
+        let mut fastest = u32::MAX;
+        let mut passes = 0;
+        loop {
+            let start = DWT::cycle_count();
+            let done = bus.lock(|b| b.spi.as_mut().and_then(Spi::poll));
+            let cycles = DWT::cycle_count().wrapping_sub(start);
+            if done.is_some() || passes > 100_000 {
+                break;
+            }
+            fastest = fastest.min(cycles);
+            passes += 1;
+        }
+        // SAFETY: RTIC bound and unmasked this vector; it is unmasked again.
+        unsafe { NVIC::unmask(rx_vector) };
+        set_config(bus, config)?;
+        started.map_err(Fail::Spi)?;
+        defmt::info!("{=str}: fastest polling pass {=u32} cycles over {=u32} passes", name, fastest, passes);
+        if fastest < PASS_FLOOR {
+            return Err(Fail::Bound { waited: fastest, floor: PASS_FLOOR });
+        }
+        Ok(())
+    })());
 
     if let Some(health) = bus.lock(|b| b.spi.as_ref().map(Spi::health)) {
         defmt::info!(
