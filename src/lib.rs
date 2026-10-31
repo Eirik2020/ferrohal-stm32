@@ -10,13 +10,13 @@
 //!
 //! - One module per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`,
 //!   `spi_v4`, `dma_v1`, `dma_v2`, `exti_v1`, `exti_h7`, `timer_v1`,
-//!   `timer_v3`, `gpio_v2`, `rcc_f4`, `rcc_h7rm0433`), each behind its own
-//!   feature. They speak registers only.
+//!   `timer_v3`, `iwdg_v1`, `iwdg_v2`, `gpio_v2`, `rcc_f4`, `rcc_h7rm0433`),
+//!   each behind its own feature. They speak registers only.
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
 //!   map) and the svd2rust-style [`chip::Peripherals`].
-//! - Neutral names: [`uart`] and [`spi`], and `exti`, `timer`, `rcc`,
-//!   `gpio`, `dma` for whichever IP version the chip carries.
+//! - Neutral names: [`uart`] and [`spi`], and `exti`, `timer`, `iwdg`,
+//!   `rcc`, `gpio`, `dma` for whichever IP version the chip carries.
 //! - [`device`] (feature `rt`): the module RTIC's `device = ...` names.
 //!
 //! # Ownership
@@ -45,6 +45,7 @@ compile_error!("enable one chip feature, such as `stm32f401re` or `stm32h753zi`"
 ))]
 compile_error!("enable only one chip feature");
 
+pub mod reset;
 pub mod resource;
 pub mod spi;
 pub mod time;
@@ -58,6 +59,14 @@ pub mod exti_h7;
 #[cfg(feature = "exti_v1")]
 #[path = "exti.rs"]
 pub mod exti_v1;
+
+// The independent watchdog: one source, two IP versions (see the module).
+#[cfg(feature = "iwdg_v1")]
+#[path = "iwdg.rs"]
+pub mod iwdg_v1;
+#[cfg(feature = "iwdg_v2")]
+#[path = "iwdg.rs"]
+pub mod iwdg_v2;
 
 // Timers: one source, two IP versions (see the module).
 #[cfg(feature = "timer_v1")]
@@ -107,6 +116,10 @@ pub use rcc_h7rm0433 as rcc;
 use spi_v2 as spi_ip;
 #[cfg(feature = "spi_v4")]
 use spi_v4 as spi_ip;
+#[cfg(feature = "iwdg_v1")]
+pub use iwdg_v1 as iwdg;
+#[cfg(feature = "iwdg_v2")]
+pub use iwdg_v2 as iwdg;
 #[cfg(feature = "timer_v1")]
 pub use timer_v1 as timer;
 #[cfg(feature = "timer_v3")]

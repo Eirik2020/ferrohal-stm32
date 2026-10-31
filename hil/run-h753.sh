@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the Nucleo-H753ZI bench: UART runs A to E, SPI and EXTI runs F to H,
-# timer runs I and J. Every UART and SPI looped back to
+# timer runs I and J, watchdog run K. Every UART and SPI looped back to
 # itself. Exits non-zero if any run failed.
 #
 # Needs the Zio links described in nucleo-h753zi-loopback/src/board.rs.
@@ -11,9 +11,15 @@ here="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$here/logs"
 
 status=0
-for run in a b c d e f g h i j; do
+for run in a b c d e f g h i j k; do
     log="$here/logs/h753-run-$run.log"
-    (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo run --release --bin "run-$run") > "$log" 2>&1
+    # The watchdog run resets the chip on purpose: the debugger must not
+    # catch that reset, or the second boot never runs.
+    runner=()
+    if [ "$run" = k ]; then
+        runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32H753ZI --probe 0483:374e")
+    fi
+    (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1
     code=$?
     pass=$(grep -c "PASS" "$log")
     fail=$(grep -c "FAIL" "$log")

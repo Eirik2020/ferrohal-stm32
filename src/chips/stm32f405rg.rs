@@ -263,6 +263,13 @@ dma!(RxDma<UART5>: (1, 0, 4));
 dma!(TxDma<USART6>: (2, 6, 5), (2, 7, 5));
 dma!(RxDma<USART6>: (2, 1, 5), (2, 2, 5));
 
+/// The independent watchdog's token and registers.
+pub type WatchdogPeripheral = IWDG;
+
+pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
+    pac::IWDG
+}
+
 /// SYSCFG's clock enable, which EXTI's port selection (EXTICR) needs.
 pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb2, 14);
 

@@ -1195,12 +1195,19 @@ pub fn nvic_mask_all<I: cortex_m::interrupt::InterruptNumber, const N: usize>(
 /// through semihosting: status 0 on a pass, 1 otherwise.
 pub fn finish(report: &Report, pass: impl FnOnce()) -> ! {
     use cortex_m_semihosting::debug::{self, EXIT_FAILURE, EXIT_SUCCESS};
-    if report.failed == 0 {
+    let passed = report.failed == 0;
+    if passed {
         pass();
         defmt::info!("all checks passed");
-        debug::exit(EXIT_SUCCESS);
     } else {
         defmt::error!("{} checks failed", report.failed);
+    }
+    // The host drains RTT while the target runs; the semihosting exit ends
+    // that, so give it time to take the last lines first.
+    delay_ms(200);
+    if passed {
+        debug::exit(EXIT_SUCCESS);
+    } else {
         debug::exit(EXIT_FAILURE);
     }
     // Only reached without a debugger to catch the exit.

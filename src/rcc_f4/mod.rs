@@ -72,6 +72,22 @@ impl Rcc {
         self.clocks
     }
 
+    /// Why the chip last reset, read from RCC_CSR, whose flags are then
+    /// cleared (RMVF) so the next reset reports only itself.
+    pub fn reset_cause(&mut self) -> crate::reset::ResetCause {
+        let csr = RCC_REGS.csr().read();
+        RCC_REGS.csr().modify(|w| w.set_rmvf(true));
+        crate::reset::ResetCause {
+            power_on: csr.porrstf(),
+            pin: csr.padrstf(),
+            brownout: csr.borrstf(),
+            software: csr.sftrstf(),
+            independent_watchdog: csr.wdgrstf(),
+            window_watchdog: csr.wwdgrstf(),
+            low_power: csr.lpwrrstf(),
+        }
+    }
+
     /// Turns a peripheral's clock on. The read back is the delay RM0368
     /// requires before the peripheral's registers are touched.
     pub(crate) fn enable(&mut self, bit: RccBit) {

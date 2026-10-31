@@ -298,6 +298,13 @@ dma!(
     UART8: rx 81, tx 82;
 );
 
+/// The independent watchdog's token and registers.
+pub type WatchdogPeripheral = IWDG1;
+
+pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
+    pac::IWDG1
+}
+
 /// SYSCFG's clock enable, which EXTI's port selection (EXTICR) needs.
 pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb4, 1);
 

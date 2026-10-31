@@ -339,6 +339,19 @@ where
     sampler.stop();
 }
 
+/// The watchdog and the reset cause.
+pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm32::chip::WatchdogPeripheral) {
+    use ferrohal_stm32::iwdg::{Watchdog, divider};
+
+    keep(rcc.reset_cause());
+    keep(divider(black_box(50_000)));
+    keep(Watchdog::check(black_box(50_000)));
+    if let Ok(dog) = Watchdog::start(iwdg, black_box(50_000)) {
+        dog.feed();
+        keep(dog.timeout_us());
+    }
+}
+
 fn exercise_spi(bus: &mut Spi) {
     use embedded_hal::spi::SpiBus;
 
@@ -478,6 +491,7 @@ mod chip {
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
         super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
+        super::exercise_watchdog(&mut rcc, p.IWDG);
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
         // TIM1 is the F401's only break-unit timer and its only update
         // request on DMA2, so it samples here and the F405 covers CHxN.
@@ -600,6 +614,7 @@ mod chip {
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
+        super::exercise_watchdog(&mut rcc, p.IWDG);
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
         super::exercise_complementary(&mut rcc, p.TIM8, a.p7.into_alternate::<3>(&mut a.ctrl));
         super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
@@ -721,6 +736,7 @@ mod chip {
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
+        super::exercise_watchdog(&mut rcc, p.IWDG1);
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma2.s0);
         super::exercise_complementary(&mut rcc, p.TIM1, a.p7.into_alternate::<1>(&mut a.ctrl));
         super::exercise_sampler(&mut rcc, p.TIM8, dma2.s1);

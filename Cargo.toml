@@ -44,6 +44,8 @@ exti_v1 = []
 exti_h7 = []
 timer_v1 = []
 timer_v3 = []
+iwdg_v1 = []
+iwdg_v2 = []
 dma_v1 = []
 dma_v2 = []
 gpio_v2 = []
@@ -58,6 +60,7 @@ stm32f401re = [
     "spi_v2",
     "exti_v1",
     "timer_v1",
+    "iwdg_v1",
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
@@ -69,6 +72,7 @@ stm32f405rg = [
     "spi_v2",
     "exti_v1",
     "timer_v1",
+    "iwdg_v1",
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
@@ -80,6 +84,7 @@ stm32h743vi = [
     "spi_v4",
     "exti_h7",
     "timer_v3",
+    "iwdg_v2",
     "dma_v1",
     "gpio_v2",
     "rcc_h7rm0433",
@@ -91,6 +96,7 @@ stm32h753zi = [
     "spi_v4",
     "exti_h7",
     "timer_v3",
+    "iwdg_v2",
     "dma_v1",
     "gpio_v2",
     "rcc_h7rm0433",

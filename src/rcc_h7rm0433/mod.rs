@@ -75,6 +75,24 @@ pub struct Rcc {
     clocks: Clocks,
 }
 
+impl Rcc {
+    /// Why the chip last reset, read from RCC_RSR, whose flags are then
+    /// cleared (RMVF) so the next reset reports only itself.
+    pub fn reset_cause(&mut self) -> crate::reset::ResetCause {
+        let rsr = RCC_REGS.rsr().read();
+        RCC_REGS.rsr().modify(|w| w.set_rmvf(true));
+        crate::reset::ResetCause {
+            power_on: rsr.porrstf(),
+            pin: rsr.pinrstf(),
+            brownout: rsr.borrstf(),
+            software: rsr.sftrstf(),
+            independent_watchdog: rsr.iwdg1rstf(),
+            window_watchdog: rsr.wwdg1rstf(),
+            low_power: rsr.lpwrrstf(),
+        }
+    }
+}
+
 macro_rules! bus_registers {
     ($($bus:ident => $enr:ident, $rstr:ident;)+) => {
         impl Rcc {

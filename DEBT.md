@@ -4,8 +4,8 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-10-31:
 
-- **F401:** `hil/run-f401.sh` passes 178 of 178 checks across nine runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I).
-- **H753ZI:** `hil/run-h753.sh` passes 399 of 399 checks across ten runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J).
+- **F401:** `hil/run-f401.sh` passes 182 of 182 checks across ten runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J).
+- **H753ZI:** `hil/run-h753.sh` passes 403 of 403 checks across eleven runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K).
 - **F405RG, H743VI:** build, glue checked against metapac, values checked against their docs. Not yet run on hardware.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
@@ -49,6 +49,9 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1). `UartIrq` can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover to rtic-monotonics** (§7 hook 5, §8 foot-gun 1). FerroHAL's `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL timer token as its monotonic.
 - **Medium: timer features still missing:** input capture, one-pulse mode, starting several timers from one trigger (FerroWasp's lanes can start from one timer's trigger output; FerroHAL starts them one after another in software), dead time, the break input, and switching a lane's stream between transmit and sampling for bidirectional DShot (FerroWasp's reply window).
+- **Medium: the watchdog has no window, and no freeze while debugging.** IWDG1's window register (H7) stays at its reset value (no window), and DBGMCU's watchdog freeze is never set, so a halted core lets a started watchdog reset the chip under the debugger.
+- **Low: the watchdog timeout is nominal.** It's worked out from the LSI's typical 32 kHz; the real LSI spans 17 to 47 kHz on the F4 (DS10086, DS8626) and 29.4 to 33.6 kHz on the H7 (DS12110). The bench measured 53.3 ms on the F401 and 50.5 ms on the H753ZI for a nominal 50 ms. Measuring the LSI against a timer would make it exact.
+- **Low: the watchdog bench run needs reset catch off.** probe-rs halts a core it sees reset, so `hil/run-*.sh` run the watchdog check with `--no-catch-reset`; the second boot waits before reporting so the host finds RTT again.
 - **Low: arming and staging lanes takes time.** About 14 µs for two lanes on the F401 at 84 MHz, measured by the bench; a frame scheduler must allow for it.
 - **Low: sampler rates.** The bench samples at about 12 times the DShot600 bit rate (7 MHz on the F401, 7.1 MHz on the H753) without losing samples; faster rates are untested.
 - **Low: a tick or timebase rate must divide the timer clock exactly.** `Tick` and `Timebase` refuse a rate they would have to round (`ConfigError::Inexact`) rather than drift.

@@ -523,6 +523,25 @@ pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
     })
 }
 
+// Run J: the independent watchdog, across the reset it causes. No links.
+
+pub struct RunJ {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub iwdg: ferrohal_stm32::chip::IWDG,
+}
+
+pub fn run_j(p: Peripherals) -> Result<RunJ, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    Ok(RunJ {
+        rcc,
+        led,
+        iwdg: p.IWDG,
+    })
+}
+
 /// An SCK or MOSI pin: driven, at high speed for the edges.
 fn sck<const P: char, const N: u8, const AF: u8>(
     pin: Pin<P, N>,
