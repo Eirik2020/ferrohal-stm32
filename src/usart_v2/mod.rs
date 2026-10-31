@@ -100,14 +100,16 @@ impl Line {
         self.0.cr1().modify(|w| w.set_ue(false));
     }
 
-    /// Clears TC before a transfer, as RM0368 asks. SR's other clearable
-    /// bits are written 1, which leaves them alone: a read-modify-write
-    /// could clear an RXNE that DMA has not served yet.
+    /// Clears TC before a transfer, as RM0368 asks. RXNE and LBD are written
+    /// 1, which leaves them alone: a read-modify-write could clear an RXNE
+    /// that DMA has not served yet. CTS is written 0: it is only ever set
+    /// with CTSE on, which FerroHAL never sets, and on the F4's UART4 and
+    /// UART5 the bit is reserved, to be kept at its reset value of 0
+    /// (RM0090 section 30.6.1).
     pub(crate) fn clear_tc(self) {
         let mut sr = Sr(0);
         sr.set_rxne(true);
         sr.set_lbd(true);
-        sr.set_cts(true);
         self.0.sr().write_value(sr);
     }
 
