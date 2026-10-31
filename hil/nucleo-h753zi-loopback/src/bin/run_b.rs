@@ -31,7 +31,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         device::Interrupt,
-        uart::{Config, Uart, UartIrq},
+        uart::{Config, Uart, UartInterrupts, UartIrq},
     };
 
     use crate::{
@@ -58,9 +58,13 @@ mod app {
     #[local]
     struct Local {
         uart4: Uart,
+        vectors_uart4: UartInterrupts,
         uart5: Uart,
+        vectors_uart5: UartInterrupts,
         uart7: Uart,
+        vectors_uart7: UartInterrupts,
         usart3: Uart,
+        vectors_usart3: UartInterrupts,
         led: board::Led,
     }
 
@@ -82,23 +86,56 @@ mod app {
         defmt::info!("run B, clocks: {}", board::CLOCKS);
 
         let mut buffers = board::dma_buffers().into_iter();
-        let (uart_uart4, irq_uart4) =
-            board::open(&mut run.rcc, "UART4 PB9->PB8", run.uart4, &PLAIN, buffers.next().unwrap());
-        let (uart_uart5, irq_uart5) =
-            board::open(&mut run.rcc, "UART5 PC12->PD2", run.uart5, &PLAIN, buffers.next().unwrap());
-        let (uart_uart7, irq_uart7) =
-            board::open(&mut run.rcc, "UART7 PF7->PF6", run.uart7, &PLAIN, buffers.next().unwrap());
-        let (uart_usart3, irq_usart3) =
-            board::open(&mut run.rcc, "USART3 PC10->PC11", run.usart3, &PLAIN, buffers.next().unwrap());
+        let (uart_uart4, irq_uart4) = board::open(
+            &mut run.rcc,
+            "UART4 PB9->PB8",
+            run.uart4,
+            &PLAIN,
+            buffers.next().unwrap(),
+        );
+        let (uart_uart5, irq_uart5) = board::open(
+            &mut run.rcc,
+            "UART5 PC12->PD2",
+            run.uart5,
+            &PLAIN,
+            buffers.next().unwrap(),
+        );
+        let (uart_uart7, irq_uart7) = board::open(
+            &mut run.rcc,
+            "UART7 PF7->PF6",
+            run.uart7,
+            &PLAIN,
+            buffers.next().unwrap(),
+        );
+        let (uart_usart3, irq_usart3) = board::open(
+            &mut run.rcc,
+            "USART3 PC10->PC11",
+            run.usart3,
+            &PLAIN,
+            buffers.next().unwrap(),
+        );
 
+        let vectors_uart4 = irq_uart4.interrupts();
+        let vectors_uart5 = irq_uart5.interrupts();
+        let vectors_uart7 = irq_uart7.interrupts();
+        let vectors_usart3 = irq_usart3.interrupts();
         checks::spawn().ok();
         (
-            Shared { irq_uart4, irq_uart5, irq_uart7, irq_usart3 },
+            Shared {
+                irq_uart4,
+                irq_uart5,
+                irq_uart7,
+                irq_usart3,
+            },
             Local {
                 uart4: uart_uart4,
+                vectors_uart4,
                 uart5: uart_uart5,
+                vectors_uart5,
                 uart7: uart_uart7,
+                vectors_uart7,
                 usart3: uart_usart3,
+                vectors_usart3,
                 led: run.led,
             },
         )
@@ -164,14 +201,34 @@ mod app {
         cx.shared.irq_usart3.on_interrupt();
     }
 
-    #[task(priority = 1, local = [uart4, uart5, uart7, usart3, led])]
+    #[task(priority = 1, local = [uart4, vectors_uart4, uart5, vectors_uart5, uart7, vectors_uart7, usart3, vectors_usart3, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         let uart4 = cx.local.uart4;
+        report.check(
+            "UART4 PB9->PB8",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_uart4),
+        );
         let uart5 = cx.local.uart5;
+        report.check(
+            "UART5 PC12->PD2",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_uart5),
+        );
         let uart7 = cx.local.uart7;
+        report.check(
+            "UART7 PF7->PF6",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_uart7),
+        );
         let usart3 = cx.local.usart3;
+        report.check(
+            "USART3 PC10->PC11",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_usart3),
+        );
 
         tests::full_suite(
             &mut report,
@@ -183,7 +240,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM5),
-            &mut tests::nvic_mask_all([Interrupt::UART4, Interrupt::DMA1_STREAM5, Interrupt::DMA1_STREAM7]),
+            &mut tests::nvic_mask_all([
+                Interrupt::UART4,
+                Interrupt::DMA1_STREAM5,
+                Interrupt::DMA1_STREAM7,
+            ]),
             true,
         );
         tests::full_suite(
@@ -196,7 +257,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM0),
-            &mut tests::nvic_mask_all([Interrupt::UART5, Interrupt::DMA2_STREAM0, Interrupt::DMA2_STREAM1]),
+            &mut tests::nvic_mask_all([
+                Interrupt::UART5,
+                Interrupt::DMA2_STREAM0,
+                Interrupt::DMA2_STREAM1,
+            ]),
             true,
         );
         tests::full_suite(
@@ -209,7 +274,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM2),
-            &mut tests::nvic_mask_all([Interrupt::UART7, Interrupt::DMA2_STREAM2, Interrupt::DMA2_STREAM3]),
+            &mut tests::nvic_mask_all([
+                Interrupt::UART7,
+                Interrupt::DMA2_STREAM2,
+                Interrupt::DMA2_STREAM3,
+            ]),
             true,
         );
         tests::full_suite(
@@ -222,7 +291,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM6),
-            &mut tests::nvic_mask_all([Interrupt::USART3, Interrupt::DMA2_STREAM6, Interrupt::DMA2_STREAM7]),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART3,
+                Interrupt::DMA2_STREAM6,
+                Interrupt::DMA2_STREAM7,
+            ]),
             true,
         );
 
@@ -231,22 +304,22 @@ mod app {
             "8 KiB each, all at once",
             tests::streams(
                 &mut [
-                &mut Loop {
-                    name: "UART4 PB9->PB8",
-                    uart: &mut *uart4,
-                },
-                &mut Loop {
-                    name: "UART5 PC12->PD2",
-                    uart: &mut *uart5,
-                },
-                &mut Loop {
-                    name: "UART7 PF7->PF6",
-                    uart: &mut *uart7,
-                },
-                &mut Loop {
-                    name: "USART3 PC10->PC11",
-                    uart: &mut *usart3,
-                },
+                    &mut Loop {
+                        name: "UART4 PB9->PB8",
+                        uart: &mut *uart4,
+                    },
+                    &mut Loop {
+                        name: "UART5 PC12->PD2",
+                        uart: &mut *uart5,
+                    },
+                    &mut Loop {
+                        name: "UART7 PF7->PF6",
+                        uart: &mut *uart7,
+                    },
+                    &mut Loop {
+                        name: "USART3 PC10->PC11",
+                        uart: &mut *usart3,
+                    },
                 ],
                 8 * 1024,
             ),

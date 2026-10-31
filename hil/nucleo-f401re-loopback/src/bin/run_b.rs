@@ -28,7 +28,7 @@ use panic_probe as _;
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartIrq};
+    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
 
     use crate::{
         board,
@@ -50,6 +50,8 @@ mod app {
     struct Local {
         usart1: Uart,
         usart6: Uart,
+        vectors1: UartInterrupts,
+        vectors6: UartInterrupts,
         led: board::Led,
     }
 
@@ -93,12 +95,18 @@ mod app {
         )
         .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
 
+        let vectors1 = irq1.interrupts();
+
+        let vectors6 = irq6.interrupts();
+
         checks::spawn().ok();
         (
             Shared { irq1, irq6 },
             Local {
                 usart1,
                 usart6,
+                vectors1,
+                vectors6,
                 led: run.led,
             },
         )
@@ -134,10 +142,20 @@ mod app {
         cx.shared.irq6.on_interrupt();
     }
 
-    #[task(priority = 1, local = [usart1, usart6, led])]
+    #[task(priority = 1, local = [usart1, usart6, vectors1, vectors6, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
+        report.check(
+            "USART1",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors1),
+        );
+        report.check(
+            "USART6",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors6),
+        );
         let (usart1, usart6) = (cx.local.usart1, cx.local.usart6);
 
         for forward in [true, false] {

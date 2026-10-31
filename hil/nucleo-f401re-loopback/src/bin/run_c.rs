@@ -22,7 +22,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         device::Interrupt,
-        uart::{Buffers, Config, Uart, UartIrq},
+        uart::{Buffers, Config, Uart, UartInterrupts, UartIrq},
     };
 
     use crate::{
@@ -42,6 +42,7 @@ mod app {
     #[local]
     struct Local {
         usart6: Uart,
+        vectors6: UartInterrupts,
         led: board::Led,
     }
 
@@ -71,11 +72,14 @@ mod app {
         )
         .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
 
+        let vectors6 = irq6.interrupts();
+
         checks::spawn().ok();
         (
             Shared { irq6 },
             Local {
                 usart6,
+                vectors6,
                 led: run.led,
             },
         )
@@ -96,10 +100,15 @@ mod app {
         cx.shared.irq6.on_interrupt();
     }
 
-    #[task(priority = 1, local = [usart6, led])]
+    #[task(priority = 1, local = [usart6, vectors6, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
+        report.check(
+            "USART6",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors6),
+        );
         tests::full_suite(
             &mut report,
             &mut Loop {
@@ -110,7 +119,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),
-            &mut tests::nvic_mask_all([Interrupt::USART6, Interrupt::DMA2_STREAM1, Interrupt::DMA2_STREAM7]),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART6,
+                Interrupt::DMA2_STREAM1,
+                Interrupt::DMA2_STREAM7,
+            ]),
             false,
         );
         let led = cx.local.led;

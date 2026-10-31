@@ -74,6 +74,21 @@ parts!(
     p8: 8, p9: 9, p10: 10, p11: 11, p12: 12, p13: 13, p14: 14, p15: 15,
 );
 
+/// A pin in an alternate function, described as data: for board manifests
+/// and resource lists.
+pub trait AltPin {
+    /// The port's letter.
+    const PORT: char;
+    const PIN: u8;
+    const AF: u8;
+}
+
+impl<const P: char, const N: u8, const AF: u8> AltPin for Pin<P, N, Alternate<AF>> {
+    const PORT: char = P;
+    const PIN: u8 = N;
+    const AF: u8 = AF;
+}
+
 /// Reset mode for most pins.
 pub struct Input;
 /// Push-pull output.

@@ -27,8 +27,8 @@ use ferrohal_stm32::{
     dma::Stream,
     gpio::{Alternate, Ctrl, Output, Parts, Pin, Port, PortInstance, Pull, Speed},
     rcc::{
-        AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Pll, PllP, PllSource, Rcc,
-        Supply, Sysclk,
+        AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Pll, PllP, PllSource, Rcc, Supply,
+        Sysclk,
     },
     uart::{self, ConfigError, Parity, RxWiring, StopBits, Uart, Wiring},
 };

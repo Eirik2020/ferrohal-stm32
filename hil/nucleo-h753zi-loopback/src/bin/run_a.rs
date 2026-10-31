@@ -39,7 +39,7 @@ mod app {
     use ferrohal_stm32::{
         chip::check_dma_buffer,
         device::Interrupt,
-        uart::{Config, ConfigError, Parity, StopBits, Uart, UartIrq},
+        uart::{Config, ConfigError, Parity, StopBits, Uart, UartInterrupts, UartIrq},
     };
 
     use crate::{
@@ -73,9 +73,13 @@ mod app {
     #[local]
     struct Local {
         usart6: Uart,
+        vectors_usart6: UartInterrupts,
         usart1: Uart,
+        vectors_usart1: UartInterrupts,
         usart3: Uart,
+        vectors_usart3: UartInterrupts,
         usart2: Uart,
+        vectors_usart2: UartInterrupts,
         led: board::Led,
         scb: SCB,
         cpuid: CPUID,
@@ -99,23 +103,56 @@ mod app {
         defmt::info!("run A, clocks: {}", board::CLOCKS);
 
         let mut buffers = board::dma_buffers().into_iter();
-        let (uart_usart6, irq_usart6) =
-            board::open(&mut run.rcc, "USART6 PC6->PC7, CRSF 420000", run.usart6, &CRSF, buffers.next().unwrap());
-        let (uart_usart1, irq_usart1) =
-            board::open(&mut run.rcc, "USART1 PB6->PB7, SBUS 100000 8E2", run.usart1, &SBUS, buffers.next().unwrap());
-        let (uart_usart3, irq_usart3) =
-            board::open(&mut run.rcc, "USART3 PB10->PB11, MSP 115200", run.usart3, &MSP, buffers.next().unwrap());
-        let (uart_usart2, irq_usart2) =
-            board::open(&mut run.rcc, "USART2 PD5->PD6, control", run.usart2, &MSP, buffers.next().unwrap());
+        let (uart_usart6, irq_usart6) = board::open(
+            &mut run.rcc,
+            "USART6 PC6->PC7, CRSF 420000",
+            run.usart6,
+            &CRSF,
+            buffers.next().unwrap(),
+        );
+        let (uart_usart1, irq_usart1) = board::open(
+            &mut run.rcc,
+            "USART1 PB6->PB7, SBUS 100000 8E2",
+            run.usart1,
+            &SBUS,
+            buffers.next().unwrap(),
+        );
+        let (uart_usart3, irq_usart3) = board::open(
+            &mut run.rcc,
+            "USART3 PB10->PB11, MSP 115200",
+            run.usart3,
+            &MSP,
+            buffers.next().unwrap(),
+        );
+        let (uart_usart2, irq_usart2) = board::open(
+            &mut run.rcc,
+            "USART2 PD5->PD6, control",
+            run.usart2,
+            &MSP,
+            buffers.next().unwrap(),
+        );
 
+        let vectors_usart6 = irq_usart6.interrupts();
+        let vectors_usart1 = irq_usart1.interrupts();
+        let vectors_usart3 = irq_usart3.interrupts();
+        let vectors_usart2 = irq_usart2.interrupts();
         checks::spawn().ok();
         (
-            Shared { irq_usart6, irq_usart1, irq_usart3, irq_usart2 },
+            Shared {
+                irq_usart6,
+                irq_usart1,
+                irq_usart3,
+                irq_usart2,
+            },
             Local {
                 usart6: uart_usart6,
+                vectors_usart6,
                 usart1: uart_usart1,
+                vectors_usart1,
                 usart3: uart_usart3,
+                vectors_usart3,
                 usart2: uart_usart2,
+                vectors_usart2,
                 led: run.led,
                 scb: core.SCB,
                 cpuid: core.CPUID,
@@ -183,14 +220,34 @@ mod app {
         cx.shared.irq_usart2.on_interrupt();
     }
 
-    #[task(priority = 1, local = [usart6, usart1, usart3, usart2, led, scb, cpuid])]
+    #[task(priority = 1, local = [usart6, vectors_usart6, usart1, vectors_usart1, usart3, vectors_usart3, usart2, vectors_usart2, led, scb, cpuid])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         let usart6 = cx.local.usart6;
+        report.check(
+            "USART6 PC6->PC7, CRSF 420000",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_usart6),
+        );
         let usart1 = cx.local.usart1;
+        report.check(
+            "USART1 PB6->PB7, SBUS 100000 8E2",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_usart1),
+        );
         let usart3 = cx.local.usart3;
+        report.check(
+            "USART3 PB10->PB11, MSP 115200",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_usart3),
+        );
         let usart2 = cx.local.usart2;
+        report.check(
+            "USART2 PD5->PD6, control",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_usart2),
+        );
 
         tests::full_suite(
             &mut report,
@@ -202,7 +259,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM0),
-            &mut tests::nvic_mask_all([Interrupt::USART6, Interrupt::DMA1_STREAM0, Interrupt::DMA1_STREAM6]),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART6,
+                Interrupt::DMA1_STREAM0,
+                Interrupt::DMA1_STREAM6,
+            ]),
             true,
         );
         tests::full_suite(
@@ -215,7 +276,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM4),
-            &mut tests::nvic_mask_all([Interrupt::USART1, Interrupt::DMA2_STREAM4, Interrupt::DMA2_STREAM5]),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART1,
+                Interrupt::DMA2_STREAM4,
+                Interrupt::DMA2_STREAM5,
+            ]),
             true,
         );
         tests::full_suite(
@@ -228,7 +293,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM1),
-            &mut tests::nvic_mask_all([Interrupt::USART3, Interrupt::DMA1_STREAM1, Interrupt::DMA1_STREAM3]),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART3,
+                Interrupt::DMA1_STREAM1,
+                Interrupt::DMA1_STREAM3,
+            ]),
             true,
         );
         tests::full_suite(
@@ -241,7 +310,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM2),
-            &mut tests::nvic_mask_all([Interrupt::USART2, Interrupt::DMA1_STREAM2, Interrupt::DMA1_STREAM4]),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART2,
+                Interrupt::DMA1_STREAM2,
+                Interrupt::DMA1_STREAM4,
+            ]),
             true,
         );
 
@@ -250,22 +323,22 @@ mod app {
             "8 KiB each, all at once",
             tests::streams(
                 &mut [
-                &mut Loop {
-                    name: "USART6 PC6->PC7, CRSF 420000",
-                    uart: &mut *usart6,
-                },
-                &mut Loop {
-                    name: "USART1 PB6->PB7, SBUS 100000 8E2",
-                    uart: &mut *usart1,
-                },
-                &mut Loop {
-                    name: "USART3 PB10->PB11, MSP 115200",
-                    uart: &mut *usart3,
-                },
-                &mut Loop {
-                    name: "USART2 PD5->PD6, control",
-                    uart: &mut *usart2,
-                },
+                    &mut Loop {
+                        name: "USART6 PC6->PC7, CRSF 420000",
+                        uart: &mut *usart6,
+                    },
+                    &mut Loop {
+                        name: "USART1 PB6->PB7, SBUS 100000 8E2",
+                        uart: &mut *usart1,
+                    },
+                    &mut Loop {
+                        name: "USART3 PB10->PB11, MSP 115200",
+                        uart: &mut *usart3,
+                    },
+                    &mut Loop {
+                        name: "USART2 PD5->PD6, control",
+                        uart: &mut *usart2,
+                    },
                 ],
                 8 * 1024,
             ),
@@ -297,22 +370,22 @@ mod app {
             "8 KiB each, all at once, caches on",
             tests::streams(
                 &mut [
-                &mut Loop {
-                    name: "USART6 PC6->PC7, CRSF 420000",
-                    uart: &mut *usart6,
-                },
-                &mut Loop {
-                    name: "USART1 PB6->PB7, SBUS 100000 8E2",
-                    uart: &mut *usart1,
-                },
-                &mut Loop {
-                    name: "USART3 PB10->PB11, MSP 115200",
-                    uart: &mut *usart3,
-                },
-                &mut Loop {
-                    name: "USART2 PD5->PD6, control",
-                    uart: &mut *usart2,
-                },
+                    &mut Loop {
+                        name: "USART6 PC6->PC7, CRSF 420000",
+                        uart: &mut *usart6,
+                    },
+                    &mut Loop {
+                        name: "USART1 PB6->PB7, SBUS 100000 8E2",
+                        uart: &mut *usart1,
+                    },
+                    &mut Loop {
+                        name: "USART3 PB10->PB11, MSP 115200",
+                        uart: &mut *usart3,
+                    },
+                    &mut Loop {
+                        name: "USART2 PD5->PD6, control",
+                        uart: &mut *usart2,
+                    },
                 ],
                 8 * 1024,
             ),

@@ -9,6 +9,10 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use stm32_metapac as pac;
 
+/// The chip's interrupt vectors, as numbers: what a UART reports it needs
+/// bound. Data only; FerroHAL never writes the NVIC with them.
+pub use stm32_metapac::Interrupt;
+
 use crate::{
     dma_v2::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
@@ -211,6 +215,9 @@ macro_rules! usarts {
 
             impl usart_v2::Instance for $name {
                 const KERNEL: Bus = Bus::$bus;
+                const NAME: &'static str = stringify!($name);
+                const INTERRUPT: Interrupt = Interrupt::$name;
+                const INTERRUPT_NAME: &'static str = stringify!($name);
                 fn info() -> &'static Info {
                     &$info
                 }
@@ -260,3 +267,59 @@ dma!(TxDma<USART2>: (1, 6, 4));
 dma!(RxDma<USART2>: (1, 5, 4));
 dma!(TxDma<USART6>: (2, 6, 5), (2, 7, 5));
 dma!(RxDma<USART6>: (2, 1, 5), (2, 2, 5));
+
+// The vector each DMA stream raises.
+
+macro_rules! stream_interrupts {
+    ($($dma:literal: [$($stream:literal => $vector:ident),+];)+) => {
+        $($(
+            impl crate::dma::StreamInterrupt for crate::dma::Stream<$dma, $stream> {
+                const INTERRUPT: Interrupt = Interrupt::$vector;
+                const NAME: &'static str = stringify!($vector);
+            }
+        )+)+
+    };
+}
+
+stream_interrupts!(
+    1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3,
+        4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
+    2: [0 => DMA2_STREAM0, 1 => DMA2_STREAM1, 2 => DMA2_STREAM2, 3 => DMA2_STREAM3,
+        4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
+);
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::uart::{Resource, RxWiring, Signal, Wiring};
+
+    type Usart1Bench = Wiring<
+        USART1,
+        Pin<'A', 9, Alternate<7>>,
+        Pin<'A', 10, Alternate<7>>,
+        Stream<2, 7>,
+        Stream<2, 2>,
+    >;
+
+    #[test]
+    fn wiring_describes_itself() {
+        assert_eq!(
+            Usart1Bench::RESOURCES,
+            [
+                Resource::Uart("USART1"),
+                Resource::Pin { signal: Signal::Tx, port: 'A', pin: 9, af: 7 },
+                Resource::Pin { signal: Signal::Rx, port: 'A', pin: 10, af: 7 },
+                Resource::Dma { signal: Signal::Tx, controller: 2, stream: 7, request: 4 },
+                Resource::Dma { signal: Signal::Rx, controller: 2, stream: 2, request: 4 },
+                Resource::Interrupt("USART1"),
+                Resource::Interrupt("DMA2_STREAM2"),
+                Resource::Interrupt("DMA2_STREAM7"),
+            ]
+        );
+        assert_eq!(
+            RxWiring::<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>::RESOURCES[2],
+            Resource::Dma { signal: Signal::Rx, controller: 2, stream: 1, request: 5 }
+        );
+    }
+}

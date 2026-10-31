@@ -146,6 +146,88 @@ pub struct RxWiring<U, Rx, RxDma> {
     pub rx_dma: RxDma,
 }
 
+/// One resource a UART's wiring uses, as data: for checking a board's
+/// manifest against the types that wire it (`Wiring::RESOURCES`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Resource {
+    /// The U(S)ART instance, by its reference-manual name.
+    Uart(&'static str),
+    Pin {
+        signal: Signal,
+        port: char,
+        pin: u8,
+        af: u8,
+    },
+    Dma {
+        signal: Signal,
+        controller: u8,
+        stream: u8,
+        /// The request: `dma_v2`'s channel, or `dma_v1`'s DMAMUX ID.
+        request: u8,
+    },
+    /// An interrupt vector the UART needs bound, by its name.
+    Interrupt(&'static str),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Signal {
+    Tx,
+    Rx,
+}
+
+/// The interrupt vectors a UART needs bound to its `UartIrq`, all at one
+/// priority above every task that uses the UART. From
+/// `UartIrq::interrupts`.
+#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct UartInterrupts {
+    pub line: crate::chip::Interrupt,
+    pub rx_dma: crate::chip::Interrupt,
+    /// `None` for a receive-only UART.
+    pub tx_dma: Option<crate::chip::Interrupt>,
+}
+
+/// What [`UartInterrupts::verify`] found wrong.
+#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum IrqError {
+    /// This vector is masked in the NVIC: nothing serves it.
+    NotEnabled(crate::chip::Interrupt),
+    /// These two vectors have different priorities, so one could preempt
+    /// the other in the middle of `UartIrq`'s work.
+    PriorityMismatch(crate::chip::Interrupt, crate::chip::Interrupt),
+}
+
+#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+impl UartInterrupts {
+    /// Every vector, in order: line, receive, transmit.
+    pub fn iter(&self) -> impl Iterator<Item = crate::chip::Interrupt> {
+        [Some(self.line), Some(self.rx_dma), self.tx_dma].into_iter().flatten()
+    }
+
+    /// Checks the NVIC, reading only: every vector enabled, all at one
+    /// priority. FerroHAL never sets NVIC state; this tells the firmware
+    /// whether its scheduler set it as the driver needs. That the tasks
+    /// using the UART run below this priority is for the firmware to keep.
+    pub fn verify(&self) -> Result<(), IrqError> {
+        use cortex_m::peripheral::NVIC;
+        let priority = NVIC::get_priority(self.line);
+        for vector in self.iter() {
+            if !NVIC::is_enabled(vector) {
+                return Err(IrqError::NotEnabled(vector));
+            }
+            if NVIC::get_priority(vector) != priority {
+                return Err(IrqError::PriorityMismatch(self.line, vector));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// The memory the driver's DMA uses, owned by the driver from `new` on.
 pub struct Buffers {
     /// `write` copies into this and transmits from it. 1 to 65 535 bytes.

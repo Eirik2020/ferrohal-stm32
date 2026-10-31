@@ -29,7 +29,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         device::Interrupt,
-        uart::{Config, Uart, UartIrq},
+        uart::{Config, Uart, UartInterrupts, UartIrq},
     };
 
     use crate::{
@@ -52,7 +52,9 @@ mod app {
     #[local]
     struct Local {
         uart4: Uart,
+        vectors_uart4: UartInterrupts,
         uart7: Uart,
+        vectors_uart7: UartInterrupts,
         led: board::Led,
     }
 
@@ -74,17 +76,34 @@ mod app {
         defmt::info!("run D, clocks: {}", board::CLOCKS);
 
         let mut buffers = board::dma_buffers().into_iter();
-        let (uart_uart4, irq_uart4) =
-            board::open(&mut run.rcc, "UART4 PC10->PC11", run.uart4, &PLAIN, buffers.next().unwrap());
-        let (uart_uart7, irq_uart7) =
-            board::open(&mut run.rcc, "UART7 PA15->PB3", run.uart7, &PLAIN, buffers.next().unwrap());
+        let (uart_uart4, irq_uart4) = board::open(
+            &mut run.rcc,
+            "UART4 PC10->PC11",
+            run.uart4,
+            &PLAIN,
+            buffers.next().unwrap(),
+        );
+        let (uart_uart7, irq_uart7) = board::open(
+            &mut run.rcc,
+            "UART7 PA15->PB3",
+            run.uart7,
+            &PLAIN,
+            buffers.next().unwrap(),
+        );
 
+        let vectors_uart4 = irq_uart4.interrupts();
+        let vectors_uart7 = irq_uart7.interrupts();
         checks::spawn().ok();
         (
-            Shared { irq_uart4, irq_uart7 },
+            Shared {
+                irq_uart4,
+                irq_uart7,
+            },
             Local {
                 uart4: uart_uart4,
+                vectors_uart4,
                 uart7: uart_uart7,
+                vectors_uart7,
                 led: run.led,
             },
         )
@@ -120,12 +139,22 @@ mod app {
         cx.shared.irq_uart7.on_interrupt();
     }
 
-    #[task(priority = 1, local = [uart4, uart7, led])]
+    #[task(priority = 1, local = [uart4, vectors_uart4, uart7, vectors_uart7, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         let uart4 = cx.local.uart4;
+        report.check(
+            "UART4 PC10->PC11",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_uart4),
+        );
         let uart7 = cx.local.uart7;
+        report.check(
+            "UART7 PA15->PB3",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors_uart7),
+        );
 
         tests::full_suite(
             &mut report,
@@ -137,7 +166,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),
-            &mut tests::nvic_mask_all([Interrupt::UART4, Interrupt::DMA2_STREAM1, Interrupt::DMA1_STREAM2]),
+            &mut tests::nvic_mask_all([
+                Interrupt::UART4,
+                Interrupt::DMA2_STREAM1,
+                Interrupt::DMA1_STREAM2,
+            ]),
             true,
         );
         tests::full_suite(
@@ -150,7 +183,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM3),
-            &mut tests::nvic_mask_all([Interrupt::UART7, Interrupt::DMA1_STREAM3, Interrupt::DMA2_STREAM6]),
+            &mut tests::nvic_mask_all([
+                Interrupt::UART7,
+                Interrupt::DMA1_STREAM3,
+                Interrupt::DMA2_STREAM6,
+            ]),
             true,
         );
 
@@ -159,14 +196,14 @@ mod app {
             "8 KiB each, all at once",
             tests::streams(
                 &mut [
-                &mut Loop {
-                    name: "UART4 PC10->PC11",
-                    uart: &mut *uart4,
-                },
-                &mut Loop {
-                    name: "UART7 PA15->PB3",
-                    uart: &mut *uart7,
-                },
+                    &mut Loop {
+                        name: "UART4 PC10->PC11",
+                        uart: &mut *uart4,
+                    },
+                    &mut Loop {
+                        name: "UART7 PA15->PB3",
+                        uart: &mut *uart7,
+                    },
                 ],
                 8 * 1024,
             ),

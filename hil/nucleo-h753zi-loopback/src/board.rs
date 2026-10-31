@@ -249,7 +249,10 @@ where
     (tx_pin(tx, ctrl), rx_pin(rx, ctrl))
 }
 
-fn tx_pin<const P: char, const N: u8, const F: u8>(pin: Pin<P, N>, ctrl: &mut Ctrl<P>) -> Af<P, N, F>
+fn tx_pin<const P: char, const N: u8, const F: u8>(
+    pin: Pin<P, N>,
+    ctrl: &mut Ctrl<P>,
+) -> Af<P, N, F>
 where
     Port<P>: PortInstance,
 {
@@ -258,7 +261,10 @@ where
     pin
 }
 
-fn rx_pin<const P: char, const N: u8, const F: u8>(pin: Pin<P, N>, ctrl: &mut Ctrl<P>) -> Af<P, N, F>
+fn rx_pin<const P: char, const N: u8, const F: u8>(
+    pin: Pin<P, N>,
+    ctrl: &mut Ctrl<P>,
+) -> Af<P, N, F>
 where
     Port<P>: PortInstance,
 {
@@ -282,10 +288,34 @@ pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
     Ok(RunA {
         rcc,
         led,
-        usart6: Wiring { uart: p.USART6, tx: tx6, rx: rx6, tx_dma: dma1.s6, rx_dma: dma1.s0 },
-        usart1: Wiring { uart: p.USART1, tx: tx1, rx: rx1, tx_dma: dma2.s5, rx_dma: dma2.s4 },
-        usart3: Wiring { uart: p.USART3, tx: tx3, rx: rx3, tx_dma: dma1.s3, rx_dma: dma1.s1 },
-        usart2: Wiring { uart: p.USART2, tx: tx2, rx: rx2, tx_dma: dma1.s4, rx_dma: dma1.s2 },
+        usart6: Wiring {
+            uart: p.USART6,
+            tx: tx6,
+            rx: rx6,
+            tx_dma: dma1.s6,
+            rx_dma: dma1.s0,
+        },
+        usart1: Wiring {
+            uart: p.USART1,
+            tx: tx1,
+            rx: rx1,
+            tx_dma: dma2.s5,
+            rx_dma: dma2.s4,
+        },
+        usart3: Wiring {
+            uart: p.USART3,
+            tx: tx3,
+            rx: rx3,
+            tx_dma: dma1.s3,
+            rx_dma: dma1.s1,
+        },
+        usart2: Wiring {
+            uart: p.USART2,
+            tx: tx2,
+            rx: rx2,
+            tx_dma: dma1.s4,
+            rx_dma: dma1.s2,
+        },
     })
 }
 
@@ -306,10 +336,34 @@ pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
     Ok(RunB {
         rcc,
         led,
-        uart4: Wiring { uart: p.UART4, tx: tx4, rx: rx4, tx_dma: dma1.s7, rx_dma: dma1.s5 },
-        uart5: Wiring { uart: p.UART5, tx: tx5, rx: rx5, tx_dma: dma2.s1, rx_dma: dma2.s0 },
-        uart7: Wiring { uart: p.UART7, tx: tx7, rx: rx7, tx_dma: dma2.s3, rx_dma: dma2.s2 },
-        usart3: Wiring { uart: p.USART3, tx: tx3, rx: rx3, tx_dma: dma2.s7, rx_dma: dma2.s6 },
+        uart4: Wiring {
+            uart: p.UART4,
+            tx: tx4,
+            rx: rx4,
+            tx_dma: dma1.s7,
+            rx_dma: dma1.s5,
+        },
+        uart5: Wiring {
+            uart: p.UART5,
+            tx: tx5,
+            rx: rx5,
+            tx_dma: dma2.s1,
+            rx_dma: dma2.s0,
+        },
+        uart7: Wiring {
+            uart: p.UART7,
+            tx: tx7,
+            rx: rx7,
+            tx_dma: dma2.s3,
+            rx_dma: dma2.s2,
+        },
+        usart3: Wiring {
+            uart: p.USART3,
+            tx: tx3,
+            rx: rx3,
+            tx_dma: dma2.s7,
+            rx_dma: dma2.s6,
+        },
     })
 }
 
@@ -326,8 +380,20 @@ pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
     Ok(RunC {
         rcc,
         led,
-        uart4: Wiring { uart: p.UART4, tx: tx4, rx: rx4, tx_dma: dma2.s0, rx_dma: dma2.s7 },
-        uart7: Wiring { uart: p.UART7, tx: tx7, rx: rx7, tx_dma: dma2.s5, rx_dma: dma1.s5 },
+        uart4: Wiring {
+            uart: p.UART4,
+            tx: tx4,
+            rx: rx4,
+            tx_dma: dma2.s0,
+            rx_dma: dma2.s7,
+        },
+        uart7: Wiring {
+            uart: p.UART7,
+            tx: tx7,
+            rx: rx7,
+            tx_dma: dma2.s5,
+            rx_dma: dma1.s5,
+        },
     })
 }
 
@@ -345,8 +411,20 @@ pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
     Ok(RunD {
         rcc,
         led,
-        uart4: Wiring { uart: p.UART4, tx: tx4, rx: rx4, tx_dma: dma1.s2, rx_dma: dma2.s1 },
-        uart7: Wiring { uart: p.UART7, tx: tx7, rx: rx7, tx_dma: dma2.s6, rx_dma: dma1.s3 },
+        uart4: Wiring {
+            uart: p.UART4,
+            tx: tx4,
+            rx: rx4,
+            tx_dma: dma1.s2,
+            rx_dma: dma2.s1,
+        },
+        uart7: Wiring {
+            uart: p.UART7,
+            tx: tx7,
+            rx: rx7,
+            tx_dma: dma2.s6,
+            rx_dma: dma1.s3,
+        },
     })
 }
 

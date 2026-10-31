@@ -119,6 +119,20 @@ impl<const D: u8, const N: u8> Stream<D, N> {
     }
 }
 
+impl<const D: u8, const N: u8> Stream<D, N> {
+    /// The DMA controller's number.
+    pub const CONTROLLER: u8 = D;
+    /// The stream's number on its controller.
+    pub const NUMBER: u8 = N;
+}
+
+/// The interrupt vector a stream raises. Chip facts: the glue implements
+/// it for every stream.
+pub trait StreamInterrupt {
+    const INTERRUPT: stm32_metapac::Interrupt;
+    const NAME: &'static str;
+}
+
 /// A stream token, erasable into a [`Channel`].
 pub trait StreamInstance: crate::Sealed {
     fn into_channel(self) -> Channel;

@@ -9,6 +9,10 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 use stm32_metapac as pac;
 
+/// The chip's interrupt vectors, as numbers: what a UART reports it needs
+/// bound. Data only; FerroHAL never writes the NVIC with them.
+pub use stm32_metapac::Interrupt;
+
 use crate::{
     dma_v1::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
@@ -396,6 +400,9 @@ macro_rules! usarts {
 
             impl usart_v4::Instance for $name {
                 const KERNEL: Bus = Bus::$bus;
+                const NAME: &'static str = stringify!($name);
+                const INTERRUPT: Interrupt = Interrupt::$name;
+                const INTERRUPT_NAME: &'static str = stringify!($name);
                 fn info() -> &'static Info {
                     &$info
                 }
@@ -451,6 +458,7 @@ macro_rules! dma {
             unsafe impl<const D: u8, const N: u8> RxDma<$usart> for Stream<D, N>
             where
                 Dma<D>: DmaInstance,
+                Stream<D, N>: crate::dma::StreamInterrupt,
             {
                 const REQUEST: u8 = $rx;
             }
@@ -459,6 +467,7 @@ macro_rules! dma {
             unsafe impl<const D: u8, const N: u8> TxDma<$usart> for Stream<D, N>
             where
                 Dma<D>: DmaInstance,
+                Stream<D, N>: crate::dma::StreamInterrupt,
             {
                 const REQUEST: u8 = $tx;
             }
@@ -476,3 +485,58 @@ dma!(
     UART7: rx 79, tx 80;
     UART8: rx 81, tx 82;
 );
+
+// The vector each DMA stream raises.
+
+macro_rules! stream_interrupts {
+    ($($dma:literal: [$($stream:literal => $vector:ident),+];)+) => {
+        $($(
+            impl crate::dma::StreamInterrupt for crate::dma::Stream<$dma, $stream> {
+                const INTERRUPT: Interrupt = Interrupt::$vector;
+                const NAME: &'static str = stringify!($vector);
+            }
+        )+)+
+    };
+}
+
+stream_interrupts!(
+    1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3,
+        4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
+    2: [0 => DMA2_STREAM0, 1 => DMA2_STREAM1, 2 => DMA2_STREAM2, 3 => DMA2_STREAM3,
+        4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
+);
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::uart::{Resource, Signal, Wiring};
+
+    /// The TBS Lucid H7's receiver port, as the bench wires it.
+    type Usart6Lucid = Wiring<
+        USART6,
+        Pin<'C', 6, Alternate<7>>,
+        Pin<'C', 7, Alternate<7>>,
+        Stream<1, 6>,
+        Stream<1, 0>,
+    >;
+
+    #[test]
+    fn wiring_describes_itself() {
+        assert_eq!(
+            Usart6Lucid::RESOURCES,
+            [
+                Resource::Uart("USART6"),
+                Resource::Pin { signal: Signal::Tx, port: 'C', pin: 6, af: 7 },
+                Resource::Pin { signal: Signal::Rx, port: 'C', pin: 7, af: 7 },
+                // The Lucid's manifest names these DMA1_STREAM6_CH72 and
+                // DMA1_STREAM0_CH71.
+                Resource::Dma { signal: Signal::Tx, controller: 1, stream: 6, request: 72 },
+                Resource::Dma { signal: Signal::Rx, controller: 1, stream: 0, request: 71 },
+                Resource::Interrupt("USART6"),
+                Resource::Interrupt("DMA1_STREAM0"),
+                Resource::Interrupt("DMA1_STREAM6"),
+            ]
+        );
+    }
+}

@@ -16,7 +16,8 @@ use core::sync::atomic::{AtomicU32, Ordering};
 
 use embedded_io::Write;
 use ferrohal_stm32::uart::{
-    Chunk, ChunkEnd, Config, ConfigError, Error, Parity, SendError, StopBits, Uart, UartRx, UartTx,
+    Chunk, ChunkEnd, Config, ConfigError, Error, IrqError, Parity, SendError, StopBits, Uart,
+    UartInterrupts, UartRx, UartTx,
 };
 
 /// Frames to wait for the next byte before calling the line silent.
@@ -55,6 +56,8 @@ pub enum Fail {
     /// `try_send` refused a frame it should have taken, or took one it
     /// should have refused.
     Send(SendError),
+    /// The NVIC check failed, or missed a vector masked on purpose.
+    Irq(Option<IrqError>),
     /// A chunk ended otherwise than expected: how it did end.
     Chunk {
         end: ChunkEnd,
@@ -607,7 +610,10 @@ pub fn overrun_is_a_gap(link: &mut dyn Link, ring_len: usize) -> Result<(), Fail
     delay_ms(link.settle_ms());
     let mut buf = [0u8; 64];
     let gap = next_chunk(link, &mut buf)?;
-    if gap.end != ChunkEnd::Gap(Error::BufferOverrun) || gap.len != 0 || gap.generation != generation + 1 {
+    if gap.end != ChunkEnd::Gap(Error::BufferOverrun)
+        || gap.len != 0
+        || gap.generation != generation + 1
+    {
         return Err(Fail::Chunk {
             end: gap.end,
             len: gap.len,
@@ -846,7 +852,11 @@ pub fn full_suite(
         );
     }
     report.check(name, "echo", echo(link, b"hello ferrohal\n"));
-    report.check(name, "echo, buffer-sized", echo(link, &[0xa5; 64][..tx_len.min(64)]));
+    report.check(
+        name,
+        "echo, buffer-sized",
+        echo(link, &[0xa5; 64][..tx_len.min(64)]),
+    );
     report.check(name, "stream 8 KiB", stream(link, 8 * 1024));
     report.check(name, "ring overrun reported", ring_overrun(link, ring_len));
     report.check(
@@ -864,18 +874,46 @@ pub fn full_suite(
         late_interrupt(link, ring_len, mask_rx_irq),
     );
     report.check(name, "break reported", line_break(link));
-    report.check(name, "chunks end where the line goes idle", chunks_end_at_idle(link));
-    report.check(name, "a full buffer ends a chunk", chunk_fills_the_buffer(link));
-    report.check(name, "a break ends its chunk with a gap", break_is_a_gap(link));
-    report.check(name, "a ring overrun is a gap", overrun_is_a_gap(link, ring_len));
-    report.check(name, "queued frames arrive whole and in order", frames_in_order(link, tx_len));
-    report.check(name, "the interrupt chains queued frames", frames_chain_from_the_interrupt(link, tx_len));
+    report.check(
+        name,
+        "chunks end where the line goes idle",
+        chunks_end_at_idle(link),
+    );
+    report.check(
+        name,
+        "a full buffer ends a chunk",
+        chunk_fills_the_buffer(link),
+    );
+    report.check(
+        name,
+        "a break ends its chunk with a gap",
+        break_is_a_gap(link),
+    );
+    report.check(
+        name,
+        "a ring overrun is a gap",
+        overrun_is_a_gap(link, ring_len),
+    );
+    report.check(
+        name,
+        "queued frames arrive whole and in order",
+        frames_in_order(link, tx_len),
+    );
+    report.check(
+        name,
+        "the interrupt chains queued frames",
+        frames_chain_from_the_interrupt(link, tx_len),
+    );
     report.check(
         name,
         "frames go out by polling with the vectors masked",
         frames_go_out_by_polling(link, tx_len, mask_all_irqs),
     );
-    report.check(name, "an oversized frame is refused", oversized_frame_refused(link, tx_len));
+    report.check(
+        name,
+        "an oversized frame is refused",
+        oversized_frame_refused(link, tx_len),
+    );
     report.check(
         name,
         if inversion_supported {
@@ -888,7 +926,12 @@ pub fn full_suite(
     report.check(name, "1 Mbaud", reconfigured(link, &ONE_MBAUD));
     report.check(name, "57600 8E2", reconfigured(link, &EVEN_PARITY_TWO_STOP));
     report.check(name, "back to its own frame", reconfigured(link, config));
-    defmt::info!("{=str}: health {}, transmit {}", name, link.rx().health(), link.tx().health());
+    defmt::info!(
+        "{=str}: health {}, transmit {}",
+        name,
+        link.rx().health(),
+        link.tx().health()
+    );
 }
 
 /// The HAL's per-pass cycle floor for the read loop (`uart::stream_dma`);
@@ -972,17 +1015,32 @@ pub fn wait_bounds(link: &mut dyn Link, cpu_hz: u32, baudrate: u32) -> Result<()
         match silent {
             Err(Error::Timeout) => {}
             Err(error) => return Err(error.into()),
-            Ok(len) => return Err(Fail::Mismatch { at: len, sent: 0, got: 0 }),
+            Ok(len) => {
+                return Err(Fail::Mismatch {
+                    at: len,
+                    sent: 0,
+                    got: 0,
+                });
+            }
         }
     }
     if rx_pass < RX_PASS_CYCLES || tx_pass < TX_PASS_CYCLES {
-        return Err(Fail::Bound { waited: rx_pass, floor: RX_PASS_CYCLES });
+        return Err(Fail::Bound {
+            waited: rx_pass,
+            floor: RX_PASS_CYCLES,
+        });
     }
     if counted_waited < frames_time || counted_waited > COUNTED_OVERSHOOT * frames_time {
-        return Err(Fail::Bound { waited: counted_waited, floor: frames_time });
+        return Err(Fail::Bound {
+            waited: counted_waited,
+            floor: frames_time,
+        });
     }
     if clocked_waited < frames_time || clocked_waited > frames_time * 3 / 2 {
-        return Err(Fail::Bound { waited: clocked_waited, floor: frames_time });
+        return Err(Fail::Bound {
+            waited: clocked_waited,
+            floor: frames_time,
+        });
     }
     Ok(())
 }
@@ -1070,6 +1128,22 @@ pub fn receive_only<P: embedded_hal::digital::OutputPin>(
         expect_chunk(chunk, &buf, ChunkEnd::Idle, f * len, len, generation)?;
     }
     Ok(())
+}
+
+/// The UART's vectors are enabled at one priority, as the scheduler bound
+/// them, and `verify` notices one masked on purpose.
+pub fn vectors_verified(vectors: &UartInterrupts) -> Result<(), Fail> {
+    use cortex_m::peripheral::NVIC;
+    vectors.verify().map_err(|error| Fail::Irq(Some(error)))?;
+    NVIC::mask(vectors.rx_dma);
+    let masked = vectors.verify();
+    // SAFETY: RTIC bound and unmasked this vector; it is unmasked again.
+    unsafe { NVIC::unmask(vectors.rx_dma) };
+    match masked {
+        Err(IrqError::NotEnabled(vector)) if vector == vectors.rx_dma => Ok(()),
+        Err(error) => Err(Fail::Irq(Some(error))),
+        Ok(()) => Err(Fail::Irq(None)),
+    }
 }
 
 /// A `mask_rx_irq` for [`full_suite`]: masks or unmasks `interrupt` in the

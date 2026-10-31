@@ -23,7 +23,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         gpio::{Output, Pin},
-        uart::{UartIrq, UartRx},
+        uart::{UartInterrupts, UartIrq, UartRx},
     };
 
     use crate::{
@@ -43,6 +43,7 @@ mod app {
     struct Local {
         usart6: UartRx,
         feed: Pin<'A', 11, Output>,
+        vectors6: UartInterrupts,
         led: board::Led,
     }
 
@@ -58,14 +59,17 @@ mod app {
         };
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run D, clocks: {}", board::CLOCKS);
-        let (usart6, irq6) = UartRx::new(&mut run.rcc, run.usart6, &board::SBUS_PLAIN, cx.local.rx6)
-            .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
+        let (usart6, irq6) =
+            UartRx::new(&mut run.rcc, run.usart6, &board::SBUS_PLAIN, cx.local.rx6)
+                .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
+        let vectors6 = irq6.interrupts();
         checks::spawn().ok();
         (
             Shared { irq6 },
             Local {
                 usart6,
                 feed: run.feed,
+                vectors6,
                 led: run.led,
             },
         )
@@ -81,10 +85,15 @@ mod app {
         cx.shared.irq6.on_interrupt();
     }
 
-    #[task(priority = 1, local = [usart6, feed, led])]
+    #[task(priority = 1, local = [usart6, feed, vectors6, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
+        report.check(
+            "USART6",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors6),
+        );
         report.check(
             "USART6 receive-only PA12, 100000 8E2",
             "25-byte frames, one chunk each",

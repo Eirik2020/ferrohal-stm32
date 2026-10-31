@@ -82,6 +82,14 @@ fn main() -> ! {
     rx_irq.on_interrupt();
     // The buffer check on its own, MPU walk included on the H7.
     keep(ferrohal_stm32::chip::check_dma_buffer(black_box(&[0u8; 8][..])));
+    // The interrupt requirements, checked against the NVIC, and the
+    // resource lists.
+    let vectors = irq.interrupts();
+    keep(vectors.verify());
+    keep(rx_irq.interrupts().verify());
+    vectors.iter().for_each(keep);
+    black_box(&chip::UartWiring::RESOURCES).iter().for_each(keep);
+    black_box(&chip::RxOnlyWiring::RESOURCES).iter().for_each(keep);
     irq.on_interrupt();
     irq.on_uart();
     irq.on_rx_dma();
@@ -219,6 +227,7 @@ mod chip {
     use super::Spare;
 
     pub type RxUart = USART6;
+    pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -236,7 +245,7 @@ mod chip {
         supply: Supply::V2_7To3_6,
     };
 
-    type UartWiring = Wiring<
+    pub type UartWiring = Wiring<
         USART1,
         Pin<'A', 9, Alternate<7>>,
         Pin<'A', 10, Alternate<7>>,
@@ -249,7 +258,7 @@ mod chip {
     ) -> Option<(
         Rcc,
         UartWiring,
-        RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>,
+        RxOnlyWiring,
         Spare<Stream<2, 0>>,
         Pin<'A', 5, Output>,
         Pin<'A', 0, Input>,
@@ -304,6 +313,7 @@ mod chip {
     use super::Spare;
 
     pub type RxUart = USART3;
+    pub type RxOnlyWiring = RxWiring<USART3, Pin<'B', 11, Alternate<7>>, Stream<1, 2>>;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -326,7 +336,7 @@ mod chip {
         voltage_scale: VoltageScale::Scale1,
     };
 
-    type UartWiring = Wiring<
+    pub type UartWiring = Wiring<
         USART2,
         Pin<'D', 5, Alternate<7>>,
         Pin<'D', 6, Alternate<7>>,
@@ -339,7 +349,7 @@ mod chip {
     ) -> Option<(
         Rcc,
         UartWiring,
-        RxWiring<USART3, Pin<'B', 11, Alternate<7>>, Stream<1, 2>>,
+        RxOnlyWiring,
         Spare<Stream<2, 3>>,
         Pin<'B', 0, Output>,
         Pin<'B', 1, Input>,

@@ -2,9 +2,9 @@
 
 Status as of 2026-10-31: UART over DMA runs on two chips.
 
-- **F401:** `hil/run-f401.sh` passes 73 of 73 checks across four runs.
-- **H753ZI:** `hil/run-h753.sh` passes 241 of 241 checks across five runs, with the caches off and on.
-- **Both chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac) passes.
+- **F401:** `hil/run-f401.sh` passes 80 of 80 checks across four runs.
+- **H753ZI:** `hil/run-h753.sh` passes 255 of 255 checks across five runs, with the caches off and on.
+- **Both chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
 |---|---|---|---|
@@ -71,8 +71,11 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
   - On the H753ZI, run E receives the TBS Lucid H7's SBUS case (receive-only USART1, 100000 8E2, inverted, its DMA stream) from inverted frames bit-banged on the link's other end, and the full suite checks inverted loops on every UART. On the F401, run D receives plain SBUS frames, and the refusal is checked while compiling.
 - **Medium: the frame format is limited.**
   - **Issue:** data is always 8 bits, with optional parity as a ninth. There's no 7- or 9-bit data, no RTS/CTS, no half-duplex, no RS-485 driver enable and no LIN.
-- **Medium: interrupt requirements aren't checked** (§7 hook 1, §15).
-  - **Issue:** all three of a UART's vectors must run at one priority, above every task that uses it. Nothing verifies that yet; `interrupts()` and `verify()` are still to come in step 1.
+- **Done, in part: interrupt requirements are checked** (§7 hook 1, §15).
+  - `UartIrq::interrupts()` names the vectors a UART needs (line, receive stream, and transmit stream unless receive-only). `verify()` reads the NVIC, without writing to it, and reports a vector left disabled or at a priority different from the others. Every bench firmware checks it for each UART, along with the converse: with the receive vector masked, `verify()` must name it.
+  - **Remaining:** `verify()` can't know the priorities of the tasks that use the UART, so "above every task that uses it" is still the application's job.
+- **Done: resource descriptors.**
+  - `Wiring::RESOURCES` and `RxWiring::RESOURCES` list, as `const` data, the USART, each pin with its port, number and alternate function, each DMA stream with its controller, number and request, and each interrupt vector. A board manifest (such as FerroWasp's) can be compared against them while compiling or in a host test; each chip's host test `wiring_describes_itself` checks one wiring's list.
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1).
   - **Issue:** `UartIrq` reads and clears flags but can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover** (§7 hook 5, §8 foot-gun 1).

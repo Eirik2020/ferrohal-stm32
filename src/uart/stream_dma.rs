@@ -53,15 +53,17 @@ use core::{
 };
 
 use crate::{
+    chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, FlagHandle, Flags, Interrupts, Priority, StreamInstance,
-        Transfer, WordSize,
+        Channel, Direction, FifoMode, FlagHandle, Flags, Interrupts, Priority, Stream,
+        StreamInstance, StreamInterrupt, Transfer, WordSize,
     },
+    gpio::AltPin,
     rcc::{Bus, Clocks, Rcc, RccBit},
     time::Hertz,
     uart::{
-        Buffers, Chunk, ChunkEnd, Config, ConfigError, CycleClock, Error, Health, RxWiring,
-        SendError, TxHealth, Wiring,
+        Buffers, Chunk, ChunkEnd, Config, ConfigError, CycleClock, Error, Health, Resource,
+        RxWiring, SendError, Signal, TxHealth, UartInterrupts, Wiring,
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
@@ -254,6 +256,12 @@ impl State {
 pub trait Instance: crate::Sealed + 'static {
     /// The bus whose clock is this USART's kernel clock.
     const KERNEL: Bus;
+    /// Its name in the reference manual.
+    const NAME: &'static str;
+    /// Its interrupt vector.
+    const INTERRUPT: Interrupt;
+    /// The vector's name.
+    const INTERRUPT_NAME: &'static str;
     #[doc(hidden)]
     fn info() -> &'static Info;
 }
@@ -270,7 +278,7 @@ pub trait RxPin<U: Instance>: crate::Sealed {}
 /// `REQUEST` must be the request that routes `U`'s TX to this stream
 /// (`dma_v2`: its CHSEL channel; `dma_v1`: `U`'s DMAMUX request ID): the
 /// stream writes `U`'s data register.
-pub unsafe trait TxDma<U: Instance>: StreamInstance {
+pub unsafe trait TxDma<U: Instance>: StreamInstance + StreamInterrupt {
     const REQUEST: u8;
 }
 
@@ -279,7 +287,7 @@ pub unsafe trait TxDma<U: Instance>: StreamInstance {
 /// # Safety
 ///
 /// As [`TxDma`], for `U`'s RX request.
-pub unsafe trait RxDma<U: Instance>: StreamInstance {
+pub unsafe trait RxDma<U: Instance>: StreamInstance + StreamInterrupt {
     const REQUEST: u8;
 }
 
@@ -337,6 +345,7 @@ pub struct UartIrq {
     rx_dma: FlagHandle,
     /// `None` for a receive-only UART.
     tx: Option<TxIrq>,
+    vectors: UartInterrupts,
 }
 
 /// The transmit stream, shared with [`UartTx`] under `service_tx`'s
@@ -411,7 +420,12 @@ impl Uart {
             buf: tx.buf,
             request: tx.request,
         };
-        let (rx, irq) = rx.start(config, brr, true, Some(tx_irq))?;
+        let vectors = UartInterrupts {
+            line: U::INTERRUPT,
+            rx_dma: RxD::INTERRUPT,
+            tx_dma: Some(TxD::INTERRUPT),
+        };
+        let (rx, irq) = rx.start(config, brr, true, Some(tx_irq), vectors)?;
         Ok((
             Self {
                 tx,
@@ -803,7 +817,12 @@ impl UartRx {
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
         reset(rcc, info, rx_len);
         let rx = Self::assemble(info, wiring.rx_dma.into_channel(), RxD::REQUEST, ring, frame_cycles);
-        rx.start(config, brr, false, None)
+        let vectors = UartInterrupts {
+            line: U::INTERRUPT,
+            rx_dma: RxD::INTERRUPT,
+            tx_dma: None,
+        };
+        rx.start(config, brr, false, None, vectors)
     }
 
     fn assemble(
@@ -840,6 +859,7 @@ impl UartRx {
         brr: u16,
         tx: bool,
         tx_irq: Option<TxIrq>,
+        vectors: UartInterrupts,
     ) -> Result<(Self, UartIrq), ConfigError> {
         self.info.line.write_frame(config, brr);
         self.start_ring().map_err(|_| ConfigError::DmaBusy)?;
@@ -848,6 +868,7 @@ impl UartRx {
             info: self.info,
             rx_dma: self.dma.flag_handle(),
             tx: tx_irq,
+            vectors,
         };
         Ok((self, irq))
     }
@@ -1202,6 +1223,11 @@ fn count_written(state: &State, rx_dma: &FlagHandle) -> (u32, u16) {
 }
 
 impl UartIrq {
+    /// The vectors to bind to this handle; see [`UartInterrupts::verify`].
+    pub fn interrupts(&self) -> UartInterrupts {
+        self.vectors
+    }
+
     /// Serves both the USART's and the receive stream's interrupt. Safe to
     /// call from either vector, or when neither is pending.
     pub fn on_interrupt(&mut self) {
@@ -1377,6 +1403,76 @@ fn wait(mut deadline: Deadline, mut done: impl FnMut() -> bool) -> bool {
             return done();
         }
     }
+}
+
+impl<U, TxP, RxP, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
+    Wiring<U, TxP, RxP, Stream<TD, TN>, Stream<RD, RN>>
+where
+    U: Instance,
+    TxP: TxPin<U> + AltPin,
+    RxP: RxPin<U> + AltPin,
+    Stream<TD, TN>: TxDma<U>,
+    Stream<RD, RN>: RxDma<U>,
+{
+    /// Everything this wiring uses, as data: the instance, both pins with
+    /// their alternate functions, both streams with their requests, and the
+    /// three vectors to bind (line, receive, transmit).
+    pub const RESOURCES: [Resource; 8] = [
+        Resource::Uart(U::NAME),
+        Resource::Pin {
+            signal: Signal::Tx,
+            port: TxP::PORT,
+            pin: TxP::PIN,
+            af: TxP::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Rx,
+            port: RxP::PORT,
+            pin: RxP::PIN,
+            af: RxP::AF,
+        },
+        Resource::Dma {
+            signal: Signal::Tx,
+            controller: TD,
+            stream: TN,
+            request: <Stream<TD, TN> as TxDma<U>>::REQUEST,
+        },
+        Resource::Dma {
+            signal: Signal::Rx,
+            controller: RD,
+            stream: RN,
+            request: <Stream<RD, RN> as RxDma<U>>::REQUEST,
+        },
+        Resource::Interrupt(U::INTERRUPT_NAME),
+        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::NAME),
+        Resource::Interrupt(<Stream<TD, TN> as StreamInterrupt>::NAME),
+    ];
+}
+
+impl<U, RxP, const RD: u8, const RN: u8> RxWiring<U, RxP, Stream<RD, RN>>
+where
+    U: Instance,
+    RxP: RxPin<U> + AltPin,
+    Stream<RD, RN>: RxDma<U>,
+{
+    /// Everything this receive-only wiring uses, as data.
+    pub const RESOURCES: [Resource; 5] = [
+        Resource::Uart(U::NAME),
+        Resource::Pin {
+            signal: Signal::Rx,
+            port: RxP::PORT,
+            pin: RxP::PIN,
+            af: RxP::AF,
+        },
+        Resource::Dma {
+            signal: Signal::Rx,
+            controller: RD,
+            stream: RN,
+            request: <Stream<RD, RN> as RxDma<U>>::REQUEST,
+        },
+        Resource::Interrupt(U::INTERRUPT_NAME),
+        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::NAME),
+    ];
 }
 
 impl embedded_io::ErrorType for Uart {

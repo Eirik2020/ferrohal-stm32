@@ -33,7 +33,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         device::Interrupt,
-        uart::{Buffers, Config, Uart, UartIrq},
+        uart::{Buffers, Config, Uart, UartInterrupts, UartIrq},
     };
 
     use crate::{
@@ -61,6 +61,9 @@ mod app {
         usart1: Uart,
         usart6: Uart,
         usart2: Uart,
+        vectors1: UartInterrupts,
+        vectors6: UartInterrupts,
+        vectors2: UartInterrupts,
         led: board::Led,
     }
 
@@ -116,6 +119,12 @@ mod app {
         )
         .unwrap_or_else(|error| defmt::panic!("USART2: {}", error));
 
+        let vectors1 = irq1.interrupts();
+
+        let vectors6 = irq6.interrupts();
+
+        let vectors2 = irq2.interrupts();
+
         checks::spawn().ok();
         (
             Shared { irq1, irq6, irq2 },
@@ -123,6 +132,9 @@ mod app {
                 usart1,
                 usart6,
                 usart2,
+                vectors1,
+                vectors6,
+                vectors2,
                 led: run.led,
             },
         )
@@ -173,10 +185,25 @@ mod app {
         cx.shared.irq2.on_interrupt();
     }
 
-    #[task(priority = 1, local = [usart1, usart6, usart2, led])]
+    #[task(priority = 1, local = [usart1, usart6, usart2, vectors1, vectors6, vectors2, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
+        report.check(
+            "USART1",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors1),
+        );
+        report.check(
+            "USART6",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors6),
+        );
+        report.check(
+            "USART2",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors2),
+        );
         let (usart1, usart6, usart2) = (cx.local.usart1, cx.local.usart6, cx.local.usart2);
 
         let mut loop1 = Loop {
@@ -190,7 +217,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM2),
-            &mut tests::nvic_mask_all([Interrupt::USART1, Interrupt::DMA2_STREAM2, Interrupt::DMA2_STREAM7]),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART1,
+                Interrupt::DMA2_STREAM2,
+                Interrupt::DMA2_STREAM7,
+            ]),
             false,
         );
 
@@ -205,7 +236,11 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),
-            &mut tests::nvic_mask_all([Interrupt::USART6, Interrupt::DMA2_STREAM1, Interrupt::DMA2_STREAM6]),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART6,
+                Interrupt::DMA2_STREAM1,
+                Interrupt::DMA2_STREAM6,
+            ]),
             false,
         );
 

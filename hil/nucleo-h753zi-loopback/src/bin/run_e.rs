@@ -27,7 +27,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         gpio::{Output, Pin},
-        uart::{UartIrq, UartRx},
+        uart::{UartInterrupts, UartIrq, UartRx},
     };
 
     use crate::{
@@ -49,6 +49,8 @@ mod app {
         feed1: Pin<'B', 6, Output>,
         uart7: UartRx,
         feed7: Pin<'A', 15, Output>,
+        vectors1: UartInterrupts,
+        vectors7: UartInterrupts,
         led: board::Led,
     }
 
@@ -73,8 +75,15 @@ mod app {
             buffers.next().unwrap().rx,
         )
         .unwrap_or_else(|error| defmt::panic!("USART1: {}", error));
-        let (uart7, irq7) = UartRx::new(&mut run.rcc, run.uart7, &board::MSP, buffers.next().unwrap().rx)
-            .unwrap_or_else(|error| defmt::panic!("UART7: {}", error));
+        let (uart7, irq7) = UartRx::new(
+            &mut run.rcc,
+            run.uart7,
+            &board::MSP,
+            buffers.next().unwrap().rx,
+        )
+        .unwrap_or_else(|error| defmt::panic!("UART7: {}", error));
+        let vectors1 = irq1.interrupts();
+        let vectors7 = irq7.interrupts();
         checks::spawn().ok();
         (
             Shared { irq1, irq7 },
@@ -83,6 +92,8 @@ mod app {
                 feed1: run.feed1,
                 uart7,
                 feed7: run.feed7,
+                vectors1,
+                vectors7,
                 led: run.led,
             },
         )
@@ -108,10 +119,20 @@ mod app {
         cx.shared.irq7.on_interrupt();
     }
 
-    #[task(priority = 1, local = [usart1, feed1, uart7, feed7, led])]
+    #[task(priority = 1, local = [usart1, feed1, uart7, feed7, vectors1, vectors7, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
+        report.check(
+            "USART1",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors1),
+        );
+        report.check(
+            "UART7",
+            "vectors enabled at one priority",
+            tests::vectors_verified(cx.local.vectors7),
+        );
         // The feed sends what the Lucid's receiver would: inverted frames.
         let sbus_feed = board::SBUS.with_inverted_tx(true);
         report.check(
