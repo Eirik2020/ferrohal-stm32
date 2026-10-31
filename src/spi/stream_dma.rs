@@ -447,7 +447,9 @@ impl Spi {
         // on: the next start reports it as `Error::Dma`.
         let _ = self.tx.stop(STOP_SPINS);
         let _ = self.rx.stop(STOP_SPINS);
-        self.info.unit.reset_state();
+        // Two frames in flight at most; a register read per spin, at least
+        // a cycle each, so this bound covers them twice over.
+        self.info.unit.reset_state(self.sck_cycles.saturating_mul(32));
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);

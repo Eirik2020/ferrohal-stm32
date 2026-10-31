@@ -4,16 +4,16 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-10-31:
 
-- **F401:** `hil/run-f401.sh` passes 80 of 80 checks across four runs (run A from HSE).
-- **H753ZI:** `hil/run-h753.sh` passes 255 of 255 checks across five runs, caches off and on (run A from HSE).
+- **F401:** `hil/run-f401.sh` passes 140 of 140 checks across seven runs: UART (A to D, A from HSE), SPI and EXTI (E to G).
+- **H753ZI:** `hil/run-h753.sh` passes 333 of 333 checks across eight runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H).
 - **F405RG, H743VI:** build, glue checked against metapac, values checked against their docs. Not yet run on hardware.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
 |---|---|---|---|
-| STM32F401RE | Nucleo-F401RE | `usart_v2`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 DMA routes. USART2 through a host echo on the ST-LINK VCP. |
+| STM32F401RE | Nucleo-F401RE | `usart_v2`, `spi_v2`, `exti_v1`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 USART DMA routes; USART2 through a host echo on the ST-LINK VCP. All three SPIs on all 15 pin entries and all 10 SPI DMA routes. EXTI on PA12 and on every SPI SCK pin. |
 | STM32F405RG | Foxeer F405 V2 | as the F401 | Not yet. |
-| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). |
+| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
 | STM32H743VI | TBS Lucid H7 | as the H753ZI | Not as its own build; same die as the H753ZI. |
 
 Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp). **Medium** is a gap someone will hit soon. **Low** is cleanup, or a limit worth knowing. Section numbers (§) refer to `ferrohal-architecture.md`.
@@ -38,6 +38,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: line-error positions are approximate.** A mark sits where DMA had written to when the interrupt ran, so the damaged byte is the chunk's last or near it. A full mark queue (16 marks between reads) reports the error without a position.
 - **Low: counted-wait floors are measurements** (`RX_PASS_CYCLES` 224, `TX_PASS_CYCLES` 48). Without a `CycleClock`, waits run 2.5–7 times long. The HIL check "counted and clocked waits within their bounds" must pass on every new chip.
 - **Low: the no-panic check proves only the paths it calls.** A new public function must be added to `checks/no-panic`.
+- **Low: the SPI's counted-wait floor is a guess.** `PASS_CYCLES` (8) is set low so a blocking SPI wait without a `CycleClock` is never short, not measured as the UART's were; such a wait can run well past its bound before reporting `Timeout`.
 
 ### API gaps
 
@@ -50,12 +51,16 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: `verify()` can't check task priorities.** It checks the UART's vectors are enabled at one priority; "above every task that uses it" stays the application's job.
 - **Low: `set_config` exists only on the whole `Uart`;** after `split()` the frame can't change. `Uart::halves()` lends both halves meanwhile.
 - **Low: parts of the DMA API are untested:** double buffering (`Transfer::double_buffer`, `set_idle_buffer`, `current_target`), FIFO threshold mode, and `Channel::start` used directly.
+- **Medium: the SPI is master, full duplex, 8-bit only.** No slave mode, simplex or half-duplex, 16-bit frames, hardware NSS or CRC.
+- **Low: SPI bit order is unchecked on hardware.** A MOSI-to-MISO loop returns the bytes whichever bit goes first, so `BitOrder::LsbFirst` is only shown to transfer.
+- **Low: EXTI covers GPIO lines 0 to 15 only,** as interrupts: no event mode (EMR), and none of the internal lines (PVD, RTC, USB wake-up and the like).
+- **Low: EXTI owns the whole SYSCFG token.** It needs only EXTICR, but SYSCFG also holds the H7's I/O compensation cell and the F4's memory remap, which later drivers will want.
 - **Low: FIFO errors are advisory.** On the TX stream they're cleared and ignored (FerroWasp's policy); on the RX ring they're `DmaOverrun`. Confirm both on hardware.
 
 ### Architecture and process
 
-- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (17 facts on the F401, 29 on the F405, 39 on each H7) by reading the rows as text, so their layout must stay as it is.
-- **Medium: two source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`; [uart/stream_dma.rs](src/uart/stream_dma.rs) serves `usart_v2` and `usart_v4`. Decide whether a module's hash covers shared sources, or split once they diverge.
+- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ART and SPI: 26 facts on the F401, 38 on the F405, 51 on the H743, 54 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
+- **Medium: four source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Medium: requirements tooling is missing** (§9): no `requirements.yaml`, schema, requirement IDs or publish tool.
 - **Low: kernel clock equals bus clock.** True on F4; on H7 only because `freeze` forces the kernel muxes. Add a kernel-clock field to `Info` before offering other muxes.
@@ -63,7 +68,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 ### GPIO
 
 - **Medium: `split()` doesn't know the package.** It hands out all 16 pins on every port the register map has, bonded or not (see each chip's package below). Fix: a per-package pin list in the glue.
-- **Low: missing GPIO features:** open-drain, EXTI, runtime mode switching.
+- **Low: missing GPIO features:** open-drain, runtime mode switching.
 
 ### Test harness (`hil/`)
 
@@ -106,7 +111,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: limits are the lowest common denominator:** the wide VCO is capped at 836 MHz (rev Y, DS12117 table 39 / DS12110 table 40) though rev V allows 960 MHz. Detect the revision if the headroom matters.
 - **Medium: LDO only, and PWR_CR3 is written once per power-on reset.** If something already locked another configuration, `freeze` returns `SupplyTimeout`.
 - **Medium: much of the clock tree isn't offered:** PLL2, PLL3, fractional mode, CSI, HSI48, HSIDIV other than 1, TIMPRE.
-- **Medium: kernel clock muxes are forced** (USART16910SEL = PCLK2, USART234578SEL = PCLK1).
+- **Medium: kernel clock muxes are forced** (USART16910SEL = PCLK2, USART234578SEL = PCLK1, SPI123SEL = PLL1Q, SPI45SEL = PCLK2). SPI1 to SPI3 can't be opened without PLL1's Q output.
 - **Low: no IO compensation cell** (SYSCFG CCCSR); needed for fast GPIO above about 50 MHz.
 - **Low: wait-state tables are transcribed** (RM0433 table 17), checked once against embassy and the manual.
 - **Low: HSE with a crystal is untested;** only bypass has run.
@@ -115,6 +120,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 - **Medium: no LPUART1:** `Lpuart` registers (20-bit BRR), D3 domain, DMA through DMAMUX2 and the BDMA.
 - **Medium: only DMA1 and DMA2:** no BDMA (LPUART1, SPI6) and no MDMA.
+- **Low: the bench's SPI checks run with the caches off,** as the Lucid does; the UART runs cover the D-cache with DMA buffers in non-cacheable memory, the SPI runs don't.
 - **Low: hardware FIFOs unused** (`FIFOEN` off).
 - **Low: DMAMUX overruns aren't watched** (CSR SOFx); ES0392 2.5.1 says writing CFR doesn't assert them anyway.
 - **Low: phantom pins:** ports I to K are handed out though LQFP144 doesn't bond them; port H only has PH0, PH1.

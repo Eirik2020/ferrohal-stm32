@@ -15,6 +15,11 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 - **Chip glue holds facts only.** Shared shapes (tokens, `Peripherals`, pin rows, stream vectors) are macros in `src/chips/shared/macros.rs`; what the RM0433 chips share (clock limits, DMA-reachable RAM, MPU walk) is `src/chips/shared/h7.rs`.
 - **Routing tables are checked** against metapac by `tools/check_glue.py` (planted errors in AF, stream, RCC bit, DMAMUX request, extra pin or DMAMUX base all fail it).
 - **The crate is in git** (its own repository, `ferrohal-stm32/`).
+- **SPI master over DMA** (`spi_v2`, `spi_v4`, one engine). `start`/`on_interrupt`/`poll`/`received`/`abort`, a bounded blocking `transfer` and `embedded_hal::spi::SpiBus`; the receive stream's vector only. On hardware: every SPI pin entry and SPI DMA route on the F401, SPI1 to SPI5 on the H753ZI's Zio pins, each with loopback by interrupt and by polling, `SpiBus`, refusals, all four modes with SCK idling at CPOL, 8 SCK edges per byte counted by EXTI on the SCK pin, transfer time against the reported SCK, and abort then a clean transfer.
+  - Found on the bench: `spi_v4` set MASTER with SSI still 0, so a mode fault cleared MASTER and no H7 transfer ran; SSI is now set first. `spi_v2` (SPE stays on) left the frames in flight at an abort to land in DR, so the next transfer received a stale byte first; `reset_state` now waits for the bus to go idle before draining DR.
+  - Errata applied: ES0299 2.11.1 / ES0182 2.12.1 (SPE stays on, F4); ES0392 2.22.2 (SPE per transfer), 2.22.5 (CRCSIZE 7), 2.22.6 (one SCK held after EOT) on the H7.
+- **EXTI** (`exti_v1`, `exti_h7`, one source): typed line tokens, `Ctrl` owning the shared registers, routing without taking the pin, a `Copy` handle for handlers. On hardware: rising, falling and both edges, masked lines, software trigger and level reads on both boards. A masked line doesn't latch its edges (RM0368 10.2.4, RM0433 20.3.1; the first doc said otherwise and the F401 corrected it).
+- **Shared types:** `resource::{Resource, Signal, IrqError}` for every driver (`Resource::Uart` became `Resource::Peripheral`), `time::CycleClock`, and the bounded waits in `wait`.
 
 ## STM32F401RE
 

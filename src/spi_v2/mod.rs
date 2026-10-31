@@ -105,12 +105,20 @@ impl Unit {
         });
     }
 
-    /// After a stopped or failed transfer: requests off, any byte left in DR
-    /// read out, any overrun cleared. A mode fault drops MSTR and SPE; put
-    /// them back.
-    pub(crate) fn reset_state(self) {
+    /// After a stopped or failed transfer: requests off, then up to `spins`
+    /// register reads for the frames already in the SPI (the one shifting,
+    /// the one in its buffer) to finish, since the SPI stays enabled; then
+    /// the byte they left in DR read out, so the next transfer doesn't
+    /// receive it first, and any overrun cleared. A mode fault drops MSTR
+    /// and SPE; put them back.
+    pub(crate) fn reset_state(self, spins: u32) {
         let regs = self.0;
         self.end();
+        for _ in 0..spins {
+            if self.done() {
+                break;
+            }
+        }
         let _ = regs.dr().read();
         let sr = regs.sr().read();
         if sr.modf() {

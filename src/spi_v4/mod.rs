@@ -123,7 +123,7 @@ impl Unit {
 
     /// After a stopped or failed transfer: disabling resets the SPI's state
     /// and flushes its FIFOs. A mode fault drops MASTER; put it back.
-    pub(crate) fn reset_state(self) {
+    pub(crate) fn reset_state(self, _spins: u32) {
         let regs = self.0;
         let modf = regs.sr().read().modf();
         self.end();
