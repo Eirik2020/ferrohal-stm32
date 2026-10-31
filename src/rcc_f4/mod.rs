@@ -11,6 +11,10 @@
 //! The regulator scale (PWR VOS) is not written. The chips enabled so far
 //! reach their maximum clock in the scale they reset to; a chip that needs
 //! another scale must add it here, checked against its reference manual.
+//!
+//! The limits and the flash wait-state rule are ported from embassy-stm32
+//! 0.6.0's `rcc/f247.rs` (MIT OR Apache-2.0, Embassy project contributors).
+//! See `THIRD-PARTY.md`.
 
 use stm32_metapac::{
     FLASH, RCC as RCC_REGS,

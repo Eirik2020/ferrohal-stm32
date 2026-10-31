@@ -13,6 +13,10 @@
 //!
 //! Limits are the ones both silicon revisions (Y and V) meet, from DS12117
 //! and RM0433: VOS0 (480 MHz, rev V only) is not offered.
+//!
+//! Ported in part from embassy-stm32 0.6.0's `rcc/h.rs` (MIT OR
+//! Apache-2.0, Embassy project contributors): the power-up order, the PLL
+//! programming and the flash table. See `THIRD-PARTY.md`.
 
 use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,
