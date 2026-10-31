@@ -375,6 +375,38 @@ impl Channel {
         }
     }
 
+    /// Turns the stream's interrupts on or off. Allowed while it runs: the
+    /// reference manuals protect most of CR while EN is set, but not the
+    /// interrupt enables, nor FCR's FEIE.
+    pub fn set_interrupts(&mut self, interrupts: Interrupts) {
+        let st = self.regs.st(stream_index(self.index));
+        st.cr().modify(|w| {
+            w.set_tcie(interrupts.complete);
+            w.set_htie(interrupts.half);
+            w.set_teie(interrupts.error);
+            w.set_dmeie(interrupts.error);
+        });
+        st.fcr().modify(|w| w.set_feie(interrupts.fifo_error));
+    }
+
+    /// A second handle on this stream, for a driver whose task and
+    /// interrupt both start transfers.
+    ///
+    /// # Safety
+    ///
+    /// The two handles must never use the stream at the same time; the
+    /// driver's own protocol has to guarantee it.
+    pub(crate) unsafe fn alias(&self) -> Channel {
+        Channel {
+            regs: self.regs,
+            index: self.index,
+            #[cfg(feature = "dma_v1")]
+            mux: self.mux,
+            #[cfg(feature = "dma_v1")]
+            mux_channel: self.mux_channel,
+        }
+    }
+
     /// Tells the stream to stop. It finishes the word in flight first;
     /// [`is_running`](Self::is_running) turns false once it has.
     pub fn request_stop(&mut self) {

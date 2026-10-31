@@ -16,7 +16,7 @@ use core::sync::atomic::{AtomicU32, Ordering};
 
 use embedded_io::Write;
 use ferrohal_stm32::uart::{
-    Chunk, ChunkEnd, Config, ConfigError, Error, Parity, StopBits, Uart, UartRx, UartTx,
+    Chunk, ChunkEnd, Config, ConfigError, Error, Parity, SendError, StopBits, Uart, UartRx, UartTx,
 };
 
 /// Frames to wait for the next byte before calling the line silent.
@@ -52,6 +52,9 @@ pub enum Fail {
     NotReported(Error),
     /// A configuration that must be refused was accepted.
     NotRefused(ConfigError),
+    /// `try_send` refused a frame it should have taken, or took one it
+    /// should have refused.
+    Send(SendError),
     /// A chunk ended otherwise than expected: how it did end.
     Chunk {
         end: ChunkEnd,
@@ -299,7 +302,11 @@ impl Progress {
             for (offset, byte) in chunk[..len].iter_mut().enumerate() {
                 *byte = pattern(self.sent + offset);
             }
-            let written = link.tx().try_write(&chunk[..len])?;
+            let written = match link.tx().try_send(&chunk[..len]) {
+                Ok(()) => len,
+                Err(SendError::Full) => 0,
+                Err(SendError::TooLarge | SendError::Halted) => return Err(Error::Halted.into()),
+            };
             self.sent += written;
             moved |= written > 0;
         }
@@ -614,6 +621,103 @@ pub fn overrun_is_a_gap(link: &mut dyn Link, ring_len: usize) -> Result<(), Fail
     echo(link, b"after the overrun gap")
 }
 
+/// Frame lengths for the transmit checks: varied, so frames wrap the
+/// transmit ring at different points.
+const FRAME_LENS: [usize; 7] = [17, 40, 5, 33, 64, 9, 26];
+
+/// Queues frames of the pattern from `start` with `try_send` until the
+/// queue refuses one, without waiting. Returns how many bytes went in.
+fn queue_frames(link: &mut dyn Link, start: usize, tx_len: usize) -> Result<usize, Fail> {
+    let mut frame = [0u8; 64];
+    let mut queued = 0;
+    for len in FRAME_LENS.iter().copied().cycle().take(32) {
+        let len = len.min(tx_len).min(frame.len());
+        for (offset, byte) in frame[..len].iter_mut().enumerate() {
+            *byte = pattern(start + queued + offset);
+        }
+        match link.tx().try_send(&frame[..len]) {
+            Ok(()) => queued += len,
+            Err(SendError::Full) => break,
+            Err(error) => return Err(Fail::Send(error)),
+        }
+    }
+    Ok(queued)
+}
+
+/// Frames queued back to back, more than one transfer's worth, arrive whole
+/// and in order, and the count of frames sent follows.
+pub fn frames_in_order(link: &mut dyn Link, tx_len: usize) -> Result<(), Fail> {
+    drain(link);
+    let sent = link.tx().health().sent;
+    let queued = queue_frames(link, 0, tx_len)?;
+    if link.tx().queued() < 2 {
+        return Err(Fail::Silent { missing: queued });
+    }
+    let frames = link.tx().queued() as u32;
+    link.tx().flush()?;
+    expect_pattern(link, 0, queued)?;
+    if link.tx().health().sent < sent + frames {
+        return Err(Fail::Silent { missing: queued });
+    }
+    Ok(())
+}
+
+/// With nothing calling the transmit half after the frames are queued, the
+/// transmit stream's interrupt alone starts each next frame.
+pub fn frames_chain_from_the_interrupt(link: &mut dyn Link, tx_len: usize) -> Result<(), Fail> {
+    drain(link);
+    let queued = queue_frames(link, 0, tx_len)?;
+    // Hands off the transmit half: only the interrupt can move the queue.
+    delay_ms(link.settle_ms().max(2 * queued as u32 / 10 + 5));
+    if link.tx().queued() != 0 {
+        return Err(Fail::Silent { missing: queued });
+    }
+    expect_pattern(link, 0, queued)
+}
+
+/// With all of the UART's vectors masked, only the first frame goes on its
+/// own; polling sends the rest. Every vector serves the transmit queue, so
+/// all three are masked.
+pub fn frames_go_out_by_polling(
+    link: &mut dyn Link,
+    tx_len: usize,
+    mask_all_irqs: &mut dyn FnMut(bool),
+) -> Result<(), Fail> {
+    drain(link);
+    mask_all_irqs(true);
+    let result = (|| {
+        let queued = queue_frames(link, 0, tx_len)?;
+        let waiting = link.tx().queued();
+        delay_ms(link.settle_ms().max(2 * queued as u32 / 10 + 5));
+        // The first frame went; the queue could not move past it.
+        if waiting < 2 || link.tx().queued() == 0 {
+            return Err(Fail::NotReported(Error::Timeout));
+        }
+        // Polling alone moves it. Under a ring of bytes arrives meanwhile,
+        // which the reader counts with the receive vector masked.
+        link.tx().flush()?;
+        Ok(queued)
+    })();
+    mask_all_irqs(false);
+    expect_pattern(link, 0, result?)
+}
+
+/// A frame longer than the transmit buffer is refused outright, and the
+/// link carries on.
+pub fn oversized_frame_refused(link: &mut dyn Link, tx_len: usize) -> Result<(), Fail> {
+    drain(link);
+    let big = [0u8; 300];
+    if tx_len >= big.len() {
+        return Ok(());
+    }
+    match link.tx().try_send(&big[..tx_len + 1]) {
+        Err(SendError::TooLarge) => {}
+        Err(error) => return Err(Fail::Send(error)),
+        Ok(()) => return Err(Fail::Send(SendError::TooLarge)),
+    }
+    echo(link, b"after the oversized frame")
+}
+
 /// Sends a break, which the receiver sees as a frame with no stop bit: it
 /// must be reported as a framing error, and the link must recover.
 pub fn line_break(link: &mut dyn Link) -> Result<(), Fail> {
@@ -691,7 +795,8 @@ fn restore(cross: &mut Cross) -> Result<(), Fail> {
 
 /// Every check a jumpered loop can take, starting from the frame the link
 /// was opened with, `config`, and ending back on it. `mask_rx_irq` masks
-/// (`true`) or unmasks (`false`) the link's receive DMA vector in the NVIC.
+/// (`true`) or unmasks (`false`) the link's receive DMA vector in the NVIC;
+/// `mask_all_irqs` all three of its vectors (line, receive, transmit).
 pub fn full_suite(
     report: &mut Report,
     link: &mut dyn Configurable,
@@ -699,6 +804,7 @@ pub fn full_suite(
     ring_len: usize,
     tx_len: usize,
     mask_rx_irq: &mut dyn FnMut(bool),
+    mask_all_irqs: &mut dyn FnMut(bool),
 ) {
     let name = link.name();
     let (bytes, errors) = drain(link);
@@ -733,10 +839,18 @@ pub fn full_suite(
     report.check(name, "a full buffer ends a chunk", chunk_fills_the_buffer(link));
     report.check(name, "a break ends its chunk with a gap", break_is_a_gap(link));
     report.check(name, "a ring overrun is a gap", overrun_is_a_gap(link, ring_len));
+    report.check(name, "queued frames arrive whole and in order", frames_in_order(link, tx_len));
+    report.check(name, "the interrupt chains queued frames", frames_chain_from_the_interrupt(link, tx_len));
+    report.check(
+        name,
+        "frames go out by polling with the vectors masked",
+        frames_go_out_by_polling(link, tx_len, mask_all_irqs),
+    );
+    report.check(name, "an oversized frame is refused", oversized_frame_refused(link, tx_len));
     report.check(name, "1 Mbaud", reconfigured(link, &ONE_MBAUD));
     report.check(name, "57600 8E2", reconfigured(link, &EVEN_PARITY_TWO_STOP));
     report.check(name, "back to its own frame", reconfigured(link, config));
-    defmt::info!("{=str}: health {}", name, link.rx().health());
+    defmt::info!("{=str}: health {}, transmit {}", name, link.rx().health(), link.tx().health());
 }
 
 /// The HAL's per-pass cycle floor for the read loop (`uart::stream_dma`);
@@ -845,6 +959,23 @@ pub fn nvic_mask<I: cortex_m::interrupt::InterruptNumber>(interrupt: I) -> impl 
             // SAFETY: the vector's handler was bound by RTIC, which had it
             // unmasked before this check masked it.
             unsafe { cortex_m::peripheral::NVIC::unmask(interrupt) };
+        }
+    }
+}
+
+/// A `mask_all_irqs` for [`full_suite`]: masks or unmasks each of
+/// `interrupts` in the NVIC.
+pub fn nvic_mask_all<I: cortex_m::interrupt::InterruptNumber, const N: usize>(
+    interrupts: [I; N],
+) -> impl FnMut(bool) {
+    move |masked| {
+        for interrupt in interrupts {
+            if masked {
+                cortex_m::peripheral::NVIC::mask(interrupt);
+            } else {
+                // SAFETY: as `nvic_mask`.
+                unsafe { cortex_m::peripheral::NVIC::unmask(interrupt) };
+            }
         }
     }
 }

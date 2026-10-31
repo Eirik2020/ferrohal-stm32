@@ -16,10 +16,10 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `USART6`, `DMA1_STREAM0` | USART6 PC6->PC7's `UartIrq` | 2 |
-//! | `USART1`, `DMA2_STREAM4` | USART1 PB6->PB7's `UartIrq` | 2 |
-//! | `USART3`, `DMA1_STREAM1` | USART3 PB10->PB11's `UartIrq` | 2 |
-//! | `USART2`, `DMA1_STREAM2` | USART2 PD5->PD6's `UartIrq` | 2 |
+//! | `USART6`, `DMA1_STREAM0`, `DMA1_STREAM6` | USART6 PC6->PC7's `UartIrq` | 2 |
+//! | `USART1`, `DMA2_STREAM4`, `DMA2_STREAM5` | USART1 PB6->PB7's `UartIrq` | 2 |
+//! | `USART3`, `DMA1_STREAM1`, `DMA1_STREAM3` | USART3 PB10->PB11's `UartIrq` | 2 |
+//! | `USART2`, `DMA1_STREAM2`, `DMA1_STREAM4` | USART2 PD5->PD6's `UartIrq` | 2 |
 //! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
 #![no_std]
@@ -135,6 +135,11 @@ mod app {
         cx.shared.irq_usart6.on_interrupt();
     }
 
+    #[task(binds = DMA1_STREAM6, priority = 2, shared = [irq_usart6])]
+    fn usart6_tx(cx: usart6_tx::Context) {
+        cx.shared.irq_usart6.on_interrupt();
+    }
+
     #[task(binds = USART1, priority = 2, shared = [irq_usart1])]
     fn usart1_line(cx: usart1_line::Context) {
         cx.shared.irq_usart1.on_interrupt();
@@ -142,6 +147,11 @@ mod app {
 
     #[task(binds = DMA2_STREAM4, priority = 2, shared = [irq_usart1])]
     fn usart1_rx(cx: usart1_rx::Context) {
+        cx.shared.irq_usart1.on_interrupt();
+    }
+
+    #[task(binds = DMA2_STREAM5, priority = 2, shared = [irq_usart1])]
+    fn usart1_tx(cx: usart1_tx::Context) {
         cx.shared.irq_usart1.on_interrupt();
     }
 
@@ -155,6 +165,11 @@ mod app {
         cx.shared.irq_usart3.on_interrupt();
     }
 
+    #[task(binds = DMA1_STREAM3, priority = 2, shared = [irq_usart3])]
+    fn usart3_tx(cx: usart3_tx::Context) {
+        cx.shared.irq_usart3.on_interrupt();
+    }
+
     #[task(binds = USART2, priority = 2, shared = [irq_usart2])]
     fn usart2_line(cx: usart2_line::Context) {
         cx.shared.irq_usart2.on_interrupt();
@@ -162,6 +177,11 @@ mod app {
 
     #[task(binds = DMA1_STREAM2, priority = 2, shared = [irq_usart2])]
     fn usart2_rx(cx: usart2_rx::Context) {
+        cx.shared.irq_usart2.on_interrupt();
+    }
+
+    #[task(binds = DMA1_STREAM4, priority = 2, shared = [irq_usart2])]
+    fn usart2_tx(cx: usart2_tx::Context) {
         cx.shared.irq_usart2.on_interrupt();
     }
 
@@ -184,6 +204,7 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM0),
+            &mut tests::nvic_mask_all([Interrupt::USART6, Interrupt::DMA1_STREAM0, Interrupt::DMA1_STREAM6]),
         );
         tests::full_suite(
             &mut report,
@@ -195,6 +216,7 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM4),
+            &mut tests::nvic_mask_all([Interrupt::USART1, Interrupt::DMA2_STREAM4, Interrupt::DMA2_STREAM5]),
         );
         tests::full_suite(
             &mut report,
@@ -206,6 +228,7 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM1),
+            &mut tests::nvic_mask_all([Interrupt::USART3, Interrupt::DMA1_STREAM1, Interrupt::DMA1_STREAM3]),
         );
         tests::full_suite(
             &mut report,
@@ -217,6 +240,7 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM2),
+            &mut tests::nvic_mask_all([Interrupt::USART2, Interrupt::DMA1_STREAM2, Interrupt::DMA1_STREAM4]),
         );
 
         report.check(

@@ -70,6 +70,7 @@ fn main() -> ! {
     irq.on_interrupt();
     irq.on_uart();
     irq.on_rx_dma();
+    irq.on_tx_dma();
 
     // The DMA API, on a stream the UART does not use.
     let mut channel = spare.take_channel();
@@ -115,7 +116,11 @@ fn exercise_uart(uart: &mut Uart) {
     let mut buf = [0u8; 32];
     let data = black_box(&[0x55u8; 40][..]);
     keep(uart.tx().write(data));
-    keep(uart.tx().try_write(data));
+    // The transmit queue.
+    keep(uart.tx().try_send(data));
+    uart.tx().poll();
+    keep(uart.tx().queued());
+    keep(uart.tx().health());
     keep(uart.tx().flush());
     keep(uart.tx().is_idle());
     keep(uart.tx().send_break());

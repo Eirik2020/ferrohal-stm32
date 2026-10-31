@@ -49,7 +49,7 @@
 
 use core::{
     ptr,
-    sync::atomic::{AtomicU8, AtomicU32, Ordering, fence},
+    sync::atomic::{AtomicBool, AtomicU8, AtomicU32, Ordering, fence},
 };
 
 use crate::{
@@ -60,8 +60,10 @@ use crate::{
     rcc::{Rcc, RccBit},
     time::Hertz,
     uart::{
-        Buffers, Chunk, ChunkEnd, Config, ConfigError, CycleClock, Error, Health, Wiring,
+        Buffers, Chunk, ChunkEnd, Config, ConfigError, CycleClock, Error, Health, SendError,
+        TxHealth, Wiring,
         ring::{self, Mark, MarkKind, MarkQueue, Take},
+        tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
     usart::{Line, Regs},
 };
@@ -130,6 +132,51 @@ struct State {
     /// errors when `marks` was full.
     errors: AtomicU8,
     counts: Counts,
+    tx: TxState,
+}
+
+/// The transmit queue, shared by `UartTx` and `UartIrq`.
+struct TxState {
+    frames: FrameQueue,
+    /// The transmit half is servicing the queue; `UartIrq` only masks the
+    /// stream's interrupts and sets `deferred`.
+    servicing: AtomicBool,
+    /// `UartIrq` masked the stream while the transmit half was servicing:
+    /// the half services again before it lets go.
+    deferred: AtomicBool,
+    /// The frame at the queue's head is in flight.
+    running: AtomicBool,
+    /// The stream did not stop or start; transmission is off for good.
+    halted: AtomicBool,
+    errors: AtomicU8,
+    sent: AtomicU32,
+    dma_errors: AtomicU32,
+}
+
+impl TxState {
+    const fn new() -> Self {
+        Self {
+            frames: FrameQueue::new(),
+            servicing: AtomicBool::new(false),
+            deferred: AtomicBool::new(false),
+            running: AtomicBool::new(false),
+            halted: AtomicBool::new(false),
+            errors: AtomicU8::new(0),
+            sent: AtomicU32::new(0),
+            dma_errors: AtomicU32::new(0),
+        }
+    }
+
+    fn reset(&self) {
+        self.frames.clear();
+        self.servicing.store(false, Ordering::Relaxed);
+        self.deferred.store(false, Ordering::Relaxed);
+        self.running.store(false, Ordering::Relaxed);
+        self.halted.store(false, Ordering::Relaxed);
+        self.errors.store(0, Ordering::Relaxed);
+        self.sent.store(0, Ordering::Relaxed);
+        self.dma_errors.store(0, Ordering::Relaxed);
+    }
 }
 
 /// Fault counts kept by the interrupt side.
@@ -198,6 +245,7 @@ impl State {
             marks: MarkQueue::new(),
             errors: AtomicU8::new(0),
             counts: Counts::new(),
+            tx: TxState::new(),
         }
     }
 }
@@ -243,18 +291,16 @@ pub struct Uart {
     cpu: Hertz,
 }
 
-/// The transmit half.
+/// The transmit half: a queue of whole frames in the transmit buffer.
 pub struct UartTx {
     info: &'static Info,
     dma: Channel,
     request: u8,
     buf: *mut u8,
     cap: u16,
-    /// Bytes in the transfer now running, while `busy`.
-    in_flight: u16,
-    busy: bool,
-    /// The stream did not stop; transmission is off for good.
-    halted: bool,
+    /// Where the last queued frame ends. Written only by this half.
+    write: u16,
+    timeouts: u32,
     frame_cycles: u32,
     clock: Option<&'static dyn CycleClock>,
 }
@@ -281,16 +327,26 @@ pub struct UartRx {
 }
 
 /// The interrupt side: call [`on_interrupt`](Self::on_interrupt) from the
-/// USART's vector and the receive stream's vector.
+/// USART's vector, the receive stream's vector and, to chain transmit
+/// frames from the interrupt, the transmit stream's vector. All three must
+/// run at one priority, above every task that uses the UART.
 pub struct UartIrq {
     info: &'static Info,
     rx_dma: FlagHandle,
+    /// The transmit stream, shared with [`UartTx`] under `service_tx`'s
+    /// protocol.
+    tx_dma: Channel,
+    tx_buf: *mut u8,
+    tx_request: u8,
 }
 
 // SAFETY: each half is the only owner of its buffer, its stream and the
 // registers it writes; moving it to another context moves that ownership.
+// `UartIrq` shares the transmit stream and buffer with `UartTx` only under
+// `service_tx`'s protocol.
 unsafe impl Send for UartTx {}
 unsafe impl Send for UartRx {}
+unsafe impl Send for UartIrq {}
 
 impl Uart {
     /// Configures the USART and both DMA streams, and starts reception.
@@ -338,15 +394,15 @@ impl Uart {
         state.errors.store(0, Ordering::Relaxed);
         state.counts.reset();
 
+        state.tx.reset();
         let mut tx = UartTx {
             info,
             dma: wiring.tx_dma.into_channel(),
             request: TxD::REQUEST,
             buf: buffers.tx.as_mut_ptr(),
             cap: tx_len,
-            in_flight: 0,
-            busy: false,
-            halted: false,
+            write: 0,
+            timeouts: 0,
             frame_cycles,
             clock: None,
         };
@@ -369,7 +425,8 @@ impl Uart {
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
-        tx.stop_stream().map_err(|_| ConfigError::DmaBusy)?;
+        tx.dma.stop(STOP_SPINS).map_err(|_| ConfigError::DmaBusy)?;
+        tx.dma.clear_flags(Flags::ALL);
         info.line.write_frame(config, brr);
         rx.start_ring().map_err(|_| ConfigError::DmaBusy)?;
         // The receiver last, so no byte arrives before the ring is ready.
@@ -378,6 +435,10 @@ impl Uart {
         let irq = UartIrq {
             info,
             rx_dma: rx.dma.flag_handle(),
+            // SAFETY: shared with `tx` under `service_tx`'s protocol.
+            tx_dma: unsafe { tx.dma.alias() },
+            tx_buf: tx.buf,
+            tx_request: tx.request,
         };
         Ok((
             Self {
@@ -444,37 +505,114 @@ impl Uart {
 }
 
 impl UartTx {
-    /// Starts sending as much of `data` as fits the transmit buffer, waiting
-    /// first for the previous transfer. Returns how many bytes it took.
-    pub fn write(&mut self, data: &[u8]) -> Result<usize, Error> {
-        if self.halted {
-            return Err(Error::Halted);
+    /// Queues `frame` whole, or not at all, and starts it if the line is
+    /// free. Frames go out in order, back to back.
+    ///
+    /// With the transmit stream's vector bound to [`UartIrq::on_interrupt`],
+    /// each finished frame starts the next from the interrupt. Without it,
+    /// queued frames move on only when this half is called: `try_send`,
+    /// [`poll`](Self::poll), `write` or `flush`.
+    pub fn try_send(&mut self, frame: &[u8]) -> Result<(), SendError> {
+        if self.halted() {
+            return Err(SendError::Halted);
         }
+        if frame.is_empty() {
+            return Ok(());
+        }
+        let len = u16::try_from(frame.len())
+            .ok()
+            .filter(|&len| len <= self.cap)
+            .ok_or(SendError::TooLarge)?;
+        self.poll();
+        let tx = &self.info.state.tx;
+        if tx.frames.len() >= FRAMES {
+            return Err(SendError::Full);
+        }
+        let oldest = tx.frames.peek().map(|frame| frame.offset);
+        let offset = tx_ring::place(self.write, oldest, self.cap, len).ok_or(SendError::Full)?;
+        // SAFETY: `place` found `offset..offset + len` inside the buffer and
+        // outside every queued frame, so neither DMA nor the service reads
+        // it until the frame is pushed below.
+        unsafe {
+            ptr::copy_nonoverlapping(frame.as_ptr(), self.buf.add(usize::from(offset)), frame.len())
+        };
+        // The bytes land before the frame is visible to the service.
+        fence(Ordering::SeqCst);
+        tx.frames.push(Frame { offset, len });
+        self.write = offset + len;
+        self.poll();
+        Ok(())
+    }
+
+    /// Finishes the frame in flight if it is done and starts the next. Only
+    /// needed with the transmit stream's vector unbound.
+    pub fn poll(&mut self) {
+        let tx = &self.info.state.tx;
+        loop {
+            // Every write to the stream happens with `servicing` set: an
+            // interrupt then only masks the stream (and says so), never
+            // starts a transfer between this half's read and write of CR.
+            tx.servicing.store(true, Ordering::SeqCst);
+            tx.deferred.store(false, Ordering::SeqCst);
+            self.dma.set_interrupts(Interrupts::default());
+            service_tx(self.info, &mut self.dma, self.buf, self.request);
+            // A completion not yet seen raises the interrupt once unmasked.
+            self.dma.set_interrupts(TX_INTERRUPTS);
+            tx.servicing.store(false, Ordering::SeqCst);
+            // An interrupt that came meanwhile masked the stream again and
+            // left its work here: service once more.
+            if !tx.deferred.load(Ordering::SeqCst) {
+                return;
+            }
+        }
+    }
+
+    /// Starts sending as much of `data` as fits as one frame, waiting first
+    /// for room. Returns how many bytes it took.
+    pub fn write(&mut self, data: &[u8]) -> Result<usize, Error> {
+        self.take_error()?;
         if data.is_empty() {
             return Ok(0);
         }
-        self.wait_idle()?;
-        self.start(data)
+        let mut deadline = Deadline::new(self.clock, self.budget(self.cap), TX_PASS_CYCLES);
+        loop {
+            let tx = &self.info.state.tx;
+            let oldest = tx.frames.peek().map(|frame| frame.offset);
+            let room = if tx.frames.len() < FRAMES {
+                tx_ring::largest(self.write, oldest, self.cap)
+            } else {
+                0
+            };
+            let len = data.len().min(usize::from(room));
+            if len > 0 {
+                return match self.try_send(&data[..len]) {
+                    Ok(()) => Ok(len),
+                    Err(SendError::Halted) => Err(Error::Halted),
+                    // Room was just measured, and only this half fills it.
+                    Err(SendError::Full | SendError::TooLarge) => Err(Error::Halted),
+                };
+            }
+            self.poll();
+            self.take_error()?;
+            if deadline.expired() {
+                return self.time_out();
+            }
+        }
     }
 
-    /// As [`write`](Self::write), but returns `Ok(0)` instead of waiting
-    /// when a transfer is still running.
-    pub fn try_write(&mut self, data: &[u8]) -> Result<usize, Error> {
-        if self.halted {
-            return Err(Error::Halted);
-        }
-        if data.is_empty() || !self.poll_idle()? {
-            return Ok(0);
-        }
-        self.start(data)
-    }
-
-    /// Waits until every byte written has left the wire.
+    /// Waits until every queued frame has left the wire.
     pub fn flush(&mut self) -> Result<(), Error> {
-        if self.halted {
-            return Err(Error::Halted);
+        let mut deadline = Deadline::new(self.clock, self.budget(self.cap), TX_PASS_CYCLES);
+        loop {
+            self.poll();
+            self.take_error()?;
+            if self.info.state.tx.frames.len() == 0 {
+                break;
+            }
+            if deadline.expired() {
+                return self.time_out();
+            }
         }
-        self.wait_idle()?;
         let line = self.info.line;
         let deadline = Deadline::new(self.clock, self.budget(1), REGISTER_PASS_CYCLES);
         if wait(deadline, || line.tc()) {
@@ -484,12 +622,26 @@ impl UartTx {
         }
     }
 
-    /// Whether a write would start at once.
+    /// Whether every queued frame has gone.
     pub fn is_idle(&mut self) -> Result<bool, Error> {
-        if self.halted {
-            return Err(Error::Halted);
+        self.poll();
+        self.take_error()?;
+        Ok(self.info.state.tx.frames.len() == 0)
+    }
+
+    /// Frames queued, the one in flight included.
+    pub fn queued(&self) -> usize {
+        self.info.state.tx.frames.len()
+    }
+
+    /// Frames sent, DMA errors and timeouts since the UART was opened.
+    pub fn health(&self) -> TxHealth {
+        let tx = &self.info.state.tx;
+        TxHealth {
+            sent: tx.sent.load(Ordering::Relaxed),
+            dma_errors: tx.dma_errors.load(Ordering::Relaxed),
+            timeouts: self.timeouts,
         }
-        self.poll_idle()
     }
 
     /// Sends a break: the line held low for a frame and more.
@@ -517,93 +669,135 @@ impl UartTx {
             .saturating_mul(2)
     }
 
-    fn start(&mut self, data: &[u8]) -> Result<usize, Error> {
-        let len = data.len().min(usize::from(self.cap));
-        // SAFETY: `buf` is this half's own buffer of `cap` bytes, and the
-        // stream is stopped, so nothing else reads or writes it.
-        unsafe { ptr::copy_nonoverlapping(data.as_ptr(), self.buf, len) };
-        self.info.line.clear_tc();
-        let transfer = Transfer {
-            request: self.request,
-            #[cfg(feature = "dma_v1")]
-            bufferable: true,
-            direction: Direction::MemoryToPeripheral,
-            peripheral: self.info.line.tx_address(),
-            memory: self.buf as u32,
-            double_buffer: None,
-            len: len as u16,
-            size: WordSize::Byte,
-            memory_increment: true,
-            circular: false,
-            priority: Priority::Medium,
-            fifo: FifoMode::Direct,
-            interrupts: Interrupts::default(),
-        };
-        // SAFETY: the buffer is this half's, `len` fits it, and it is not
-        // touched again until `poll_idle` has seen the stream finish or
-        // `stop_stream` has stopped it. The routing trait vouched for the
-        // request.
-        unsafe { self.dma.start(&transfer) }.map_err(|_| Error::Halted)?;
-        self.busy = true;
-        self.in_flight = len as u16;
-        Ok(len)
+    fn halted(&self) -> bool {
+        self.info.state.tx.halted.load(Ordering::Acquire)
     }
 
-    /// Whether the last transfer has finished, reporting how it ended.
-    fn poll_idle(&mut self) -> Result<bool, Error> {
-        if !self.busy {
-            return Ok(true);
-        }
-        let flags = self.dma.flags();
-        if flags.transfer_error || flags.direct_mode_error {
-            self.busy = false;
-            self.stop_stream()?;
-            return Err(if flags.transfer_error {
-                Error::DmaTransfer
-            } else {
-                Error::DmaOverrun
-            });
-        }
-        if flags.fifo_error {
-            // Advisory in direct mode: the transfer carries on.
-            self.dma.clear_flags(Flags {
-                fifo_error: true,
-                ..Flags::default()
-            });
-        }
-        if flags.complete && !self.dma.is_running() {
-            self.dma.clear_flags(Flags::ALL);
-            self.busy = false;
-            return Ok(true);
-        }
-        Ok(false)
-    }
-
-    fn wait_idle(&mut self) -> Result<(), Error> {
-        let mut deadline = Deadline::new(self.clock, self.budget(self.in_flight), TX_PASS_CYCLES);
-        loop {
-            if self.poll_idle()? {
-                return Ok(());
-            }
-            if deadline.expired() {
-                break;
-            }
-        }
-        if self.poll_idle()? {
-            return Ok(());
-        }
-        self.busy = false;
-        self.stop_stream()?;
-        Err(Error::Timeout)
-    }
-
-    fn stop_stream(&mut self) -> Result<(), Error> {
-        if self.dma.stop(STOP_SPINS).is_err() {
-            self.halted = true;
+    /// The oldest transmit error not yet reported.
+    fn take_error(&mut self) -> Result<(), Error> {
+        if self.halted() {
             return Err(Error::Halted);
         }
-        self.dma.clear_flags(Flags::ALL);
+        let errors = &self.info.state.tx.errors;
+        let pending = errors.load(Ordering::Acquire);
+        for (bit, error) in [
+            (ERR_DMA_TRANSFER, Error::DmaTransfer),
+            (ERR_DMA_OVERRUN, Error::DmaOverrun),
+        ] {
+            if pending & bit != 0 {
+                errors.fetch_and(!bit, Ordering::AcqRel);
+                return Err(error);
+            }
+        }
         Ok(())
+    }
+
+    /// A frame did not finish in time: stop the stream, drop the queue.
+    fn time_out<T>(&mut self) -> Result<T, Error> {
+        self.timeouts = self.timeouts.wrapping_add(1);
+        let tx = &self.info.state.tx;
+        tx.servicing.store(true, Ordering::SeqCst);
+        self.dma.set_interrupts(Interrupts::default());
+        let stopped = self.dma.stop(STOP_SPINS).is_ok();
+        self.dma.clear_flags(Flags::ALL);
+        tx.frames.clear();
+        tx.running.store(false, Ordering::Release);
+        if stopped {
+            self.dma.set_interrupts(TX_INTERRUPTS);
+        } else {
+            tx.halted.store(true, Ordering::Release);
+        }
+        tx.servicing.store(false, Ordering::SeqCst);
+        if stopped {
+            Err(Error::Timeout)
+        } else {
+            Err(Error::Halted)
+        }
+    }
+}
+
+/// The transmit stream's interrupts: a frame done, or a DMA error. A FIFO
+/// error is advisory in direct mode and only cleared.
+const TX_INTERRUPTS: Interrupts = Interrupts {
+    complete: true,
+    half: false,
+    error: true,
+    fifo_error: false,
+};
+
+/// Finishes the frame in flight if it is done, and starts the next.
+///
+/// Called by the transmit half (with `servicing` set) or by [`UartIrq`]
+/// (only while `servicing` is clear), never both at once: the interrupt
+/// does nothing but mask the stream while `servicing` is set, and is never
+/// preempted by the task.
+fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
+    let tx = &info.state.tx;
+    if tx.running.load(Ordering::Acquire) {
+        let flags = dma.flags();
+        if flags.transfer_error || flags.direct_mode_error {
+            if dma.stop(STOP_SPINS).is_err() {
+                tx.halted.store(true, Ordering::Release);
+            }
+            dma.clear_flags(Flags::ALL);
+            tx.frames.pop();
+            tx.running.store(false, Ordering::Release);
+            tx.dma_errors.fetch_add(1, Ordering::Relaxed);
+            let bit = if flags.transfer_error {
+                ERR_DMA_TRANSFER
+            } else {
+                ERR_DMA_OVERRUN
+            };
+            tx.errors.fetch_or(bit, Ordering::Release);
+        } else if flags.complete && !dma.is_running() {
+            dma.clear_flags(Flags::ALL);
+            tx.frames.pop();
+            tx.running.store(false, Ordering::Release);
+            tx.sent.fetch_add(1, Ordering::Relaxed);
+        } else {
+            if flags.fifo_error {
+                dma.clear_flags(Flags {
+                    fifo_error: true,
+                    ..Flags::default()
+                });
+            }
+            return;
+        }
+    }
+    if tx.halted.load(Ordering::Acquire) {
+        return;
+    }
+    let Some(frame) = tx.frames.peek() else {
+        return;
+    };
+    info.line.clear_tc();
+    let transfer = Transfer {
+        request,
+        #[cfg(feature = "dma_v1")]
+        bufferable: true,
+        direction: Direction::MemoryToPeripheral,
+        peripheral: info.line.tx_address(),
+        // SAFETY (of the address): the frame lies inside the buffer.
+        memory: buf.wrapping_add(usize::from(frame.offset)) as u32,
+        double_buffer: None,
+        len: frame.len,
+        size: WordSize::Byte,
+        memory_increment: true,
+        circular: false,
+        priority: Priority::Medium,
+        fifo: FifoMode::Direct,
+        interrupts: TX_INTERRUPTS,
+    };
+    // SAFETY: the frame's bytes are in the transmit buffer, written before
+    // the frame was queued and untouched until it is popped, after the
+    // stream has finished with it. The routing trait vouched for the
+    // request.
+    match unsafe { dma.start(&transfer) } {
+        Ok(()) => tx.running.store(true, Ordering::Release),
+        Err(_) => {
+            // Still enabled: a stop that never took. Fail closed.
+            tx.halted.store(true, Ordering::Release);
+        }
     }
 }
 
@@ -963,6 +1157,23 @@ impl UartIrq {
     pub fn on_interrupt(&mut self) {
         self.on_rx_dma();
         self.on_uart();
+        self.on_tx_dma();
+    }
+
+    /// The transmit stream's vector: finishes the frame that went and
+    /// starts the next.
+    pub fn on_tx_dma(&mut self) {
+        // The task is servicing: it finishes the job and unmasks after. A
+        // transfer it started may have unmasked the stream already, and a
+        // completion pending with the stream unmasked would fire again on
+        // every return, so mask here before leaving it to the task.
+        let tx = &self.info.state.tx;
+        if tx.servicing.load(Ordering::SeqCst) {
+            self.tx_dma.set_interrupts(Interrupts::default());
+            tx.deferred.store(true, Ordering::SeqCst);
+            return;
+        }
+        service_tx(self.info, &mut self.tx_dma, self.tx_buf, self.tx_request);
     }
 
     /// The USART vector: marks where the line went idle and where line
@@ -1134,7 +1345,11 @@ impl embedded_io::Write for UartTx {
 
 impl embedded_io::WriteReady for UartTx {
     fn write_ready(&mut self) -> Result<bool, Error> {
-        self.is_idle()
+        self.poll();
+        self.take_error()?;
+        let tx = &self.info.state.tx;
+        let oldest = tx.frames.peek().map(|frame| frame.offset);
+        Ok(tx.frames.len() < FRAMES && tx_ring::largest(self.write, oldest, self.cap) > 0)
     }
 }
 
@@ -1169,7 +1384,7 @@ impl embedded_io::Write for Uart {
 
 impl embedded_io::WriteReady for Uart {
     fn write_ready(&mut self) -> Result<bool, Error> {
-        self.tx.is_idle()
+        embedded_io::WriteReady::write_ready(&mut self.tx)
     }
 }
 

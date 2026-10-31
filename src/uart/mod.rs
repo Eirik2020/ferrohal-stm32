@@ -22,6 +22,8 @@ use core::fmt;
 mod ring;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub(crate) mod stream_dma;
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+mod tx_ring;
 
 #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
 pub use crate::usart::{Uart, UartIrq, UartRx, UartTx};
@@ -140,6 +142,30 @@ pub struct Health {
     /// merges two chunks; a lost error mark is still reported, without its
     /// position.
     pub marks_lost: u32,
+}
+
+/// Why `UartTx::try_send` did not queue a frame. Nothing was queued.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum SendError {
+    /// No room for the whole frame now; retry once frames have gone.
+    Full,
+    /// Longer than the transmit buffer: it can never fit.
+    TooLarge,
+    /// A transmit DMA stream did not stop or start; transmission is off.
+    Halted,
+}
+
+/// How the transmit half has fared since the UART was opened.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct TxHealth {
+    /// Frames that left the wire.
+    pub sent: u32,
+    /// Frames lost to a DMA error.
+    pub dma_errors: u32,
+    /// Times the queue did not drain within its bound and was dropped.
+    pub timeouts: u32,
 }
 
 /// Why `Uart::new` or `set_config` refused a configuration. Apart from

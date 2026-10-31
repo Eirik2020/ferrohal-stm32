@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 out = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "hil" / "nucleo-h753zi-loopback" / "src" / "bin"
 
-# run, summary lines, uarts: (field, label, line vector, rx dma vector, config expr)
+# run, summary lines, uarts: (field, label, line vector, rx dma vector, tx dma vector, config expr)
 RUNS = {
     "a": (
         [
@@ -29,10 +29,10 @@ RUNS = {
             "four must stream at once again.",
         ],
         [
-            ("usart6", "USART6 PC6->PC7, CRSF 420000", "USART6", "DMA1_STREAM0", "CRSF"),
-            ("usart1", "USART1 PB6->PB7, SBUS 100000 8E2", "USART1", "DMA2_STREAM4", "SBUS"),
-            ("usart3", "USART3 PB10->PB11, MSP 115200", "USART3", "DMA1_STREAM1", "MSP"),
-            ("usart2", "USART2 PD5->PD6, control", "USART2", "DMA1_STREAM2", "MSP"),
+            ("usart6", "USART6 PC6->PC7, CRSF 420000", "USART6", "DMA1_STREAM0", "DMA1_STREAM6", "CRSF"),
+            ("usart1", "USART1 PB6->PB7, SBUS 100000 8E2", "USART1", "DMA2_STREAM4", "DMA2_STREAM5", "SBUS"),
+            ("usart3", "USART3 PB10->PB11, MSP 115200", "USART3", "DMA1_STREAM1", "DMA1_STREAM3", "MSP"),
+            ("usart2", "USART2 PD5->PD6, control", "USART2", "DMA1_STREAM2", "DMA1_STREAM4", "MSP"),
         ],
     ),
     "b": (
@@ -40,10 +40,10 @@ RUNS = {
          "the DMA streams run A leaves free. The full check list on each, then",
          "all four streaming at once."],
         [
-            ("uart4", "UART4 PB9->PB8", "UART4", "DMA1_STREAM5", "PLAIN"),
-            ("uart5", "UART5 PC12->PD2", "UART5", "DMA2_STREAM0", "PLAIN"),
-            ("uart7", "UART7 PF7->PF6", "UART7", "DMA2_STREAM2", "PLAIN"),
-            ("usart3", "USART3 PC10->PC11", "USART3", "DMA2_STREAM6", "PLAIN"),
+            ("uart4", "UART4 PB9->PB8", "UART4", "DMA1_STREAM5", "DMA1_STREAM7", "PLAIN"),
+            ("uart5", "UART5 PC12->PD2", "UART5", "DMA2_STREAM0", "DMA2_STREAM1", "PLAIN"),
+            ("uart7", "UART7 PF7->PF6", "UART7", "DMA2_STREAM2", "DMA2_STREAM3", "PLAIN"),
+            ("usart3", "USART3 PC10->PC11", "USART3", "DMA2_STREAM6", "DMA2_STREAM7", "PLAIN"),
         ],
     ),
     "c": (
@@ -52,8 +52,8 @@ RUNS = {
          "streaming at once. (UART5's PB13 would belong here, but this board",
          "does not route it to the Zio header.)"],
         [
-            ("uart4", "UART4 PD1->PD0", "UART4", "DMA2_STREAM7", "PLAIN"),
-            ("uart7", "UART7 PE8->PE7", "UART7", "DMA1_STREAM5", "PLAIN"),
+            ("uart4", "UART4 PD1->PD0", "UART4", "DMA2_STREAM7", "DMA2_STREAM0", "PLAIN"),
+            ("uart7", "UART7 PE8->PE7", "UART7", "DMA1_STREAM5", "DMA2_STREAM5", "PLAIN"),
         ],
     ),
     "d": (
@@ -61,8 +61,8 @@ RUNS = {
          "its JTAG pins, PA15 and PB3. The full check list on each, then both",
          "streaming at once."],
         [
-            ("uart4", "UART4 PC10->PC11", "UART4", "DMA2_STREAM1", "PLAIN"),
-            ("uart7", "UART7 PA15->PB3", "UART7", "DMA1_STREAM3", "PLAIN"),
+            ("uart4", "UART4 PC10->PC11", "UART4", "DMA2_STREAM1", "DMA1_STREAM2", "PLAIN"),
+            ("uart7", "UART7 PA15->PB3", "UART7", "DMA1_STREAM3", "DMA2_STREAM6", "PLAIN"),
         ],
     ),
 }
@@ -70,14 +70,14 @@ RUNS = {
 for run, (summary, uarts) in RUNS.items():
     doc = "\n".join(f"//! {l}".rstrip() for l in summary)
     table = "\n".join(
-        f"//! | `{line}`, `{dma}` | {label.split(',')[0]}'s `UartIrq` | 2 |"
-        for _, label, line, dma, _ in uarts
+        f"//! | `{line}`, `{dma}`, `{txdma}` | {label.split(',')[0]}'s `UartIrq` | 2 |"
+        for _, label, line, dma, txdma, _ in uarts
     )
     shared = "\n".join(f"        #[lock_free]\n        irq_{f}: UartIrq," for f, *_ in uarts)
     local_uarts = "\n".join(f"        {f}: Uart," for f, *_ in uarts)
     opens = "\n".join(
         f"        let (uart_{f}, irq_{f}) =\n            board::open(&mut run.rcc, \"{label}\", run.{f}, &{cfg}, buffers.next().unwrap());"
-        for f, label, _, _, cfg in uarts
+        for f, label, _, _, _, cfg in uarts
     )
     shared_init = ", ".join(f"irq_{f}" for f, *_ in uarts)
     local_init = "\n".join(f"                {f}: uart_{f}," for f, *_ in uarts)
@@ -90,8 +90,13 @@ for run, (summary, uarts) in RUNS.items():
     #[task(binds = {dma}, priority = 2, shared = [irq_{f}])]
     fn {f}_rx(cx: {f}_rx::Context) {{
         cx.shared.irq_{f}.on_interrupt();
+    }}
+
+    #[task(binds = {txdma}, priority = 2, shared = [irq_{f}])]
+    fn {f}_tx(cx: {f}_tx::Context) {{
+        cx.shared.irq_{f}.on_interrupt();
     }}"""
-        for f, label, line, dma, cfg in uarts
+        for f, label, line, dma, txdma, cfg in uarts
     )
     fields = ", ".join(f for f, *_ in uarts)
     suites = "\n".join(
@@ -105,8 +110,9 @@ for run, (summary, uarts) in RUNS.items():
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::{dma}),
+            &mut tests::nvic_mask_all([Interrupt::{line}, Interrupt::{dma}, Interrupt::{txdma}]),
         );"""
-        for f, label, line, dma, cfg in uarts
+        for f, label, line, dma, txdma, cfg in uarts
     )
     together_name = " + ".join(label.split(" ")[0] for _, label, *_ in uarts)
     links = "\n".join(
@@ -139,7 +145,7 @@ for run, (summary, uarts) in RUNS.items():
                 {cfg}.baudrate,
             ),
         );"""
-        for f, label, line, dma, cfg in uarts
+        for f, label, line, dma, txdma, cfg in uarts
     )
     if run == "a":
         local_extra = "        scb: SCB,\n        cpuid: CPUID,\n"

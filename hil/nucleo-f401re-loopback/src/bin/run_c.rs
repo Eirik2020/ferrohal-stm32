@@ -4,7 +4,7 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `USART6`, `DMA2_STREAM1` | USART6's `UartIrq` | 2 |
+//! | `USART6`, `DMA2_STREAM1`, `DMA2_STREAM7` | USART6's `UartIrq` | 2 |
 //! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
 #![no_std]
@@ -31,7 +31,7 @@ mod app {
     };
 
     const RX_RING: usize = 256;
-    const TX_BUFFER: usize = 64;
+    const TX_BUFFER: usize = 256;
 
     #[shared]
     struct Shared {
@@ -91,6 +91,11 @@ mod app {
         cx.shared.irq6.on_interrupt();
     }
 
+    #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq6])]
+    fn usart6_tx(cx: usart6_tx::Context) {
+        cx.shared.irq6.on_interrupt();
+    }
+
     #[task(priority = 1, local = [usart6, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
@@ -105,6 +110,7 @@ mod app {
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),
+            &mut tests::nvic_mask_all([Interrupt::USART6, Interrupt::DMA2_STREAM1, Interrupt::DMA2_STREAM7]),
         );
         let led = cx.local.led;
         tests::finish(&report, || led.set_high());

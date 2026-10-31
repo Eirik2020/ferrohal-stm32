@@ -2,8 +2,8 @@
 
 Status as of 2026-10-31: UART over DMA runs on two chips.
 
-- **F401:** `hil/run-f401.sh` passes 57 of 57 checks across three runs.
-- **H753ZI:** `hil/run-h753.sh` passes 179 of 179 checks across four runs, with the caches off and on.
+- **F401:** `hil/run-f401.sh` passes 69 of 69 checks across three runs.
+- **H753ZI:** `hil/run-h753.sh` passes 227 of 227 checks across four runs, with the caches off and on.
 - **Both chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
@@ -37,9 +37,8 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 - **Medium: the v2 parity-error clear sequence isn't followed.**
   - **Issue:** RM0368 says to wait for RXNE before clearing PE. The driver clears PE at once.
   - **Fix:** follow the manual's sequence, or confirm on hardware that clearing early is harmless.
-- **Medium: TX DMA errors are reported late.**
-  - **Issue:** a transfer error on a write shows up in the *next* `write` or `flush`. The call that started the transfer has already returned `Ok`.
-  - **Fix:** document it, or add a TX DMA interrupt path through `UartIrq`.
+- **Low: transmit DMA errors are reported after the frame was queued.**
+  - **Issue:** `try_send` returns once a frame is queued; a DMA error on it shows in `TxHealth`, and as an error from the next `write` or `flush`.
 - **Done: errors keep their place in the stream.**
   - The interrupt records each line error, and each idle line, as a mark at its ring position. `try_read` returns the bytes before an error first, and the error on the next call. `read_chunk` ends the chunk the error struck with `ChunkEnd::Gap`.
   - **Limit:** a line error's position is where DMA had written to when the interrupt ran, so the damaged byte is the chunk's last or near it, not identified exactly. A full mark queue (16 marks between reads) reports the error without a position.
@@ -53,9 +52,10 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 
 ### API gaps
 
-- **High: FerroWasp's transmit model is not there yet** (§11, §15).
-  - **Done for receive:** the ring never stops; `read_chunk` gives idle-ended, buffer-full and gap-ended chunks, with a generation counter and a `Health` snapshot. That is what FerroWasp's `UartRxDmaTransfer` needs, by copy.
-  - **Issue:** transmit is still one polled transfer at a time. FerroWasp needs queued, frame-atomic sends completed by the transmit DMA interrupt. Next in step 1.
+- **Done: FerroWasp's transfer model, natively** (§11, §15).
+  - **Receive:** the ring never stops; `read_chunk` gives idle-ended, buffer-full and gap-ended chunks, with a generation counter and a `Health` snapshot. That is what FerroWasp's `UartRxDmaTransfer` needs, by copy.
+  - **Transmit:** `try_send` queues whole frames (up to 8, contiguous in the transmit buffer); the transmit DMA interrupt chains them, or polling does when its vector is unbound. `TxHealth` counts frames sent, DMA errors and timeouts.
+  - **Protocol:** the task and `UartIrq` share the transmit stream. Every write to it by the task happens with `servicing` set; an interrupt that finds it set only masks the stream and leaves the work to the task, which services again before it lets go. The first versions of this hung (an interrupt storm) and lost frames (a read-modify-write of CR racing a transfer start); both were found on the bench and fixed.
   - The compatibility adapter is built at swap time, as a `TRANSITION:` item (§15).
 - **Medium: `Uart::new` drops its tokens on error.**
   - **Issue:** if `new` fails, the pin, stream and USART tokens are consumed.
@@ -67,6 +67,8 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
   - **Fix:** document `read_within` as the form to use in FerroForge tasks.
 - **Medium: the frame format is limited.**
   - **Issue:** data is always 8 bits, with optional parity as a ninth. There's no 7- or 9-bit data, no RTS/CTS, no half-duplex, no RS-485 driver enable, no LIN and no idle-line event.
+- **Medium: interrupt requirements aren't checked** (§7 hook 1, §15).
+  - **Issue:** all three of a UART's vectors must run at one priority, above every task that uses it. Nothing verifies that yet; `interrupts()` and `verify()` are still to come in step 1.
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1).
   - **Issue:** `UartIrq` reads and clears flags but can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover** (§7 hook 5, §8 foot-gun 1).

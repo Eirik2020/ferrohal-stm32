@@ -26,8 +26,11 @@ step() {
 for chip in "${chips[@]}"; do
     step "clippy ($chip)" \
         cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit" -- -D warnings
+    # From its own directory: cargo reads .cargo/config.toml from where it
+    # runs, and without that package's link.x the linker can discard
+    # everything, panics included, and pass for nothing.
     step "no reachable panic ($chip)" \
-        cargo build --release --manifest-path "$root/checks/no-panic/Cargo.toml" --features "$chip"
+        bash -c 'cd "$1" && cargo build --release --features "$2" 2>&1 | grep -q "warning: linker stderr" && exit 1; cd "$1" && cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
 done
 step "glue matches stm32-metapac metadata" python3 -I "$root/tools/check_glue.py"
 host=$(rustc -vV | sed -n 's/^host: //p')

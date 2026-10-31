@@ -326,7 +326,7 @@ pub fn caches_on(scb: &mut cortex_m::peripheral::SCB, cpuid: &mut cortex_m::peri
     scb.enable_dcache(cpuid);
 }
 
-pub const TX_BUFFER: usize = 64;
+pub const TX_BUFFER: usize = 256;
 pub const RX_RING: usize = 256;
 /// The most UARTs one run opens.
 const UARTS: usize = 4;

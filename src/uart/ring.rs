@@ -144,7 +144,7 @@ pub(crate) enum Take {
     /// `len` bytes, the caller's whole buffer, with no mark among them.
     Full { len: u32 },
     /// The mark at the head of the queue is stale (an earlier run of the
-    /// ring) or lies before the read position: drop it and look again.
+    /// ring) or lies behind the read position: drop it and look again.
     Drop,
 }
 
@@ -157,17 +157,22 @@ pub(crate) fn plan(read: u32, written: u32, room: u32, mark: Option<Mark>, epoch
             return Take::Drop;
         }
         let len = mark.at.wrapping_sub(read);
-        // A mark behind the read position wraps to a huge distance.
-        if len > available {
+        // A mark behind the read position wraps to a distance past half the
+        // count's range; drop it.
+        if len > u32::MAX / 2 {
             return Take::Drop;
         }
-        if len <= room {
-            return Take::ToMark {
-                len,
-                kind: mark.kind,
-            };
+        if len <= available {
+            if len <= room {
+                return Take::ToMark {
+                    len,
+                    kind: mark.kind,
+                };
+            }
+            return Take::Full { len: room };
         }
-        return Take::Full { len: room };
+        // Ahead of where DMA had written when the caller looked: recorded
+        // since. Keep it; read as if no mark had come yet.
     }
     if room > 0 && available >= room {
         Take::Full { len: room }
@@ -278,9 +283,15 @@ mod tests {
         // Behind the read position (after a resync).
         let behind = mark(5, MarkKind::Idle);
         assert_eq!(plan(20, 30, 64, Some(behind), 1), Take::Drop);
-        // Ahead of what DMA has written: from before a restart.
+    }
+
+    #[test]
+    fn plan_keeps_a_mark_recorded_after_the_write_count_was_read() {
+        // DMA was at 30 when the reader looked; the interrupt has since
+        // marked 50. The mark stays for the next read.
         let ahead = mark(50, MarkKind::Idle);
-        assert_eq!(plan(0, 30, 64, Some(ahead), 1), Take::Drop);
+        assert_eq!(plan(0, 30, 64, Some(ahead), 1), Take::Wait);
+        assert_eq!(plan(0, 30, 16, Some(ahead), 1), Take::Full { len: 16 });
     }
 
     #[test]

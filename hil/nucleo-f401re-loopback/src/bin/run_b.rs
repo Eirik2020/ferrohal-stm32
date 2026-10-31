@@ -11,8 +11,8 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `USART1`, `DMA2_STREAM5` | USART1's `UartIrq` | 2 |
-//! | `USART6`, `DMA2_STREAM2` | USART6's `UartIrq` | 2 |
+//! | `USART1`, `DMA2_STREAM5`, `DMA2_STREAM7` | USART1's `UartIrq` | 2 |
+//! | `USART6`, `DMA2_STREAM2`, `DMA2_STREAM6` | USART6's `UartIrq` | 2 |
 //! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
 #![no_std]
@@ -36,7 +36,7 @@ mod app {
     };
 
     const RX_RING: usize = 256;
-    const TX_BUFFER: usize = 64;
+    const TX_BUFFER: usize = 256;
 
     #[shared]
     struct Shared {
@@ -114,6 +114,11 @@ mod app {
         cx.shared.irq1.on_interrupt();
     }
 
+    #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq1])]
+    fn usart1_tx(cx: usart1_tx::Context) {
+        cx.shared.irq1.on_interrupt();
+    }
+
     #[task(binds = USART6, priority = 2, shared = [irq6])]
     fn usart6_line(cx: usart6_line::Context) {
         cx.shared.irq6.on_interrupt();
@@ -121,6 +126,11 @@ mod app {
 
     #[task(binds = DMA2_STREAM2, priority = 2, shared = [irq6])]
     fn usart6_rx(cx: usart6_rx::Context) {
+        cx.shared.irq6.on_interrupt();
+    }
+
+    #[task(binds = DMA2_STREAM6, priority = 2, shared = [irq6])]
+    fn usart6_tx(cx: usart6_tx::Context) {
         cx.shared.irq6.on_interrupt();
     }
 
