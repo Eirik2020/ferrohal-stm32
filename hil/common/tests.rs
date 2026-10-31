@@ -537,11 +537,13 @@ fn restore(cross: &mut Cross) -> Result<(), Fail> {
     echo(cross, b"restored")
 }
 
-/// Every check a jumpered loop can take. `mask_rx_irq` masks (`true`) or
-/// unmasks (`false`) the link's receive DMA vector in the NVIC.
+/// Every check a jumpered loop can take, starting from the frame the link
+/// was opened with, `config`, and ending back on it. `mask_rx_irq` masks
+/// (`true`) or unmasks (`false`) the link's receive DMA vector in the NVIC.
 pub fn full_suite(
     report: &mut Report,
     link: &mut dyn Configurable,
+    config: &Config,
     ring_len: usize,
     tx_len: usize,
     mask_rx_irq: &mut dyn FnMut(bool),
@@ -563,7 +565,11 @@ pub fn full_suite(
     report.check(
         name,
         "counted waits within their bounds",
-        wait_bounds(link, CYCLES_PER_MS.load(Ordering::Relaxed) * 1000, 115_200),
+        wait_bounds(
+            link,
+            CYCLES_PER_MS.load(Ordering::Relaxed) * 1000,
+            config.baudrate,
+        ),
     );
     report.check(
         name,
@@ -573,7 +579,7 @@ pub fn full_suite(
     report.check(name, "break reported", line_break(link));
     report.check(name, "1 Mbaud", reconfigured(link, &ONE_MBAUD));
     report.check(name, "57600 8E2", reconfigured(link, &EVEN_PARITY_TWO_STOP));
-    report.check(name, "back to 115200", reconfigured(link, &Config::new(115_200)));
+    report.check(name, "back to its own frame", reconfigured(link, config));
 }
 
 /// The HAL's per-pass cycle floors (`uart::stream_dma`); a counted wait is

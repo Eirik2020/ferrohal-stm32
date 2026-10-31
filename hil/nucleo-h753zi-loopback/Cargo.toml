@@ -5,8 +5,26 @@ edition = "2024"
 publish = false
 
 [[bin]]
-name = "nucleo-h753zi-loopback"
-path = "src/main.rs"
+name = "run-a"
+path = "src/bin/run_a.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "run-b"
+path = "src/bin/run_b.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "run-c"
+path = "src/bin/run_c.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "run-d"
+path = "src/bin/run_d.rs"
 test = false
 bench = false
 

@@ -3,13 +3,13 @@
 Status as of 2026-10-31: UART over DMA runs on two chips.
 
 - **F401:** `hil/run-f401.sh` passes 45 of 45 checks across three runs.
-- **H753ZI:** the loopback test passes 12 of 12, with the I-cache and D-cache on.
+- **H753ZI:** `hil/run-h753.sh` passes 127 of 127 checks across four runs, with the caches off and on.
 - **Both chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
 |---|---|---|---|
 | STM32F401RE | Nucleo-F401RE | `usart_v2`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 DMA routes (RM0368 tables 28 and 29). USART2 runs through a host echo on the ST-LINK virtual COM port. |
-| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | USART2 on PD5/PD6, DMA1 streams 1 (TX) and 0 (RX) |
+| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio headers only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7's UARTs at its rates (CRSF 420000, SBUS 100000 8E2, MSP 115200) on its DMA streams and clock tree. |
 
 Severity:
 
@@ -105,8 +105,12 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 - **Medium: some error paths are never exercised.**
   - **Issue:** there are no checks for DMA transfer errors (the metapac spike's `inject-dma-error` wasn't ported), USART-level overrun, noise or a stop timeout.
   - **Covered so far:** ring overrun, a late receive interrupt and break on every jumpered link. On the F401's cross-wired run, a baud mismatch must be reported as a framing error, and a parity mismatch as a parity error.
-- **Medium: the H753ZI has run one instance only.**
-  - **Issue:** only USART2 has run on hardware. Its other seven U(S)ARTs and the DMAMUX "any stream" routing are unverified. The F401 covers its whole routing table.
+- **Medium: the H753ZI bench reaches the Zio headers only.**
+  - **Issue:** this board has no morpho headers (CN11, CN12) fitted, so `hil/run-h753.sh` covers 7 of 8 U(S)ARTs and 24 of 46 pin entries. UART8 can't be looped at all: its only TX pin, PE1, is on the morpho headers only. The Lucid's USART1 RX pin, PA10, and PA8, PA9, PB14 and PG9 are morpho-only too. UART5's PB13 reaches the Zio header only through SB7, which isn't fitted.
+  - **Fix:** fit the morpho headers (the 38-of-46 plan, UART8 included), and SB7 for PB13. PA1, PA2, PA11 and PA12 need board rework (Ethernet, USB).
+- **Medium: counted waits overshoot 7.5 times on the H7 with its caches off.**
+  - **Issue:** an uncached pass costs about 860 cycles against 264 cached, so `read_within` waits 7.5 times its time with the caches off (the Lucid's policy) and 2.4 times with them on. The check's limit is 8. Bounds never run short, but the check has little margin.
+  - **Fix:** the cached and uncached spread is inherent to counted waits, since a floor must hold for the fastest case. Either widen the check's upper limit deliberately, or let the caller supply a time source for long waits.
 - **Low: USART2 on the F401 is checked through the ST-LINK.**
   - **Issue:** break, baud and parity changes don't survive the virtual COM port bridge, so USART2 runs echo, stream and ring overrun only. Solder bridges SB13/SB14 off and SB62/SB63 on would allow a direct link.
 - **Low: probes are picked by VID:PID.**

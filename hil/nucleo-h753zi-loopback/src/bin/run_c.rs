@@ -1,0 +1,163 @@
+//! Run C: UART4 and UART7 on alternate pins, UART7 with its streams on
+//! different controllers. The full check list on each, then both
+//! streaming at once. (UART5's PB13 would belong here, but this board
+//! does not route it to the Zio header.)
+//!
+//! RTIC owns every interrupt; FerroHAL only enables each UART's and its
+//! receive stream's own interrupt bits. Each vector in use, and what serves
+//! it:
+//!
+//! | Vector | Owner | Priority |
+//! | --- | --- | --- |
+//! | `UART4`, `DMA2_STREAM7` | UART4 PD1->PD0's `UartIrq` | 2 |
+//! | `UART7`, `DMA1_STREAM5` | UART7 PE8->PE7's `UartIrq` | 2 |
+//! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
+
+#![no_std]
+#![no_main]
+
+#[path = "../board.rs"]
+mod board;
+#[path = "../../../common/tests.rs"]
+mod tests;
+
+use defmt_rtt as _;
+use panic_probe as _;
+
+#[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
+mod app {
+    use ferrohal_stm32::{
+        device::Interrupt,
+        uart::{Config, Uart, UartIrq},
+    };
+
+    use crate::{
+        board::{self, RX_RING, TX_BUFFER},
+        tests::{self, Loop, Report},
+    };
+
+    const PLAIN: Config = Config::new(115_200);
+
+    #[shared]
+    struct Shared {
+        // Each handle's two tasks run at one priority, so neither preempts
+        // the other and the handle needs no lock.
+        #[lock_free]
+        irq_uart4: UartIrq,
+        #[lock_free]
+        irq_uart7: UartIrq,
+    }
+
+    #[local]
+    struct Local {
+        uart4: Uart,
+        uart7: Uart,
+        led: board::Led,
+    }
+
+    #[init]
+    fn init(cx: init::Context) -> (Shared, Local) {
+        let mut core = cx.core;
+        // The cycle counter, for the wait-bound check.
+        core.DCB.enable_trace();
+        core.DWT.enable_cycle_counter();
+        // The buffers' block is non-cacheable before anything could cache it.
+        board::dma_region(&mut core);
+
+        let mut run = match board::run_c(cx.device) {
+            Ok(run) => run,
+            Err(error) => defmt::panic!("clocks: {}", error),
+        };
+        // `freeze` must land on the tree worked out while compiling.
+        defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
+        defmt::info!("run C, clocks: {}", board::CLOCKS);
+
+        let mut buffers = board::dma_buffers().into_iter();
+        let (uart_uart4, irq_uart4) =
+            board::open(&mut run.rcc, "UART4 PD1->PD0", run.uart4, &PLAIN, buffers.next().unwrap());
+        let (uart_uart7, irq_uart7) =
+            board::open(&mut run.rcc, "UART7 PE8->PE7", run.uart7, &PLAIN, buffers.next().unwrap());
+
+        checks::spawn().ok();
+        (
+            Shared { irq_uart4, irq_uart7 },
+            Local {
+                uart4: uart_uart4,
+                uart7: uart_uart7,
+                led: run.led,
+            },
+        )
+    }
+
+    #[task(binds = UART4, priority = 2, shared = [irq_uart4])]
+    fn uart4_line(cx: uart4_line::Context) {
+        cx.shared.irq_uart4.on_interrupt();
+    }
+
+    #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq_uart4])]
+    fn uart4_rx(cx: uart4_rx::Context) {
+        cx.shared.irq_uart4.on_interrupt();
+    }
+
+    #[task(binds = UART7, priority = 2, shared = [irq_uart7])]
+    fn uart7_line(cx: uart7_line::Context) {
+        cx.shared.irq_uart7.on_interrupt();
+    }
+
+    #[task(binds = DMA1_STREAM5, priority = 2, shared = [irq_uart7])]
+    fn uart7_rx(cx: uart7_rx::Context) {
+        cx.shared.irq_uart7.on_interrupt();
+    }
+
+    #[task(priority = 1, local = [uart4, uart7, led])]
+    async fn checks(cx: checks::Context) {
+        tests::set_cpu_hz(board::CLOCKS.cpu.0);
+        let mut report = Report::new();
+        let uart4 = cx.local.uart4;
+        let uart7 = cx.local.uart7;
+
+        tests::full_suite(
+            &mut report,
+            &mut Loop {
+                name: "UART4 PD1->PD0",
+                uart: &mut *uart4,
+            },
+            &PLAIN,
+            RX_RING,
+            TX_BUFFER,
+            &mut tests::nvic_mask(Interrupt::DMA2_STREAM7),
+        );
+        tests::full_suite(
+            &mut report,
+            &mut Loop {
+                name: "UART7 PE8->PE7",
+                uart: &mut *uart7,
+            },
+            &PLAIN,
+            RX_RING,
+            TX_BUFFER,
+            &mut tests::nvic_mask(Interrupt::DMA1_STREAM5),
+        );
+
+        report.check(
+            "UART4 + UART7",
+            "8 KiB each, all at once",
+            tests::streams(
+                &mut [
+                &mut Loop {
+                    name: "UART4 PD1->PD0",
+                    uart: &mut *uart4,
+                },
+                &mut Loop {
+                    name: "UART7 PE8->PE7",
+                    uart: &mut *uart7,
+                },
+                ],
+                8 * 1024,
+            ),
+        );
+
+        let led = cx.local.led;
+        tests::finish(&report, || led.set_high());
+    }
+}

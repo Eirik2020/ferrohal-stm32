@@ -171,6 +171,7 @@ mod app {
         tests::full_suite(
             &mut report,
             &mut loop1,
+            &Config::new(115_200),
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM2),
@@ -183,6 +184,7 @@ mod app {
         tests::full_suite(
             &mut report,
             &mut loop6,
+            &Config::new(115_200),
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),

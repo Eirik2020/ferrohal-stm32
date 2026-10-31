@@ -1,0 +1,296 @@
+//! Run A: the TBS Lucid H7's UARTs at its rates, on its DMA streams,
+//! under its clock tree. USART6 (CRSF) is on the Lucid's pins, PC6 and
+//! PC7; USART1 (SBUS) and USART3 (MSP) are on pins the Zio headers carry.
+//! USART2 is a control at 115200.
+//!
+//! First with the data cache off, the Lucid's policy: the full check
+//! list on each UART, then all four streaming at once. Then with both
+//! caches on: buffers in cached RAM and DTCM must be refused, and the
+//! four must stream at once again.
+//!
+//! RTIC owns every interrupt; FerroHAL only enables each UART's and its
+//! receive stream's own interrupt bits. Each vector in use, and what serves
+//! it:
+//!
+//! | Vector | Owner | Priority |
+//! | --- | --- | --- |
+//! | `USART6`, `DMA1_STREAM0` | USART6 PC6->PC7's `UartIrq` | 2 |
+//! | `USART1`, `DMA2_STREAM4` | USART1 PB6->PB7's `UartIrq` | 2 |
+//! | `USART3`, `DMA1_STREAM1` | USART3 PB10->PB11's `UartIrq` | 2 |
+//! | `USART2`, `DMA1_STREAM2` | USART2 PD5->PD6's `UartIrq` | 2 |
+//! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
+
+#![no_std]
+#![no_main]
+
+#[path = "../board.rs"]
+mod board;
+#[path = "../../../common/tests.rs"]
+mod tests;
+
+use defmt_rtt as _;
+use panic_probe as _;
+
+#[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
+mod app {
+    use cortex_m::peripheral::{CPUID, SCB};
+    use ferrohal_stm32::{
+        chip::check_dma_buffer,
+        device::Interrupt,
+        uart::{Config, ConfigError, Parity, StopBits, Uart, UartIrq},
+    };
+
+    use crate::{
+        board::{self, RX_RING, TX_BUFFER},
+        tests::{self, Loop, Report},
+    };
+
+    /// The Lucid's frames: CRSF to the receiver, SBUS from the DJI
+    /// connector (without the inversion FerroHAL cannot set yet), MSP to
+    /// the DisplayPort.
+    const CRSF: Config = Config::new(420_000);
+    const SBUS: Config = Config {
+        baudrate: 100_000,
+        parity: Parity::Even,
+        stop_bits: StopBits::Two,
+    };
+    const MSP: Config = Config::new(115_200);
+
+    #[shared]
+    struct Shared {
+        // Each handle's two tasks run at one priority, so neither preempts
+        // the other and the handle needs no lock.
+        #[lock_free]
+        irq_usart6: UartIrq,
+        #[lock_free]
+        irq_usart1: UartIrq,
+        #[lock_free]
+        irq_usart3: UartIrq,
+        #[lock_free]
+        irq_usart2: UartIrq,
+    }
+
+    #[local]
+    struct Local {
+        usart6: Uart,
+        usart1: Uart,
+        usart3: Uart,
+        usart2: Uart,
+        led: board::Led,
+        scb: SCB,
+        cpuid: CPUID,
+    }
+
+    #[init]
+    fn init(cx: init::Context) -> (Shared, Local) {
+        let mut core = cx.core;
+        // The cycle counter, for the wait-bound check.
+        core.DCB.enable_trace();
+        core.DWT.enable_cycle_counter();
+        // The buffers' block is non-cacheable before anything could cache it.
+        board::dma_region(&mut core);
+
+        let mut run = match board::run_a(cx.device) {
+            Ok(run) => run,
+            Err(error) => defmt::panic!("clocks: {}", error),
+        };
+        // `freeze` must land on the tree worked out while compiling.
+        defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
+        defmt::info!("run A, clocks: {}", board::CLOCKS);
+
+        let mut buffers = board::dma_buffers().into_iter();
+        let (uart_usart6, irq_usart6) =
+            board::open(&mut run.rcc, "USART6 PC6->PC7, CRSF 420000", run.usart6, &CRSF, buffers.next().unwrap());
+        let (uart_usart1, irq_usart1) =
+            board::open(&mut run.rcc, "USART1 PB6->PB7, SBUS 100000 8E2", run.usart1, &SBUS, buffers.next().unwrap());
+        let (uart_usart3, irq_usart3) =
+            board::open(&mut run.rcc, "USART3 PB10->PB11, MSP 115200", run.usart3, &MSP, buffers.next().unwrap());
+        let (uart_usart2, irq_usart2) =
+            board::open(&mut run.rcc, "USART2 PD5->PD6, control", run.usart2, &MSP, buffers.next().unwrap());
+
+        checks::spawn().ok();
+        (
+            Shared { irq_usart6, irq_usart1, irq_usart3, irq_usart2 },
+            Local {
+                usart6: uart_usart6,
+                usart1: uart_usart1,
+                usart3: uart_usart3,
+                usart2: uart_usart2,
+                led: run.led,
+                scb: core.SCB,
+                cpuid: core.CPUID,
+            },
+        )
+    }
+
+    #[task(binds = USART6, priority = 2, shared = [irq_usart6])]
+    fn usart6_line(cx: usart6_line::Context) {
+        cx.shared.irq_usart6.on_interrupt();
+    }
+
+    #[task(binds = DMA1_STREAM0, priority = 2, shared = [irq_usart6])]
+    fn usart6_rx(cx: usart6_rx::Context) {
+        cx.shared.irq_usart6.on_interrupt();
+    }
+
+    #[task(binds = USART1, priority = 2, shared = [irq_usart1])]
+    fn usart1_line(cx: usart1_line::Context) {
+        cx.shared.irq_usart1.on_interrupt();
+    }
+
+    #[task(binds = DMA2_STREAM4, priority = 2, shared = [irq_usart1])]
+    fn usart1_rx(cx: usart1_rx::Context) {
+        cx.shared.irq_usart1.on_interrupt();
+    }
+
+    #[task(binds = USART3, priority = 2, shared = [irq_usart3])]
+    fn usart3_line(cx: usart3_line::Context) {
+        cx.shared.irq_usart3.on_interrupt();
+    }
+
+    #[task(binds = DMA1_STREAM1, priority = 2, shared = [irq_usart3])]
+    fn usart3_rx(cx: usart3_rx::Context) {
+        cx.shared.irq_usart3.on_interrupt();
+    }
+
+    #[task(binds = USART2, priority = 2, shared = [irq_usart2])]
+    fn usart2_line(cx: usart2_line::Context) {
+        cx.shared.irq_usart2.on_interrupt();
+    }
+
+    #[task(binds = DMA1_STREAM2, priority = 2, shared = [irq_usart2])]
+    fn usart2_rx(cx: usart2_rx::Context) {
+        cx.shared.irq_usart2.on_interrupt();
+    }
+
+    #[task(priority = 1, local = [usart6, usart1, usart3, usart2, led, scb, cpuid])]
+    async fn checks(cx: checks::Context) {
+        tests::set_cpu_hz(board::CLOCKS.cpu.0);
+        let mut report = Report::new();
+        let usart6 = cx.local.usart6;
+        let usart1 = cx.local.usart1;
+        let usart3 = cx.local.usart3;
+        let usart2 = cx.local.usart2;
+
+        tests::full_suite(
+            &mut report,
+            &mut Loop {
+                name: "USART6 PC6->PC7, CRSF 420000",
+                uart: &mut *usart6,
+            },
+            &CRSF,
+            RX_RING,
+            TX_BUFFER,
+            &mut tests::nvic_mask(Interrupt::DMA1_STREAM0),
+        );
+        tests::full_suite(
+            &mut report,
+            &mut Loop {
+                name: "USART1 PB6->PB7, SBUS 100000 8E2",
+                uart: &mut *usart1,
+            },
+            &SBUS,
+            RX_RING,
+            TX_BUFFER,
+            &mut tests::nvic_mask(Interrupt::DMA2_STREAM4),
+        );
+        tests::full_suite(
+            &mut report,
+            &mut Loop {
+                name: "USART3 PB10->PB11, MSP 115200",
+                uart: &mut *usart3,
+            },
+            &MSP,
+            RX_RING,
+            TX_BUFFER,
+            &mut tests::nvic_mask(Interrupt::DMA1_STREAM1),
+        );
+        tests::full_suite(
+            &mut report,
+            &mut Loop {
+                name: "USART2 PD5->PD6, control",
+                uart: &mut *usart2,
+            },
+            &MSP,
+            RX_RING,
+            TX_BUFFER,
+            &mut tests::nvic_mask(Interrupt::DMA1_STREAM2),
+        );
+
+        report.check(
+            "USART6 + USART1 + USART3 + USART2",
+            "8 KiB each, all at once",
+            tests::streams(
+                &mut [
+                &mut Loop {
+                    name: "USART6 PC6->PC7, CRSF 420000",
+                    uart: &mut *usart6,
+                },
+                &mut Loop {
+                    name: "USART1 PB6->PB7, SBUS 100000 8E2",
+                    uart: &mut *usart1,
+                },
+                &mut Loop {
+                    name: "USART3 PB10->PB11, MSP 115200",
+                    uart: &mut *usart3,
+                },
+                &mut Loop {
+                    name: "USART2 PD5->PD6, control",
+                    uart: &mut *usart2,
+                },
+                ],
+                8 * 1024,
+            ),
+        );
+
+        // The same load with both caches on.
+        board::caches_on(cx.local.scb, cx.local.cpuid);
+        defmt::info!(
+            "I-cache {=bool}, D-cache {=bool}",
+            SCB::icache_enabled(),
+            SCB::dcache_enabled()
+        );
+        // The stack is ordinary, cached AXI SRAM.
+        let cached = core::hint::black_box([0u8; 32]);
+        report.check(
+            "D-cache on",
+            "buffer in cached RAM refused",
+            tests::expect_refusal(check_dma_buffer(&cached), ConfigError::BufferCacheable),
+        );
+        // SAFETY: never read; only its address is checked.
+        let dtcm = unsafe { core::slice::from_raw_parts(0x2000_0000 as *const u8, 32) };
+        report.check(
+            "D-cache on",
+            "buffer in DTCM refused",
+            tests::expect_refusal(check_dma_buffer(dtcm), ConfigError::BufferUnreachable),
+        );
+        report.check(
+            "USART6 + USART1 + USART3 + USART2",
+            "8 KiB each, all at once, caches on",
+            tests::streams(
+                &mut [
+                &mut Loop {
+                    name: "USART6 PC6->PC7, CRSF 420000",
+                    uart: &mut *usart6,
+                },
+                &mut Loop {
+                    name: "USART1 PB6->PB7, SBUS 100000 8E2",
+                    uart: &mut *usart1,
+                },
+                &mut Loop {
+                    name: "USART3 PB10->PB11, MSP 115200",
+                    uart: &mut *usart3,
+                },
+                &mut Loop {
+                    name: "USART2 PD5->PD6, control",
+                    uart: &mut *usart2,
+                },
+                ],
+                8 * 1024,
+            ),
+        );
+
+        let led = cx.local.led;
+        tests::finish(&report, || led.set_high());
+    }
+}

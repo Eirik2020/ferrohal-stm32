@@ -101,6 +101,7 @@ mod app {
                 name: "USART6 PA11->PA12, TX on stream 7",
                 uart: cx.local.usart6,
             },
+            &Config::new(115_200),
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),
