@@ -20,6 +20,7 @@ use crate::{
     dma_v1::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     rcc_h7rm0433::{Bus, RCC, RccBit},
+    spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     usart_v4::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
 };
 
@@ -264,11 +265,11 @@ pins!(RxPin<UART8>: ('E', 0, 8));
 // instance pairs with every stream; the type still fixes the request ID.
 
 macro_rules! dma {
-    ($($usart:ident: rx $rx:literal, tx $tx:literal;)+) => {
+    ($rx_trait:ident, $tx_trait:ident; $($usart:ident: rx $rx:literal, tx $tx:literal;)+) => {
         $(
             // SAFETY: the DMAMUX1 request IDs for this instance, from
             // stm32-metapac 21's metadata (RM0433 table 121).
-            unsafe impl<const D: u8, const N: u8> RxDma<$usart> for Stream<D, N>
+            unsafe impl<const D: u8, const N: u8> $rx_trait<$usart> for Stream<D, N>
             where
                 Dma<D>: DmaInstance,
                 Stream<D, N>: crate::dma::StreamInterrupt,
@@ -277,7 +278,7 @@ macro_rules! dma {
             }
 
             // SAFETY: as above.
-            unsafe impl<const D: u8, const N: u8> TxDma<$usart> for Stream<D, N>
+            unsafe impl<const D: u8, const N: u8> $tx_trait<$usart> for Stream<D, N>
             where
                 Dma<D>: DmaInstance,
                 Stream<D, N>: crate::dma::StreamInterrupt,
@@ -289,6 +290,7 @@ macro_rules! dma {
 }
 
 dma!(
+    RxDma, TxDma;
     USART1: rx 41, tx 42;
     USART2: rx 43, tx 44;
     USART3: rx 45, tx 46;
@@ -297,6 +299,37 @@ dma!(
     USART6: rx 71, tx 72;
     UART7: rx 79, tx 80;
     UART8: rx 81, tx 82;
+);
+
+// SPI instances: (bus, enable bit, kernel clock). `freeze` sets SPI1 to SPI3
+// to PLL1Q and SPI4 and SPI5 to PCLK2. SPI6 (D3, on the BDMA) is left out.
+
+spis!(
+    SPI1 => SPI1_INFO, Apb2, 12, Pll1Q;
+    SPI2 => SPI2_INFO, Apb1L, 14, Pll1Q;
+    SPI3 => SPI3_INFO, Apb1L, 15, Pll1Q;
+    SPI4 => SPI4_INFO, Apb2, 13, Apb2;
+);
+
+pins!(SckPin<SPI1>: ('A', 5, 5), ('B', 3, 5));
+pins!(MisoPin<SPI1>: ('A', 6, 5), ('B', 4, 5));
+pins!(MosiPin<SPI1>: ('A', 7, 5), ('B', 5, 5), ('D', 7, 5));
+pins!(SckPin<SPI2>: ('A', 9, 5), ('A', 12, 5), ('B', 10, 5), ('B', 13, 5), ('D', 3, 5));
+pins!(MisoPin<SPI2>: ('B', 14, 5), ('C', 2, 5));
+pins!(MosiPin<SPI2>: ('B', 15, 5), ('C', 1, 5), ('C', 3, 5));
+pins!(SckPin<SPI3>: ('B', 3, 6), ('C', 10, 6));
+pins!(MisoPin<SPI3>: ('B', 4, 6), ('C', 11, 6));
+pins!(MosiPin<SPI3>: ('B', 2, 7), ('B', 5, 7), ('C', 12, 6), ('D', 6, 5));
+pins!(SckPin<SPI4>: ('E', 2, 5), ('E', 12, 5));
+pins!(MisoPin<SPI4>: ('E', 5, 5), ('E', 13, 5));
+pins!(MosiPin<SPI4>: ('E', 6, 5), ('E', 14, 5));
+
+dma!(
+    SpiRxDma, SpiTxDma;
+    SPI1: rx 37, tx 38;
+    SPI2: rx 39, tx 40;
+    SPI3: rx 61, tx 62;
+    SPI4: rx 83, tx 84;
 );
 
 // The vector each DMA stream raises.
@@ -322,12 +355,69 @@ mod tests {
         Stream<1, 0>,
     >;
 
+    /// The Lucid's IMU bus, as its manifest claims it.
+    #[test]
+    fn imu_spi_describes_itself() {
+        type Spi1Lucid = crate::spi::Wiring<
+            SPI1,
+            Pin<'A', 5, Alternate<5>>,
+            Pin<'A', 6, Alternate<5>>,
+            Pin<'D', 7, Alternate<5>>,
+            Stream<1, 5>,
+            Stream<1, 4>,
+        >;
+        assert_eq!(
+            Spi1Lucid::RESOURCES,
+            [
+                Resource::Peripheral("SPI1"),
+                Resource::Pin { signal: Signal::Sck, port: 'A', pin: 5, af: 5 },
+                Resource::Pin { signal: Signal::Miso, port: 'A', pin: 6, af: 5 },
+                Resource::Pin { signal: Signal::Mosi, port: 'D', pin: 7, af: 5 },
+                // DMA1_STREAM5_CH38 and DMA1_STREAM4_CH37 in the manifest.
+                Resource::Dma { signal: Signal::Tx, controller: 1, stream: 5, request: 38 },
+                Resource::Dma { signal: Signal::Rx, controller: 1, stream: 4, request: 37 },
+                Resource::Interrupt("DMA1_STREAM4"),
+            ]
+        );
+    }
+
+    /// SPI1 to SPI3 need PLL1Q; without it the bus can't be opened.
+    #[test]
+    fn spi123_needs_pll1q() {
+        use crate::{
+            rcc::{AhbPrescaler, ApbPrescaler, Config, Supply, Sysclk, VoltageScale},
+            spi::{self, Spi},
+            time::Hertz,
+        };
+        let imu = spi::Config::new(Hertz::mhz(24));
+        // HSI at 64 MHz straight through, no PLL.
+        let reset = Config {
+            hse: None,
+            pll1: None,
+            sys: Sysclk::Hsi,
+            cpu_pre: AhbPrescaler::Div1,
+            ahb_pre: AhbPrescaler::Div1,
+            apb1_pre: ApbPrescaler::Div1,
+            apb2_pre: ApbPrescaler::Div1,
+            apb3_pre: ApbPrescaler::Div1,
+            apb4_pre: ApbPrescaler::Div1,
+            supply: Supply::Ldo,
+            voltage_scale: VoltageScale::Scale1,
+        }
+        .validate()
+        .unwrap();
+        assert_eq!(reset.pll1_q, None);
+        assert_eq!(Spi::check::<SPI1>(&reset, &imu), Err(spi::ConfigError::KernelClock));
+        // SPI4 runs from PCLK2: 64 MHz at reset, so 16 MHz.
+        assert_eq!(Spi::check::<SPI4>(&reset, &imu), Ok(Hertz::mhz(16)));
+    }
+
     #[test]
     fn wiring_describes_itself() {
         assert_eq!(
             Usart6Lucid::RESOURCES,
             [
-                Resource::Uart("USART6"),
+                Resource::Peripheral("USART6"),
                 Resource::Pin { signal: Signal::Tx, port: 'C', pin: 6, af: 7 },
                 Resource::Pin { signal: Signal::Rx, port: 'C', pin: 7, af: 7 },
                 // The Lucid's manifest names these DMA1_STREAM6_CH72 and

@@ -8,13 +8,13 @@
 //!
 //! # Layout
 //!
-//! - One module per metapac IP version (`usart_v2`, `usart_v4`, `dma_v1`,
-//!   `dma_v2`, `gpio_v2`, `rcc_f4`, `rcc_h7rm0433`), each behind its own
-//!   feature. They speak registers only.
+//! - One module per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`,
+//!   `spi_v4`, `dma_v1`, `dma_v2`, `gpio_v2`, `rcc_f4`, `rcc_h7rm0433`),
+//!   each behind its own feature. They speak registers only.
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
 //!   map) and the svd2rust-style [`chip::Peripherals`].
-//! - Neutral names: [`uart`], and `rcc`, `gpio`, `dma` for whichever IP
+//! - Neutral names: [`uart`], [`spi`], and `rcc`, `gpio`, `dma` for whichever IP
 //!   version the chip carries.
 //! - [`device`] (feature `rt`): the module RTIC's `device = ...` names.
 //!
@@ -44,8 +44,11 @@ compile_error!("enable one chip feature, such as `stm32f401re` or `stm32h753zi`"
 ))]
 compile_error!("enable only one chip feature");
 
+pub mod resource;
+pub mod spi;
 pub mod time;
 pub mod uart;
+mod wait;
 
 // The stream DMA: one source, two IP versions (see the module).
 #[cfg(feature = "dma_v1")]
@@ -60,6 +63,10 @@ pub mod gpio_v2;
 pub mod rcc_f4;
 #[cfg(feature = "rcc_h7rm0433")]
 pub mod rcc_h7rm0433;
+#[cfg(feature = "spi_v2")]
+pub mod spi_v2;
+#[cfg(feature = "spi_v4")]
+pub mod spi_v4;
 #[cfg(feature = "usart_v2")]
 pub mod usart_v2;
 #[cfg(feature = "usart_v4")]
@@ -75,6 +82,10 @@ pub use gpio_v2 as gpio;
 pub use rcc_f4 as rcc;
 #[cfg(feature = "rcc_h7rm0433")]
 pub use rcc_h7rm0433 as rcc;
+#[cfg(feature = "spi_v2")]
+use spi_v2 as spi_ip;
+#[cfg(feature = "spi_v4")]
+use spi_v4 as spi_ip;
 #[cfg(feature = "usart_v2")]
 use usart_v2 as usart;
 #[cfg(feature = "usart_v4")]

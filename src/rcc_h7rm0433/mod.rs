@@ -8,8 +8,9 @@
 //!
 //! `freeze` also owns what the clock tree depends on, so `Peripherals` hands
 //! out no token for it: the PWR supply configuration and voltage scale, the
-//! flash wait states, and the U(S)ART kernel clock muxes (set to their bus
-//! clock, the only choice offered so far).
+//! flash wait states, the U(S)ART kernel clock muxes (set to their bus
+//! clock, the only choice offered so far) and the SPI kernel clock muxes
+//! (PLL1Q for SPI1 to SPI3, PCLK2 for SPI4 and SPI5).
 //!
 //! Limits are the ones both silicon revisions (Y and V) meet, from DS12117
 //! and RM0433: VOS0 (480 MHz, rev V only) is not offered.
@@ -22,8 +23,8 @@ use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,
     pwr::vals::Vos,
     rcc::vals::{
-        Hpre, Hsidiv, Plldiv, Pllm, Plln, Pllrge, Pllsrc, Pllvcosel, Ppre, Sw, Usart16910sel,
-        Usart234578sel,
+        Hpre, Hsidiv, Plldiv, Pllm, Plln, Pllrge, Pllsrc, Pllvcosel, Ppre, Saisel, Spi45sel, Sw,
+        Usart16910sel, Usart234578sel,
     },
 };
 
@@ -762,6 +763,13 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
     RCC_REGS.d2ccip2r().modify(|w| {
         w.set_usart16910sel(Usart16910sel::PCLK2);
         w.set_usart234578sel(Usart234578sel::PCLK1);
+    });
+    // SPI kernel clocks at their reset choices, written so a bootloader's
+    // choice can't linger: SPI1 to SPI3 from PLL1Q, SPI4 and SPI5 from
+    // PCLK2. The chip glue's `Kernel` for each instance says the same.
+    RCC_REGS.d2ccip1r().modify(|w| {
+        w.set_spi123sel(Saisel::PLL1_Q);
+        w.set_spi45sel(Spi45sel::PCLK2);
     });
     Ok(())
 }

@@ -24,19 +24,24 @@ use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin};
 use ferrohal_stm32::{
     chip::Peripherals,
     dma::{Direction, FifoMode, Flags, Interrupts, Priority, StreamInstance, Transfer, WordSize},
+    spi::{self, Spi},
+    time::Hertz,
     uart::{self, Buffers, Parity, StopBits, Uart, UartRx},
 };
 
 static mut TX: [u8; 64] = [0; 64];
 static mut RX: [u8; 256] = [0; 256];
 static mut RX2: [u8; 256] = [0; 256];
+static mut SPI_TX: [u8; 32] = [0; 32];
+static mut SPI_RX: [u8; 32] = [0; 32];
 
 #[entry]
 fn main() -> ! {
     let Some(p) = Peripherals::take() else {
         park()
     };
-    let Some((mut rcc, wiring, rx_wiring, mut spare, mut out, mut input)) = chip::wire(p) else {
+    let Some((mut rcc, wiring, rx_wiring, spi_wiring, mut spare, mut out, mut input)) = chip::wire(p)
+    else {
         park()
     };
     keep(rcc.clocks());
@@ -92,10 +97,27 @@ fn main() -> ! {
     vectors.iter().for_each(keep);
     black_box(&chip::UartWiring::RESOURCES).iter().for_each(keep);
     black_box(&chip::RxOnlyWiring::RESOURCES).iter().for_each(keep);
+    black_box(&chip::SpiWiring::RESOURCES).iter().for_each(keep);
     irq.on_interrupt();
     irq.on_uart();
     irq.on_rx_dma();
     irq.on_tx_dma();
+
+    // SPI: the frame check, then every operation.
+    let spi_config = black_box(
+        spi::Config::new(Hertz::mhz(1))
+            .with_mode(spi::MODE_3)
+            .with_bit_order(spi::BitOrder::LsbFirst),
+    );
+    keep(Spi::check::<chip::SpiUnit>(&black_box(rcc.clocks()), &spi_config));
+    // SAFETY: as TX and RX above.
+    let spi_buffers = spi::Buffers {
+        tx: black_box(unsafe { &mut *addr_of_mut!(SPI_TX) }),
+        rx: black_box(unsafe { &mut *addr_of_mut!(SPI_RX) }),
+    };
+    if let Ok(mut bus) = Spi::new(&mut rcc, spi_wiring, &spi_config, spi_buffers) {
+        exercise_spi(&mut bus);
+    }
 
     // The DMA API, on a stream the UART does not use.
     let mut channel = spare.take_channel();
@@ -179,6 +201,32 @@ fn exercise_uart(uart: &mut Uart) {
     uart.set_clock(None);
 }
 
+fn exercise_spi(bus: &mut Spi) {
+    use embedded_hal::spi::SpiBus;
+
+    let data = black_box(&[0xa5u8; 40][..]);
+    let mut buf = [0u8; 40];
+    keep(bus.start(data));
+    keep(bus.on_interrupt());
+    keep(bus.poll());
+    keep(bus.received().len());
+    keep(bus.is_busy());
+    bus.abort();
+    keep(bus.transfer(data).map(<[u8]>::len));
+    keep(SpiBus::read(bus, black_box(&mut buf)));
+    keep(SpiBus::write(bus, data));
+    keep(SpiBus::transfer(bus, black_box(&mut buf), data));
+    keep(SpiBus::transfer_in_place(bus, black_box(&mut buf)));
+    keep(SpiBus::flush(bus));
+    keep(bus.set_config(&black_box(spi::Config::new(Hertz::khz(400)))));
+    keep(bus.frequency());
+    keep(bus.capacity());
+    keep(bus.health());
+    keep(bus.interrupts().verify());
+    bus.set_clock(Some(&CLOCK));
+    keep(bus.transfer(data).map(<[u8]>::len));
+}
+
 /// Hands a result to the optimiser as used: the check is about which code
 /// paths exist, not what they return.
 fn keep<T>(value: T) {
@@ -219,10 +267,11 @@ impl<C: StreamInstance> Spare<C> {
 #[cfg(feature = "stm32f401re")]
 mod chip {
     use ferrohal_stm32::{
-        chip::{Peripherals, USART1, USART6},
+        chip::{Peripherals, SPI2, USART1, USART6},
         dma::Stream,
         gpio::{Alternate, Input, Output, Pin, Pull, Speed},
         rcc::{AhbPrescaler, ApbPrescaler, Config, Pll, PllP, PllSource, Rcc, Supply, Sysclk},
+        spi,
         uart::{RxWiring, Wiring},
     };
 
@@ -230,6 +279,15 @@ mod chip {
 
     pub type RxUart = USART6;
     pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>;
+    pub type SpiUnit = SPI2;
+    pub type SpiWiring = spi::Wiring<
+        SPI2,
+        Pin<'B', 13, Alternate<5>>,
+        Pin<'B', 14, Alternate<5>>,
+        Pin<'B', 15, Alternate<5>>,
+        Stream<1, 4>,
+        Stream<1, 3>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -261,12 +319,15 @@ mod chip {
         Rcc,
         UartWiring,
         RxOnlyWiring,
+        SpiWiring,
         Spare<Stream<2, 0>>,
         Pin<'A', 5, Output>,
         Pin<'A', 0, Input>,
     )> {
         let mut rcc = p.RCC.freeze(&core::hint::black_box(CLOCKS)).ok()?;
         let mut a = p.GPIOA.split(&mut rcc);
+        let mut b = p.GPIOB.split(&mut rcc);
+        let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
         let mut tx = a.p9.into_alternate::<7>(&mut a.ctrl);
         tx.set_speed(&mut a.ctrl, core::hint::black_box(Speed::Medium));
@@ -290,6 +351,14 @@ mod chip {
                 rx: rx6,
                 rx_dma: dma2.s1,
             },
+            spi::Wiring {
+                spi: p.SPI2,
+                sck: b.p13.into_alternate::<5>(&mut b.ctrl),
+                miso: b.p14.into_alternate::<5>(&mut b.ctrl),
+                mosi: b.p15.into_alternate::<5>(&mut b.ctrl),
+                tx_dma: dma1.s4,
+                rx_dma: dma1.s3,
+            },
             Spare {
                 stream: Some(dma2.s0),
             },
@@ -303,7 +372,7 @@ mod chip {
 #[cfg(feature = "stm32f405rg")]
 mod chip {
     use ferrohal_stm32::{
-        chip::{Peripherals, UART4, USART2},
+        chip::{Peripherals, SPI2, UART4, USART2},
         dma::Stream,
         gpio::{Alternate, Input, Output, Pin, Pull, Speed},
         rcc::{
@@ -311,6 +380,7 @@ mod chip {
             Sysclk,
         },
         time::Hertz,
+        spi,
         uart::{RxWiring, Wiring},
     };
 
@@ -318,6 +388,16 @@ mod chip {
 
     pub type RxUart = UART4;
     pub type RxOnlyWiring = RxWiring<UART4, Pin<'A', 1, Alternate<8>>, Stream<1, 2>>;
+    pub type SpiUnit = SPI2;
+    /// The Foxeer's flash bus: PB13, PC2, PC3.
+    pub type SpiWiring = spi::Wiring<
+        SPI2,
+        Pin<'B', 13, Alternate<5>>,
+        Pin<'C', 2, Alternate<5>>,
+        Pin<'C', 3, Alternate<5>>,
+        Stream<1, 4>,
+        Stream<1, 3>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: Some(Hse {
@@ -352,6 +432,7 @@ mod chip {
         Rcc,
         UartWiring,
         RxOnlyWiring,
+        SpiWiring,
         Spare<Stream<2, 0>>,
         Pin<'B', 0, Output>,
         Pin<'B', 1, Input>,
@@ -359,6 +440,7 @@ mod chip {
         let mut rcc = p.RCC.freeze(&core::hint::black_box(CLOCKS)).ok()?;
         let mut a = p.GPIOA.split(&mut rcc);
         let mut b = p.GPIOB.split(&mut rcc);
+        let mut c = p.GPIOC.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
         let mut tx = a.p2.into_alternate::<7>(&mut a.ctrl);
@@ -383,6 +465,14 @@ mod chip {
                 rx: rx4,
                 rx_dma: dma1.s2,
             },
+            spi::Wiring {
+                spi: p.SPI2,
+                sck: b.p13.into_alternate::<5>(&mut b.ctrl),
+                miso: c.p2.into_alternate::<5>(&mut c.ctrl),
+                mosi: c.p3.into_alternate::<5>(&mut c.ctrl),
+                tx_dma: dma1.s4,
+                rx_dma: dma1.s3,
+            },
             Spare {
                 stream: Some(dma2.s0),
             },
@@ -395,13 +485,14 @@ mod chip {
 #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
 mod chip {
     use ferrohal_stm32::{
-        chip::{Peripherals, USART2, USART3},
+        chip::{Peripherals, SPI1, USART2, USART3},
         dma::Stream,
         gpio::{Alternate, Input, Output, Pin, Pull, Speed},
         rcc::{
             AhbPrescaler, ApbPrescaler, Config, Pll, PllSource, Rcc, Supply, Sysclk,
             VoltageScale,
         },
+        spi,
         uart::{RxWiring, Wiring},
     };
 
@@ -409,6 +500,16 @@ mod chip {
 
     pub type RxUart = USART3;
     pub type RxOnlyWiring = RxWiring<USART3, Pin<'B', 11, Alternate<7>>, Stream<1, 2>>;
+    pub type SpiUnit = SPI1;
+    /// The Lucid's IMU bus.
+    pub type SpiWiring = spi::Wiring<
+        SPI1,
+        Pin<'A', 5, Alternate<5>>,
+        Pin<'A', 6, Alternate<5>>,
+        Pin<'D', 7, Alternate<5>>,
+        Stream<1, 5>,
+        Stream<1, 4>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -445,11 +546,13 @@ mod chip {
         Rcc,
         UartWiring,
         RxOnlyWiring,
+        SpiWiring,
         Spare<Stream<2, 3>>,
         Pin<'B', 0, Output>,
         Pin<'B', 1, Input>,
     )> {
         let mut rcc = p.RCC.freeze(&core::hint::black_box(CLOCKS)).ok()?;
+        let mut a = p.GPIOA.split(&mut rcc);
         let mut b = p.GPIOB.split(&mut rcc);
         let mut d = p.GPIOD.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
@@ -475,6 +578,14 @@ mod chip {
                 uart: p.USART3,
                 rx: rx3,
                 rx_dma: dma1.s2,
+            },
+            spi::Wiring {
+                spi: p.SPI1,
+                sck: a.p5.into_alternate::<5>(&mut a.ctrl),
+                miso: a.p6.into_alternate::<5>(&mut a.ctrl),
+                mosi: d.p7.into_alternate::<5>(&mut d.ctrl),
+                tx_dma: dma1.s5,
+                rx_dma: dma1.s4,
             },
             Spare {
                 stream: Some(dma2.s3),

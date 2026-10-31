@@ -16,6 +16,7 @@ use crate::{
     dma_v1::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     rcc_h7rm0433::{Bus, RCC, RccBit},
+    spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     usart_v4::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
 };
 
@@ -261,11 +262,11 @@ pins!(RxPin<UART8>: ('E', 0, 8));
 // instance pairs with every stream; the type still fixes the request ID.
 
 macro_rules! dma {
-    ($($usart:ident: rx $rx:literal, tx $tx:literal;)+) => {
+    ($rx_trait:ident, $tx_trait:ident; $($usart:ident: rx $rx:literal, tx $tx:literal;)+) => {
         $(
             // SAFETY: the DMAMUX1 request IDs for this instance, from
             // stm32-metapac 21's metadata (RM0433 table 121).
-            unsafe impl<const D: u8, const N: u8> RxDma<$usart> for Stream<D, N>
+            unsafe impl<const D: u8, const N: u8> $rx_trait<$usart> for Stream<D, N>
             where
                 Dma<D>: DmaInstance,
                 Stream<D, N>: crate::dma::StreamInterrupt,
@@ -274,7 +275,7 @@ macro_rules! dma {
             }
 
             // SAFETY: as above.
-            unsafe impl<const D: u8, const N: u8> TxDma<$usart> for Stream<D, N>
+            unsafe impl<const D: u8, const N: u8> $tx_trait<$usart> for Stream<D, N>
             where
                 Dma<D>: DmaInstance,
                 Stream<D, N>: crate::dma::StreamInterrupt,
@@ -286,6 +287,7 @@ macro_rules! dma {
 }
 
 dma!(
+    RxDma, TxDma;
     USART1: rx 41, tx 42;
     USART2: rx 43, tx 44;
     USART3: rx 45, tx 46;
@@ -294,6 +296,42 @@ dma!(
     USART6: rx 71, tx 72;
     UART7: rx 79, tx 80;
     UART8: rx 81, tx 82;
+);
+
+// SPI instances: (bus, enable bit, kernel clock). `freeze` sets SPI1 to SPI3
+// to PLL1Q and SPI4 and SPI5 to PCLK2. SPI6 (D3, on the BDMA) is left out.
+
+spis!(
+    SPI1 => SPI1_INFO, Apb2, 12, Pll1Q;
+    SPI2 => SPI2_INFO, Apb1L, 14, Pll1Q;
+    SPI3 => SPI3_INFO, Apb1L, 15, Pll1Q;
+    SPI4 => SPI4_INFO, Apb2, 13, Apb2;
+    SPI5 => SPI5_INFO, Apb2, 20, Apb2;
+);
+
+pins!(SckPin<SPI1>: ('A', 5, 5), ('B', 3, 5), ('G', 11, 5));
+pins!(MisoPin<SPI1>: ('A', 6, 5), ('B', 4, 5), ('G', 9, 5));
+pins!(MosiPin<SPI1>: ('A', 7, 5), ('B', 5, 5), ('D', 7, 5));
+pins!(SckPin<SPI2>: ('A', 9, 5), ('A', 12, 5), ('B', 10, 5), ('B', 13, 5), ('D', 3, 5));
+pins!(MisoPin<SPI2>: ('B', 14, 5), ('C', 2, 5));
+pins!(MosiPin<SPI2>: ('B', 15, 5), ('C', 1, 5), ('C', 3, 5));
+pins!(SckPin<SPI3>: ('B', 3, 6), ('C', 10, 6));
+pins!(MisoPin<SPI3>: ('B', 4, 6), ('C', 11, 6));
+pins!(MosiPin<SPI3>: ('B', 2, 7), ('B', 5, 7), ('C', 12, 6), ('D', 6, 5));
+pins!(SckPin<SPI4>: ('E', 2, 5), ('E', 12, 5));
+pins!(MisoPin<SPI4>: ('E', 5, 5), ('E', 13, 5));
+pins!(MosiPin<SPI4>: ('E', 6, 5), ('E', 14, 5));
+pins!(SckPin<SPI5>: ('F', 7, 5));
+pins!(MisoPin<SPI5>: ('F', 8, 5));
+pins!(MosiPin<SPI5>: ('F', 9, 5), ('F', 11, 5));
+
+dma!(
+    SpiRxDma, SpiTxDma;
+    SPI1: rx 37, tx 38;
+    SPI2: rx 39, tx 40;
+    SPI3: rx 61, tx 62;
+    SPI4: rx 83, tx 84;
+    SPI5: rx 85, tx 86;
 );
 
 // The vector each DMA stream raises.
@@ -324,7 +362,7 @@ mod tests {
         assert_eq!(
             Usart6Lucid::RESOURCES,
             [
-                Resource::Uart("USART6"),
+                Resource::Peripheral("USART6"),
                 Resource::Pin { signal: Signal::Tx, port: 'C', pin: 6, af: 7 },
                 Resource::Pin { signal: Signal::Rx, port: 'C', pin: 7, af: 7 },
                 // The Lucid's manifest names these DMA1_STREAM6_CH72 and

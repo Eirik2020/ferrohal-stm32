@@ -21,6 +21,7 @@ use crate::{
     rcc_f4::{Bus, Limits, RCC, RccBit},
     time::Hertz,
     uart::ConfigError,
+    spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     usart_v2::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
 };
 
@@ -262,6 +263,34 @@ dma!(RxDma<UART5>: (1, 0, 4));
 dma!(TxDma<USART6>: (2, 6, 5), (2, 7, 5));
 dma!(RxDma<USART6>: (2, 1, 5), (2, 2, 5));
 
+// SPI instances: (bus, enable bit, kernel clock). The kernel clock is the
+// bus clock.
+
+spis!(
+    SPI1 => SPI1_INFO, Apb2, 12, Apb2;
+    SPI2 => SPI2_INFO, Apb1, 14, Apb1;
+    SPI3 => SPI3_INFO, Apb1, 15, Apb1;
+);
+
+pins!(SckPin<SPI1>: ('A', 5, 5), ('B', 3, 5));
+pins!(MisoPin<SPI1>: ('A', 6, 5), ('B', 4, 5));
+pins!(MosiPin<SPI1>: ('A', 7, 5), ('B', 5, 5));
+pins!(SckPin<SPI2>: ('B', 10, 5), ('B', 13, 5));
+pins!(MisoPin<SPI2>: ('B', 14, 5), ('C', 2, 5));
+pins!(MosiPin<SPI2>: ('B', 15, 5), ('C', 3, 5));
+pins!(SckPin<SPI3>: ('B', 3, 6), ('C', 10, 6));
+pins!(MisoPin<SPI3>: ('B', 4, 6), ('C', 11, 6));
+pins!(MosiPin<SPI3>: ('B', 5, 6), ('C', 12, 6));
+
+dma!(SpiTxDma<SPI1>: (2, 3, 3), (2, 5, 3));
+dma!(SpiRxDma<SPI1>: (2, 0, 3), (2, 2, 3));
+dma!(SpiTxDma<SPI2>: (1, 4, 0));
+dma!(SpiRxDma<SPI2>: (1, 3, 0));
+dma!(SpiTxDma<SPI3>: (1, 5, 0), (1, 7, 0));
+dma!(SpiRxDma<SPI3>: (1, 0, 0), (1, 2, 0));
+
+// The vector each DMA stream raises.
+
 stream_interrupts!(
     1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3,
         4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
@@ -288,7 +317,7 @@ mod tests {
         assert_eq!(
             Usart2Foxeer::RESOURCES,
             [
-                Resource::Uart("USART2"),
+                Resource::Peripheral("USART2"),
                 Resource::Pin { signal: Signal::Tx, port: 'A', pin: 2, af: 7 },
                 Resource::Pin { signal: Signal::Rx, port: 'A', pin: 3, af: 7 },
                 // The manifest names these DMA1_STREAM6_CH4 and
@@ -298,6 +327,32 @@ mod tests {
                 Resource::Interrupt("USART2"),
                 Resource::Interrupt("DMA1_STREAM5"),
                 Resource::Interrupt("DMA1_STREAM6"),
+            ]
+        );
+    }
+
+    /// The Foxeer's IMU bus, as its manifest claims it.
+    #[test]
+    fn imu_spi_describes_itself() {
+        type Spi1Foxeer = crate::spi::Wiring<
+            SPI1,
+            Pin<'A', 5, Alternate<5>>,
+            Pin<'A', 6, Alternate<5>>,
+            Pin<'A', 7, Alternate<5>>,
+            Stream<2, 3>,
+            Stream<2, 0>,
+        >;
+        assert_eq!(
+            Spi1Foxeer::RESOURCES,
+            [
+                Resource::Peripheral("SPI1"),
+                Resource::Pin { signal: Signal::Sck, port: 'A', pin: 5, af: 5 },
+                Resource::Pin { signal: Signal::Miso, port: 'A', pin: 6, af: 5 },
+                Resource::Pin { signal: Signal::Mosi, port: 'A', pin: 7, af: 5 },
+                // DMA2_STREAM3_CH3 and DMA2_STREAM0_CH3 in the manifest.
+                Resource::Dma { signal: Signal::Tx, controller: 2, stream: 3, request: 3 },
+                Resource::Dma { signal: Signal::Rx, controller: 2, stream: 0, request: 3 },
+                Resource::Interrupt("DMA2_STREAM0"),
             ]
         );
     }

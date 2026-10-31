@@ -62,13 +62,16 @@ use crate::{
     rcc::{Bus, Clocks, Rcc, RccBit},
     time::Hertz,
     uart::{
-        Buffers, Chunk, ChunkEnd, Config, ConfigError, CycleClock, Error, Health, Resource,
+        Buffers, Chunk, ChunkEnd, Config, ConfigError, Error, Health, Resource,
         RxWiring, SendError, Signal, TxHealth, UartInterrupts, Wiring,
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
     usart::{Line, Regs},
+    wait::{Deadline, wait},
 };
+
+use crate::time::CycleClock;
 
 /// Spins allowed for a DMA stream to report itself stopped. A stopping
 /// stream finishes at most one word, so this is generous.
@@ -1366,55 +1369,6 @@ fn frame_cycles(cpu: Hertz, baudrate: u32) -> u32 {
     (cpu.0 / baudrate.max(1)).saturating_mul(MAX_FRAME_BITS).max(1)
 }
 
-/// A wait's bound: `cycles` of CPU time, measured by the caller's clock if
-/// there is one, otherwise counted as passes of at least `pass_cycles`.
-struct Deadline {
-    clock: Option<&'static dyn CycleClock>,
-    start: u32,
-    cycles: u32,
-    passes: u32,
-}
-
-impl Deadline {
-    fn new(clock: Option<&'static dyn CycleClock>, cycles: u32, pass_cycles: u32) -> Self {
-        // Under half the clock's range, so a wrap is never mistaken for an
-        // elapsed bound.
-        let cycles = cycles.min(i32::MAX as u32);
-        Self {
-            clock,
-            start: clock.map_or(0, |clock| clock.cycles()),
-            cycles,
-            passes: cycles / pass_cycles.max(1),
-        }
-    }
-
-    /// Whether the bound has run out, counting this pass.
-    fn expired(&mut self) -> bool {
-        match self.clock {
-            Some(clock) => clock.cycles().wrapping_sub(self.start) >= self.cycles,
-            None => {
-                if self.passes == 0 {
-                    return true;
-                }
-                self.passes -= 1;
-                false
-            }
-        }
-    }
-}
-
-/// Polls until `done` or the deadline runs out.
-fn wait(mut deadline: Deadline, mut done: impl FnMut() -> bool) -> bool {
-    loop {
-        if done() {
-            return true;
-        }
-        if deadline.expired() {
-            return done();
-        }
-    }
-}
-
 impl<U, TxP, RxP, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
     Wiring<U, TxP, RxP, Stream<TD, TN>, Stream<RD, RN>>
 where
@@ -1428,7 +1382,7 @@ where
     /// their alternate functions, both streams with their requests, and the
     /// three vectors to bind (line, receive, transmit).
     pub const RESOURCES: [Resource; 8] = [
-        Resource::Uart(U::NAME),
+        Resource::Peripheral(U::NAME),
         Resource::Pin {
             signal: Signal::Tx,
             port: TxP::PORT,
@@ -1467,7 +1421,7 @@ where
 {
     /// Everything this receive-only wiring uses, as data.
     pub const RESOURCES: [Resource; 5] = [
-        Resource::Uart(U::NAME),
+        Resource::Peripheral(U::NAME),
         Resource::Pin {
             signal: Signal::Rx,
             port: RxP::PORT,

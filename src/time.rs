@@ -50,3 +50,12 @@ impl From<fugit::HertzU32> for Hertz {
         Self(rate.to_raw())
     }
 }
+
+/// A free-running count of CPU cycles, wrapping at 2^32, that the caller
+/// owns: FerroHAL owns no time source. Give one to a driver (`set_clock`)
+/// and every wait lasts the time it asks for, instead of a counted bound
+/// that can run several times longer on a slow configuration. The Cortex-M
+/// DWT cycle counter is the usual one.
+pub trait CycleClock: Sync {
+    fn cycles(&self) -> u32;
+}

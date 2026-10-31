@@ -4,10 +4,11 @@
     python3 -I tools/check_glue.py stm32h753zi  # one chip
     python3 -I tools/check_glue.py stm32f401re --glue some/other/glue.rs
 
-For each U(S)ART instance the glue routes, it compares with the metadata of
-the stm32-metapac version Cargo.lock pins:
+For each U(S)ART and SPI instance the glue routes, it compares with the
+metadata of the stm32-metapac version Cargo.lock pins:
 
-- its TX and RX pins and their alternate functions, as exact sets;
+- its pins (TX and RX; SCK, MISO and MOSI) and their alternate functions,
+  as exact sets;
 - its RCC enable bit, resolved through metapac's register definitions;
 - its DMA routes: (controller, stream, channel) on a fixed-request DMA, or
   the DMAMUX request IDs on a DMAMUX chip.
@@ -157,10 +158,19 @@ class Glue:
                 found[name] = (bus, int(bit))
         return found
 
+    def spis(self):
+        found = {}
+        if not re.search(r"^spis!\(", self.text, re.M):
+            return found
+        for body in self.rows("spis"):
+            for name, bus, bit, _kernel in re.findall(r"(\w+) => \w+, (\w+), (\d+), (\w+);", body):
+                found[name] = (bus, int(bit))
+        return found
+
     def pins(self):
         found = {}
         for body in self.rows("pins"):
-            m = re.fullmatch(r"(Tx|Rx)Pin<(\w+)>: (.*)", body.strip(), re.S)
+            m = re.fullmatch(r"(Tx|Rx|Sck|Miso|Mosi)Pin<(\w+)>: (.*)", body.strip(), re.S)
             if not m:
                 self.problems.append(f"cannot parse pins!({body})")
                 continue
@@ -172,7 +182,7 @@ class Glue:
     def fixed_dma(self):
         found = {}
         for body in self.rows("dma"):
-            m = re.fullmatch(r"(Tx|Rx)Dma<(\w+)>: (.*)", body.strip(), re.S)
+            m = re.fullmatch(r"(?:Spi)?(Tx|Rx)Dma<(\w+)>: (.*)", body.strip(), re.S)
             if not m:
                 return None
             signal, usart, rows = m.groups()
@@ -224,15 +234,18 @@ def check(chip, glue_path, metapac):
             failures.append(f"{what}: glue {sorted(ours) if isinstance(ours, set) else ours}, metadata {sorted(theirs) if isinstance(theirs, set) else theirs}")
 
     usarts = glue.usarts()
+    spis = glue.spis()
     pins = glue.pins()
     fixed = glue.fixed_dma()
     mux = glue.dmamux_dma() if fixed is None else None
-    for name, enable in sorted(usarts.items()):
+    instances = [(name, enable, ("TX", "RX")) for name, enable in sorted(usarts.items())]
+    instances += [(name, enable, ("SCK", "MISO", "MOSI")) for name, enable in sorted(spis.items())]
+    for name, enable, signals in instances:
         if meta.peripheral(name) is None:
             failures.append(f"{name}: not in the metadata")
             continue
         compare(f"{name} RCC enable", enable, meta.enable(name))
-        theirs = {p for p in meta.pins(name) if p[0] in ("TX", "RX")}
+        theirs = {p for p in meta.pins(name) if p[0] in signals}
         compare(f"{name} pins", pins.get(name, set()), theirs)
         routes = {r for r in meta.dma(name) if r[0] in ("TX", "RX")}
         if fixed is not None:
@@ -249,6 +262,7 @@ def check(chip, glue_path, metapac):
 
     failures += glue.problems
     left_out = [n for n in meta.names("usart") if n not in usarts]
+    left_out += [n for n in meta.names("spi") if n not in spis]
     print(f"{chip}: {checked} facts checked against stm32-metapac metadata", end="")
     print(f"; not routed in the glue: {', '.join(left_out)}" if left_out else "")
     for failure in failures:

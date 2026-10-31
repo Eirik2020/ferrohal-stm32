@@ -154,36 +154,7 @@ pub struct RxWiring<U, Rx, RxDma> {
     pub rx_dma: RxDma,
 }
 
-/// One resource a UART's wiring uses, as data: for checking a board's
-/// manifest against the types that wire it (`Wiring::RESOURCES`).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Resource {
-    /// The U(S)ART instance, by its reference-manual name.
-    Uart(&'static str),
-    Pin {
-        signal: Signal,
-        port: char,
-        pin: u8,
-        af: u8,
-    },
-    Dma {
-        signal: Signal,
-        controller: u8,
-        stream: u8,
-        /// The request: `dma_v2`'s channel, or `dma_v1`'s DMAMUX ID.
-        request: u8,
-    },
-    /// An interrupt vector the UART needs bound, by its name.
-    Interrupt(&'static str),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Signal {
-    Tx,
-    Rx,
-}
+pub use crate::resource::{IrqError, Resource, Signal};
 
 /// The interrupt vectors a UART needs bound to its `UartIrq`, all at one
 /// priority above every task that uses the UART. From
@@ -198,18 +169,6 @@ pub struct UartInterrupts {
     pub tx_dma: Option<crate::chip::Interrupt>,
 }
 
-/// What [`UartInterrupts::verify`] found wrong.
-#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum IrqError {
-    /// This vector is masked in the NVIC: nothing serves it.
-    NotEnabled(crate::chip::Interrupt),
-    /// These two vectors have different priorities, so one could preempt
-    /// the other in the middle of `UartIrq`'s work.
-    PriorityMismatch(crate::chip::Interrupt, crate::chip::Interrupt),
-}
-
 #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
 impl UartInterrupts {
     /// Every vector, in order: line, receive, transmit.
@@ -222,17 +181,7 @@ impl UartInterrupts {
     /// whether its scheduler set it as the driver needs. That the tasks
     /// using the UART run below this priority is for the firmware to keep.
     pub fn verify(&self) -> Result<(), IrqError> {
-        use cortex_m::peripheral::NVIC;
-        let priority = NVIC::get_priority(self.line);
-        for vector in self.iter() {
-            if !NVIC::is_enabled(vector) {
-                return Err(IrqError::NotEnabled(vector));
-            }
-            if NVIC::get_priority(vector) != priority {
-                return Err(IrqError::PriorityMismatch(self.line, vector));
-            }
-        }
-        Ok(())
+        crate::resource::verify_vectors(self.iter())
     }
 }
 
@@ -247,14 +196,7 @@ pub struct Buffers {
     pub rx: &'static mut [u8],
 }
 
-/// A free-running count of CPU cycles, wrapping at 2^32, that the caller
-/// owns: FerroHAL owns no time source. Set one with `Uart::set_clock` and
-/// every wait lasts the time it asks for, instead of a counted bound that
-/// can run several times longer on a slow configuration. The Cortex-M DWT
-/// cycle counter is the usual one.
-pub trait CycleClock: Sync {
-    fn cycles(&self) -> u32;
-}
+pub use crate::time::CycleClock;
 
 /// One chunk of received bytes, as [`UartRx::read_chunk`] copies it out.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

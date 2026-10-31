@@ -86,6 +86,36 @@ macro_rules! pins {
     };
 }
 
+/// An SPI row's kernel clock column: `Pll1Q`, or the name of a bus.
+macro_rules! spi_kernel {
+    (Pll1Q) => {
+        crate::spi::Kernel::Pll1Q
+    };
+    ($bus:ident) => {
+        crate::spi::Kernel::Bus(Bus::$bus)
+    };
+}
+
+/// SPI instance rows: `NAME => INFO, bus, enable bit, kernel clock;`.
+macro_rules! spis {
+    ($($name:ident => $info:ident, $bus:ident, $bit:literal, $kernel:ident;)+) => {
+        $(
+            static $info: crate::spi::stream_dma::Info = crate::spi::stream_dma::Info::new(
+                crate::spi_ip::Unit::new(pac::$name),
+                RccBit::new(Bus::$bus, $bit),
+            );
+
+            impl crate::spi::Instance for $name {
+                const KERNEL: crate::spi::Kernel = spi_kernel!($kernel);
+                const NAME: &'static str = stringify!($name);
+                fn info() -> &'static crate::spi::stream_dma::Info {
+                    &$info
+                }
+            }
+        )+
+    };
+}
+
 /// The vector each DMA stream raises.
 macro_rules! stream_interrupts {
     ($($dma:literal: [$($stream:literal => $vector:ident),+];)+) => {

@@ -17,6 +17,7 @@ use crate::{
     rcc_f4::{Bus, Limits, RCC, RccBit},
     time::Hertz,
     uart::ConfigError,
+    spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     usart_v2::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
 };
 
@@ -202,6 +203,32 @@ dma!(RxDma<USART2>: (1, 5, 4));
 dma!(TxDma<USART6>: (2, 6, 5), (2, 7, 5));
 dma!(RxDma<USART6>: (2, 1, 5), (2, 2, 5));
 
+// SPI instances: (bus, enable bit, kernel clock). The kernel clock is the
+// bus clock.
+
+spis!(
+    SPI1 => SPI1_INFO, Apb2, 12, Apb2;
+    SPI2 => SPI2_INFO, Apb1, 14, Apb1;
+    SPI3 => SPI3_INFO, Apb1, 15, Apb1;
+);
+
+pins!(SckPin<SPI1>: ('A', 5, 5), ('B', 3, 5));
+pins!(MisoPin<SPI1>: ('A', 6, 5), ('B', 4, 5));
+pins!(MosiPin<SPI1>: ('A', 7, 5), ('B', 5, 5));
+pins!(SckPin<SPI2>: ('B', 10, 5), ('B', 13, 5));
+pins!(MisoPin<SPI2>: ('B', 14, 5), ('C', 2, 5));
+pins!(MosiPin<SPI2>: ('B', 15, 5), ('C', 3, 5));
+pins!(SckPin<SPI3>: ('B', 3, 6), ('C', 10, 6));
+pins!(MisoPin<SPI3>: ('B', 4, 6), ('C', 11, 6));
+pins!(MosiPin<SPI3>: ('B', 5, 6), ('C', 12, 6));
+
+dma!(SpiTxDma<SPI1>: (2, 3, 3), (2, 5, 3));
+dma!(SpiRxDma<SPI1>: (2, 0, 3), (2, 2, 3));
+dma!(SpiTxDma<SPI2>: (1, 4, 0));
+dma!(SpiRxDma<SPI2>: (1, 3, 0));
+dma!(SpiTxDma<SPI3>: (1, 5, 0), (1, 7, 0));
+dma!(SpiRxDma<SPI3>: (1, 0, 0), (1, 2, 0));
+
 // The vector each DMA stream raises.
 
 stream_interrupts!(
@@ -229,7 +256,7 @@ mod tests {
         assert_eq!(
             Usart1Bench::RESOURCES,
             [
-                Resource::Uart("USART1"),
+                Resource::Peripheral("USART1"),
                 Resource::Pin { signal: Signal::Tx, port: 'A', pin: 9, af: 7 },
                 Resource::Pin { signal: Signal::Rx, port: 'A', pin: 10, af: 7 },
                 Resource::Dma { signal: Signal::Tx, controller: 2, stream: 7, request: 4 },
