@@ -15,7 +15,9 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use embedded_io::Write;
-use ferrohal_stm32::uart::{Config, ConfigError, Error, Parity, StopBits, Uart, UartRx, UartTx};
+use ferrohal_stm32::uart::{
+    Chunk, ChunkEnd, Config, ConfigError, Error, Parity, StopBits, Uart, UartRx, UartTx,
+};
 
 /// Frames to wait for the next byte before calling the line silent.
 const PATIENCE: u32 = 200;
@@ -50,6 +52,12 @@ pub enum Fail {
     NotReported(Error),
     /// A configuration that must be refused was accepted.
     NotRefused(ConfigError),
+    /// A chunk ended otherwise than expected: how it did end.
+    Chunk {
+        end: ChunkEnd,
+        len: usize,
+        generation: u32,
+    },
     /// A counted wait ran short of its floor, or far past it, in cycles;
     /// or a wait loop ran faster than the HAL's per-pass floor.
     Bound { waited: u32, floor: u32 },
@@ -462,6 +470,150 @@ pub fn late_interrupt(
     echo(link, b"after the late interrupt")
 }
 
+/// The next complete chunk, polling for up to the link's settle time.
+fn next_chunk(link: &mut dyn Link, buf: &mut [u8]) -> Result<Chunk, Fail> {
+    for _ in 0..=link.settle_ms() {
+        if let Some(chunk) = link.rx().read_chunk(buf)? {
+            return Ok(chunk);
+        }
+        delay_ms(1);
+    }
+    Err(Fail::Silent { missing: buf.len() })
+}
+
+/// Fails unless `chunk` ended as `end` with `len` bytes of the pattern from
+/// `start`, in generation `generation`.
+fn expect_chunk(
+    chunk: Chunk,
+    buf: &[u8],
+    end: ChunkEnd,
+    start: usize,
+    len: usize,
+    generation: u32,
+) -> Result<(), Fail> {
+    if chunk.end != end || chunk.len != len || chunk.generation != generation {
+        return Err(Fail::Chunk {
+            end: chunk.end,
+            len: chunk.len,
+            generation: chunk.generation,
+        });
+    }
+    for (offset, &got) in buf[..len].iter().enumerate() {
+        let at = start + offset;
+        if got != pattern(at) {
+            return Err(Fail::Mismatch {
+                at,
+                sent: pattern(at),
+                got,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Bursts with pauses between them come out as one chunk per burst, ended
+/// by the idle line, with no gap.
+pub fn chunks_end_at_idle(link: &mut dyn Link) -> Result<(), Fail> {
+    const BURSTS: [usize; 5] = [7, 25, 64, 1, 40];
+    drain(link);
+    let generation = link.rx().generation();
+    let mut at = 0;
+    for len in BURSTS {
+        send_pattern(link, at, len)?;
+        // Many idle frames at any rate tested; one is enough for IDLE.
+        delay_ms(2);
+        at += len;
+    }
+    let mut buf = [0u8; 64];
+    let mut start = 0;
+    for len in BURSTS {
+        let chunk = next_chunk(link, &mut buf)?;
+        expect_chunk(chunk, &buf, ChunkEnd::Idle, start, len, generation)?;
+        start += len;
+    }
+    Ok(())
+}
+
+/// A burst longer than the caller's buffer comes out as full chunks, then
+/// the rest ended by the idle line.
+pub fn chunk_fills_the_buffer(link: &mut dyn Link) -> Result<(), Fail> {
+    drain(link);
+    let generation = link.rx().generation();
+    send_pattern(link, 0, 100)?;
+    delay_ms(2);
+    let mut buf = [0u8; 32];
+    for (start, len, end) in [
+        (0, 32, ChunkEnd::Full),
+        (32, 32, ChunkEnd::Full),
+        (64, 32, ChunkEnd::Full),
+        (96, 4, ChunkEnd::Idle),
+    ] {
+        let chunk = next_chunk(link, &mut buf)?;
+        expect_chunk(chunk, &buf, end, start, len, generation)?;
+    }
+    Ok(())
+}
+
+/// A break ends its chunk with a framing gap and advances the generation by
+/// exactly one; the chunks around it are whole.
+pub fn break_is_a_gap(link: &mut dyn Link) -> Result<(), Fail> {
+    drain(link);
+    let generation = link.rx().generation();
+    let framing = link.rx().health().framing;
+    send_pattern(link, 0, 10)?;
+    delay_ms(2);
+    link.tx().send_break()?;
+    delay_ms(2);
+    send_pattern(link, 10, 10)?;
+    delay_ms(2);
+    let mut buf = [0u8; 64];
+    let before = next_chunk(link, &mut buf)?;
+    expect_chunk(before, &buf, ChunkEnd::Idle, 0, 10, generation)?;
+    // The break's all-zero frame, ended by the framing error it raised.
+    let gap = next_chunk(link, &mut buf)?;
+    if gap.end != ChunkEnd::Gap(Error::Framing) || gap.generation != generation + 1 {
+        return Err(Fail::Chunk {
+            end: gap.end,
+            len: gap.len,
+            generation: gap.generation,
+        });
+    }
+    let after = next_chunk(link, &mut buf)?;
+    expect_chunk(after, &buf, ChunkEnd::Idle, 10, 10, generation + 1)?;
+    if link.rx().health().framing <= framing {
+        return Err(Fail::NotReported(Error::Framing));
+    }
+    Ok(())
+}
+
+/// A ring overrun comes out as an empty chunk ending in a gap, and the
+/// stream carries on in the next generation.
+pub fn overrun_is_a_gap(link: &mut dyn Link, ring_len: usize) -> Result<(), Fail> {
+    drain(link);
+    let generation = link.rx().generation();
+    let overruns = link.rx().health().buffer_overrun;
+    let chunk = [0x55; 64];
+    for _ in 0..(3 * ring_len).div_ceil(chunk.len()) {
+        link.tx().write_all(&chunk)?;
+    }
+    link.tx().flush()?;
+    delay_ms(link.settle_ms());
+    let mut buf = [0u8; 64];
+    let gap = next_chunk(link, &mut buf)?;
+    if gap.end != ChunkEnd::Gap(Error::BufferOverrun) || gap.len != 0 || gap.generation != generation + 1 {
+        return Err(Fail::Chunk {
+            end: gap.end,
+            len: gap.len,
+            generation: gap.generation,
+        });
+    }
+    if link.rx().health().buffer_overrun != overruns + 1 {
+        return Err(Fail::NotReported(Error::BufferOverrun));
+    }
+    drain(link);
+    echo(link, b"after the overrun gap")
+}
+
 /// Sends a break, which the receiver sees as a frame with no stop bit: it
 /// must be reported as a framing error, and the link must recover.
 pub fn line_break(link: &mut dyn Link) -> Result<(), Fail> {
@@ -564,7 +716,7 @@ pub fn full_suite(
     report.check(name, "ring overrun reported", ring_overrun(link, ring_len));
     report.check(
         name,
-        "counted waits within their bounds",
+        "counted and clocked waits within their bounds",
         wait_bounds(
             link,
             CYCLES_PER_MS.load(Ordering::Relaxed) * 1000,
@@ -577,23 +729,49 @@ pub fn full_suite(
         late_interrupt(link, ring_len, mask_rx_irq),
     );
     report.check(name, "break reported", line_break(link));
+    report.check(name, "chunks end where the line goes idle", chunks_end_at_idle(link));
+    report.check(name, "a full buffer ends a chunk", chunk_fills_the_buffer(link));
+    report.check(name, "a break ends its chunk with a gap", break_is_a_gap(link));
+    report.check(name, "a ring overrun is a gap", overrun_is_a_gap(link, ring_len));
     report.check(name, "1 Mbaud", reconfigured(link, &ONE_MBAUD));
     report.check(name, "57600 8E2", reconfigured(link, &EVEN_PARITY_TWO_STOP));
     report.check(name, "back to its own frame", reconfigured(link, config));
+    defmt::info!("{=str}: health {}", name, link.rx().health());
 }
 
-/// The HAL's per-pass cycle floors (`uart::stream_dma`); a counted wait is
-/// only as long as promised while no pass is faster than these.
-const RX_PASS_CYCLES: u32 = 128;
+/// The HAL's per-pass cycle floor for the read loop (`uart::stream_dma`);
+/// a counted wait is only as long as promised while no pass is faster.
+const RX_PASS_CYCLES: u32 = 224;
 const TX_PASS_CYCLES: u32 = 48;
+/// The most a counted wait may overshoot: the slowest configuration
+/// measured (H753, caches off) passes about 3.2 times slower than the
+/// fastest the floor is set from, the floor is half that fastest pass, and
+/// the HAL budgets 12-bit frames where this measures 10: 3.2 x 2 x 1.2,
+/// rounded up with margin.
+const COUNTED_OVERSHOOT: u32 = 12;
 
-/// Counted waits are never shorter than asked, and not wildly longer.
+/// The DWT cycle counter as FerroHAL's caller clock. The firmware must
+/// have enabled it.
+pub struct DwtClock;
+
+impl ferrohal_stm32::uart::CycleClock for DwtClock {
+    fn cycles(&self) -> u32 {
+        cortex_m::peripheral::DWT::cycle_count()
+    }
+}
+
+pub static DWT_CLOCK: DwtClock = DwtClock;
+
+/// Counted waits are never shorter than asked and not more than
+/// `COUNTED_OVERSHOOT` times longer; waits measured by a caller clock last
+/// the time asked.
 ///
 /// Measures with the DWT cycle counter, which the firmware must enable:
 /// - one pass of each wait loop (an empty `try_read`, a busy `is_idle`),
 ///   which must cost at least the HAL's floor for it;
-/// - `read_within(buf, 100)` on a silent line, which must last at least
-///   100 frames at 8N1, and at most 8 times that.
+/// - `read_within(buf, 100)` on a silent line, counted, then again with
+///   the DWT clock set: at least 100 frames at 8N1, and at most
+///   `COUNTED_OVERSHOOT` times that counted, or 1.5 times clocked.
 pub fn wait_bounds(link: &mut dyn Link, cpu_hz: u32, baudrate: u32) -> Result<(), Fail> {
     use cortex_m::peripheral::DWT;
     const PASSES: u32 = 10_000;
@@ -615,31 +793,44 @@ pub fn wait_bounds(link: &mut dyn Link, cpu_hz: u32, baudrate: u32) -> Result<()
     let tx_pass = DWT::cycle_count().wrapping_sub(start) / passes.max(1);
     drain(link);
 
-    let start = DWT::cycle_count();
-    let silent = link.rx().read_within(&mut buf, FRAMES);
-    let waited = DWT::cycle_count().wrapping_sub(start);
+    let mut timed = |link: &mut dyn Link| {
+        let start = DWT::cycle_count();
+        let silent = link.rx().read_within(&mut buf, FRAMES);
+        (silent, DWT::cycle_count().wrapping_sub(start))
+    };
+    let (counted, counted_waited) = timed(link);
+    link.rx().set_clock(Some(&DWT_CLOCK));
+    let (clocked, clocked_waited) = timed(link);
+    link.rx().set_clock(None);
+
     let frames_time = FRAMES * 10 * (cpu_hz / baudrate);
+    let tenths = |waited: u32| waited / (frames_time / 10).max(1);
     defmt::info!(
-        "{=str}: cycles per pass: read {=u32} (floor {=u32}), transmit {=u32} (floor {=u32}); read_within({=u32}) waited {=u32}.{=u32} times the frame time",
+        "{=str}: cycles per pass: read {=u32} (floor {=u32}), transmit {=u32} (floor {=u32}); read_within({=u32}) waited {=u32}/10 of the frame time counted, {=u32}/10 clocked",
         link.name(),
         rx_pass,
         RX_PASS_CYCLES,
         tx_pass,
         TX_PASS_CYCLES,
         FRAMES,
-        waited / frames_time,
-        (waited % frames_time) * 10 / frames_time
+        tenths(counted_waited),
+        tenths(clocked_waited)
     );
-    match silent {
-        Err(Error::Timeout) => {}
-        Err(error) => return Err(error.into()),
-        Ok(len) => return Err(Fail::Mismatch { at: len, sent: 0, got: 0 }),
+    for silent in [counted, clocked] {
+        match silent {
+            Err(Error::Timeout) => {}
+            Err(error) => return Err(error.into()),
+            Ok(len) => return Err(Fail::Mismatch { at: len, sent: 0, got: 0 }),
+        }
     }
     if rx_pass < RX_PASS_CYCLES || tx_pass < TX_PASS_CYCLES {
-        return Err(Fail::Bound { waited, floor: frames_time });
+        return Err(Fail::Bound { waited: rx_pass, floor: RX_PASS_CYCLES });
     }
-    if waited < frames_time || waited > 8 * frames_time {
-        return Err(Fail::Bound { waited, floor: frames_time });
+    if counted_waited < frames_time || counted_waited > COUNTED_OVERSHOOT * frames_time {
+        return Err(Fail::Bound { waited: counted_waited, floor: frames_time });
+    }
+    if clocked_waited < frames_time || clocked_waited > frames_time * 3 / 2 {
+        return Err(Fail::Bound { waited: clocked_waited, floor: frames_time });
     }
     Ok(())
 }

@@ -136,6 +136,15 @@ fn exercise_uart(uart: &mut Uart) {
     let (tx, rx) = uart.halves();
     keep(tx.write(data));
     keep(rx.try_read(&mut buf));
+    // The chunk reader, the fault counts and the caller clock.
+    keep(rx.read_chunk(black_box(&mut buf)));
+    keep(rx.generation());
+    keep(rx.health());
+    rx.set_clock(Some(&CLOCK));
+    keep(rx.read_within(black_box(&mut buf), black_box(10)));
+    tx.set_clock(Some(&CLOCK));
+    keep(tx.flush());
+    uart.set_clock(None);
 }
 
 /// Hands a result to the optimiser as used: the check is about which code
@@ -143,6 +152,17 @@ fn exercise_uart(uart: &mut Uart) {
 fn keep<T>(value: T) {
     black_box(value);
 }
+
+/// A caller clock for the check; any cycle source will do.
+struct Clock;
+
+impl uart::CycleClock for Clock {
+    fn cycles(&self) -> u32 {
+        black_box(0)
+    }
+}
+
+static CLOCK: Clock = Clock;
 
 fn park() -> ! {
     loop {

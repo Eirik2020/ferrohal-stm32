@@ -4,7 +4,8 @@
 #
 # - clippy on the crate, per chip, with warnings as errors;
 # - no reachable panic in the public API, per chip (checks/no-panic);
-# - the chip glue against stm32-metapac's metadata (tools/check_glue.py).
+# - the chip glue against stm32-metapac's metadata (tools/check_glue.py);
+# - the pure logic's unit tests, on the host.
 
 set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -29,4 +30,9 @@ for chip in "${chips[@]}"; do
         cargo build --release --manifest-path "$root/checks/no-panic/Cargo.toml" --features "$chip"
 done
 step "glue matches stm32-metapac metadata" python3 -I "$root/tools/check_glue.py"
+host=$(rustc -vV | sed -n 's/^host: //p')
+for chip in "${chips[@]}"; do
+    step "host unit tests ($chip)" \
+        cargo test --lib --manifest-path "$root/Cargo.toml" --features "$chip" --target "$host"
+done
 exit "$status"

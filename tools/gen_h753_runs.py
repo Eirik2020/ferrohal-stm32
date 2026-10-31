@@ -126,6 +126,21 @@ for run, (summary, uarts) in RUNS.items():
                 8 * 1024,
             ),
         );"""
+    bounds = "\n".join(
+        f"""        report.check(
+            "{label}",
+            "counted and clocked waits within their bounds, caches on",
+            tests::wait_bounds(
+                &mut Loop {{
+                    name: "{label}",
+                    uart: &mut *{f},
+                }},
+                board::CLOCKS.cpu.0,
+                {cfg}.baudrate,
+            ),
+        );"""
+        for f, label, line, dma, cfg in uarts
+    )
     if run == "a":
         local_extra = "        scb: SCB,\n        cpuid: CPUID,\n"
         local_extra_init = "                scb: core.SCB,\n                cpuid: core.CPUID,\n"
@@ -153,6 +168,7 @@ for run, (summary, uarts) in RUNS.items():
             tests::expect_refusal(check_dma_buffer(dtcm), ConfigError::BufferUnreachable),
         );
 {streams.replace('"8 KiB each, all at once"', '"8 KiB each, all at once, caches on"')}
+{bounds}
 """
         extra_uses = "        chip::check_dma_buffer,\n"
         extra_uses2 = "        uart::{Config, ConfigError, Parity, StopBits, Uart, UartIrq},\n"

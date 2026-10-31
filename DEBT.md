@@ -2,8 +2,8 @@
 
 Status as of 2026-10-31: UART over DMA runs on two chips.
 
-- **F401:** `hil/run-f401.sh` passes 45 of 45 checks across three runs.
-- **H753ZI:** `hil/run-h753.sh` passes 127 of 127 checks across four runs, with the caches off and on.
+- **F401:** `hil/run-f401.sh` passes 57 of 57 checks across three runs.
+- **H753ZI:** `hil/run-h753.sh` passes 179 of 179 checks across four runs, with the caches off and on.
 - **Both chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
@@ -40,21 +40,23 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 - **Medium: TX DMA errors are reported late.**
   - **Issue:** a transfer error on a write shows up in the *next* `write` or `flush`. The call that started the transfer has already returned `Ok`.
   - **Fix:** document it, or add a TX DMA interrupt path through `UartIrq`.
-- **Medium: errors aren't tied to a byte position.**
-  - **Issue:** `read` reports line errors and data separately, so the caller can't tell which byte was bad.
-  - **Fix:** this needs the chunked RX API (see FerroWasp below), which records the ring position at each error.
-- **Done: counted waits mean what they say.**
-  - Each timed loop now counts a measured minimum of cycles per pass (`RX_PASS_CYCLES` 128, `TX_PASS_CYCLES` 48: half the fastest pass measured). `read_within(buf, 100)` waits 3.4 (F401) and 2.4 (H753ZI, caches on) times the frame time, against about 100 times before, and the F401 bench went from 3 min 17 s to 21 s.
-  - **Limit:** the floors are measurements, not proofs. The HIL check "counted waits within their bounds" fails if a pass ever gets faster than its floor (a bound would run short), or a wait exceeds 8 times its time. Every new chip must pass it. Register-only polls (TC, break) still count one cycle per pass.
+- **Done: errors keep their place in the stream.**
+  - The interrupt records each line error, and each idle line, as a mark at its ring position. `try_read` returns the bytes before an error first, and the error on the next call. `read_chunk` ends the chunk the error struck with `ChunkEnd::Gap`.
+  - **Limit:** a line error's position is where DMA had written to when the interrupt ran, so the damaged byte is the chunk's last or near it, not identified exactly. A full mark queue (16 marks between reads) reports the error without a position.
+- **Done: waits last the time asked, given a caller clock.**
+  - With a `CycleClock` set (`Uart::set_clock`, e.g. the DWT counter), every wait is measured: `read_within` lasts 1.2 times the 8N1 frame time on every board, the 1.2 being the 12-bit frame the HAL budgets for.
+  - Without one, waits count passes against a floor of half the fastest pass measured (`RX_PASS_CYCLES` 224, `TX_PASS_CYCLES` 48). They are never short, but run 2.5 (H753 cached), 3.6 (F401) and 7.0 (H753 uncached) times long.
+  - **Limit:** the floors are measurements. The HIL check "counted and clocked waits within their bounds" fails if a pass gets faster than its floor, a counted wait exceeds 12 times its time, or a clocked wait exceeds 1.5 times. Every new chip must pass it.
 - **Low: a corner case can fail to keep NDTR and the half-lap count in step.**
   - **Issue:** if interrupts keep landing between the reads, `write_count` gives up after `COUNT_TRIES` and uses the last sample.
   - **Fix:** this is theoretical at UART rates. Count how often it happens, if anyone wants a number.
 
 ### API gaps
 
-- **High: there's no FerroWasp backend** (§11).
-  - **Issue:** FerroWasp's `UartRxDmaTransfer` (double-buffer `next_transfer`, idle-line chunks) and `UartTxDmaTransfer` (padded fixed-size TX) are not implemented. The driver has only a ring and an `embedded-io` API.
-  - **Fix:** add a chunked RX mode (idle-line interrupt plus a buffer swap) next to the ring, then write the thin backend crate.
+- **High: FerroWasp's transmit model is not there yet** (§11, §15).
+  - **Done for receive:** the ring never stops; `read_chunk` gives idle-ended, buffer-full and gap-ended chunks, with a generation counter and a `Health` snapshot. That is what FerroWasp's `UartRxDmaTransfer` needs, by copy.
+  - **Issue:** transmit is still one polled transfer at a time. FerroWasp needs queued, frame-atomic sends completed by the transmit DMA interrupt. Next in step 1.
+  - The compatibility adapter is built at swap time, as a `TRANSITION:` item (§15).
 - **Medium: `Uart::new` drops its tokens on error.**
   - **Issue:** if `new` fails, the pin, stream and USART tokens are consumed.
   - **Fix:** return them with the error, or check everything before taking them.
@@ -108,9 +110,6 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 - **Medium: the H753ZI bench reaches the Zio headers only.**
   - **Issue:** this board has no morpho headers (CN11, CN12) fitted, so `hil/run-h753.sh` covers 7 of 8 U(S)ARTs and 24 of 46 pin entries. UART8 can't be looped at all: its only TX pin, PE1, is on the morpho headers only. The Lucid's USART1 RX pin, PA10, and PA8, PA9, PB14 and PG9 are morpho-only too. UART5's PB13 reaches the Zio header only through SB7, which isn't fitted.
   - **Fix:** fit the morpho headers (the 38-of-46 plan, UART8 included), and SB7 for PB13. PA1, PA2, PA11 and PA12 need board rework (Ethernet, USB).
-- **Medium: counted waits overshoot 7.5 times on the H7 with its caches off.**
-  - **Issue:** an uncached pass costs about 860 cycles against 264 cached, so `read_within` waits 7.5 times its time with the caches off (the Lucid's policy) and 2.4 times with them on. The check's limit is 8. Bounds never run short, but the check has little margin.
-  - **Fix:** the cached and uncached spread is inherent to counted waits, since a floor must hold for the fastest case. Either widen the check's upper limit deliberately, or let the caller supply a time source for long waits.
 - **Low: USART2 on the F401 is checked through the ST-LINK.**
   - **Issue:** break, baud and parity changes don't survive the virtual COM port bridge, so USART2 runs echo, stream and ring overrun only. Solder bridges SB13/SB14 off and SB62/SB63 on would allow a direct link.
 - **Low: probes are picked by VID:PID.**
@@ -237,3 +236,10 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 
 - **Kill condition for the prototype** (§11): still undecided.
 - **How to measure reuse** (§11): the shared UART engine now runs unchanged on `usart_v2` and `usart_v4`, which gives a data point. The per-IP `Line` is about 150 lines; the shared engine is about 800.
+
+## 5. Transition items
+
+Code that exists only for the move of FerroWasp onto FerroHAL (§15). Each is marked `TRANSITION:` in its documentation and is removed once FerroWasp uses FerroHAL's native model.
+
+- None yet. The compatibility adapter for FerroWasp's `UartRxDmaTransfer` and `UartTxDmaTransfer` will be the first, built at swap time.
+

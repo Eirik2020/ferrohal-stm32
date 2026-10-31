@@ -19,6 +19,8 @@
 use core::fmt;
 
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+mod ring;
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub(crate) mod stream_dma;
 
 #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
@@ -82,6 +84,62 @@ pub struct Buffers {
     /// bytes, and so must the receive DMA interrupt, which must also never
     /// be preempted by the code that reads.
     pub rx: &'static mut [u8],
+}
+
+/// A free-running count of CPU cycles, wrapping at 2^32, that the caller
+/// owns: FerroHAL owns no time source. Set one with `Uart::set_clock` and
+/// every wait lasts the time it asks for, instead of a counted bound that
+/// can run several times longer on a slow configuration. The Cortex-M DWT
+/// cycle counter is the usual one.
+pub trait CycleClock: Sync {
+    fn cycles(&self) -> u32;
+}
+
+/// One chunk of received bytes, as [`UartRx::read_chunk`] copies it out.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct Chunk {
+    /// Bytes copied into the caller's buffer.
+    pub len: usize,
+    pub end: ChunkEnd,
+    /// The receiver's generation once this chunk was taken. It advances at
+    /// every gap, so two chunks of one generation have no loss between them.
+    pub generation: u32,
+}
+
+/// Why a chunk ended.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ChunkEnd {
+    /// The line went idle: the sender paused, typically at a frame's end.
+    Idle,
+    /// The caller's buffer filled before the line went idle.
+    Full,
+    /// Bytes were lost or damaged here, and the generation advanced. A line
+    /// error ends the chunk it struck: that chunk may hold the damaged byte,
+    /// so treat its content as suspect. Overruns and DMA errors end an
+    /// empty chunk.
+    Gap(Error),
+}
+
+/// How often each fault has struck since the UART was opened.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct Health {
+    pub overrun: u32,
+    pub framing: u32,
+    pub parity: u32,
+    pub noise: u32,
+    pub dma_transfer: u32,
+    pub dma_overrun: u32,
+    /// `read` fell more than a ring behind.
+    pub buffer_overrun: u32,
+    /// Times the receive DMA was restarted after an error.
+    pub restarts: u32,
+    /// Idle or error marks the interrupt could not queue. A lost idle mark
+    /// merges two chunks; a lost error mark is still reported, without its
+    /// position.
+    pub marks_lost: u32,
 }
 
 /// Why `Uart::new` or `set_config` refused a configuration. Apart from

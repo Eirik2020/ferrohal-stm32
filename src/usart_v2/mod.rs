@@ -83,11 +83,13 @@ impl Line {
         let _ = regs.dr().read();
     }
 
-    /// Turns the transmitter and receiver on.
+    /// Turns the transmitter and receiver on, and the idle-line interrupt
+    /// that ends a chunk.
     pub(crate) fn enable(self) {
         self.0.cr1().modify(|w| {
             w.set_te(true);
             w.set_re(true);
+            w.set_idleie(true);
         });
     }
 
@@ -121,14 +123,16 @@ impl Line {
         self.0.cr1().read().sbk()
     }
 
-    /// Reads and clears overrun, framing, parity and noise.
-    pub(crate) fn take_errors(self) -> u8 {
+    /// Reads and clears overrun, framing, parity and noise, and whether the
+    /// line went idle.
+    pub(crate) fn take_events(self) -> (u8, bool) {
         let sr = self.0.sr().read();
-        if !(sr.pe() || sr.fe() || sr.ne() || sr.ore()) {
-            return 0;
+        let idle = sr.idle();
+        if !(idle || sr.pe() || sr.fe() || sr.ne() || sr.ore()) {
+            return (0, false);
         }
-        // Reading DR after SR clears all four. DMA has taken every good
-        // byte, so the one in DR is the faulty one.
+        // Reading DR after SR clears all five. DMA has taken every good
+        // byte, so DR holds the faulty one, or nothing new at an idle line.
         let _ = self.0.dr().read();
         let mut bits = 0;
         for (set, bit) in [
@@ -141,6 +145,6 @@ impl Line {
                 bits |= bit;
             }
         }
-        bits
+        (bits, idle)
     }
 }

@@ -291,6 +291,54 @@ mod app {
                 8 * 1024,
             ),
         );
+        report.check(
+            "USART6 PC6->PC7, CRSF 420000",
+            "counted and clocked waits within their bounds, caches on",
+            tests::wait_bounds(
+                &mut Loop {
+                    name: "USART6 PC6->PC7, CRSF 420000",
+                    uart: &mut *usart6,
+                },
+                board::CLOCKS.cpu.0,
+                CRSF.baudrate,
+            ),
+        );
+        report.check(
+            "USART1 PB6->PB7, SBUS 100000 8E2",
+            "counted and clocked waits within their bounds, caches on",
+            tests::wait_bounds(
+                &mut Loop {
+                    name: "USART1 PB6->PB7, SBUS 100000 8E2",
+                    uart: &mut *usart1,
+                },
+                board::CLOCKS.cpu.0,
+                SBUS.baudrate,
+            ),
+        );
+        report.check(
+            "USART3 PB10->PB11, MSP 115200",
+            "counted and clocked waits within their bounds, caches on",
+            tests::wait_bounds(
+                &mut Loop {
+                    name: "USART3 PB10->PB11, MSP 115200",
+                    uart: &mut *usart3,
+                },
+                board::CLOCKS.cpu.0,
+                MSP.baudrate,
+            ),
+        );
+        report.check(
+            "USART2 PD5->PD6, control",
+            "counted and clocked waits within their bounds, caches on",
+            tests::wait_bounds(
+                &mut Loop {
+                    name: "USART2 PD5->PD6, control",
+                    uart: &mut *usart2,
+                },
+                board::CLOCKS.cpu.0,
+                MSP.baudrate,
+            ),
+        );
 
         let led = cx.local.led;
         tests::finish(&report, || led.set_high());

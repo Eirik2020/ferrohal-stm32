@@ -90,11 +90,13 @@ impl Line {
         regs.icr().write_value(error_flags());
     }
 
-    /// Turns the transmitter and receiver on.
+    /// Turns the transmitter and receiver on, and the idle-line interrupt
+    /// that ends a chunk.
     pub(crate) fn enable(self) {
         self.0.cr1().modify(|w| {
             w.set_te(true);
             w.set_re(true);
+            w.set_idleie(true);
         });
     }
 
@@ -120,9 +122,11 @@ impl Line {
         self.0.isr().read().sbkf()
     }
 
-    /// Reads overrun, framing, parity and noise, and clears the ones set.
-    pub(crate) fn take_errors(self) -> u8 {
+    /// Reads overrun, framing, parity and noise, and whether the line went
+    /// idle, and clears the ones set.
+    pub(crate) fn take_events(self) -> (u8, bool) {
         let isr = self.0.isr().read();
+        let idle = isr.idle();
         let mut bits = 0;
         let mut clear = Icr(0);
         for (set, bit) in [
@@ -135,18 +139,19 @@ impl Line {
                 bits |= bit;
             }
         }
-        if bits != 0 {
+        if bits != 0 || idle {
             clear.set_ore(isr.ore());
             clear.set_fe(isr.fe());
             clear.set_pe(isr.pe());
             clear.set_ne(isr.ne());
+            clear.set_idle(idle);
             self.0.icr().write_value(clear);
         }
-        bits
+        (bits, idle)
     }
 }
 
-/// ICR bits for every error `take_errors` reports.
+/// ICR bits for every error `take_events` reports.
 fn error_flags() -> Icr {
     let mut icr = Icr(0);
     icr.set_ore(true);
