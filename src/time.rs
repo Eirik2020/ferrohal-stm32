@@ -1,4 +1,18 @@
 //! Frequencies.
+//!
+//! [`Hertz`] is FerroHAL's own type, not fugit's `Rate`, on purpose:
+//!
+//! - fugit is pre-1.0 and its majors split the ecosystem (0.3 for
+//!   rtic-time 2, 0.6 for rtic-monotonics 3). Carrying it in `Clocks` and
+//!   the configurations would tie every fugit major to a FerroHAL one.
+//! - FerroHAL owns no time source, so it needs frequencies only, never
+//!   fugit's instants and durations.
+//! - `rcc::Config::validate` runs at compile time, and fugit's operators
+//!   are not `const fn`.
+//!
+//! The `fugit` feature adds `From` conversions to and from fugit 0.6's
+//! `HertzU32`. It pulls in fugit and its one dependency, `gcd`, and nothing
+//! from RTIC or embassy.
 
 /// A frequency in hertz.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -20,5 +34,19 @@ impl Hertz {
 
     pub const fn to_hz(self) -> u32 {
         self.0
+    }
+}
+
+#[cfg(feature = "fugit")]
+impl From<Hertz> for fugit::HertzU32 {
+    fn from(freq: Hertz) -> Self {
+        Self::from_raw(freq.0)
+    }
+}
+
+#[cfg(feature = "fugit")]
+impl From<fugit::HertzU32> for Hertz {
+    fn from(rate: fugit::HertzU32) -> Self {
+        Self(rate.to_raw())
     }
 }

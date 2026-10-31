@@ -11,7 +11,8 @@ test = false
 bench = false
 
 [dependencies]
-ferrohal-stm32 = { path = "../..", features = ["rt"] }
+ferrohal-stm32 = { path = "../..", features = ["rt", "fugit"] }
+fugit = "0.6"
 embedded-io = "0.7.1"
 embedded-hal = "1.0.0"
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }

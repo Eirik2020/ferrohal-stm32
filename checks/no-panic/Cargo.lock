@@ -100,6 +100,7 @@ dependencies = [
  "embedded-hal 1.0.0",
  "embedded-io",
  "ferrohal-stm32",
+ "fugit",
 ]
 
 [[package]]
@@ -109,8 +110,24 @@ dependencies = [
  "cortex-m",
  "embedded-hal 1.0.0",
  "embedded-io",
+ "fugit",
  "stm32-metapac",
 ]
+
+[[package]]
+name = "fugit"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60ee0e9ed8a394868ee05cde8705cbd8dbfc95f88e14a57134323e799bd3912a"
+dependencies = [
+ "gcd",
+]
+
+[[package]]
+name = "gcd"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d758ba1b47b00caf47f24925c0074ecb20d6dfcffe7f6d53395c0465674841a"
 
 [[package]]
 name = "nb"

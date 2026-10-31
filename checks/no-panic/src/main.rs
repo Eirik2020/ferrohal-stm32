@@ -37,6 +37,9 @@ fn main() -> ! {
         park()
     };
     keep(rcc.clocks());
+    // The fugit conversions.
+    let rate = fugit::HertzU32::from(black_box(rcc.clocks()).hclk);
+    keep(ferrohal_stm32::time::Hertz::from(black_box(rate)));
 
     // GPIO, through the embedded-hal traits and inherently.
     let _ = OutputPin::set_high(&mut out);

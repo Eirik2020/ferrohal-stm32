@@ -24,7 +24,7 @@ step() {
 
 for chip in "${chips[@]}"; do
     step "clippy ($chip)" \
-        cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt" -- -D warnings
+        cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit" -- -D warnings
     step "no reachable panic ($chip)" \
         cargo build --release --manifest-path "$root/checks/no-panic/Cargo.toml" --features "$chip"
 done
