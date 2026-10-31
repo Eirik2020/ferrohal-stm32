@@ -4,8 +4,8 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-10-31:
 
-- **F401:** `hil/run-f401.sh` passes 169 of 169 checks across eight runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H).
-- **H753ZI:** `hil/run-h753.sh` passes 380 of 380 checks across nine runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I).
+- **F401:** `hil/run-f401.sh` passes 178 of 178 checks across nine runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I).
+- **H753ZI:** `hil/run-h753.sh` passes 399 of 399 checks across ten runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J).
 - **F405RG, H743VI:** build, glue checked against metapac, values checked against their docs. Not yet run on hardware.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
@@ -48,7 +48,9 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1). `UartIrq` can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover to rtic-monotonics** (§7 hook 5, §8 foot-gun 1). FerroHAL's `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL timer token as its monotonic.
-- **Medium: timers count only.** `Tick` (update interrupt) and `Timebase` (32-bit free-running count); no channels yet: PWM, compare DMA (DShot), input capture, one-pulse, triggers between timers, the advanced timers' outputs and break input. These are step 4's next parts.
+- **Medium: timer features still missing:** input capture, one-pulse mode, starting several timers from one trigger (FerroWasp's lanes can start from one timer's trigger output; FerroHAL starts them one after another in software), dead time, the break input, and switching a lane's stream between transmit and sampling for bidirectional DShot (FerroWasp's reply window).
+- **Low: arming and staging lanes takes time.** About 14 µs for two lanes on the F401 at 84 MHz, measured by the bench; a frame scheduler must allow for it.
+- **Low: sampler rates.** The bench samples at about 12 times the DShot600 bit rate (7 MHz on the F401, 7.1 MHz on the H753) without losing samples; faster rates are untested.
 - **Low: a tick or timebase rate must divide the timer clock exactly.** `Tick` and `Timebase` refuse a rate they would have to round (`ConfigError::Inexact`) rather than drift.
 - **Low: some timers share their update vector** (the F4's `TIM1_UP_TIM10`, the H7's `TIM8_UP_TIM13`). `Tick::on_interrupt` returns `false` when the flag isn't its own, but the firmware must call every sharer's handler from the one vector.
 - **Low: `verify()` can't check task priorities.** It checks the UART's vectors are enabled at one priority; "above every task that uses it" stays the application's job.
@@ -62,7 +64,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Architecture and process
 
-- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs and timers: 50 facts on the F401, 80 on the F405, 93 on the H743, 96 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
+- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs and timers: 82 facts on the F401, 128 on the F405, 129 on the H743, 132 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
 - **Medium: five source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Medium: requirements tooling is missing** (§9): no `requirements.yaml`, schema, requirement IDs or publish tool.
@@ -90,7 +92,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: only one supply range** (2.7–3.6 V) in `Supply`.
 - **Low: HSE with a crystal is untested;** only bypass (the ST-LINK MCO) has run.
 - **Low: phantom pins:** LQFP64 bonds only PD2, PH0, PH1 outside ports A to C, and no port E.
-- **DShot note (step 4), ES0299 2.2.11:** DMA2 corrupts data when serving AHB and APB2 requests concurrently, which hits DMA2 writes to GPIO. Route such writes through DMA2's memory port, as the erratum describes. UARTs are unaffected.
+- **Low: ES0299 2.2.11 for samplers.** DMA2 can corrupt data serving AHB (GPIO, a `Sampler`) and APB2 at once. The bench's run I keeps its lanes on DMA1 (TIM3) so DMA2 serves only GPIO and memory; firmware that samples while APB2 peripherals (TIM1, SPI1, USART1/6) use DMA2 must avoid the overlap. UARTs alone are unaffected.
 
 ## 3. STM32F405RG (Foxeer F405 V2)
 
@@ -99,7 +101,8 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: prefetch on revision A.** `freeze` sets PRFTEN; ES0182 2.2.1 says revision A doesn't support the prefetch queue. Later revisions are fixed.
 - **Low: HSE with a crystal is untested** (the Foxeer's 8 MHz crystal).
 - **Low: phantom pins:** ports E to I are handed out though LQFP64 bonds only ports A to C, PD2, PH0, PH1.
-- **DShot note (step 4), ES0182 2.2.19:** the same DMA2 AHB/APB2 corruption as the F401's 2.2.11.
+- **High: bidirectional DShot meets ES0182 2.2.19.** The Foxeer's motor timers are TIM1 and TIM8 (APB2) on DMA2, and reading the ESC replies samples GPIO (AHB), which only DMA2 reaches on the F4. DMA2 serving both at once can corrupt data. FerroHAL's `Sampler` documents it; the bench keeps lanes on DMA1 to avoid it. Before bidirectional DShot on the F405: never sample one lane while another timer's DMA2 compare traffic runs, or route the GPIO side through DMA2's memory port as the erratum describes.
+- **Low: complementary outputs are untested on the F401 and F405 hardware.** The F401's only break-unit timer, TIM1, is also its only timer whose update request reaches DMA2, so the bench can't sample a CHxN output there; the H753ZI bench covers CHxN. The Foxeer's motor 4 is TIM1 CH3N.
 
 ## 4. STM32H753ZI (Nucleo-H753ZI)
 

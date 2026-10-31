@@ -312,6 +312,101 @@ timers!(
     TIM14 => Apb1, 8, TIM8_TRG_COM_TIM14, 16;
 );
 
+// Timer channels: (channels, plain or break unit), their pins, and their
+// compare (CHx) and update (UP) DMA requests. Where a stream serves a signal
+// on two channels, the one dedicated to that signal is kept (TIM1 CH3 on
+// DMA2 stream 6: channel 6, not channel 0, which TIM1 CH1 to CH3 share).
+
+channel_timers!(
+    TIM1 => 4, break;
+    TIM2 => 4, plain;
+    TIM3 => 4, plain;
+    TIM4 => 4, plain;
+    TIM5 => 4, plain;
+    TIM8 => 4, break;
+    TIM9 => 2, plain;
+    TIM10 => 1, plain;
+    TIM11 => 1, plain;
+    TIM12 => 2, plain;
+    TIM13 => 1, plain;
+    TIM14 => 1, plain;
+);
+
+timer_pins!(TIM1 CH1: ('A', 8, 1));
+timer_pins!(TIM1 CH1N: ('A', 7, 1), ('B', 13, 1));
+timer_pins!(TIM1 CH2: ('A', 9, 1));
+timer_pins!(TIM1 CH2N: ('B', 0, 1), ('B', 14, 1));
+timer_pins!(TIM1 CH3: ('A', 10, 1));
+timer_pins!(TIM1 CH3N: ('B', 1, 1), ('B', 15, 1));
+timer_pins!(TIM1 CH4: ('A', 11, 1));
+timer_pins!(TIM2 CH1: ('A', 0, 1), ('A', 5, 1), ('A', 15, 1));
+timer_pins!(TIM2 CH2: ('A', 1, 1), ('B', 3, 1));
+timer_pins!(TIM2 CH3: ('A', 2, 1), ('B', 10, 1));
+timer_pins!(TIM2 CH4: ('A', 3, 1), ('B', 11, 1));
+timer_pins!(TIM3 CH1: ('A', 6, 2), ('B', 4, 2), ('C', 6, 2));
+timer_pins!(TIM3 CH2: ('A', 7, 2), ('B', 5, 2), ('C', 7, 2));
+timer_pins!(TIM3 CH3: ('B', 0, 2), ('C', 8, 2));
+timer_pins!(TIM3 CH4: ('B', 1, 2), ('C', 9, 2));
+timer_pins!(TIM4 CH1: ('B', 6, 2));
+timer_pins!(TIM4 CH2: ('B', 7, 2));
+timer_pins!(TIM4 CH3: ('B', 8, 2));
+timer_pins!(TIM4 CH4: ('B', 9, 2));
+timer_pins!(TIM5 CH1: ('A', 0, 2));
+timer_pins!(TIM5 CH2: ('A', 1, 2));
+timer_pins!(TIM5 CH3: ('A', 2, 2));
+timer_pins!(TIM5 CH4: ('A', 3, 2));
+timer_pins!(TIM8 CH1: ('C', 6, 3));
+timer_pins!(TIM8 CH1N: ('A', 5, 3), ('A', 7, 3));
+timer_pins!(TIM8 CH2: ('C', 7, 3));
+timer_pins!(TIM8 CH2N: ('B', 0, 3), ('B', 14, 3));
+timer_pins!(TIM8 CH3: ('C', 8, 3));
+timer_pins!(TIM8 CH3N: ('B', 1, 3), ('B', 15, 3));
+timer_pins!(TIM8 CH4: ('C', 9, 3));
+timer_pins!(TIM9 CH1: ('A', 2, 3));
+timer_pins!(TIM9 CH2: ('A', 3, 3));
+timer_pins!(TIM10 CH1: ('B', 8, 3));
+timer_pins!(TIM11 CH1: ('B', 9, 3));
+timer_pins!(TIM12 CH1: ('B', 14, 9));
+timer_pins!(TIM12 CH2: ('B', 15, 9));
+timer_pins!(TIM13 CH1: ('A', 6, 9));
+timer_pins!(TIM14 CH1: ('A', 7, 9));
+
+timer_dma!(TIM1 CH1: (2, 1, 6), (2, 3, 6), (2, 6, 0));
+timer_dma!(TIM1 CH2: (2, 2, 6), (2, 6, 0));
+timer_dma!(TIM1 CH3: (2, 6, 6));
+timer_dma!(TIM1 CH4: (2, 4, 6));
+timer_dma!(TIM1 UP: (2, 5, 6));
+timer_dma!(TIM2 CH1: (1, 5, 3));
+timer_dma!(TIM2 CH2: (1, 6, 3));
+timer_dma!(TIM2 CH3: (1, 1, 3));
+timer_dma!(TIM2 CH4: (1, 6, 3), (1, 7, 3));
+timer_dma!(TIM2 UP: (1, 1, 3), (1, 7, 3));
+timer_dma!(TIM3 CH1: (1, 4, 5));
+timer_dma!(TIM3 CH2: (1, 5, 5));
+timer_dma!(TIM3 CH3: (1, 7, 5));
+timer_dma!(TIM3 CH4: (1, 2, 5));
+timer_dma!(TIM3 UP: (1, 2, 5));
+timer_dma!(TIM4 CH1: (1, 0, 2));
+timer_dma!(TIM4 CH2: (1, 3, 2));
+timer_dma!(TIM4 CH3: (1, 7, 2));
+timer_dma!(TIM4 UP: (1, 6, 2));
+timer_dma!(TIM5 CH1: (1, 2, 6));
+timer_dma!(TIM5 CH2: (1, 4, 6));
+timer_dma!(TIM5 CH3: (1, 0, 6));
+timer_dma!(TIM5 CH4: (1, 1, 6), (1, 3, 6));
+timer_dma!(TIM5 UP: (1, 0, 6), (1, 6, 6));
+timer_dma!(TIM8 CH1: (2, 2, 7));
+timer_dma!(TIM8 CH2: (2, 2, 0), (2, 3, 7));
+timer_dma!(TIM8 CH3: (2, 2, 0), (2, 4, 7));
+timer_dma!(TIM8 CH4: (2, 7, 7));
+timer_dma!(TIM8 UP: (2, 1, 7));
+
+// Only DMA2's peripheral port reaches the GPIO ports; DMA1's reaches APB1
+// alone (RM0090 figure 1).
+gpio_dma!(
+    2: [0, 1, 2, 3, 4, 5, 6, 7];
+);
+
 // The vector each DMA stream raises.
 
 stream_interrupts!(

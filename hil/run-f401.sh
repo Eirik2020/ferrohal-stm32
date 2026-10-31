@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs the Nucleo-F401RE bench: UART runs A to D, with the host echo
-# for USART2 running alongside, SPI and EXTI runs E to G, timer run H. Exits
+# for USART2 running alongside, SPI and EXTI runs E to G, timer runs H and I.
+# Exits
 # non-zero if any run failed.
 #
 # Needs the links described in nucleo-f401re-loopback/src/board.rs
@@ -19,7 +20,7 @@ trap 'kill "$echo_pid" 2>/dev/null; wait "$echo_pid" 2>/dev/null' EXIT
 sleep 0.5
 
 status=0
-for run in a b c d e f g h; do
+for run in a b c d e f g h i; do
     log="$here/logs/f401-run-$run.log"
     (cd "$here/nucleo-f401re-loopback" && timeout 300 cargo run --release --bin "run-$run") > "$log" 2>&1
     code=$?

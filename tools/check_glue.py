@@ -14,8 +14,11 @@ metadata of the stm32-metapac version Cargo.lock pins:
   the DMAMUX request IDs on a DMAMUX chip.
 
 It also checks every GPIO port's and DMA controller's enable bit, each
-controller's first DMAMUX channel, and every timer's enable bit, update
-interrupt vector and counter width. Instances the metadata has and the glue
+controller's first DMAMUX channel, every timer's enable bit, update
+interrupt vector and counter width, and every channel timer's channel count,
+break unit, channel pins (CHx, CHxN) and compare and update DMA routes. On a
+fixed-request DMA a stream that serves one signal on two channels appears
+once in the glue, with either request. Instances the metadata has and the glue
 leaves out are listed, not failed. Exits 1 on any mismatch.
 
 The glue's macro rows are parsed as text, so their layout is part of the
@@ -185,6 +188,32 @@ class Glue:
                 found[name] = ((bus, int(bit)), update, int(bits))
         return found
 
+    def channel_timers(self):
+        found = {}
+        if not re.search(r"^channel_timers!\(", self.text, re.M):
+            return found
+        for body in self.rows("channel_timers"):
+            for name, channels, kind in re.findall(r"(\w+) => (\d+), (plain|break);", body):
+                found[name] = (int(channels), kind == "break")
+        return found
+
+    def timer_pins(self):
+        found = {}
+        for tim, signal, rows in re.findall(r"^timer_pins!\((\w+) (\w+): (.*?)\);", self.text, re.M):
+            for port, pin, af in re.findall(r"\('(\w)', (\d+), (\d+)\)", rows):
+                found.setdefault(tim, set()).add((signal, f"P{port}{pin}", int(af)))
+        return found
+
+    def timer_dma(self):
+        found = {}
+        for tim, signal, rows in re.findall(r"^timer_dma!\((\w+) (\w+): (.*?)\);", self.text, re.M):
+            mux = re.fullmatch(r"mux (\d+)", rows.strip())
+            if mux:
+                found.setdefault(tim, set()).add((signal, int(mux.group(1))))
+            for dma, stream, request in re.findall(r"\((\d+), (\d+), (\d+)\)", rows):
+                found.setdefault(tim, set()).add((signal, f"DMA{dma}_CH{stream}", int(request)))
+        return found
+
     def pins(self):
         found = {}
         for body in self.rows("pins"):
@@ -279,6 +308,25 @@ def check(chip, glue_path, metapac):
         compare(f"{name} RCC enable", enable, meta.enable(name))
         compare(f"{name} update vector", update, meta.interrupt(name, "UP"))
         compare(f"{name} counter bits", bits, 32 if meta.block(name) == "TIM_GP32" else 16)
+    blocks = {"TIM_ADV": (4, True), "TIM_GP16": (4, False), "TIM_GP32": (4, False), "TIM_2CH": (2, False),
+              "TIM_1CH": (1, False), "TIM_2CH_CMP": (2, True), "TIM_1CH_CMP": (1, True)}
+    channel_timers = glue.channel_timers()
+    timer_pins = glue.timer_pins()
+    timer_dma = glue.timer_dma()
+    for name in sorted(n for n in timers if blocks.get(meta.block(n))):
+        compare(f"{name} channels and break unit", channel_timers.get(name), blocks[meta.block(name)])
+        theirs = {p for p in meta.pins(name) if re.fullmatch(r"CH[1-4]N?", p[0])}
+        compare(f"{name} channel pins", timer_pins.get(name, set()), theirs)
+        routes = {r for r in meta.dma(name) if re.fullmatch(r"CH[1-4]|UP", r[0])}
+        ours = timer_dma.get(name, set())
+        if fixed is not None:
+            pairs = {(signal, channel) for signal, channel, _, _ in routes}
+            compare(f"{name} DMA (signal, stream) pairs", {(s_, c) for s_, c, _ in ours}, pairs)
+            wrong = {r for r in ours if (r[0], r[1], None, r[2]) not in routes}
+            compare(f"{name} DMA requests are the metadata's", wrong, set())
+        else:
+            theirs = {(signal, request) for signal, _, dmamux, request in routes if dmamux == "DMAMUX1"}
+            compare(f"{name} DMAMUX1 requests", ours, theirs)
     for regs, enable in sorted(glue.ports().items()):
         compare(f"{regs} RCC enable", enable, meta.enable(regs))
     for dma, enable in sorted(glue.dma_controllers().items()):

@@ -21,6 +21,10 @@ use stm32_metapac::timer::{
     vals::Urs,
 };
 
+#[path = "timer_pwm.rs"]
+mod pwm;
+pub use pwm::{CompareLane, Error, Pwm, PwmChannel, Sampler, nearest};
+
 use crate::{
     chip::Interrupt,
     rcc::{Bus, Clocks, Rcc, RccBit},
@@ -51,6 +55,49 @@ pub trait Instance32: Instance {
     #[doc(hidden)]
     fn gp32() -> TimGp32;
 }
+
+/// A timer with capture/compare channels. Chip facts: the glue implements
+/// it.
+pub trait ChannelTimer: Instance {
+    /// Channels 1 to `CHANNELS`.
+    const CHANNELS: u8;
+    /// Whether it has a break unit (BDTR), whose MOE bit must be set for
+    /// any output to drive its pin: TIM1, TIM8 and TIM15 to TIM17.
+    const BREAK: bool;
+}
+
+/// A pin, in the right alternate function, that carries channel `C` of `T`.
+pub trait ChannelPin<T: ChannelTimer, const C: u8>: crate::Sealed {}
+
+/// A pin, in the right alternate function, that carries the complementary
+/// output of channel `C` of `T` (CHxN).
+pub trait ComplementaryPin<T: ChannelTimer, const C: u8>: crate::Sealed {}
+
+/// A DMA stream that serves the compare request of channel `C` of `T`.
+///
+/// # Safety
+///
+/// `REQUEST` must route that request to this stream.
+pub unsafe trait CompareDma<T: ChannelTimer, const C: u8>:
+    crate::dma::StreamInstance + crate::dma::StreamInterrupt
+{
+    const REQUEST: u8;
+}
+
+/// A DMA stream that serves the update request of `T`.
+///
+/// # Safety
+///
+/// `REQUEST` must route that request to this stream.
+pub unsafe trait UpdateDma<T: Instance>:
+    crate::dma::StreamInstance + crate::dma::StreamInterrupt
+{
+    const REQUEST: u8;
+}
+
+/// A DMA stream whose peripheral port reaches the GPIO ports: on F4 only
+/// DMA2's (DMA1's reaches APB1 alone), on H7 every DMA1 and DMA2 stream.
+pub trait GpioDma: crate::dma::StreamInstance {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]

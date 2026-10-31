@@ -463,6 +463,57 @@ pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
     })
 }
 
+// Run J: DShot-style compare lanes, sampled. No links.
+
+/// The Lucid's motor lanes: TIM3 channels 3 and 4 on PB0 and PB1 (DMA2
+/// streams 0 and 1, its streams), TIM5 channels 1 and 4 on PA0 and PA3
+/// (DMA2 streams 2 and 3; the Lucid's motor 4 is channel 2 on PA1, which the
+/// Nucleo's Ethernet PHY drives). Samplers: TIM8's update request reads port
+/// B on DMA1 stream 0, TIM2's port A on DMA1 stream 1. TIM1 drives CH3N on
+/// PB15 as plain PWM, for the complementary output.
+pub struct RunJ {
+    pub rcc: Rcc,
+    pub tim3: TIM3,
+    pub pb0: Pin<'B', 0, Alternate<2>>,
+    pub pb1: Pin<'B', 1, Alternate<2>>,
+    pub tim3_lanes: (Stream<2, 0>, Stream<2, 1>),
+    pub tim5: TIM5,
+    pub pa0: Pin<'A', 0, Alternate<2>>,
+    pub pa3: Pin<'A', 3, Alternate<2>>,
+    pub tim5_lanes: (Stream<2, 2>, Stream<2, 3>),
+    pub tim8: TIM8,
+    pub port_b: Stream<1, 0>,
+    pub tim2: TIM2,
+    pub port_a: Stream<1, 1>,
+    pub tim1: TIM1,
+    pub pb15: Pin<'B', 15, Alternate<1>>,
+}
+
+pub fn run_j(p: Peripherals) -> Result<RunJ, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    Ok(RunJ {
+        tim3: p.TIM3,
+        pb0: sck(b.p0, &mut b.ctrl),
+        pb1: sck(b.p1, &mut b.ctrl),
+        tim3_lanes: (dma2.s0, dma2.s1),
+        tim5: p.TIM5,
+        pa0: sck(a.p0, &mut a.ctrl),
+        pa3: sck(a.p3, &mut a.ctrl),
+        tim5_lanes: (dma2.s2, dma2.s3),
+        tim8: p.TIM8,
+        port_b: dma1.s0,
+        tim2: p.TIM2,
+        port_a: dma1.s1,
+        tim1: p.TIM1,
+        pb15: sck(b.p15, &mut b.ctrl),
+        rcc,
+    })
+}
+
 /// An SCK or MOSI pin: driven, at high speed for the edges.
 fn sck<const P: char, const N: u8, const AF: u8>(
     pin: Pin<P, N>,

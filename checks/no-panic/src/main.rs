@@ -33,6 +33,8 @@ static mut TX: [u8; 64] = [0; 64];
 static mut RX: [u8; 256] = [0; 256];
 static mut RX2: [u8; 256] = [0; 256];
 static mut SPI_TX: [u8; 32] = [0; 32];
+static mut LANE: [u32; 20] = [0; 20];
+static mut SAMPLES: [u16; 64] = [0; 64];
 static mut SPI_RX: [u8; 32] = [0; 32];
 
 #[entry]
@@ -260,6 +262,83 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
     }
 }
 
+/// PWM with a compare lane on channel 1, through every operation.
+pub fn exercise_lane<T, P, L>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: T, pin: P, stream: L)
+where
+    T: ferrohal_stm32::timer::ChannelTimer,
+    P: ferrohal_stm32::timer::ChannelPin<T, 1>,
+    L: ferrohal_stm32::timer::CompareDma<T, 1>,
+{
+    use ferrohal_stm32::timer::{Pwm, nearest};
+
+    keep(nearest(black_box(Hertz::mhz(200)), black_box(Hertz::khz(600)), black_box(16)));
+    keep(Pwm::<T>::check(&black_box(rcc.clocks()), black_box(Hertz::khz(600))));
+    let Ok(mut pwm) = Pwm::new(rcc, timer, black_box(Hertz::khz(600))) else {
+        return;
+    };
+    keep(pwm.period());
+    keep(pwm.frequency());
+    let mut channel = pwm.channel::<1, P>(pin);
+    channel.set_duty(black_box(70));
+    keep(channel.duty());
+    pwm.set_output::<1>(black_box(false));
+    pwm.set_output::<1>(black_box(true));
+    // SAFETY: as TX and RX in `main`.
+    let buffer = black_box(unsafe { &mut *addr_of_mut!(LANE) });
+    if let Ok(mut lane) = channel.into_lane(stream, buffer) {
+        keep(lane.arm(black_box(&[1, 2, 3][..])));
+        pwm.stage(black_box(1));
+        pwm.start();
+        keep(lane.on_interrupt());
+        keep(lane.poll());
+        keep(lane.is_busy());
+        keep(lane.interrupt());
+        keep(lane.verify());
+        lane.channel().set_duty(black_box(0));
+        lane.abort();
+        pwm.close_requests();
+        pwm.stop();
+    }
+}
+
+/// A complementary output (CH1N) of a timer with a break unit.
+pub fn exercise_complementary<B, N>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: B, pin: N)
+where
+    B: ferrohal_stm32::timer::ChannelTimer,
+    N: ferrohal_stm32::timer::ComplementaryPin<B, 1>,
+{
+    if let Ok(mut pwm) = ferrohal_stm32::timer::Pwm::new(rcc, timer, black_box(Hertz::khz(1))) {
+        let mut channel = pwm.complementary::<1, N>(pin);
+        channel.set_duty(black_box(10));
+        pwm.set_output::<1>(black_box(false));
+        pwm.set_output::<1>(black_box(true));
+        pwm.start();
+    }
+}
+
+/// A sampler of port B through every operation.
+pub fn exercise_sampler<U, S>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: U, stream: S)
+where
+    U: ferrohal_stm32::timer::Instance,
+    S: ferrohal_stm32::timer::UpdateDma<U> + ferrohal_stm32::timer::GpioDma,
+{
+    // SAFETY: as TX and RX in `main`.
+    let samples = black_box(unsafe { &mut *addr_of_mut!(SAMPLES) });
+    let Ok(mut sampler) =
+        ferrohal_stm32::timer::Sampler::new::<U, S, 'B'>(rcc, timer, stream, black_box(Hertz::mhz(4)), samples)
+    else {
+        return;
+    };
+    keep(sampler.rate());
+    keep(sampler.start(black_box(32)));
+    keep(sampler.on_interrupt());
+    keep(sampler.poll());
+    keep(sampler.samples().len());
+    keep(sampler.interrupt());
+    keep(sampler.verify());
+    sampler.stop();
+}
+
 fn exercise_spi(bus: &mut Spi) {
     use embedded_hal::spi::SpiBus;
 
@@ -399,6 +478,10 @@ mod chip {
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
         super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
+        super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
+        // TIM1 is the F401's only break-unit timer and its only update
+        // request on DMA2, so it samples here and the F405 covers CHxN.
+        super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
         let _ = analog;
         Some((
             rcc,
@@ -517,6 +600,9 @@ mod chip {
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
+        super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
+        super::exercise_complementary(&mut rcc, p.TIM8, a.p7.into_alternate::<3>(&mut a.ctrl));
+        super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
         let _ = analog;
         Some((
             rcc,
@@ -635,6 +721,9 @@ mod chip {
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
+        super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma2.s0);
+        super::exercise_complementary(&mut rcc, p.TIM1, a.p7.into_alternate::<1>(&mut a.ctrl));
+        super::exercise_sampler(&mut rcc, p.TIM8, dma2.s1);
         let _ = analog;
         Some((
             rcc,

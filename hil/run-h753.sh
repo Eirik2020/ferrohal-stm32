@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the Nucleo-H753ZI bench: UART runs A to E, SPI and EXTI runs F to H,
-# timer run I. Every UART and SPI looped back to
+# timer runs I and J. Every UART and SPI looped back to
 # itself. Exits non-zero if any run failed.
 #
 # Needs the Zio links described in nucleo-h753zi-loopback/src/board.rs.
@@ -11,7 +11,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$here/logs"
 
 status=0
-for run in a b c d e f g h i; do
+for run in a b c d e f g h i j; do
     log="$here/logs/h753-run-$run.log"
     (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo run --release --bin "run-$run") > "$log" 2>&1
     code=$?

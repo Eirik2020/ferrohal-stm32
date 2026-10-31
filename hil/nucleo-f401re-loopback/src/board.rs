@@ -485,6 +485,44 @@ pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
     })
 }
 
+// Run I: DShot-style compare lanes, sampled. No links.
+
+/// The lanes: TIM3 channels 3 and 4 on PB0 and PB1 (DMA1 streams 7 and 2),
+/// an APB1 timer on DMA1. The sampler: TIM1's update request on DMA2
+/// stream 5, reading port B. DMA2 then serves only GPIO and memory, never
+/// APB2, so ES0299 2.2.11 can't strike.
+pub struct RunI {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub tim3: TIM3,
+    pub ch3: Pin<'B', 0, Alternate<2>>,
+    pub ch4: Pin<'B', 1, Alternate<2>>,
+    pub lane3: Stream<1, 7>,
+    pub lane4: Stream<1, 2>,
+    pub tim1: TIM1,
+    pub sampler: Stream<2, 5>,
+}
+
+pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    Ok(RunI {
+        led,
+        tim3: p.TIM3,
+        ch3: sck(b.p0, &mut b.ctrl),
+        ch4: sck(b.p1, &mut b.ctrl),
+        lane3: dma1.s7,
+        lane4: dma1.s2,
+        tim1: p.TIM1,
+        sampler: dma2.s5,
+        rcc,
+    })
+}
+
 /// An SCK or MOSI pin: driven, at high speed for the edges.
 fn sck<const P: char, const N: u8, const AF: u8>(
     pin: Pin<P, N>,

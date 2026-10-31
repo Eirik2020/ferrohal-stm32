@@ -150,6 +150,98 @@ macro_rules! timer_width {
     };
 }
 
+/// Channel timer rows: `NAME => channels, plain | break;`.
+macro_rules! channel_timers {
+    ($($name:ident => $channels:literal, $kind:ident;)+) => {
+        $(
+            impl crate::timer::ChannelTimer for $name {
+                const CHANNELS: u8 = $channels;
+                const BREAK: bool = timer_break!($kind);
+            }
+        )+
+    };
+}
+
+macro_rules! timer_break {
+    (plain) => {
+        false
+    };
+    (break) => {
+        true
+    };
+}
+
+/// Timer channel pin rows: `TIM CHx: (port, pin, alternate function), ...`
+/// or `TIM CHxN: ...` for a complementary output.
+macro_rules! timer_pins {
+    ($tim:ident $signal:ident: $(($port:literal, $pin:literal, $af:literal)),+ $(,)?) => {
+        $(timer_pin!($signal, $tim, Pin<$port, $pin, Alternate<$af>>);)+
+    };
+}
+
+macro_rules! timer_pin {
+    (CH1, $tim:ident, $pin:ty) => { impl crate::timer::ChannelPin<$tim, 1> for $pin {} };
+    (CH2, $tim:ident, $pin:ty) => { impl crate::timer::ChannelPin<$tim, 2> for $pin {} };
+    (CH3, $tim:ident, $pin:ty) => { impl crate::timer::ChannelPin<$tim, 3> for $pin {} };
+    (CH4, $tim:ident, $pin:ty) => { impl crate::timer::ChannelPin<$tim, 4> for $pin {} };
+    (CH1N, $tim:ident, $pin:ty) => { impl crate::timer::ComplementaryPin<$tim, 1> for $pin {} };
+    (CH2N, $tim:ident, $pin:ty) => { impl crate::timer::ComplementaryPin<$tim, 2> for $pin {} };
+    (CH3N, $tim:ident, $pin:ty) => { impl crate::timer::ComplementaryPin<$tim, 3> for $pin {} };
+}
+
+/// Timer DMA rows. Fixed routing (F4): `TIM CHx: (controller, stream,
+/// channel), ...` or `TIM UP: ...`. DMAMUX (H7): `TIM CHx: mux request;`,
+/// for every DMA1 and DMA2 stream.
+macro_rules! timer_dma {
+    ($tim:ident $signal:ident: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
+        $(
+            // SAFETY: the chip's DMA request table, matching stm32-metapac
+            // 21's metadata (check_glue).
+            timer_dma_impl!($signal, $tim, crate::dma::Stream<$dma, $stream>, $request);
+        )+
+    };
+    ($tim:ident $signal:ident: mux $request:literal) => {
+        // SAFETY: the DMAMUX1 request ID, from stm32-metapac 21's metadata
+        // (check_glue); through DMAMUX any stream serves it.
+        timer_dma_impl!($signal, $tim, crate::dma::Stream<D, N>, $request, D, N);
+    };
+}
+
+macro_rules! timer_dma_impl {
+    (UP, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
+        unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::UpdateDma<$tim> for $stream
+        $(where
+            crate::dma::Dma<$d>: crate::dma::DmaInstance,
+            crate::dma::Stream<$d, $n>: crate::dma::StreamInterrupt,)?
+        {
+            const REQUEST: u8 = $request;
+        }
+    };
+    ($signal:ident, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
+        unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::CompareDma<$tim, { timer_channel!($signal) }> for $stream
+        $(where
+            crate::dma::Dma<$d>: crate::dma::DmaInstance,
+            crate::dma::Stream<$d, $n>: crate::dma::StreamInterrupt,)?
+        {
+            const REQUEST: u8 = $request;
+        }
+    };
+}
+
+macro_rules! timer_channel {
+    (CH1) => { 1 };
+    (CH2) => { 2 };
+    (CH3) => { 3 };
+    (CH4) => { 4 };
+}
+
+/// The DMA streams whose peripheral port reaches GPIO: `controller: [streams];`.
+macro_rules! gpio_dma {
+    ($($dma:literal: [$($stream:literal),+];)+) => {
+        $($(impl crate::timer::GpioDma for crate::dma::Stream<$dma, $stream> {})+)+
+    };
+}
+
 /// The vector each DMA stream raises.
 macro_rules! stream_interrupts {
     ($($dma:literal: [$($stream:literal => $vector:ident),+];)+) => {
