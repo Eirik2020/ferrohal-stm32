@@ -116,6 +116,40 @@ macro_rules! spis {
     };
 }
 
+/// Timer rows: `NAME => bus, enable bit, update vector, counter bits;`.
+macro_rules! timers {
+    ($($name:ident => $bus:ident, $bit:literal, $update:ident, $bits:tt;)+) => {
+        $(
+            impl crate::timer::Instance for $name {
+                const NAME: &'static str = stringify!($name);
+                const BUS: Bus = Bus::$bus;
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
+                const UPDATE: Interrupt = Interrupt::$update;
+                const UPDATE_NAME: &'static str = stringify!($update);
+                const BITS: u8 = $bits;
+                fn core() -> stm32_metapac::timer::TimCore {
+                    // SAFETY: the timer's base address; the core registers
+                    // sit at the start of every timer's block.
+                    unsafe { stm32_metapac::timer::TimCore::from_ptr(pac::$name.as_ptr()) }
+                }
+            }
+            timer_width!($name, $bits);
+        )+
+    };
+}
+
+macro_rules! timer_width {
+    ($name:ident, 16) => {};
+    ($name:ident, 32) => {
+        impl crate::timer::Instance32 for $name {
+            fn gp32() -> stm32_metapac::timer::TimGp32 {
+                // SAFETY: a 32-bit general-purpose timer's base address.
+                unsafe { stm32_metapac::timer::TimGp32::from_ptr(pac::$name.as_ptr()) }
+            }
+        }
+    };
+}
+
 /// The vector each DMA stream raises.
 macro_rules! stream_interrupts {
     ($($dma:literal: [$($stream:literal => $vector:ident),+];)+) => {

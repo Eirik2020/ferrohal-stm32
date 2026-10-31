@@ -13,8 +13,9 @@ metadata of the stm32-metapac version Cargo.lock pins:
 - its DMA routes: (controller, stream, channel) on a fixed-request DMA, or
   the DMAMUX request IDs on a DMAMUX chip.
 
-It also checks every GPIO port's and DMA controller's enable bit, and each
-controller's first DMAMUX channel. Instances the metadata has and the glue
+It also checks every GPIO port's and DMA controller's enable bit, each
+controller's first DMAMUX channel, and every timer's enable bit, update
+interrupt vector and counter width. Instances the metadata has and the glue
 leaves out are listed, not failed. Exits 1 on any mismatch.
 
 The glue's macro rows are parsed as text, so their layout is part of the
@@ -132,6 +133,14 @@ class Metadata:
             sys.exit(f"metapac RCC register {register} has no field {field}")
         return int(m.group(1))
 
+    def interrupt(self, name, signal):
+        block = self.peripheral(name)
+        m = re.search(r'signal: "' + signal + r'",\s*interrupt: "(\w+)"', block)
+        return m.group(1) if m else None
+
+    def block(self, name):
+        return re.search(r'block: "(\w+)"', self.peripheral(name)).group(1)
+
     def dmamux_channel(self, channel):
         m = re.search(r'name: "' + channel + r'",\s*dma: "\w+",\s*channel: \d+,\s*dmamux: (?:Some\("\w+"\)|None),\s*dmamux_channel: Some\((\d+)\)', self.text)
         return int(m.group(1)) if m else None
@@ -165,6 +174,15 @@ class Glue:
         for body in self.rows("spis"):
             for name, bus, bit, _kernel in re.findall(r"(\w+) => \w+, (\w+), (\d+), (\w+);", body):
                 found[name] = (bus, int(bit))
+        return found
+
+    def timers(self):
+        found = {}
+        if not re.search(r"^timers!\(", self.text, re.M):
+            return found
+        for body in self.rows("timers"):
+            for name, bus, bit, update, bits in re.findall(r"(\w+) => (\w+), (\d+), (\w+), (\d+);", body):
+                found[name] = ((bus, int(bit)), update, int(bits))
         return found
 
     def pins(self):
@@ -253,6 +271,14 @@ def check(chip, glue_path, metapac):
         else:
             theirs = {(signal, request) for signal, _, dmamux, request in routes if dmamux == "DMAMUX1"}
             compare(f"{name} DMAMUX1 requests", mux.get(name, set()), theirs)
+    timers = glue.timers()
+    for name, (enable, update, bits) in sorted(timers.items()):
+        if meta.peripheral(name) is None:
+            failures.append(f"{name}: not in the metadata")
+            continue
+        compare(f"{name} RCC enable", enable, meta.enable(name))
+        compare(f"{name} update vector", update, meta.interrupt(name, "UP"))
+        compare(f"{name} counter bits", bits, 32 if meta.block(name) == "TIM_GP32" else 16)
     for regs, enable in sorted(glue.ports().items()):
         compare(f"{regs} RCC enable", enable, meta.enable(regs))
     for dma, enable in sorted(glue.dma_controllers().items()):
@@ -263,6 +289,7 @@ def check(chip, glue_path, metapac):
     failures += glue.problems
     left_out = [n for n in meta.names("usart") if n not in usarts]
     left_out += [n for n in meta.names("spi") if n not in spis]
+    left_out += [n for n in meta.names("timer") if n not in timers]
     print(f"{chip}: {checked} facts checked against stm32-metapac metadata", end="")
     print(f"; not routed in the glue: {', '.join(left_out)}" if left_out else "")
     for failure in failures:

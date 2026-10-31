@@ -173,6 +173,16 @@ impl Clocks {
             Bus::Apb2 => self.pclk2,
         }
     }
+
+    /// The counter clock of timers on `bus`: twice the bus clock when its
+    /// prescaler divides, as `timclk1` and `timclk2` record.
+    pub const fn timer(&self, bus: Bus) -> Hertz {
+        match bus {
+            Bus::Apb1 => self.timclk1,
+            Bus::Apb2 => self.timclk2,
+            Bus::Ahb1 | Bus::Ahb2 => self.hclk,
+        }
+    }
 }
 
 /// A complete clock tree. Nothing is chosen for the user: every divider is

@@ -292,6 +292,26 @@ dma!(SpiRxDma<SPI2>: (1, 3, 0));
 dma!(SpiTxDma<SPI3>: (1, 5, 0), (1, 7, 0));
 dma!(SpiRxDma<SPI3>: (1, 0, 0), (1, 2, 0));
 
+// Timers: (bus, enable bit, update vector, counter bits). Each counts at its
+// bus's timer clock.
+
+timers!(
+    TIM1 => Apb2, 0, TIM1_UP_TIM10, 16;
+    TIM2 => Apb1, 0, TIM2, 32;
+    TIM3 => Apb1, 1, TIM3, 16;
+    TIM4 => Apb1, 2, TIM4, 16;
+    TIM5 => Apb1, 3, TIM5, 32;
+    TIM6 => Apb1, 4, TIM6_DAC, 16;
+    TIM7 => Apb1, 5, TIM7, 16;
+    TIM8 => Apb2, 1, TIM8_UP_TIM13, 16;
+    TIM9 => Apb2, 16, TIM1_BRK_TIM9, 16;
+    TIM10 => Apb2, 17, TIM1_UP_TIM10, 16;
+    TIM11 => Apb2, 18, TIM1_TRG_COM_TIM11, 16;
+    TIM12 => Apb1, 6, TIM8_BRK_TIM12, 16;
+    TIM13 => Apb1, 7, TIM8_UP_TIM13, 16;
+    TIM14 => Apb1, 8, TIM8_TRG_COM_TIM14, 16;
+);
+
 // The vector each DMA stream raises.
 
 stream_interrupts!(

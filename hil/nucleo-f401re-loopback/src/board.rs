@@ -32,7 +32,10 @@
 #![allow(dead_code)]
 
 use ferrohal_stm32::{
-    chip::{Peripherals, SPI1, SPI2, SPI3, USART1, USART2, USART6},
+    chip::{
+        Peripherals, SPI1, SPI2, SPI3, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10, TIM11, USART1,
+        USART2, USART6,
+    },
     dma::Stream,
     exti,
     gpio::{Alternate, Ctrl, Output, Parts, Pin, Port, PortInstance, Pull, Speed},
@@ -42,6 +45,7 @@ use ferrohal_stm32::{
     },
     spi::{self, Spi},
     time::Hertz,
+    timer::{Tick, Timebase},
     uart::{self, ConfigError, Parity, RxWiring, StopBits, Uart, Wiring},
 };
 
@@ -438,6 +442,46 @@ pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
         },
         led,
         rcc,
+    })
+}
+
+// Run H: every timer, against the DWT. No links.
+
+/// FerroWasp's control loop rate, and its microsecond timebase, checked
+/// while compiling on the timers FerroWasp's boards use for them.
+pub const CONTROL_RATE: Hertz = Hertz::khz(8);
+const _: () = assert!(Tick::check::<TIM4>(&CLOCKS, CONTROL_RATE).is_ok());
+const _: () = assert!(Timebase::check::<TIM2>(&CLOCKS, Hertz::mhz(1)).is_ok());
+
+/// The timers as options, so the checks can take each in turn.
+pub struct RunH {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub tim1: Option<TIM1>,
+    pub tim2: Option<TIM2>,
+    pub tim3: Option<TIM3>,
+    pub tim4: Option<TIM4>,
+    pub tim5: Option<TIM5>,
+    pub tim9: Option<TIM9>,
+    pub tim10: Option<TIM10>,
+    pub tim11: Option<TIM11>,
+}
+
+pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    Ok(RunH {
+        rcc,
+        led,
+        tim1: Some(p.TIM1),
+        tim2: Some(p.TIM2),
+        tim3: Some(p.TIM3),
+        tim4: Some(p.TIM4),
+        tim5: Some(p.TIM5),
+        tim9: Some(p.TIM9),
+        tim10: Some(p.TIM10),
+        tim11: Some(p.TIM11),
     })
 }
 

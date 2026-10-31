@@ -4,8 +4,8 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-10-31:
 
-- **F401:** `hil/run-f401.sh` passes 140 of 140 checks across seven runs: UART (A to D, A from HSE), SPI and EXTI (E to G).
-- **H753ZI:** `hil/run-h753.sh` passes 333 of 333 checks across eight runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H).
+- **F401:** `hil/run-f401.sh` passes 169 of 169 checks across eight runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H).
+- **H753ZI:** `hil/run-h753.sh` passes 380 of 380 checks across nine runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I).
 - **F405RG, H743VI:** build, glue checked against metapac, values checked against their docs. Not yet run on hardware.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
@@ -47,7 +47,10 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the blocking `embedded_io::Read::read` has no bound.** Document `read_within` as the form for FerroForge tasks.
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1). `UartIrq` can't turn the peripheral's interrupt-enable bits on or off.
-- **Medium: there's no timer handover** (§7 hook 5, §8 foot-gun 1): no timer driver, no path for rtic-monotonics 3 to take a FerroHAL timer token.
+- **Medium: there's no timer handover to rtic-monotonics** (§7 hook 5, §8 foot-gun 1). FerroHAL's `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL timer token as its monotonic.
+- **Medium: timers count only.** `Tick` (update interrupt) and `Timebase` (32-bit free-running count); no channels yet: PWM, compare DMA (DShot), input capture, one-pulse, triggers between timers, the advanced timers' outputs and break input. These are step 4's next parts.
+- **Low: a tick or timebase rate must divide the timer clock exactly.** `Tick` and `Timebase` refuse a rate they would have to round (`ConfigError::Inexact`) rather than drift.
+- **Low: some timers share their update vector** (the F4's `TIM1_UP_TIM10`, the H7's `TIM8_UP_TIM13`). `Tick::on_interrupt` returns `false` when the flag isn't its own, but the firmware must call every sharer's handler from the one vector.
 - **Low: `verify()` can't check task priorities.** It checks the UART's vectors are enabled at one priority; "above every task that uses it" stays the application's job.
 - **Low: `set_config` exists only on the whole `Uart`;** after `split()` the frame can't change. `Uart::halves()` lends both halves meanwhile.
 - **Low: parts of the DMA API are untested:** double buffering (`Transfer::double_buffer`, `set_idle_buffer`, `current_target`), FIFO threshold mode, and `Channel::start` used directly.
@@ -59,8 +62,8 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Architecture and process
 
-- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ART and SPI: 26 facts on the F401, 38 on the F405, 51 on the H743, 54 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
-- **Medium: four source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
+- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs and timers: 50 facts on the F401, 80 on the F405, 93 on the H743, 96 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
+- **Medium: five source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Medium: requirements tooling is missing** (§9): no `requirements.yaml`, schema, requirement IDs or publish tool.
 - **Low: kernel clock equals bus clock.** True on F4; on H7 only because `freeze` forces the kernel muxes. Add a kernel-clock field to `Info` before offering other muxes.

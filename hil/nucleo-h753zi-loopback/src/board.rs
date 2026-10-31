@@ -53,7 +53,8 @@ use core::{
 
 use ferrohal_stm32::{
     chip::{
-        Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, UART4, UART5, UART7, USART1, USART2, USART3,
+        Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7, TIM8,
+        TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1, USART2, USART3,
         USART6,
     },
     dma::Stream,
@@ -65,6 +66,7 @@ use ferrohal_stm32::{
     },
     spi::{self, Spi},
     time::Hertz,
+    timer::{Tick, Timebase},
     uart::{self, Parity, RxWiring, StopBits, Uart, Wiring},
 };
 
@@ -406,6 +408,58 @@ pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
             rx_dma: dma1.s7,
         },
         rcc,
+    })
+}
+
+// Run I: every timer, against the DWT. No links.
+
+/// The Lucid's control loop rate on TIM4, and its microsecond timebase on
+/// TIM2, checked while compiling.
+pub const CONTROL_RATE: Hertz = Hertz::khz(8);
+const _: () = assert!(Tick::check::<TIM4>(&CLOCKS, CONTROL_RATE).is_ok());
+const _: () = assert!(Timebase::check::<TIM2>(&CLOCKS, Hertz::mhz(1)).is_ok());
+
+/// The timers as options, so the checks can take each in turn.
+pub struct RunI {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub tim1: Option<TIM1>,
+    pub tim2: Option<TIM2>,
+    pub tim3: Option<TIM3>,
+    pub tim4: Option<TIM4>,
+    pub tim5: Option<TIM5>,
+    pub tim6: Option<TIM6>,
+    pub tim7: Option<TIM7>,
+    pub tim8: Option<TIM8>,
+    pub tim12: Option<TIM12>,
+    pub tim13: Option<TIM13>,
+    pub tim14: Option<TIM14>,
+    pub tim15: Option<TIM15>,
+    pub tim16: Option<TIM16>,
+    pub tim17: Option<TIM17>,
+}
+
+pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut b = p.GPIOB.split(&mut rcc);
+    let led = b.p0.into_push_pull_output(&mut b.ctrl);
+    Ok(RunI {
+        rcc,
+        led,
+        tim1: Some(p.TIM1),
+        tim2: Some(p.TIM2),
+        tim3: Some(p.TIM3),
+        tim4: Some(p.TIM4),
+        tim5: Some(p.TIM5),
+        tim6: Some(p.TIM6),
+        tim7: Some(p.TIM7),
+        tim8: Some(p.TIM8),
+        tim12: Some(p.TIM12),
+        tim13: Some(p.TIM13),
+        tim14: Some(p.TIM14),
+        tim15: Some(p.TIM15),
+        tim16: Some(p.TIM16),
+        tim17: Some(p.TIM17),
     })
 }
 

@@ -79,6 +79,8 @@ pub enum Fail {
     Level { expected_high: bool },
     /// A transfer took this many CPU cycles, outside `min..=max`.
     Time { cycles: u32, min: u32, max: u32 },
+    /// A timer refused a rate the check needs.
+    Timer(ferrohal_stm32::timer::ConfigError),
 }
 
 /// Passes if `result` is the refusal `expected`.

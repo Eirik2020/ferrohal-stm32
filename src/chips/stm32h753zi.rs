@@ -337,6 +337,26 @@ dma!(
     SPI5: rx 85, tx 86;
 );
 
+// Timers: (bus, enable bit, update vector, counter bits). Each counts at its
+// bus's timer clock.
+
+timers!(
+    TIM1 => Apb2, 0, TIM1_UP, 16;
+    TIM2 => Apb1L, 0, TIM2, 32;
+    TIM3 => Apb1L, 1, TIM3, 16;
+    TIM4 => Apb1L, 2, TIM4, 16;
+    TIM5 => Apb1L, 3, TIM5, 32;
+    TIM6 => Apb1L, 4, TIM6_DAC, 16;
+    TIM7 => Apb1L, 5, TIM7, 16;
+    TIM8 => Apb2, 1, TIM8_UP_TIM13, 16;
+    TIM12 => Apb1L, 6, TIM8_BRK_TIM12, 16;
+    TIM13 => Apb1L, 7, TIM8_UP_TIM13, 16;
+    TIM14 => Apb1L, 8, TIM8_TRG_COM_TIM14, 16;
+    TIM15 => Apb2, 16, TIM15, 16;
+    TIM16 => Apb2, 17, TIM16, 16;
+    TIM17 => Apb2, 18, TIM17, 16;
+);
+
 // The vector each DMA stream raises.
 
 stream_interrupts!(

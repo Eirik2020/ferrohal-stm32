@@ -198,6 +198,17 @@ impl Clocks {
             Bus::Apb4 => self.pclk4,
         }
     }
+
+    /// The counter clock of timers on `bus`: twice the bus clock when its
+    /// prescaler divides (TIMPRE at reset), as `timclk1` and `timclk2`
+    /// record. Only APB1 and APB2 carry timers.
+    pub const fn timer(&self, bus: Bus) -> Hertz {
+        match bus {
+            Bus::Apb1L | Bus::Apb1H => self.timclk1,
+            Bus::Apb2 => self.timclk2,
+            _ => self.bus(bus),
+        }
+    }
 }
 
 /// A complete clock tree. Nothing is chosen for the user: every divider is

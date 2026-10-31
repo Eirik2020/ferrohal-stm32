@@ -232,6 +232,34 @@ pub fn exercise_exti<const P: char, const N: u8>(
     keep(exti.release(ctrl));
 }
 
+/// Timers: a tick and a timebase through every operation. Each chip's
+/// `wire` calls it.
+pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::timer::Instance32>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    tick_timer: T,
+    base_timer: U,
+) {
+    use ferrohal_stm32::timer::{Tick, Timebase, divider};
+
+    keep(divider(black_box(Hertz::mhz(84)), black_box(Hertz::khz(1)), black_box(16)));
+    keep(Tick::check::<T>(&black_box(rcc.clocks()), black_box(Hertz::khz(8))));
+    keep(Timebase::check::<U>(&black_box(rcc.clocks()), black_box(Hertz::mhz(1))));
+    if let Ok(mut tick) = Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
+        keep(tick.on_interrupt());
+        keep(tick.rate());
+        keep(tick.interrupt());
+        keep(tick.verify());
+        tick.pause();
+        tick.resume();
+    }
+    if let Ok(base) = Timebase::new(rcc, base_timer, black_box(Hertz::mhz(1))) {
+        keep(base.now());
+        let reader = base.reader();
+        keep(reader.now());
+        keep(reader.frequency());
+    }
+}
+
 fn exercise_spi(bus: &mut Spi) {
     use embedded_hal::spi::SpiBus;
 
@@ -370,6 +398,7 @@ mod chip {
         let analog = a.p1.into_analog(&mut a.ctrl);
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
+        super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
         let _ = analog;
         Some((
             rcc,
@@ -487,6 +516,7 @@ mod chip {
         let analog = b.p2.into_analog(&mut b.ctrl);
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
+        super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         let _ = analog;
         Some((
             rcc,
@@ -604,6 +634,7 @@ mod chip {
         let analog = b.p2.into_analog(&mut b.ctrl);
         let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
+        super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         let _ = analog;
         Some((
             rcc,
