@@ -1,15 +1,18 @@
 # FerroHAL: known debt and issues to fix
 
-Status as of 2026-10-31: UART over DMA runs on two chips.
+Status as of 2026-10-31: UART over DMA runs on two chips on hardware, and builds for two more.
 
-- **F401:** `hil/run-f401.sh` passes 80 of 80 checks across four runs.
-- **H753ZI:** `hil/run-h753.sh` passes 255 of 255 checks across five runs, with the caches off and on.
-- **Both chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
+- **F401:** `hil/run-f401.sh` passes 80 of 80 checks across four runs. Run A takes its clocks from HSE.
+- **H753ZI:** `hil/run-h753.sh` passes 255 of 255 checks across five runs, with the caches off and on. Run A takes its clocks from HSE.
+- **F405RG and H743VI:** the glue for FerroWasp's two flight controllers. Not yet run on hardware (see sections 3 and 5).
+- **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
 |---|---|---|---|
 | STM32F401RE | Nucleo-F401RE | `usart_v2`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 DMA routes (RM0368 tables 28 and 29). USART2 runs through a host echo on the ST-LINK virtual COM port. |
-| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio headers only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7's UARTs at its rates (CRSF 420000, SBUS 100000 8E2, MSP 115200) on its DMA streams and clock tree. |
+| STM32F405RG | Foxeer F405 V2 | as the F401 | Not yet. Builds; glue checked against metapac. |
+| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio headers only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7's UARTs at its rates (CRSF 420000, SBUS 100000 8E2, MSP 115200) on its DMA streams and clock tree, from HSE. |
+| STM32H743VI | TBS Lucid H7 | as the H753ZI | Not as its own build. The H753ZI is the same die with crypto added, so the H753ZI bench covers the shared code; the H743VI glue differs only in its package's pins and peripherals. |
 
 Severity:
 
@@ -88,13 +91,14 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 ### Architecture and process
 
 - **Mitigated: routing tables are hand-written, and now checked** (§5, §10).
-  - `tools/check_glue.py` compares every routed U(S)ART's pins and alternate functions, RCC enable bit, and DMA routes or DMAMUX request IDs, plus every GPIO port and DMA controller enable bit and the DMAMUX bases, with the pinned metapac's metadata: 17 facts on the F401, 39 on the H753ZI. Planting a wrong alternate function, stream, RCC bit, DMAMUX request, extra pin or DMAMUX base fails it.
+  - `tools/check_glue.py` compares every routed U(S)ART's pins and alternate functions, RCC enable bit, and DMA routes or DMAMUX request IDs, plus every GPIO port and DMA controller enable bit and the DMAMUX bases, with the pinned metapac's metadata: 17 facts on the F401, 29 on the F405, 39 on each H7. Planting a wrong alternate function, stream, RCC bit, DMAMUX request, extra pin or DMAMUX base fails it.
   - **Still open:** the generator itself. The check reads the glue's macro rows as text, so their layout must stay as it is.
 - **Medium: two source files each serve two IP versions** (§2, §9).
   - **Issue:** [dma_stream.rs](src/dma_stream.rs) serves both `dma_v1` and `dma_v2`, and [uart/stream_dma.rs](src/uart/stream_dma.rs) serves both `usart_v2` and `usart_v4`. That removes duplicate code, but it conflicts with "one self-contained module per IP version, with a stable hash".
   - **Fix:** decide whether a module's hash covers its shared sources, or split the files once they diverge.
+- **Done: chip glue holds facts only.** The shapes every chip shares (tokens, `Peripherals`, pin rows, stream vectors) are macros in `src/chips/shared/macros.rs`. What the RM0433 chips share beyond their IP versions (clock limits, DMA-reachable RAM, the MPU walk) is `src/chips/shared/h7.rs`. A chip file is its rows and its memory map.
 - **Medium: the feature hierarchy departs from §2.**
-  - **Issue:** each chip feature turns on its family marker, rather than the family bundling its chips. Two chip features together are caught only by `compile_error!`, which has to be updated for every new chip.
+  - **Issue:** each chip feature turns on its family marker, rather than the family bundling its chips. Two chip features together are caught only by `compile_error!`, which lists every pair and has to be updated for every new chip (six pairs at four chips).
 - **Medium: requirements tooling is missing** (§9).
   - **Issue:** there are no `requirements.yaml` files, no schema, no requirement IDs in module docs and no publish tool.
 - **Low: kernel clock equals bus clock.**
@@ -132,13 +136,9 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 
 ### Clocks (`rcc_f4`)
 
-- **High: blocks the F405** (§6 known trap).
-  - **Issue:** the voltage scale (PWR VOS) is never written. The F401 reaches 84 MHz in its reset scale (scale 2), but an F405 at 168 MHz needs scale 1.
-  - **Fix:** before adding any other F4, add a per-chip VOS field, checked against that chip's reference manual.
-- **Medium: the limits are the F401's alone.**
-  - **Issue:** `Limits` holds F401 values (84/42/84 MHz, VCO 192–432 MHz, at most 2 wait states). Other F4s need their own, and some share PLLM between PLLs.
-- **Medium: HSE is untested.**
-  - **Issue:** only HSI to PLL has run on hardware. The Nucleo's 8 MHz ST-LINK MCO bypass path has never been exercised.
+- **Done: limits per chip.** Each F4 chip file has its own `CLOCK_LIMITS` (the F401's 84/42/84 MHz, VCO 192–432 MHz and 2 wait states; the F405's in section 3).
+- **Done: HSE in bypass runs on hardware.** Run A freezes from the ST-LINK's 8 MHz MCO (UM1724 7.9.1, boards MB1136 C-02 and later) to the same 84 MHz tree, and USART2's host echo confirms the result against the host's clock. HSE with a crystal (oscillator mode) waits for the Foxeer.
+- **Low: the regulator scale relies on the reset value.** VOS isn't written; the F401 reaches 84 MHz in its reset scale (scale 2). See section 3 for the F405.
 - **Low: the USB clock isn't checked.**
   - **Issue:** `pll_q` is reported but not required to be 48 MHz.
 - **Low: only one supply range.**
@@ -146,9 +146,7 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 
 ### USART (`usart_v2`)
 
-- **High: blocks the F405.**
-  - **Issue:** `Regs` is metapac's `usart::Usart`. UART4 and UART5 on the F405 are `usart::Uart`, a different type.
-  - **Fix:** cast, or make `Line` generic over both.
+- **Done: UART4 and UART5 (F405).** metapac 21 types them as `usart::Usart`, the same as the USARTs, and the driver writes no bit they lack. What they lack that a frame can ask for, 0.5 and 1.5 stop bits, is refused per instance (`Instance::FRACTIONAL_STOP_BITS`) by `Uart::new`, `UartRx::new`, `set_config` and `Uart::check`.
 - **Medium: parity errors can be lost while transmitting** (ES0299 2.10.2).
   - **Issue:** in full duplex, reading SR and then writing DR clears PE. The TX DMA writes DR, so a USART that is transmitting while it receives a parity error can lose the PE flag before `UartIrq` runs.
   - **Fix:** none in hardware. Document that parity detection on `usart_v2` is reliable only when the receiving USART isn't transmitting at the same time.
@@ -178,7 +176,24 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 
 ---
 
-## 3. STM32H753ZI (Nucleo-H753ZI)
+## 3. STM32F405RG (Foxeer F405 V2)
+
+The glue (`src/chips/stm32f405rg.rs`) routes all six U(S)ARTs, their 12 LQFP64 pin entries and their 12 DMA routes, checked against metapac. Its host tests check the Foxeer's USART2 resources against its manifest (DMA1 streams 5 and 6, channel 4), the Foxeer's 168 MHz tree from its 8 MHz crystal, and the CCM refusal below.
+
+- **High: not run on hardware.**
+  - **Issue:** there's no Nucleo for it, so the first hardware run is on the Foxeer F405 V2 itself, which needs the owner's go-ahead and a loopback plan for its pads.
+- **High: the docs aren't in the repo.**
+  - **Issue:** the clock limits (168/42/84 MHz, HSE 4–26 MHz crystal or 1–50 MHz bypass, PLL input 0.95–2.1 MHz, VCO 100–432 MHz, 30 MHz per wait state up to 5), the memory map and the UART4/5 stop-bit limit are from memory of DS8626 and RM0090, cross-checked with metapac only where metapac has the fact (routing, RCC bits).
+  - **Fix:** add RM0090, DS8626 and ES0182 to `docs/stm32f405/` and check each value, then do the errata review.
+- **Medium: VOS relies on its reset value.**
+  - **Issue:** 168 MHz needs scale 1, which is the F405's reset value (PWR_CR VOS = 1), so `freeze` doesn't write it. A bootloader that left scale 2 would make 168 MHz out of spec.
+  - **Fix:** once RM0090 is in the repo, write the scale in `freeze` per chip (the F405's VOS is one bit, the F401's two, so the value comes from the chip file).
+- **Done: CCM RAM is refused for DMA.** `check_dma_buffer` accepts SRAM1 and SRAM2 only (0x2000_0000, 128 KiB); a buffer in the 64 KiB CCM RAM, which the DMA can't reach, fails with `BufferUnreachable`.
+- **Low: phantom pins.** As on the F401: ports E to I are handed out though LQFP64 bonds only ports A to C, PD2, PH0 and PH1.
+
+---
+
+## 4. STM32H753ZI (Nucleo-H753ZI)
 
 ### Memory and cache
 
@@ -203,8 +218,7 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
   - **Issue:** PLL2, PLL3, the fractional PLL mode, CSI, HSI48, HSIDIV other than 1, and TIMPRE.
 - **Medium: kernel clock muxes are forced.**
   - **Issue:** `freeze` always sets USART16910SEL = PCLK2 and USART234578SEL = PCLK1, so no other kernel clock is possible.
-- **Medium: HSE is untested.**
-  - **Issue:** only HSI to PLL1 has run. The MB1364 MCO bypass at 8 MHz has never been exercised.
+- **Done: HSE in bypass runs on hardware.** Run A, the Lucid mirror, freezes from the ST-LINK's 8 MHz MCO (UM2407 7.5.1): 8 MHz reference, 800 MHz wide VCO, 400 MHz core, the same tree as `CLOCK_CONFIG`. The Lucid itself uses a crystal (oscillator mode), untested until it is on the bench.
 - **Low: no IO compensation cell.**
   - **Issue:** SYSCFG CCCSR isn't enabled. It's needed for fast GPIO above about 50 MHz, not for a UART.
 - **Low: wait-state tables are transcribed.**
@@ -242,12 +256,23 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 
 ---
 
-## 4. Open questions carried from the architecture doc
+## 5. STM32H743VI (TBS Lucid H7)
+
+The glue (`src/chips/stm32h743vi.rs`) is the H753ZI's with the LQFP100 package's pins (USART6 on PC6/PC7 only; no port F or G pins) and its peripherals (no CRYP or HASH, no SPI5). The clock limits and DMA memory map are shared with the H753 in `src/chips/shared/h7.rs`. Its host test checks the Lucid's USART6 resources against its manifest (DMA1 streams 6 and 0, requests 72 and 71).
+
+- **Medium: its own build isn't run on hardware.**
+  - **Issue:** the H753ZI bench runs the same die and the same driver code, but under the H753ZI glue.
+  - **Fix:** build run A with the H743VI feature and run it on the H753ZI Nucleo (every pin it uses is bonded on LQFP100), or on the Lucid itself.
+- **Low: DS12110 isn't in the repo.** The H743's datasheet; its limits are taken to match DS12117's (same die). RM0433 and ES0392 already cover the H743.
+
+---
+
+## 6. Open questions carried from the architecture doc
 
 - **Kill condition for the prototype** (§11): still undecided.
 - **How to measure reuse** (§11): the shared UART engine now runs unchanged on `usart_v2` and `usart_v4`, which gives a data point. The per-IP `Line` is about 150 lines; the shared engine is about 800.
 
-## 5. Transition items
+## 7. Transition items
 
 Code that exists only for the move of FerroWasp onto FerroHAL (§15). Each is marked `TRANSITION:` in its documentation and is removed once FerroWasp uses FerroHAL's native model.
 

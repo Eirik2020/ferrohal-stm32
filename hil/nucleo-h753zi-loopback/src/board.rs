@@ -42,8 +42,8 @@ use ferrohal_stm32::{
     dma::Stream,
     gpio::{Alternate, Ctrl, Output, Pin, Port, PortInstance, Pull, Speed},
     rcc::{
-        AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Pll, PllSource, Rcc, Supply,
-        Sysclk, VoltageScale,
+        AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllSource, Rcc,
+        Supply, Sysclk, VoltageScale,
     },
     uart::{self, Parity, RxWiring, StopBits, Uart, Wiring},
 };
@@ -77,6 +77,27 @@ pub const CLOCK_CONFIG: Config = Config {
 pub const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
     Ok(clocks) => clocks,
     Err(_) => panic!("CLOCK_CONFIG breaks the H753's limits"),
+};
+
+/// The same tree from HSE, as the Lucid runs it from its 8 MHz crystal: for
+/// run A. The Nucleo's HSE is the ST-LINK's 8 MHz MCO (UM2407 section
+/// 7.5.1), so bypass here. 8 MHz / 1 = 8 MHz reference, * 100 = 800 MHz
+/// VCO, then as `CLOCK_CONFIG`. Run A checks the result equals `CLOCKS`.
+pub const HSE_CLOCK_CONFIG: Config = Config {
+    hse: Some(Hse {
+        freq: ferrohal_stm32::time::Hertz::mhz(8),
+        mode: HseMode::Bypass,
+    }),
+    pll1: Some(Pll {
+        source: PllSource::Hse,
+        prediv: 1,
+        mul: 100,
+        ..match CLOCK_CONFIG.pll1 {
+            Some(pll) => pll,
+            None => panic!("CLOCK_CONFIG has a PLL"),
+        }
+    }),
+    ..CLOCK_CONFIG
 };
 
 type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;
@@ -274,7 +295,7 @@ where
 }
 
 pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&HSE_CLOCK_CONFIG)?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);

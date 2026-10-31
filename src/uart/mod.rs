@@ -76,9 +76,10 @@ impl Config {
     /// baud rate within 1 %, and only the features its IP version has. A
     /// `const fn`, so a board can check its frames while compiling, as it
     /// checks its clock tree; `Uart::check` finds the kernel clock for an
-    /// instance.
+    /// instance, and adds its own limits (such as the F4's UART4 and UART5,
+    /// which have no 0.5 or 1.5 stop bits).
     pub const fn check(&self, kernel_clock: crate::time::Hertz) -> Result<(), ConfigError> {
-        match self.divider(kernel_clock) {
+        match self.divider(kernel_clock, true) {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
         }
@@ -88,8 +89,15 @@ impl Config {
     /// the baud rate, in 12.4 fixed point, which is the plain quotient
     /// rounded.
     #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
-    pub(crate) const fn divider(&self, kernel_clock: crate::time::Hertz) -> Result<u16, ConfigError> {
+    pub(crate) const fn divider(
+        &self,
+        kernel_clock: crate::time::Hertz,
+        fractional_stop: bool,
+    ) -> Result<u16, ConfigError> {
         if (self.invert_rx || self.invert_tx) && !crate::usart::INVERSION {
+            return Err(ConfigError::Unsupported);
+        }
+        if !fractional_stop && matches!(self.stop_bits, StopBits::Half | StopBits::OneAndHalf) {
             return Err(ConfigError::Unsupported);
         }
         if self.baudrate == 0 {

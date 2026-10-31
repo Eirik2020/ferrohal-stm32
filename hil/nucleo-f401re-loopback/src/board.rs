@@ -27,8 +27,8 @@ use ferrohal_stm32::{
     dma::Stream,
     gpio::{Alternate, Ctrl, Output, Parts, Pin, Port, PortInstance, Pull, Speed},
     rcc::{
-        AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Pll, PllP, PllSource, Rcc, Supply,
-        Sysclk,
+        AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP, PllSource,
+        Rcc, Supply, Sysclk,
     },
     uart::{self, ConfigError, Parity, RxWiring, StopBits, Uart, Wiring},
 };
@@ -57,6 +57,26 @@ pub const CLOCK_CONFIG: Config = Config {
 pub const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
     Ok(clocks) => clocks,
     Err(_) => panic!("CLOCK_CONFIG breaks the F401's limits"),
+};
+
+/// The same frequencies from HSE, for run A: the ST-LINK's 8 MHz MCO, which
+/// MB1136 C-02 and later boards wire to PH0 (UM1724 section 7.9.1), in
+/// bypass. 8 MHz / 8 * 336 = 336 MHz VCO, then as `CLOCK_CONFIG`. Run A
+/// checks the result equals `CLOCKS`.
+pub const HSE_CLOCK_CONFIG: Config = Config {
+    hse: Some(Hse {
+        freq: ferrohal_stm32::time::Hertz::mhz(8),
+        mode: HseMode::Bypass,
+    }),
+    pll: Some(Pll {
+        source: PllSource::Hse,
+        prediv: 8,
+        ..match CLOCK_CONFIG.pll {
+            Some(pll) => pll,
+            None => panic!("CLOCK_CONFIG has a PLL"),
+        }
+    }),
+    ..CLOCK_CONFIG
 };
 
 /// Run D's frame: SBUS's 100000 8E2. The F401 has no inversion, so the
@@ -158,7 +178,7 @@ pub struct RunC {
 }
 
 pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&HSE_CLOCK_CONFIG)?;
     let mut gpioa = p.GPIOA.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);

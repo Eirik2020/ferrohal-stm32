@@ -1,0 +1,363 @@
+//! STM32F405RG glue: the chip facts the IP modules leave out.
+//!
+//! Every routing fact here (RCC bits, pin alternate functions, DMA request
+//! channels) was read from stm32-metapac 21.0.0's metadata for this chip,
+//! whose pin lists are already cut to the LQFP64 package. They are
+//! hand-written for now, in the trait shapes a generator would emit from
+//! that metadata later.
+//!
+//! The Foxeer F405 V2 flight controller carries this chip; there is no
+//! Nucleo for it, so its hardware tests run on that board.
+
+use stm32_metapac as pac;
+
+/// The chip's interrupt vectors, as numbers: what a UART reports it needs
+/// bound. Data only; FerroHAL never writes the NVIC with them.
+pub use stm32_metapac::Interrupt;
+
+use crate::{
+    dma_v2::{Dma, DmaInstance, Stream},
+    gpio_v2::{Alternate, Pin, Port, PortInstance},
+    rcc_f4::{Bus, Limits, RCC, RccBit},
+    time::Hertz,
+    uart::ConfigError,
+    usart_v2::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
+};
+
+#[path = "shared/macros.rs"]
+#[macro_use]
+mod macros;
+
+/// SRAM1 (112 KiB) and SRAM2 (16 KiB), contiguous (RM0090 section 2.3).
+/// Not the 64 KiB of CCM RAM at 0x1000_0000: only the core reaches it, so a
+/// DMA buffer there would never see a byte (RM0090 figure 1).
+const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 128 * 1024)];
+
+/// Whether `buffer` can be handed to a DMA stream: whether it lies in SRAM1
+/// or SRAM2. A Cortex-M4 has no data cache, so that is all. `Uart::new`
+/// checks every buffer with this; firmware that places statics in CCM RAM
+/// can use it to check its own.
+pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), ConfigError> {
+    if macros::within(buffer, &DMA_RAM) {
+        Ok(())
+    } else {
+        Err(ConfigError::BufferUnreachable)
+    }
+}
+
+/// DS8626 and RM0090, at 2.7 V to 3.6 V. VOS keeps its reset value (scale
+/// 1), which covers 168 MHz on this chip.
+pub(crate) const CLOCK_LIMITS: Limits = Limits {
+    sysclk_max: Hertz::mhz(168),
+    hclk_max: Hertz::mhz(168),
+    pclk1_max: Hertz::mhz(42),
+    pclk2_max: Hertz::mhz(84),
+    hse_oscillator: (Hertz::mhz(4), Hertz::mhz(26)),
+    hse_bypass: (Hertz::mhz(1), Hertz::mhz(50)),
+    pll_input: (Hertz::khz(950), Hertz::khz(2_100)),
+    pll_vco: (Hertz::mhz(100), Hertz::mhz(432)),
+    flash_step_2v7: Hertz::mhz(30),
+    max_wait_states: 5,
+};
+
+tokens!(
+    USART1, USART2, USART3, UART4, UART5, USART6, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7, TIM8,
+    TIM9, TIM10, TIM11, TIM12, TIM13, TIM14, SPI1, SPI2, SPI3, I2C1, I2C2, I2C3, ADC1, ADC2, ADC3,
+    ADC123_COMMON, CAN1, CAN2, DAC1, RNG, SDIO, SYSCFG, EXTI, PWR, CRC, RTC, IWDG, WWDG,
+    USB_OTG_FS, USB_OTG_HS, DBGMCU, UID,
+);
+
+peripherals!(
+    "FLASH is not here: RCC's `freeze` owns its latency register.";
+    RCC: RCC,
+    GPIOA: Port<'A'>,
+    GPIOB: Port<'B'>,
+    GPIOC: Port<'C'>,
+    GPIOD: Port<'D'>,
+    GPIOE: Port<'E'>,
+    GPIOF: Port<'F'>,
+    GPIOG: Port<'G'>,
+    GPIOH: Port<'H'>,
+    GPIOI: Port<'I'>,
+    DMA1: Dma<1>,
+    DMA2: Dma<2>,
+    USART1: USART1,
+    USART2: USART2,
+    USART3: USART3,
+    UART4: UART4,
+    UART5: UART5,
+    USART6: USART6,
+    TIM1: TIM1,
+    TIM2: TIM2,
+    TIM3: TIM3,
+    TIM4: TIM4,
+    TIM5: TIM5,
+    TIM6: TIM6,
+    TIM7: TIM7,
+    TIM8: TIM8,
+    TIM9: TIM9,
+    TIM10: TIM10,
+    TIM11: TIM11,
+    TIM12: TIM12,
+    TIM13: TIM13,
+    TIM14: TIM14,
+    SPI1: SPI1,
+    SPI2: SPI2,
+    SPI3: SPI3,
+    I2C1: I2C1,
+    I2C2: I2C2,
+    I2C3: I2C3,
+    ADC1: ADC1,
+    ADC2: ADC2,
+    ADC3: ADC3,
+    ADC123_COMMON: ADC123_COMMON,
+    CAN1: CAN1,
+    CAN2: CAN2,
+    DAC1: DAC1,
+    RNG: RNG,
+    SDIO: SDIO,
+    SYSCFG: SYSCFG,
+    EXTI: EXTI,
+    PWR: PWR,
+    CRC: CRC,
+    RTC: RTC,
+    IWDG: IWDG,
+    WWDG: WWDG,
+    USB_OTG_FS: USB_OTG_FS,
+    USB_OTG_HS: USB_OTG_HS,
+    DBGMCU: DBGMCU,
+    UID: UID,
+);
+
+// GPIO ports and DMA controllers, with their AHB1ENR bits. The LQFP64
+// package bonds out ports A to C, PD2 and PH0, PH1; ports E to I exist as
+// registers only.
+
+macro_rules! ports {
+    ($($letter:literal => $regs:ident, $bit:literal;)+) => {
+        $(
+            impl crate::Sealed for Port<$letter> {}
+
+            impl PortInstance for Port<$letter> {
+                fn regs() -> pac::gpio::Gpio {
+                    pac::$regs
+                }
+                const ENABLE: RccBit = RccBit::new(Bus::Ahb1, $bit);
+            }
+        )+
+    };
+}
+
+ports!(
+    'A' => GPIOA, 0;
+    'B' => GPIOB, 1;
+    'C' => GPIOC, 2;
+    'D' => GPIOD, 3;
+    'E' => GPIOE, 4;
+    'F' => GPIOF, 5;
+    'G' => GPIOG, 6;
+    'H' => GPIOH, 7;
+    'I' => GPIOI, 8;
+);
+
+impl crate::Sealed for Dma<1> {}
+impl DmaInstance for Dma<1> {
+    fn regs() -> pac::dma::Dma {
+        pac::DMA1
+    }
+    const ENABLE: RccBit = RccBit::new(Bus::Ahb1, 21);
+}
+
+impl crate::Sealed for Dma<2> {}
+impl DmaInstance for Dma<2> {
+    fn regs() -> pac::dma::Dma {
+        pac::DMA2
+    }
+    const ENABLE: RccBit = RccBit::new(Bus::Ahb1, 22);
+}
+
+// U(S)ART instances. The bus is also the kernel clock: USART1 and USART6 run
+// from PCLK2, the rest from PCLK1.
+
+macro_rules! usarts {
+    ($($kind:ident $name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
+        $(
+            static $info: Info = Info::new(Line::new(pac::$name), RccBit::new(Bus::$bus, $bit));
+
+            impl usart_v2::Instance for $name {
+                const KERNEL: Bus = Bus::$bus;
+                const NAME: &'static str = stringify!($name);
+                const INTERRUPT: Interrupt = Interrupt::$name;
+                const INTERRUPT_NAME: &'static str = stringify!($name);
+                const FRACTIONAL_STOP_BITS: bool = fractional_stop!($kind);
+                fn info() -> &'static Info {
+                    &$info
+                }
+            }
+        )+
+    };
+}
+
+// A `uart` row is an asynchronous-only UART: the same registers, without
+// the synchronous clock, smartcard and flow control, and without 0.5 and 1.5
+// stop bits (RM0090, USART_CR2 STOP).
+macro_rules! fractional_stop {
+    (usart) => {
+        true
+    };
+    (uart) => {
+        false
+    };
+}
+
+usarts!(
+    usart USART1 => USART1_INFO, Apb2, 4;
+    usart USART2 => USART2_INFO, Apb1, 17;
+    usart USART3 => USART3_INFO, Apb1, 18;
+    uart UART4 => UART4_INFO, Apb1, 19;
+    uart UART5 => UART5_INFO, Apb1, 20;
+    usart USART6 => USART6_INFO, Apb2, 5;
+);
+
+// Pins: (port, pin, alternate function). PC10 and PC11 serve USART3 (AF7)
+// or UART4 (AF8).
+
+pins!(TxPin<USART1>: ('A', 9, 7), ('B', 6, 7));
+pins!(RxPin<USART1>: ('A', 10, 7), ('B', 7, 7));
+pins!(TxPin<USART2>: ('A', 2, 7));
+pins!(RxPin<USART2>: ('A', 3, 7));
+pins!(TxPin<USART3>: ('B', 10, 7), ('C', 10, 7));
+pins!(RxPin<USART3>: ('B', 11, 7), ('C', 11, 7));
+pins!(TxPin<UART4>: ('A', 0, 8), ('C', 10, 8));
+pins!(RxPin<UART4>: ('A', 1, 8), ('C', 11, 8));
+pins!(TxPin<UART5>: ('C', 12, 8));
+pins!(RxPin<UART5>: ('D', 2, 8));
+pins!(TxPin<USART6>: ('C', 6, 8));
+pins!(RxPin<USART6>: ('C', 7, 8));
+
+// DMA: (controller, stream, request channel).
+
+macro_rules! dma {
+    ($trait:ident<$usart:ident>: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
+        $(
+            // SAFETY: RM0090 tables 42 and 43 (DMA1 and DMA2 request
+            // mapping), matching stm32-metapac 21's metadata.
+            unsafe impl $trait<$usart> for Stream<$dma, $stream> {
+                const REQUEST: u8 = $request;
+            }
+        )+
+    };
+}
+
+dma!(TxDma<USART1>: (2, 7, 4));
+dma!(RxDma<USART1>: (2, 2, 4), (2, 5, 4));
+dma!(TxDma<USART2>: (1, 6, 4));
+dma!(RxDma<USART2>: (1, 5, 4));
+dma!(TxDma<USART3>: (1, 3, 4), (1, 4, 7));
+dma!(RxDma<USART3>: (1, 1, 4));
+dma!(TxDma<UART4>: (1, 4, 4));
+dma!(RxDma<UART4>: (1, 2, 4));
+dma!(TxDma<UART5>: (1, 7, 4));
+dma!(RxDma<UART5>: (1, 0, 4));
+dma!(TxDma<USART6>: (2, 6, 5), (2, 7, 5));
+dma!(RxDma<USART6>: (2, 1, 5), (2, 2, 5));
+
+stream_interrupts!(
+    1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3,
+        4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
+    2: [0 => DMA2_STREAM0, 1 => DMA2_STREAM1, 2 => DMA2_STREAM2, 3 => DMA2_STREAM3,
+        4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
+);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::uart::{Resource, Signal, Wiring};
+
+    /// The Foxeer F405 V2's receiver port, as its manifest claims it.
+    type Usart2Foxeer = Wiring<
+        USART2,
+        Pin<'A', 2, Alternate<7>>,
+        Pin<'A', 3, Alternate<7>>,
+        Stream<1, 6>,
+        Stream<1, 5>,
+    >;
+
+    #[test]
+    fn wiring_describes_itself() {
+        assert_eq!(
+            Usart2Foxeer::RESOURCES,
+            [
+                Resource::Uart("USART2"),
+                Resource::Pin { signal: Signal::Tx, port: 'A', pin: 2, af: 7 },
+                Resource::Pin { signal: Signal::Rx, port: 'A', pin: 3, af: 7 },
+                // The manifest names these DMA1_STREAM6_CH4 and
+                // DMA1_STREAM5_CH4.
+                Resource::Dma { signal: Signal::Tx, controller: 1, stream: 6, request: 4 },
+                Resource::Dma { signal: Signal::Rx, controller: 1, stream: 5, request: 4 },
+                Resource::Interrupt("USART2"),
+                Resource::Interrupt("DMA1_STREAM5"),
+                Resource::Interrupt("DMA1_STREAM6"),
+            ]
+        );
+    }
+
+    #[test]
+    fn ccm_ram_is_refused() {
+        // SAFETY: never dereferenced; only the address range is checked.
+        let ccm = unsafe { core::slice::from_raw_parts(0x1000_0000 as *const u8, 64) };
+        assert_eq!(check_dma_buffer(ccm), Err(ConfigError::BufferUnreachable));
+        // SAFETY: as above.
+        let sram2_end = unsafe { core::slice::from_raw_parts(0x2001_ff00 as *const u8, 256) };
+        assert_eq!(check_dma_buffer(sram2_end), Ok(()));
+        // SAFETY: as above.
+        let past = unsafe { core::slice::from_raw_parts(0x2001_ff00 as *const u8, 257) };
+        assert_eq!(check_dma_buffer(past), Err(ConfigError::BufferUnreachable));
+    }
+
+    #[test]
+    fn uart4_and_uart5_refuse_fractional_stop_bits() {
+        use crate::uart::{self, StopBits, Uart};
+        let clocks = crate::rcc_f4::Config::hsi().validate().unwrap();
+        let half = uart::Config::new(115_200).with_stop_bits(StopBits::Half);
+        let one_and_half = half.with_stop_bits(StopBits::OneAndHalf);
+        let two = half.with_stop_bits(StopBits::Two);
+        assert_eq!(Uart::check::<UART4>(&clocks, &half), Err(ConfigError::Unsupported));
+        assert_eq!(Uart::check::<UART5>(&clocks, &one_and_half), Err(ConfigError::Unsupported));
+        assert_eq!(Uart::check::<UART4>(&clocks, &two), Ok(()));
+        assert_eq!(Uart::check::<USART3>(&clocks, &half), Ok(()));
+    }
+
+    #[test]
+    fn foxeer_clocks_validate() {
+        use crate::rcc_f4::{
+            AhbPrescaler, ApbPrescaler, Config, Hse, HseMode, Pll, PllP, PllSource, Supply,
+            Sysclk,
+        };
+        // 8 MHz crystal to 168 MHz, with 48 MHz on PLLQ for USB.
+        let config = Config {
+            hse: Some(Hse { freq: Hertz::mhz(8), mode: HseMode::Oscillator }),
+            pll: Some(Pll {
+                source: PllSource::Hse,
+                prediv: 8,
+                mul: 336,
+                divp: PllP::Div2,
+                divq: Some(7),
+            }),
+            sys: Sysclk::PllP,
+            ahb_pre: AhbPrescaler::Div1,
+            apb1_pre: ApbPrescaler::Div4,
+            apb2_pre: ApbPrescaler::Div2,
+            supply: Supply::V2_7To3_6,
+        };
+        let clocks = config.validate().unwrap();
+        assert_eq!(clocks.sysclk, Hertz::mhz(168));
+        assert_eq!((clocks.pclk1, clocks.pclk2), (Hertz::mhz(42), Hertz::mhz(84)));
+        assert_eq!((clocks.timclk1, clocks.timclk2), (Hertz::mhz(84), Hertz::mhz(168)));
+        assert_eq!(clocks.pll_q, Some(Hertz::mhz(48)));
+        assert_eq!(clocks.flash_wait_states, 5);
+        // APB1 at 84 MHz is over its limit.
+        let fast_apb1 = Config { apb1_pre: ApbPrescaler::Div2, ..config };
+        assert!(fast_apb1.validate().is_err());
+    }
+}

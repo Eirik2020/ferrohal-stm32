@@ -5,8 +5,6 @@
 //! They are hand-written for now, in the trait shapes a generator would
 //! emit from that metadata later.
 
-use core::sync::atomic::{AtomicBool, Ordering};
-
 use stm32_metapac as pac;
 
 /// The chip's interrupt vectors, as numbers: what a UART reports it needs
@@ -22,11 +20,23 @@ use crate::{
     usart_v2::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
 };
 
-/// Whether `buffer` can be handed to a DMA stream: always, here. Every byte
-/// of this chip's SRAM is on the DMA's bus matrix, and a Cortex-M4 has no
-/// data cache. `Uart::new` checks every buffer with this.
-pub fn check_dma_buffer(_buffer: &[u8]) -> Result<(), ConfigError> {
-    Ok(())
+#[path = "shared/macros.rs"]
+#[macro_use]
+mod macros;
+
+/// The chip's 96 KiB of SRAM (RM0368 section 2.3), all of it on the DMA's
+/// bus matrix.
+const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 96 * 1024)];
+
+/// Whether `buffer` can be handed to a DMA stream: whether it lies in SRAM.
+/// A Cortex-M4 has no data cache, so that is all. `Uart::new` checks every
+/// buffer with this.
+pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), ConfigError> {
+    if macros::within(buffer, &DMA_RAM) {
+        Ok(())
+    } else {
+        Err(ConfigError::BufferUnreachable)
+    }
 }
 
 /// DS10086 and RM0368, at 2.7 V to 3.6 V. VOS keeps its reset value
@@ -44,84 +54,14 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
     max_wait_states: 2,
 };
 
-macro_rules! tokens {
-    ($($name:ident),+ $(,)?) => {
-        $(
-            /// A peripheral token with no driver yet. Zero-sized.
-            #[allow(non_camel_case_types)]
-            pub struct $name {
-                _private: (),
-            }
-
-            impl $name {
-                const fn new() -> Self {
-                    Self { _private: () }
-                }
-
-                /// A second token for this peripheral.
-                ///
-                /// # Safety
-                ///
-                /// Nothing else may use the peripheral while this token is
-                /// in use.
-                pub unsafe fn steal() -> Self {
-                    Self::new()
-                }
-            }
-
-            impl crate::Sealed for $name {}
-        )+
-    };
-}
-
 tokens!(
     USART1, USART2, USART6, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10, TIM11, SPI1, SPI2, SPI3,
     I2C1, I2C2, I2C3, ADC1, ADC1_COMMON, SDIO, SYSCFG, EXTI, PWR, CRC, RTC, IWDG, WWDG,
     USB_OTG_FS, DBGMCU, UID,
 );
 
-macro_rules! peripherals {
-    ($($name:ident: $ty:ty),+ $(,)?) => {
-        /// Every peripheral of the chip, once. svd2rust's model: take this
-        /// once, then move each token to the driver or task that owns it.
-        ///
-        /// FLASH is not here: RCC's `freeze` owns its latency register.
-        #[allow(non_snake_case)]
-        pub struct Peripherals {
-            $(pub $name: $ty,)+
-        }
-
-        impl Peripherals {
-            /// The tokens, the first time. `None` after that.
-            pub fn take() -> Option<Self> {
-                if TAKEN.swap(true, Ordering::AcqRel) {
-                    None
-                } else {
-                    // SAFETY: the flag says this is the first time.
-                    Some(unsafe { Self::steal() })
-                }
-            }
-
-            /// The tokens, unconditionally. RTIC calls this when its app
-            /// sets `peripherals = true`.
-            ///
-            /// # Safety
-            ///
-            /// No token from an earlier `take` or `steal` may still be in
-            /// use.
-            pub unsafe fn steal() -> Self {
-                TAKEN.store(true, Ordering::Release);
-                Self {
-                    $($name: <$ty>::new(),)+
-                }
-            }
-        }
-    };
-}
-
-static TAKEN: AtomicBool = AtomicBool::new(false);
-
 peripherals!(
+    "FLASH is not here: RCC's `freeze` owns its latency register.";
     RCC: RCC,
     GPIOA: Port<'A'>,
     GPIOB: Port<'B'>,
@@ -234,12 +174,6 @@ usarts!(
 
 // Pins: (port, pin, alternate function).
 
-macro_rules! pins {
-    ($trait:ident<$usart:ident>: $(($port:literal, $pin:literal, $af:literal)),+ $(,)?) => {
-        $(impl $trait<$usart> for Pin<$port, $pin, Alternate<$af>> {})+
-    };
-}
-
 pins!(TxPin<USART1>: ('A', 9, 7), ('B', 6, 7));
 pins!(RxPin<USART1>: ('A', 10, 7), ('B', 7, 7));
 pins!(TxPin<USART2>: ('A', 2, 7));
@@ -270,24 +204,12 @@ dma!(RxDma<USART6>: (2, 1, 5), (2, 2, 5));
 
 // The vector each DMA stream raises.
 
-macro_rules! stream_interrupts {
-    ($($dma:literal: [$($stream:literal => $vector:ident),+];)+) => {
-        $($(
-            impl crate::dma::StreamInterrupt for crate::dma::Stream<$dma, $stream> {
-                const INTERRUPT: Interrupt = Interrupt::$vector;
-                const NAME: &'static str = stringify!($vector);
-            }
-        )+)+
-    };
-}
-
 stream_interrupts!(
     1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3,
         4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
     2: [0 => DMA2_STREAM0, 1 => DMA2_STREAM1, 2 => DMA2_STREAM2, 3 => DMA2_STREAM3,
         4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
 );
-
 
 #[cfg(test)]
 mod tests {

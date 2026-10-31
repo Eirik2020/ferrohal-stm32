@@ -2,6 +2,8 @@
 //! architecture brief), for one chip at a time:
 //!
 //!     cargo build --release --features stm32f401re
+//!     cargo build --release --features stm32f405rg
+//!     cargo build --release --features stm32h743vi
 //!     cargo build --release --features stm32h753zi
 //!
 //! `main` calls every public operation, with every input passed through
@@ -110,7 +112,7 @@ fn main() -> ! {
     keep(handle.remaining());
     let transfer = black_box(Transfer {
         request: 1,
-        #[cfg(feature = "stm32h753zi")]
+        #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
         bufferable: false,
         direction: Direction::MemoryToPeripheral,
         peripheral: 0x4000_0000,
@@ -297,7 +299,100 @@ mod chip {
     }
 }
 
-#[cfg(feature = "stm32h753zi")]
+/// The Foxeer F405 V2's ports, from its 8 MHz crystal: HSE in the path.
+#[cfg(feature = "stm32f405rg")]
+mod chip {
+    use ferrohal_stm32::{
+        chip::{Peripherals, UART4, USART2},
+        dma::Stream,
+        gpio::{Alternate, Input, Output, Pin, Pull, Speed},
+        rcc::{
+            AhbPrescaler, ApbPrescaler, Config, Hse, HseMode, Pll, PllP, PllSource, Rcc, Supply,
+            Sysclk,
+        },
+        time::Hertz,
+        uart::{RxWiring, Wiring},
+    };
+
+    use super::Spare;
+
+    pub type RxUart = UART4;
+    pub type RxOnlyWiring = RxWiring<UART4, Pin<'A', 1, Alternate<8>>, Stream<1, 2>>;
+
+    const CLOCKS: Config = Config {
+        hse: Some(Hse {
+            freq: Hertz::mhz(8),
+            mode: HseMode::Oscillator,
+        }),
+        pll: Some(Pll {
+            source: PllSource::Hse,
+            prediv: 8,
+            mul: 336,
+            divp: PllP::Div2,
+            divq: Some(7),
+        }),
+        sys: Sysclk::PllP,
+        ahb_pre: AhbPrescaler::Div1,
+        apb1_pre: ApbPrescaler::Div4,
+        apb2_pre: ApbPrescaler::Div2,
+        supply: Supply::V2_7To3_6,
+    };
+
+    pub type UartWiring = Wiring<
+        USART2,
+        Pin<'A', 2, Alternate<7>>,
+        Pin<'A', 3, Alternate<7>>,
+        Stream<1, 6>,
+        Stream<1, 5>,
+    >;
+
+    pub fn wire(
+        p: Peripherals,
+    ) -> Option<(
+        Rcc,
+        UartWiring,
+        RxOnlyWiring,
+        Spare<Stream<2, 0>>,
+        Pin<'B', 0, Output>,
+        Pin<'B', 1, Input>,
+    )> {
+        let mut rcc = p.RCC.freeze(&core::hint::black_box(CLOCKS)).ok()?;
+        let mut a = p.GPIOA.split(&mut rcc);
+        let mut b = p.GPIOB.split(&mut rcc);
+        let dma1 = p.DMA1.split(&mut rcc);
+        let dma2 = p.DMA2.split(&mut rcc);
+        let mut tx = a.p2.into_alternate::<7>(&mut a.ctrl);
+        tx.set_speed(&mut a.ctrl, core::hint::black_box(Speed::Medium));
+        let mut rx = a.p3.into_alternate::<7>(&mut a.ctrl);
+        rx.set_pull(&mut a.ctrl, core::hint::black_box(Pull::Up));
+        let out = b.p0.into_push_pull_output(&mut b.ctrl);
+        let input = b.p1.into_input(&mut b.ctrl);
+        let rx4 = a.p1.into_alternate::<8>(&mut a.ctrl);
+        let _analog = b.p2.into_analog(&mut b.ctrl);
+        Some((
+            rcc,
+            Wiring {
+                uart: p.USART2,
+                tx,
+                rx,
+                tx_dma: dma1.s6,
+                rx_dma: dma1.s5,
+            },
+            RxWiring {
+                uart: p.UART4,
+                rx: rx4,
+                rx_dma: dma1.s2,
+            },
+            Spare {
+                stream: Some(dma2.s0),
+            },
+            out,
+            input,
+        ))
+    }
+}
+
+#[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
 mod chip {
     use ferrohal_stm32::{
         chip::{Peripherals, USART2, USART3},

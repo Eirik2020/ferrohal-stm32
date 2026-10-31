@@ -20,7 +20,8 @@ RUNS = {
     "a": (
         [
             "Run A: the TBS Lucid H7's UARTs at its rates, on its DMA streams,",
-            "under its clock tree. USART6 (CRSF) is on the Lucid's pins, PC6 and",
+            "under its clock tree, from HSE as the Lucid runs it (the other runs",
+            "use HSI). USART6 (CRSF) is on the Lucid's pins, PC6 and",
             "PC7; USART1 (SBUS) and USART3 (MSP) are on pins the Zio headers carry.",
             "USART2 is a control at 115200.",
             "",

@@ -9,7 +9,7 @@
 
 set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
-chips=(stm32f401re stm32h753zi)
+chips=(stm32f401re stm32f405rg stm32h743vi stm32h753zi)
 status=0
 
 step() {

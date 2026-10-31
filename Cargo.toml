@@ -53,6 +53,22 @@ stm32f401re = [
     "gpio_v2",
     "rcc_f4",
 ]
+stm32f405rg = [
+    "stm32-metapac/stm32f405rg",
+    "_family-stm32f4",
+    "usart_v2",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f4",
+]
+stm32h743vi = [
+    "stm32-metapac/stm32h743vi",
+    "_family-stm32h7",
+    "usart_v4",
+    "dma_v1",
+    "gpio_v2",
+    "rcc_h7rm0433",
+]
 stm32h753zi = [
     "stm32-metapac/stm32h753zi",
     "_family-stm32h7",

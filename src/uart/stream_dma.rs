@@ -262,6 +262,10 @@ pub trait Instance: crate::Sealed + 'static {
     const INTERRUPT: Interrupt;
     /// The vector's name.
     const INTERRUPT_NAME: &'static str;
+    /// Whether 0.5 and 1.5 stop bits are available. Not on the F4's UART4
+    /// and UART5 (RM0090, USART_CR2 STOP): frames asking for them are refused
+    /// with [`ConfigError::Unsupported`].
+    const FRACTIONAL_STOP_BITS: bool = true;
     #[doc(hidden)]
     fn info() -> &'static Info;
 }
@@ -298,6 +302,8 @@ pub struct Uart {
     tx: UartTx,
     rx: UartRx,
     kernel_clock: Hertz,
+    /// The instance's `FRACTIONAL_STOP_BITS`, for `set_config`.
+    fractional_stop: bool,
     cpu: Hertz,
 }
 
@@ -387,7 +393,7 @@ impl Uart {
         let info = U::info();
         let clocks = rcc.clocks();
         let kernel_clock = clocks.bus(U::KERNEL);
-        let brr = config.divider(kernel_clock)?;
+        let brr = config.divider(kernel_clock, U::FRACTIONAL_STOP_BITS)?;
         let tx_len = u16::try_from(buffers.tx.len())
             .ok()
             .filter(|&len| len > 0)
@@ -431,6 +437,7 @@ impl Uart {
                 tx,
                 rx,
                 kernel_clock,
+                fractional_stop: U::FRACTIONAL_STOP_BITS,
                 cpu: clocks.cpu,
             },
             irq,
@@ -442,14 +449,17 @@ impl Uart {
     /// compiling: `const _: () = assert!(Uart::check::<USART6>(&CLOCKS,
     /// &CRSF).is_ok());`.
     pub const fn check<U: Instance>(clocks: &Clocks, config: &Config) -> Result<(), ConfigError> {
-        config.check(clocks.bus(U::KERNEL))
+        match config.divider(clocks.bus(U::KERNEL), U::FRACTIONAL_STOP_BITS) {
+            Ok(_) => Ok(()),
+            Err(error) => Err(error),
+        }
     }
 
     /// Changes the frame settings. Waits for transmission to finish first;
     /// the receive ring keeps running, but a byte arriving during the change
     /// is lost.
     pub fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
-        let brr = config.divider(self.kernel_clock)?;
+        let brr = config.divider(self.kernel_clock, self.fractional_stop)?;
         // A failed flush has already stopped the stream or halted the
         // transmit side, and the next write reports it.
         let _ = self.tx.flush();
@@ -812,7 +822,7 @@ impl UartRx {
     {
         let info = U::info();
         let clocks = rcc.clocks();
-        let brr = config.divider(clocks.bus(U::KERNEL))?;
+        let brr = config.divider(clocks.bus(U::KERNEL), U::FRACTIONAL_STOP_BITS)?;
         let rx_len = ring_len(ring)?;
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
         reset(rcc, info, rx_len);

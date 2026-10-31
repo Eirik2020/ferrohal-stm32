@@ -7,6 +7,10 @@
 //!   the ST-LINK bridge, so they are left out.
 //! - All three streaming at once, on DMA1 and DMA2 together.
 //!
+//! The clocks come from HSE (the ST-LINK's 8 MHz MCO, in bypass); the
+//! other runs use HSI for the same frequencies. USART2's host echo checks
+//! the result against the host's own clock.
+//!
 //! RTIC owns every interrupt; FerroHAL only enables the UARTs' and their
 //! receive streams' own interrupt bits. Each vector in use, and what serves
 //! it:

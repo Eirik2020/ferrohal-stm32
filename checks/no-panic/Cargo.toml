@@ -20,6 +20,8 @@ cortex-m-rt = "0.7.6"
 
 [features]
 stm32f401re = ["ferrohal-stm32/stm32f401re"]
+stm32f405rg = ["ferrohal-stm32/stm32f405rg"]
+stm32h743vi = ["ferrohal-stm32/stm32h743vi"]
 stm32h753zi = ["ferrohal-stm32/stm32h753zi"]
 # Links despite panic paths, to find them in the disassembly.
 locate = []
