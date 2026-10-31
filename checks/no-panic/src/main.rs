@@ -22,18 +22,19 @@ use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin};
 use ferrohal_stm32::{
     chip::Peripherals,
     dma::{Direction, FifoMode, Flags, Interrupts, Priority, StreamInstance, Transfer, WordSize},
-    uart::{self, Buffers, Parity, StopBits, Uart},
+    uart::{self, Buffers, Parity, StopBits, Uart, UartRx},
 };
 
 static mut TX: [u8; 64] = [0; 64];
 static mut RX: [u8; 256] = [0; 256];
+static mut RX2: [u8; 256] = [0; 256];
 
 #[entry]
 fn main() -> ! {
     let Some(p) = Peripherals::take() else {
         park()
     };
-    let Some((mut rcc, wiring, mut spare, mut out, mut input)) = chip::wire(p) else {
+    let Some((mut rcc, wiring, rx_wiring, mut spare, mut out, mut input)) = chip::wire(p) else {
         park()
     };
     keep(rcc.clocks());
@@ -56,15 +57,29 @@ fn main() -> ! {
         tx: black_box(unsafe { &mut *addr_of_mut!(TX) }),
         rx: black_box(unsafe { &mut *addr_of_mut!(RX) }),
     };
-    let config = black_box(uart::Config {
-        baudrate: 115_200,
-        parity: Parity::None,
-        stop_bits: StopBits::One,
-    });
+    let config = black_box(uart::Config::new(115_200));
     let Ok((mut uart, mut irq)) = Uart::new(&mut rcc, wiring, &config, buffers) else {
         park()
     };
     exercise_uart(&mut uart);
+
+    // A receive-only UART, and the frame check with inversion asked for.
+    let sbus = black_box(
+        uart::Config::new(100_000)
+            .with_parity(Parity::Even)
+            .with_stop_bits(StopBits::Two)
+            .with_inverted_rx(black_box(true)),
+    );
+    keep(Uart::check::<chip::RxUart>(&black_box(rcc.clocks()), &sbus));
+    // SAFETY: as TX and RX above.
+    let ring = black_box(unsafe { &mut *addr_of_mut!(RX2) });
+    let Ok((mut rx_only, mut rx_irq)) = UartRx::new(&mut rcc, rx_wiring, &sbus, ring) else {
+        park()
+    };
+    let mut chunk = [0u8; 32];
+    keep(rx_only.read_chunk(black_box(&mut chunk)));
+    keep(rx_only.try_read(black_box(&mut chunk)));
+    rx_irq.on_interrupt();
     // The buffer check on its own, MPU walk included on the H7.
     keep(ferrohal_stm32::chip::check_dma_buffer(black_box(&[0u8; 8][..])));
     irq.on_interrupt();
@@ -132,11 +147,13 @@ fn exercise_uart(uart: &mut Uart) {
     keep(Write::flush(uart));
     keep(uart.read_ready());
     keep(uart.write_ready());
-    let config = black_box(uart::Config {
-        baudrate: 9_600,
-        parity: Parity::Even,
-        stop_bits: StopBits::Two,
-    });
+    let config = black_box(
+        uart::Config::new(9_600)
+            .with_parity(Parity::Even)
+            .with_stop_bits(StopBits::Two)
+            .with_inverted_rx(true)
+            .with_inverted_tx(true),
+    );
     keep(uart.set_config(&config));
     let (tx, rx) = uart.halves();
     keep(tx.write(data));
@@ -192,14 +209,16 @@ impl<C: StreamInstance> Spare<C> {
 #[cfg(feature = "stm32f401re")]
 mod chip {
     use ferrohal_stm32::{
-        chip::{Peripherals, USART1},
+        chip::{Peripherals, USART1, USART6},
         dma::Stream,
         gpio::{Alternate, Input, Output, Pin, Pull, Speed},
         rcc::{AhbPrescaler, ApbPrescaler, Config, Pll, PllP, PllSource, Rcc, Supply, Sysclk},
-        uart::Wiring,
+        uart::{RxWiring, Wiring},
     };
 
     use super::Spare;
+
+    pub type RxUart = USART6;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -230,6 +249,7 @@ mod chip {
     ) -> Option<(
         Rcc,
         UartWiring,
+        RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>,
         Spare<Stream<2, 0>>,
         Pin<'A', 5, Output>,
         Pin<'A', 0, Input>,
@@ -243,6 +263,7 @@ mod chip {
         rx.set_pull(&mut a.ctrl, core::hint::black_box(Pull::Up));
         let out = a.p5.into_push_pull_output(&mut a.ctrl);
         let input = a.p0.into_input(&mut a.ctrl);
+        let rx6 = a.p12.into_alternate::<8>(&mut a.ctrl);
         let _analog = a.p1.into_analog(&mut a.ctrl);
         Some((
             rcc,
@@ -252,6 +273,11 @@ mod chip {
                 rx,
                 tx_dma: dma2.s7,
                 rx_dma: dma2.s2,
+            },
+            RxWiring {
+                uart: p.USART6,
+                rx: rx6,
+                rx_dma: dma2.s1,
             },
             Spare {
                 stream: Some(dma2.s0),
@@ -265,17 +291,19 @@ mod chip {
 #[cfg(feature = "stm32h753zi")]
 mod chip {
     use ferrohal_stm32::{
-        chip::{Peripherals, USART2},
+        chip::{Peripherals, USART2, USART3},
         dma::Stream,
         gpio::{Alternate, Input, Output, Pin, Pull, Speed},
         rcc::{
             AhbPrescaler, ApbPrescaler, Config, Pll, PllSource, Rcc, Supply, Sysclk,
             VoltageScale,
         },
-        uart::Wiring,
+        uart::{RxWiring, Wiring},
     };
 
     use super::Spare;
+
+    pub type RxUart = USART3;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -311,6 +339,7 @@ mod chip {
     ) -> Option<(
         Rcc,
         UartWiring,
+        RxWiring<USART3, Pin<'B', 11, Alternate<7>>, Stream<1, 2>>,
         Spare<Stream<2, 3>>,
         Pin<'B', 0, Output>,
         Pin<'B', 1, Input>,
@@ -326,6 +355,7 @@ mod chip {
         rx.set_pull(&mut d.ctrl, core::hint::black_box(Pull::Up));
         let out = b.p0.into_push_pull_output(&mut b.ctrl);
         let input = b.p1.into_input(&mut b.ctrl);
+        let rx3 = b.p11.into_alternate::<7>(&mut b.ctrl);
         let _analog = b.p2.into_analog(&mut b.ctrl);
         Some((
             rcc,
@@ -335,6 +365,11 @@ mod chip {
                 rx,
                 tx_dma: dma1.s1,
                 rx_dma: dma1.s0,
+            },
+            RxWiring {
+                uart: p.USART3,
+                rx: rx3,
+                rx_dma: dma1.s2,
             },
             Spare {
                 stream: Some(dma2.s3),

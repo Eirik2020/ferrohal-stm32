@@ -17,7 +17,7 @@ trap 'kill "$echo_pid" 2>/dev/null; wait "$echo_pid" 2>/dev/null' EXIT
 sleep 0.5
 
 status=0
-for run in a b c; do
+for run in a b c d; do
     log="$here/logs/f401-run-$run.log"
     (cd "$here/nucleo-f401re-loopback" && timeout 300 cargo run --release --bin "run-$run") > "$log" 2>&1
     code=$?

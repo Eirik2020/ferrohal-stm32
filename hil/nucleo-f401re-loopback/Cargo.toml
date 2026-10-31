@@ -22,9 +22,16 @@ path = "src/bin/run_c.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "run-d"
+path = "src/bin/run_d.rs"
+test = false
+bench = false
+
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32f401re", "rt", "defmt"] }
 embedded-io = "0.7.1"
+embedded-hal = "1.0.0"
 
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.6"

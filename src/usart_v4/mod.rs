@@ -23,6 +23,9 @@ use crate::uart::{
 /// The register block of a USART or UART (not LPUART, whose BRR differs).
 pub type Regs = stm32_metapac::usart::Usart;
 
+/// RX and TX inversion: CR2's RXINV and TXINV.
+pub(crate) const INVERSION: bool = true;
+
 /// One USART's registers, as the driver uses them.
 #[derive(Clone, Copy)]
 pub struct Line(Regs);
@@ -56,7 +59,9 @@ impl Line {
                 StopBits::One => Stop::STOP1,
                 StopBits::OneAndHalf => Stop::STOP1P5,
                 StopBits::Two => Stop::STOP2,
-            })
+            });
+            w.set_rxinv(config.invert_rx);
+            w.set_txinv(config.invert_tx);
         });
         // EIE raises the USART interrupt on overrun, framing and noise.
         // DDRE stays clear, so a byte with an error still goes to DMA and
@@ -90,11 +95,11 @@ impl Line {
         regs.icr().write_value(error_flags());
     }
 
-    /// Turns the transmitter and receiver on, and the idle-line interrupt
-    /// that ends a chunk.
-    pub(crate) fn enable(self) {
+    /// Turns the receiver on, with the idle-line interrupt that ends a
+    /// chunk, and the transmitter if the UART has one.
+    pub(crate) fn enable(self, tx: bool) {
         self.0.cr1().modify(|w| {
-            w.set_te(true);
+            w.set_te(tx);
             w.set_re(true);
             w.set_idleie(true);
         });

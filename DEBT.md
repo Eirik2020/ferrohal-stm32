@@ -2,8 +2,8 @@
 
 Status as of 2026-10-31: UART over DMA runs on two chips.
 
-- **F401:** `hil/run-f401.sh` passes 69 of 69 checks across three runs.
-- **H753ZI:** `hil/run-h753.sh` passes 227 of 227 checks across four runs, with the caches off and on.
+- **F401:** `hil/run-f401.sh` passes 73 of 73 checks across four runs.
+- **H753ZI:** `hil/run-h753.sh` passes 241 of 241 checks across five runs, with the caches off and on.
 - **Both chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
@@ -59,14 +59,18 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
   - The compatibility adapter is built at swap time, as a `TRANSITION:` item (§15).
 - **Medium: `Uart::new` drops its tokens on error.**
   - **Issue:** if `new` fails, the pin, stream and USART tokens are consumed.
-  - **Fix:** return them with the error, or check everything before taking them.
+  - **Mitigated:** a frame can now be checked while compiling (`Uart::check::<USART6>(&CLOCKS, &config)` in a `const` assert, as both bench boards do), so the configuration errors need never reach `new`. What remains at run time is buffers and a stream left running.
+  - **Fix:** return the tokens with the error.
 - **Medium: there's no `release()`/`free()`.**
   - **Issue:** once `Uart::new` has the pins and streams it never gives them back, so there's no way to tear the driver down.
 - **Medium: the blocking `embedded_io::Read::read` has no bound.**
   - **Issue:** the trait requires it to block until data arrives. `read_within(buf, frames)` is the bounded alternative.
   - **Fix:** document `read_within` as the form to use in FerroForge tasks.
+- **Done: receive-only UARTs and inversion.**
+  - `UartRx::new` opens a UART with no TX pin or stream, the transmitter off; its `UartIrq` has no transmit part. RX and TX inversion are `Config` fields; `usart_v4` sets RXINV and TXINV, `usart_v2` refuses them with `ConfigError::Unsupported`.
+  - On the H753ZI, run E receives the TBS Lucid H7's SBUS case (receive-only USART1, 100000 8E2, inverted, its DMA stream) from inverted frames bit-banged on the link's other end, and the full suite checks inverted loops on every UART. On the F401, run D receives plain SBUS frames, and the refusal is checked while compiling.
 - **Medium: the frame format is limited.**
-  - **Issue:** data is always 8 bits, with optional parity as a ninth. There's no 7- or 9-bit data, no RTS/CTS, no half-duplex, no RS-485 driver enable, no LIN and no idle-line event.
+  - **Issue:** data is always 8 bits, with optional parity as a ninth. There's no 7- or 9-bit data, no RTS/CTS, no half-duplex, no RS-485 driver enable and no LIN.
 - **Medium: interrupt requirements aren't checked** (§7 hook 1, §15).
   - **Issue:** all three of a UART's vectors must run at one priority, above every task that uses it. Nothing verifies that yet; `interrupts()` and `verify()` are still to come in step 1.
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1).
@@ -205,6 +209,7 @@ Section numbers (§) refer to `ferrohal-architecture.md`.
 
 ### USART (`usart_v4`)
 
+- **Done: RX inversion** (SBUS on the Lucid): see section 1.
 - **Medium: no LPUART1.**
   - **Issue:** it uses the `Lpuart` register block (20-bit BRR), sits in the D3 domain, and its DMA comes through DMAMUX2 and the BDMA.
 - **Low: hardware FIFOs unused.**

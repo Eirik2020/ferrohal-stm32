@@ -111,6 +111,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),
             &mut tests::nvic_mask_all([Interrupt::USART6, Interrupt::DMA2_STREAM1, Interrupt::DMA2_STREAM7]),
+            false,
         );
         let led = cx.local.led;
         tests::finish(&report, || led.set_high());

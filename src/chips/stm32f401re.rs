@@ -210,6 +210,7 @@ macro_rules! usarts {
             static $info: Info = Info::new(Line::new(pac::$name), RccBit::new(Bus::$bus, $bit));
 
             impl usart_v2::Instance for $name {
+                const KERNEL: Bus = Bus::$bus;
                 fn info() -> &'static Info {
                     &$info
                 }

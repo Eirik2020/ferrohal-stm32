@@ -19,6 +19,9 @@ use crate::uart::{
 /// instance (UART4, UART5) is the same registers minus the synchronous ones.
 pub type Regs = stm32_metapac::usart::Usart;
 
+/// RX and TX inversion: v2 has no such bits.
+pub(crate) const INVERSION: bool = false;
+
 /// One USART's registers, as the driver uses them.
 #[derive(Clone, Copy)]
 pub struct Line(Regs);
@@ -83,11 +86,11 @@ impl Line {
         let _ = regs.dr().read();
     }
 
-    /// Turns the transmitter and receiver on, and the idle-line interrupt
-    /// that ends a chunk.
-    pub(crate) fn enable(self) {
+    /// Turns the receiver on, with the idle-line interrupt that ends a
+    /// chunk, and the transmitter if the UART has one.
+    pub(crate) fn enable(self, tx: bool) {
         self.0.cr1().modify(|w| {
-            w.set_te(true);
+            w.set_te(tx);
             w.set_re(true);
             w.set_idleie(true);
         });

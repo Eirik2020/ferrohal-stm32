@@ -36,16 +36,77 @@ pub struct Config {
     pub baudrate: u32,
     pub parity: Parity,
     pub stop_bits: StopBits,
+    /// The RX line idles low and its levels are swapped, as SBUS sends
+    /// them. Only some IP versions can do this; the others refuse it with
+    /// [`ConfigError::Unsupported`].
+    pub invert_rx: bool,
+    /// The TX line likewise.
+    pub invert_tx: bool,
 }
 
 impl Config {
-    /// `baudrate`, 8N1.
+    /// `baudrate`, 8N1, not inverted.
     pub const fn new(baudrate: u32) -> Self {
         Self {
             baudrate,
             parity: Parity::None,
             stop_bits: StopBits::One,
+            invert_rx: false,
+            invert_tx: false,
         }
+    }
+
+    pub const fn with_parity(self, parity: Parity) -> Self {
+        Self { parity, ..self }
+    }
+
+    pub const fn with_stop_bits(self, stop_bits: StopBits) -> Self {
+        Self { stop_bits, ..self }
+    }
+
+    pub const fn with_inverted_rx(self, invert_rx: bool) -> Self {
+        Self { invert_rx, ..self }
+    }
+
+    pub const fn with_inverted_tx(self, invert_tx: bool) -> Self {
+        Self { invert_tx, ..self }
+    }
+
+    /// Whether a UART clocked at `kernel_clock` can take this frame: the
+    /// baud rate within 1 %, and only the features its IP version has. A
+    /// `const fn`, so a board can check its frames while compiling, as it
+    /// checks its clock tree; `Uart::check` finds the kernel clock for an
+    /// instance.
+    pub const fn check(&self, kernel_clock: crate::time::Hertz) -> Result<(), ConfigError> {
+        match self.divider(kernel_clock) {
+            Ok(_) => Ok(()),
+            Err(error) => Err(error),
+        }
+    }
+
+    /// BRR for oversampling by 16 with no prescaler: the kernel clock over
+    /// the baud rate, in 12.4 fixed point, which is the plain quotient
+    /// rounded.
+    #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+    pub(crate) const fn divider(&self, kernel_clock: crate::time::Hertz) -> Result<u16, ConfigError> {
+        if (self.invert_rx || self.invert_tx) && !crate::usart::INVERSION {
+            return Err(ConfigError::Unsupported);
+        }
+        if self.baudrate == 0 {
+            return Err(ConfigError::BaudRate);
+        }
+        let clock = kernel_clock.0 as u64;
+        let baud = self.baudrate as u64;
+        let brr = (clock + baud / 2) / baud;
+        if brr < 16 || brr > 0xffff {
+            return Err(ConfigError::BaudRate);
+        }
+        // Within 1 %: |clock / brr - baud| <= baud / 100.
+        let error = clock.abs_diff(brr * baud);
+        if error * 100 > brr * baud {
+            return Err(ConfigError::BaudRate);
+        }
+        Ok(brr as u16)
     }
 }
 
@@ -74,6 +135,14 @@ pub struct Wiring<U, Tx, Rx, TxDma, RxDma> {
     pub tx: Tx,
     pub rx: Rx,
     pub tx_dma: TxDma,
+    pub rx_dma: RxDma,
+}
+
+/// What the board file hands to `UartRx::new` for a receive-only UART: the
+/// instance, its RX pin and its receive DMA stream.
+pub struct RxWiring<U, Rx, RxDma> {
+    pub uart: U,
+    pub rx: Rx,
     pub rx_dma: RxDma,
 }
 
@@ -177,6 +246,9 @@ pub enum ConfigError {
     DmaBusy,
     /// The baud rate cannot be reached from this UART's clock within 1 %.
     BaudRate,
+    /// The frame asks for something this IP version cannot do, such as
+    /// inversion on `usart_v2`.
+    Unsupported,
     /// The transmit buffer is empty or longer than one DMA transfer.
     TxBuffer,
     /// The receive ring is shorter than 2 bytes, odd, or longer than one

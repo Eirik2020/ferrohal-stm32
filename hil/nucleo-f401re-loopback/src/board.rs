@@ -30,7 +30,7 @@ use ferrohal_stm32::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Pll, PllP, PllSource, Rcc,
         Supply, Sysclk,
     },
-    uart::Wiring,
+    uart::{self, ConfigError, Parity, RxWiring, StopBits, Uart, Wiring},
 };
 
 /// 84 MHz, the F401's ceiling, from HSI so it works on every board:
@@ -58,6 +58,18 @@ pub const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
     Ok(clocks) => clocks,
     Err(_) => panic!("CLOCK_CONFIG breaks the F401's limits"),
 };
+
+/// Run D's frame: SBUS's 100000 8E2. The F401 has no inversion, so the
+/// Foxeer F405 inverts SBUS in hardware; this checks the refusal while
+/// compiling.
+pub const SBUS_PLAIN: uart::Config = uart::Config::new(100_000)
+    .with_parity(Parity::Even)
+    .with_stop_bits(StopBits::Two);
+const _: () = assert!(Uart::check::<USART6>(&CLOCKS, &SBUS_PLAIN).is_ok());
+const _: () = assert!(matches!(
+    Uart::check::<USART6>(&CLOCKS, &SBUS_PLAIN.with_inverted_rx(true)),
+    Err(ConfigError::Unsupported)
+));
 
 /// USART1 and USART2 use alternate function 7, USART6 function 8.
 type Af7<const P: char, const N: u8> = Pin<P, N, Alternate<7>>;
@@ -102,6 +114,41 @@ pub struct RunB {
     pub led: Led,
     pub usart1: Usart1Cross,
     pub usart6: Usart6Cross,
+}
+
+// Run D: USART6 receive-only on PA12, fed over J2 by PA11 as a GPIO.
+
+/// USART6's RX over J2; DMA2 stream 1 receives.
+pub type Usart6RxOnly = RxWiring<USART6, Af8<'A', 12>, Stream<2, 1>>;
+
+pub struct RunD {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub usart6: Usart6RxOnly,
+    /// PA11, J2's other end, bit-banging frames at USART6.
+    pub feed: Pin<'A', 11, Output>,
+}
+
+pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut gpioa = p.GPIOA.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = gpioa.p5.into_push_pull_output(&mut gpioa.ctrl);
+    let mut feed = gpioa.p11.into_push_pull_output(&mut gpioa.ctrl);
+    // A plain line idles high.
+    feed.set_high();
+    let mut rx = gpioa.p12.into_alternate::<8>(&mut gpioa.ctrl);
+    rx.set_pull(&mut gpioa.ctrl, Pull::Up);
+    Ok(RunD {
+        rcc,
+        led,
+        usart6: RxWiring {
+            uart: p.USART6,
+            rx,
+            rx_dma: dma2.s1,
+        },
+        feed,
+    })
 }
 
 pub struct RunC {

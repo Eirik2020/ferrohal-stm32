@@ -57,11 +57,11 @@ use crate::{
         Channel, Direction, FifoMode, FlagHandle, Flags, Interrupts, Priority, StreamInstance,
         Transfer, WordSize,
     },
-    rcc::{Rcc, RccBit},
+    rcc::{Bus, Clocks, Rcc, RccBit},
     time::Hertz,
     uart::{
-        Buffers, Chunk, ChunkEnd, Config, ConfigError, CycleClock, Error, Health, SendError,
-        TxHealth, Wiring,
+        Buffers, Chunk, ChunkEnd, Config, ConfigError, CycleClock, Error, Health, RxWiring,
+        SendError, TxHealth, Wiring,
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
@@ -252,6 +252,8 @@ impl State {
 
 /// A USART this chip has.
 pub trait Instance: crate::Sealed + 'static {
+    /// The bus whose clock is this USART's kernel clock.
+    const KERNEL: Bus;
     #[doc(hidden)]
     fn info() -> &'static Info;
 }
@@ -333,11 +335,16 @@ pub struct UartRx {
 pub struct UartIrq {
     info: &'static Info,
     rx_dma: FlagHandle,
-    /// The transmit stream, shared with [`UartTx`] under `service_tx`'s
-    /// protocol.
-    tx_dma: Channel,
-    tx_buf: *mut u8,
-    tx_request: u8,
+    /// `None` for a receive-only UART.
+    tx: Option<TxIrq>,
+}
+
+/// The transmit stream, shared with [`UartTx`] under `service_tx`'s
+/// protocol, and what starting a frame needs.
+struct TxIrq {
+    dma: Channel,
+    buf: *mut u8,
+    request: u8,
 }
 
 // SAFETY: each half is the only owner of its buffer, its stream and the
@@ -370,31 +377,17 @@ impl Uart {
     {
         let info = U::info();
         let clocks = rcc.clocks();
-        let kernel_clock = clocks.bus(info.enable.bus);
-        let brr = baud_divider(kernel_clock, config.baudrate)?;
+        let kernel_clock = clocks.bus(U::KERNEL);
+        let brr = config.divider(kernel_clock)?;
         let tx_len = u16::try_from(buffers.tx.len())
             .ok()
             .filter(|&len| len > 0)
             .ok_or(ConfigError::TxBuffer)?;
-        let rx_len = u16::try_from(buffers.rx.len())
-            .ok()
-            .filter(|&len| len >= 2 && len % 2 == 0)
-            .ok_or(ConfigError::RxBuffer)?;
         crate::chip::check_dma_buffer(buffers.tx)?;
-        crate::chip::check_dma_buffer(buffers.rx)?;
+        let rx_len = ring_len(buffers.rx)?;
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
 
-        rcc.enable(info.enable);
-        rcc.reset(info.enable);
-        let state = &info.state;
-        state.halves.store(0, Ordering::Relaxed);
-        state.base.store(0, Ordering::Relaxed);
-        state.len.store(u32::from(rx_len), Ordering::Relaxed);
-        state.marks.clear();
-        state.errors.store(0, Ordering::Relaxed);
-        state.counts.reset();
-
-        state.tx.reset();
+        reset(rcc, info, rx_len);
         let mut tx = UartTx {
             info,
             dma: wiring.tx_dma.into_channel(),
@@ -406,40 +399,19 @@ impl Uart {
             frame_cycles,
             clock: None,
         };
-        let mut rx = UartRx {
-            info,
-            dma: wiring.rx_dma.into_channel(),
-            request: RxD::REQUEST,
-            ring: buffers.rx.as_mut_ptr(),
-            len: rx_len,
-            read_count: 0,
-            read_index: 0,
-            generation: 0,
-            buffer_overruns: 0,
-            // `start_ring` counts the first start too.
-            restarts: 0,
-            halted: false,
-            frame_cycles,
-            clock: None,
-        };
+        let rx = UartRx::assemble(info, wiring.rx_dma.into_channel(), RxD::REQUEST, buffers.rx, frame_cycles);
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
         tx.dma.stop(STOP_SPINS).map_err(|_| ConfigError::DmaBusy)?;
         tx.dma.clear_flags(Flags::ALL);
-        info.line.write_frame(config, brr);
-        rx.start_ring().map_err(|_| ConfigError::DmaBusy)?;
-        // The receiver last, so no byte arrives before the ring is ready.
-        info.line.enable();
-
-        let irq = UartIrq {
-            info,
-            rx_dma: rx.dma.flag_handle(),
+        let tx_irq = TxIrq {
             // SAFETY: shared with `tx` under `service_tx`'s protocol.
-            tx_dma: unsafe { tx.dma.alias() },
-            tx_buf: tx.buf,
-            tx_request: tx.request,
+            dma: unsafe { tx.dma.alias() },
+            buf: tx.buf,
+            request: tx.request,
         };
+        let (rx, irq) = rx.start(config, brr, true, Some(tx_irq))?;
         Ok((
             Self {
                 tx,
@@ -451,18 +423,26 @@ impl Uart {
         ))
     }
 
+    /// Whether instance `U` can take `config` under `clocks`; see
+    /// [`Config::check`]. A `const fn`, so a board can assert it while
+    /// compiling: `const _: () = assert!(Uart::check::<USART6>(&CLOCKS,
+    /// &CRSF).is_ok());`.
+    pub const fn check<U: Instance>(clocks: &Clocks, config: &Config) -> Result<(), ConfigError> {
+        config.check(clocks.bus(U::KERNEL))
+    }
+
     /// Changes the frame settings. Waits for transmission to finish first;
     /// the receive ring keeps running, but a byte arriving during the change
     /// is lost.
     pub fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
-        let brr = baud_divider(self.kernel_clock, config.baudrate)?;
+        let brr = config.divider(self.kernel_clock)?;
         // A failed flush has already stopped the stream or halted the
         // transmit side, and the next write reports it.
         let _ = self.tx.flush();
         let line = self.tx.info.line;
         line.disable();
         line.write_frame(config, brr);
-        line.enable();
+        line.enable(true);
         let cycles = frame_cycles(self.cpu, config.baudrate);
         self.tx.frame_cycles = cycles;
         self.rx.frame_cycles = cycles;
@@ -802,6 +782,76 @@ fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
 }
 
 impl UartRx {
+    /// Opens a receive-only UART: no TX pin, no transmit stream, the
+    /// transmitter left off. The same receive half a full UART has, and a
+    /// `UartIrq` to call from the USART's vector and the receive stream's.
+    pub fn new<U, RxP, RxD>(
+        rcc: &mut Rcc,
+        wiring: RxWiring<U, RxP, RxD>,
+        config: &Config,
+        ring: &'static mut [u8],
+    ) -> Result<(Self, UartIrq), ConfigError>
+    where
+        U: Instance,
+        RxP: RxPin<U>,
+        RxD: RxDma<U>,
+    {
+        let info = U::info();
+        let clocks = rcc.clocks();
+        let brr = config.divider(clocks.bus(U::KERNEL))?;
+        let rx_len = ring_len(ring)?;
+        let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
+        reset(rcc, info, rx_len);
+        let rx = Self::assemble(info, wiring.rx_dma.into_channel(), RxD::REQUEST, ring, frame_cycles);
+        rx.start(config, brr, false, None)
+    }
+
+    fn assemble(
+        info: &'static Info,
+        dma: Channel,
+        request: u8,
+        ring: &'static mut [u8],
+        frame_cycles: u32,
+    ) -> Self {
+        Self {
+            info,
+            dma,
+            request,
+            len: ring.len() as u16,
+            ring: ring.as_mut_ptr(),
+            read_count: 0,
+            read_index: 0,
+            generation: 0,
+            buffer_overruns: 0,
+            // `start_ring` counts the first start too.
+            restarts: 0,
+            halted: false,
+            frame_cycles,
+            clock: None,
+        }
+    }
+
+    /// Writes the frame, starts the ring, then turns the receiver (and the
+    /// transmitter, `tx`) on: the receiver last, so no byte arrives before
+    /// the ring is ready.
+    fn start(
+        mut self,
+        config: &Config,
+        brr: u16,
+        tx: bool,
+        tx_irq: Option<TxIrq>,
+    ) -> Result<(Self, UartIrq), ConfigError> {
+        self.info.line.write_frame(config, brr);
+        self.start_ring().map_err(|_| ConfigError::DmaBusy)?;
+        self.info.line.enable(tx);
+        let irq = UartIrq {
+            info: self.info,
+            rx_dma: self.dma.flag_handle(),
+            tx: tx_irq,
+        };
+        Ok((self, irq))
+    }
+
     /// Copies out what has arrived, up to `buf.len()` bytes, without
     /// waiting. `Ok(0)` means nothing yet.
     ///
@@ -1163,17 +1213,20 @@ impl UartIrq {
     /// The transmit stream's vector: finishes the frame that went and
     /// starts the next.
     pub fn on_tx_dma(&mut self) {
+        let Some(irq) = self.tx.as_mut() else {
+            return;
+        };
         // The task is servicing: it finishes the job and unmasks after. A
         // transfer it started may have unmasked the stream already, and a
         // completion pending with the stream unmasked would fire again on
         // every return, so mask here before leaving it to the task.
         let tx = &self.info.state.tx;
         if tx.servicing.load(Ordering::SeqCst) {
-            self.tx_dma.set_interrupts(Interrupts::default());
+            irq.dma.set_interrupts(Interrupts::default());
             tx.deferred.store(true, Ordering::SeqCst);
             return;
         }
-        service_tx(self.info, &mut self.tx_dma, self.tx_buf, self.tx_request);
+        service_tx(self.info, &mut irq.dma, irq.buf, irq.request);
     }
 
     /// The USART vector: marks where the line went idle and where line
@@ -1247,24 +1300,29 @@ impl UartIrq {
     }
 }
 
-/// BRR for oversampling by 16 with no prescaler: the kernel clock over the
-/// baud rate, in 12.4 fixed point, which is the plain quotient rounded.
-fn baud_divider(kernel_clock: Hertz, baudrate: u32) -> Result<u16, ConfigError> {
-    if baudrate == 0 {
-        return Err(ConfigError::BaudRate);
-    }
-    let clock = u64::from(kernel_clock.0);
-    let baud = u64::from(baudrate);
-    let brr = (clock + baud / 2) / baud;
-    if !(16..=0xffff).contains(&brr) {
-        return Err(ConfigError::BaudRate);
-    }
-    // Within 1 %: |clock / brr - baud| <= baud / 100.
-    let error = clock.abs_diff(brr * baud);
-    if error * 100 > brr * baud {
-        return Err(ConfigError::BaudRate);
-    }
-    Ok(brr as u16)
+/// The receive ring's length, checked: even, 2 to 65 534 bytes, in memory
+/// the DMA reaches.
+fn ring_len(ring: &[u8]) -> Result<u16, ConfigError> {
+    let len = u16::try_from(ring.len())
+        .ok()
+        .filter(|&len| len >= 2 && len % 2 == 0)
+        .ok_or(ConfigError::RxBuffer)?;
+    crate::chip::check_dma_buffer(ring)?;
+    Ok(len)
+}
+
+/// Turns the USART's clock on, resets it, and resets its shared state.
+fn reset(rcc: &mut Rcc, info: &Info, rx_len: u16) {
+    rcc.enable(info.enable);
+    rcc.reset(info.enable);
+    let state = &info.state;
+    state.halves.store(0, Ordering::Relaxed);
+    state.base.store(0, Ordering::Relaxed);
+    state.len.store(u32::from(rx_len), Ordering::Relaxed);
+    state.marks.clear();
+    state.errors.store(0, Ordering::Relaxed);
+    state.counts.reset();
+    state.tx.reset();
 }
 
 /// CPU cycles per frame, the unit of every counted wait.

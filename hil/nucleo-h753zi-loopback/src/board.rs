@@ -45,7 +45,7 @@ use ferrohal_stm32::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Pll, PllSource, Rcc, Supply,
         Sysclk, VoltageScale,
     },
-    uart::Wiring,
+    uart::{self, Parity, RxWiring, StopBits, Uart, Wiring},
 };
 
 /// The TBS Lucid H7's clock tree (400 MHz core, 200 MHz AXI and AHB, every
@@ -81,6 +81,19 @@ pub const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
 
 type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;
 
+/// The Lucid's frames, checked against its UARTs while compiling: CRSF to
+/// the receiver, SBUS (inverted, receive-only) from the DJI connector, MSP
+/// to the DisplayPort.
+pub const CRSF: uart::Config = uart::Config::new(420_000);
+pub const SBUS: uart::Config = uart::Config::new(100_000)
+    .with_parity(Parity::Even)
+    .with_stop_bits(StopBits::Two)
+    .with_inverted_rx(true);
+pub const MSP: uart::Config = uart::Config::new(115_200);
+const _: () = assert!(Uart::check::<USART6>(&CLOCKS, &CRSF).is_ok());
+const _: () = assert!(Uart::check::<USART1>(&CLOCKS, &SBUS).is_ok());
+const _: () = assert!(Uart::check::<USART3>(&CLOCKS, &MSP).is_ok());
+
 // Run A: the Lucid's ports, on its DMA streams. USART6 is on the Lucid's
 // pins; USART1 and USART3 are on pins the Zio headers carry.
 
@@ -114,6 +127,56 @@ pub type Uart7D = Wiring<UART7, Af<'A', 15, 11>, Af<'B', 3, 11>, Stream<2, 6>, S
 
 /// LD1, the green user LED.
 pub type Led = Pin<'B', 0, Output>;
+
+// Run E: receive-only UARTs, fed by bit-banged frames from the other end of
+// their links: USART1 as the Lucid's SBUS input, inverted; UART7 plain.
+
+/// USART1's RX over Z3, on the Lucid's DMA2 stream 4.
+pub type Usart1Sbus = RxWiring<USART1, Af<'B', 7, 7>, Stream<2, 4>>;
+/// UART7's RX over Z12; DMA1 stream 3 receives.
+pub type Uart7RxOnly = RxWiring<UART7, Af<'B', 3, 11>, Stream<1, 3>>;
+
+pub struct RunE {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub usart1: Usart1Sbus,
+    /// PB6, Z3's other end.
+    pub feed1: Pin<'B', 6, Output>,
+    pub uart7: Uart7RxOnly,
+    /// PA15, Z12's other end.
+    pub feed7: Pin<'A', 15, Output>,
+}
+
+pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = b.p0.into_push_pull_output(&mut b.ctrl);
+    // An inverted line idles low, where `into_push_pull_output` leaves it.
+    let feed1 = b.p6.into_push_pull_output(&mut b.ctrl);
+    let mut feed7 = a.p15.into_push_pull_output(&mut a.ctrl);
+    feed7.set_high();
+    let rx1 = rx_pin(b.p7, &mut b.ctrl);
+    let rx7 = rx_pin(b.p3, &mut b.ctrl);
+    Ok(RunE {
+        rcc,
+        led,
+        usart1: RxWiring {
+            uart: p.USART1,
+            rx: rx1,
+            rx_dma: dma2.s4,
+        },
+        feed1,
+        uart7: RxWiring {
+            uart: p.UART7,
+            rx: rx7,
+            rx_dma: dma1.s3,
+        },
+        feed7,
+    })
+}
 
 /// Opens one UART of a run on its buffers, or stops the run saying which.
 pub fn open<U, TxP, RxP, TxD, RxD>(

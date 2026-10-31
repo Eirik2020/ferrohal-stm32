@@ -184,6 +184,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM5),
             &mut tests::nvic_mask_all([Interrupt::UART4, Interrupt::DMA1_STREAM5, Interrupt::DMA1_STREAM7]),
+            true,
         );
         tests::full_suite(
             &mut report,
@@ -196,6 +197,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM0),
             &mut tests::nvic_mask_all([Interrupt::UART5, Interrupt::DMA2_STREAM0, Interrupt::DMA2_STREAM1]),
+            true,
         );
         tests::full_suite(
             &mut report,
@@ -208,6 +210,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM2),
             &mut tests::nvic_mask_all([Interrupt::UART7, Interrupt::DMA2_STREAM2, Interrupt::DMA2_STREAM3]),
+            true,
         );
         tests::full_suite(
             &mut report,
@@ -220,6 +223,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM6),
             &mut tests::nvic_mask_all([Interrupt::USART3, Interrupt::DMA2_STREAM6, Interrupt::DMA2_STREAM7]),
+            true,
         );
 
         report.check(

@@ -191,6 +191,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM2),
             &mut tests::nvic_mask_all([Interrupt::USART1, Interrupt::DMA2_STREAM2, Interrupt::DMA2_STREAM7]),
+            false,
         );
 
         let mut loop6 = Loop {
@@ -205,6 +206,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),
             &mut tests::nvic_mask_all([Interrupt::USART6, Interrupt::DMA2_STREAM1, Interrupt::DMA2_STREAM6]),
+            false,
         );
 
         let mut host = HostEcho {

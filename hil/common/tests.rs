@@ -718,6 +718,38 @@ pub fn oversized_frame_refused(link: &mut dyn Link, tx_len: usize) -> Result<(),
     echo(link, b"after the oversized frame")
 }
 
+/// RX and TX inversion, where the IP version has it (`supported`): both
+/// ends inverted must carry data, and an inverted TX into a plain RX must
+/// be seen as errors. Where it has not, the frame must be refused.
+pub fn inversion(link: &mut dyn Configurable, base: &Config, supported: bool) -> Result<(), Fail> {
+    let both = base.with_inverted_rx(true).with_inverted_tx(true);
+    match (link.set_config(&both), supported) {
+        (Err(ConfigError::Unsupported), false) => return Ok(()),
+        (Ok(()), false) => {
+            link.set_config(base)?;
+            return Err(Fail::NotRefused(ConfigError::Unsupported));
+        }
+        (Err(error), _) => return Err(error.into()),
+        (Ok(()), true) => {}
+    }
+    let carried = (|| {
+        drain(link);
+        echo(link, b"inverted at both ends")?;
+        stream(link, 2048)?;
+        // Inverted TX into a plain RX: an idle line held low, frames upside
+        // down. The receiver must see errors, not data.
+        link.set_config(&base.with_inverted_tx(true))?;
+        drain(link);
+        link.tx().write_all(b"upside down")?;
+        link.tx().flush()?;
+        expect_error(link, Error::Framing)
+    })();
+    link.set_config(base)?;
+    drain(link);
+    carried?;
+    echo(link, b"not inverted again")
+}
+
 /// Sends a break, which the receiver sees as a frame with no stop bit: it
 /// must be reported as a framing error, and the link must recover.
 pub fn line_break(link: &mut dyn Link) -> Result<(), Fail> {
@@ -771,11 +803,7 @@ pub fn framing_mismatch(cross: &mut Cross) -> Result<(), Fail> {
 /// error. The receiver is not transmitting, so ES0299 2.10.2 (PE cleared by
 /// a write to DR) cannot hide it.
 pub fn parity_mismatch(cross: &mut Cross) -> Result<(), Fail> {
-    let with = |parity| Config {
-        baudrate: 115_200,
-        parity,
-        stop_bits: StopBits::One,
-    };
+    let with = |parity| Config::new(115_200).with_parity(parity);
     cross.from.set_config(&with(Parity::Even))?;
     cross.to.set_config(&with(Parity::Odd))?;
     drain(cross);
@@ -805,6 +833,7 @@ pub fn full_suite(
     tx_len: usize,
     mask_rx_irq: &mut dyn FnMut(bool),
     mask_all_irqs: &mut dyn FnMut(bool),
+    inversion_supported: bool,
 ) {
     let name = link.name();
     let (bytes, errors) = drain(link);
@@ -847,6 +876,15 @@ pub fn full_suite(
         frames_go_out_by_polling(link, tx_len, mask_all_irqs),
     );
     report.check(name, "an oversized frame is refused", oversized_frame_refused(link, tx_len));
+    report.check(
+        name,
+        if inversion_supported {
+            "RX and TX inversion"
+        } else {
+            "inversion refused on this IP version"
+        },
+        inversion(link, config, inversion_supported),
+    );
     report.check(name, "1 Mbaud", reconfigured(link, &ONE_MBAUD));
     report.check(name, "57600 8E2", reconfigured(link, &EVEN_PARITY_TWO_STOP));
     report.check(name, "back to its own frame", reconfigured(link, config));
@@ -949,6 +987,91 @@ pub fn wait_bounds(link: &mut dyn Link, cpu_hz: u32, baudrate: u32) -> Result<()
     Ok(())
 }
 
+/// Bit-bangs `bytes` on `pin` as UART frames of `config`: a start bit,
+/// eight data bits LSB first, the parity bit if any, then one or two stop
+/// bits, every level swapped if `config.invert_tx`. Timed by the DWT cycle
+/// counter, which the firmware must have enabled, with interrupts off for
+/// each frame so its edges stay on time. `pin` must already sit at the
+/// line's idle level.
+pub fn bitbang<P: embedded_hal::digital::OutputPin>(pin: &mut P, bytes: &[u8], config: &Config) {
+    use cortex_m::peripheral::DWT;
+    let bit = CYCLES_PER_MS.load(Ordering::Relaxed) * 1000 / config.baudrate;
+    let stop_bits = match config.stop_bits {
+        StopBits::Two => 2,
+        _ => 1,
+    };
+    for &byte in bytes {
+        let mut bits = [true; 12];
+        let mut n = 0;
+        bits[n] = false;
+        n += 1;
+        for i in 0..8 {
+            bits[n] = byte >> i & 1 == 1;
+            n += 1;
+        }
+        let ones = byte.count_ones();
+        match config.parity {
+            Parity::Even => {
+                bits[n] = ones % 2 == 1;
+                n += 1;
+            }
+            Parity::Odd => {
+                bits[n] = ones % 2 == 0;
+                n += 1;
+            }
+            Parity::None => {}
+        }
+        n += stop_bits;
+        cortex_m::interrupt::free(|_| {
+            let start = DWT::cycle_count();
+            for (k, &mark) in bits[..n].iter().enumerate() {
+                let level = mark != config.invert_tx;
+                let _ = if level { pin.set_high() } else { pin.set_low() };
+                let until = (k as u32 + 1) * bit;
+                while DWT::cycle_count().wrapping_sub(start) < until {}
+            }
+        });
+    }
+}
+
+/// A receive-only UART, fed by bit-banged frames on the other end of its
+/// link: frames of `len` bytes with pauses between them must come out as
+/// one idle-ended chunk each, in one generation.
+pub fn receive_only<P: embedded_hal::digital::OutputPin>(
+    rx: &mut UartRx,
+    feed: &mut P,
+    config: &Config,
+    len: usize,
+) -> Result<(), Fail> {
+    const FRAMES: usize = 4;
+    let mut buf = [0u8; 64];
+    while !matches!(rx.read_within(&mut buf, PATIENCE), Err(Error::Timeout)) {}
+    let generation = rx.generation();
+    let mut frame = [0u8; 64];
+    let len = len.min(frame.len());
+    for f in 0..FRAMES {
+        for (offset, byte) in frame[..len].iter_mut().enumerate() {
+            *byte = pattern(f * len + offset);
+        }
+        bitbang(feed, &frame[..len], config);
+        // Many idle frames: IDLE ends the chunk.
+        delay_ms(2);
+    }
+    for f in 0..FRAMES {
+        let mut chunk = None;
+        for _ in 0..50 {
+            if let Some(got) = rx.read_chunk(&mut buf)? {
+                chunk = Some(got);
+                break;
+            }
+            delay_ms(1);
+        }
+        let chunk = chunk.ok_or(Fail::Silent { missing: len })?;
+        expect_chunk(chunk, &buf, ChunkEnd::Idle, f * len, len, generation)?;
+    }
+    Ok(())
+}
+
 /// A `mask_rx_irq` for [`full_suite`]: masks or unmasks `interrupt` in the
 /// NVIC. Test code only: FerroHAL itself never touches the NVIC.
 pub fn nvic_mask<I: cortex_m::interrupt::InterruptNumber>(interrupt: I) -> impl FnMut(bool) {
@@ -999,8 +1122,6 @@ pub fn finish(report: &Report, pass: impl FnOnce()) -> ! {
 }
 
 pub const ONE_MBAUD: Config = Config::new(1_000_000);
-pub const EVEN_PARITY_TWO_STOP: Config = Config {
-    baudrate: 57_600,
-    parity: Parity::Even,
-    stop_bits: StopBits::Two,
-};
+pub const EVEN_PARITY_TWO_STOP: Config = Config::new(57_600)
+    .with_parity(Parity::Even)
+    .with_stop_bits(StopBits::Two);

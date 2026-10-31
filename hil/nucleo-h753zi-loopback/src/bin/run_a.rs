@@ -51,11 +51,9 @@ mod app {
     /// connector (without the inversion FerroHAL cannot set yet), MSP to
     /// the DisplayPort.
     const CRSF: Config = Config::new(420_000);
-    const SBUS: Config = Config {
-        baudrate: 100_000,
-        parity: Parity::Even,
-        stop_bits: StopBits::Two,
-    };
+    const SBUS: Config = Config::new(100_000)
+        .with_parity(Parity::Even)
+        .with_stop_bits(StopBits::Two);
     const MSP: Config = Config::new(115_200);
 
     #[shared]
@@ -205,6 +203,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM0),
             &mut tests::nvic_mask_all([Interrupt::USART6, Interrupt::DMA1_STREAM0, Interrupt::DMA1_STREAM6]),
+            true,
         );
         tests::full_suite(
             &mut report,
@@ -217,6 +216,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM4),
             &mut tests::nvic_mask_all([Interrupt::USART1, Interrupt::DMA2_STREAM4, Interrupt::DMA2_STREAM5]),
+            true,
         );
         tests::full_suite(
             &mut report,
@@ -229,6 +229,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM1),
             &mut tests::nvic_mask_all([Interrupt::USART3, Interrupt::DMA1_STREAM1, Interrupt::DMA1_STREAM3]),
+            true,
         );
         tests::full_suite(
             &mut report,
@@ -241,6 +242,7 @@ mod app {
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA1_STREAM2),
             &mut tests::nvic_mask_all([Interrupt::USART2, Interrupt::DMA1_STREAM2, Interrupt::DMA1_STREAM4]),
+            true,
         );
 
         report.check(

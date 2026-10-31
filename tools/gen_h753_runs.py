@@ -111,6 +111,7 @@ for run, (summary, uarts) in RUNS.items():
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::{dma}),
             &mut tests::nvic_mask_all([Interrupt::{line}, Interrupt::{dma}, Interrupt::{txdma}]),
+            true,
         );"""
         for f, label, line, dma, txdma, cfg in uarts
     )
@@ -184,11 +185,9 @@ for run, (summary, uarts) in RUNS.items():
     /// connector (without the inversion FerroHAL cannot set yet), MSP to
     /// the DisplayPort.
     const CRSF: Config = Config::new(420_000);
-    const SBUS: Config = Config {
-        baudrate: 100_000,
-        parity: Parity::Even,
-        stop_bits: StopBits::Two,
-    };
+    const SBUS: Config = Config::new(100_000)
+        .with_parity(Parity::Even)
+        .with_stop_bits(StopBits::Two);
     const MSP: Config = Config::new(115_200);
 """
     else:
