@@ -17,10 +17,15 @@ It also checks every GPIO port's and DMA controller's enable bit, each
 controller's first DMAMUX channel, every timer's enable bit, update
 interrupt vector and counter width, and every channel timer's channel count,
 break unit, channel pins (CHx, CHxN) and compare and update DMA routes, and
-the full-speed USB port's enable bit, vector and DM and DP pins. On a
-fixed-request DMA a stream that serves one signal on two channels appears
-once in the glue, with either request. Instances the metadata has and the glue
-leaves out are listed, not failed. Exits 1 on any mismatch.
+the full-speed USB port's enable bit, vector and DM and DP pins. It also
+checks each SPI's kernel clock, SYSCFG's enable bit, every DMA stream's vector,
+the watchdog's peripheral, and the EXTI line vectors `src/exti.rs` shares
+across chips. On a fixed-request DMA a stream that serves one signal on two
+channels appears once in the glue, with either request. Instances the metadata
+has and the glue leaves out are listed, not failed. Exits 1 on any mismatch.
+
+The metadata doesn't hold the USB FIFO depth, endpoint count or core kind, the
+clock limits, or the memory map: those stay checked by hand against the manuals.
 
 The glue's macro rows are parsed as text, so their layout is part of the
 contract: a row this script cannot parse fails the check rather than being
@@ -34,6 +39,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# A SPI's kernel clock in the metadata to the glue's column. The muxes are the
+# choice `freeze` makes on the H7: SPI123SEL stays PLL1Q, SPI45SEL goes to PCLK2.
+SPI_KERNEL = {"PCLK1": "Apb1", "PCLK2": "Apb2", "SPI123SEL": "Pll1Q", "SPI45SEL": "Apb2"}
 
 # RCC enable register names (metadata) to the glue's `Bus` names.
 BUS = {
@@ -145,6 +154,14 @@ class Metadata:
     def block(self, name):
         return re.search(r'block: "(\w+)"', self.peripheral(name)).group(1)
 
+    def kernel_clock(self, name):
+        """A fixed clock's name, or the name of the mux field that picks one."""
+        m = re.search(
+            r'kernel_clock: (?:Clock\("(\w+)"\)|Mux\(\s*PeripheralRccRegister \{\s*register: "\w+",\s*field: "(\w+)")',
+            self.peripheral(name),
+        )
+        return m.group(1) or m.group(2)
+
     def dmamux_channel(self, channel):
         m = re.search(r'name: "' + channel + r'",\s*dma: "\w+",\s*channel: \d+,\s*dmamux: (?:Some\("\w+"\)|None),\s*dmamux_channel: Some\((\d+)\)', self.text)
         return int(m.group(1)) if m else None
@@ -178,6 +195,40 @@ class Glue:
         for body in self.rows("spis"):
             for name, bus, bit, _kernel in re.findall(r"(\w+) => \w+, (\w+), (\d+), (\w+);", body):
                 found[name] = (bus, int(bit))
+        return found
+
+    def spi_kernels(self):
+        found = {}
+        if not re.search(r"^spis!\(", self.text, re.M):
+            return found
+        for body in self.rows("spis"):
+            for name, _bus, _bit, kernel in re.findall(r"(\w+) => \w+, (\w+), (\d+), (\w+);", body):
+                found[name] = kernel
+        return found
+
+    def syscfg_enable(self):
+        m = re.search(r"SYSCFG_ENABLE: RccBit = RccBit::new\(Bus::(\w+), (\d+)\)", self.text)
+        if not m:
+            self.problems.append("no SYSCFG_ENABLE found")
+            return None
+        return m.group(1), int(m.group(2))
+
+    def watchdog(self):
+        """The token `Watchdog` takes and the registers it uses."""
+        token = re.search(r"pub type WatchdogPeripheral = (\w+);", self.text)
+        regs = re.search(r"fn iwdg_regs\(\) -> pac::iwdg::Iwdg \{\s*pac::(\w+)", self.text)
+        if not token or not regs:
+            self.problems.append("no watchdog peripheral found")
+            return None
+        return token.group(1), regs.group(1)
+
+    def stream_vectors(self):
+        """{(controller, stream): vector}."""
+        found = {}
+        for body in self.rows("stream_interrupts"):
+            for controller, streams in re.findall(r"(\d+): \[(.*?)\];", body, re.S):
+                for stream, vector in re.findall(r"(\d+) => (\w+)", streams):
+                    found[(int(controller), int(stream))] = vector
         return found
 
     def timers(self):
@@ -274,6 +325,23 @@ class Glue:
         }
 
 
+def exti_vectors():
+    """{line: vector} as `vector` in src/exti.rs gives it, on every chip."""
+    body = re.search(r"pub const fn vector\(n: u8\) -> Interrupt \{(.*?)\n\}", (ROOT / "src" / "exti.rs").read_text(), re.S).group(1)
+    found = {}
+    for arm, vector in re.findall(r"(\d+(?:\.\.=\d+)?|_) => Interrupt::(\w+)", body):
+        if arm == "_":
+            lines = [n for n in range(16) if n not in found]
+        elif ".." in arm:
+            low, high = arm.split("..=")
+            lines = range(int(low), int(high) + 1)
+        else:
+            lines = [int(arm)]
+        for line in lines:
+            found[line] = vector
+    return found
+
+
 def check(chip, glue_path, metapac):
     meta = Metadata(metapac, chip)
     glue = Glue(glue_path)
@@ -346,6 +414,22 @@ def check(chip, glue_path, metapac):
         compare(f"{dma} RCC enable", enable, meta.enable(dma))
     for dma, base in sorted(glue.mux_bases().items()):
         compare(f"{dma} first DMAMUX channel", base, meta.dmamux_channel(f"{dma}_CH0"))
+    for name, kernel in sorted(glue.spi_kernels().items()):
+        compare(f"{name} kernel clock", kernel, SPI_KERNEL.get(meta.kernel_clock(name)))
+    syscfg = glue.syscfg_enable()
+    if syscfg:
+        compare("SYSCFG RCC enable", syscfg, meta.enable("SYSCFG"))
+    watchdog = glue.watchdog()
+    if watchdog:
+        token, regs = watchdog
+        compare("watchdog token and registers are one peripheral", token, regs)
+        compare(f"{token} is a watchdog", token in meta.names("iwdg"), True)
+    streams = glue.stream_vectors()
+    for (controller, stream), vector in sorted(streams.items()):
+        compare(f"DMA{controller} stream {stream} vector", vector, meta.interrupt(f"DMA{controller}", f"CH{stream}"))
+    compare("every DMA stream has a vector", len(streams), 16)
+    for line, vector in sorted(exti_vectors().items()):
+        compare(f"EXTI line {line} vector", vector, meta.interrupt("EXTI", f"EXTI{line}"))
 
     failures += glue.problems
     left_out = [n for n in meta.names("usart") if n not in usarts]

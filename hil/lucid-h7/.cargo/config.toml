@@ -1,0 +1,10 @@
+[build]
+target = "thumbv7em-none-eabihf"
+
+# No probe on this board: run-lucid.sh flashes it over the ROM DFU bootloader.
+[target.thumbv7em-none-eabihf]
+rustflags = [
+    "-C", "link-arg=--nmagic",
+    "-C", "link-arg=-L.",
+    "-C", "link-arg=-Tlink.x",
+]

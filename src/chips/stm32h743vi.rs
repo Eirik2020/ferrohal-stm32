@@ -568,4 +568,34 @@ mod tests {
             ]
         );
     }
+
+    /// Every UART and motor route the Lucid's manifest claims is one this
+    /// glue offers, on the pin and alternate function it names and with its
+    /// DMAMUX request. That it compiles is half the check.
+    #[test]
+    fn lucid_manifest_routes_exist() {
+        use crate::timer::{ChannelPin, ChannelTimer, CompareDma};
+
+        type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;
+        fn tx<U: usart_v4::Instance, P: TxPin<U>, D: TxDma<U>>() -> u8 {
+            D::REQUEST
+        }
+        fn rx<U: usart_v4::Instance, P: RxPin<U>, D: RxDma<U>>() -> u8 {
+            D::REQUEST
+        }
+        fn lane<T: ChannelTimer, const C: u8, P: ChannelPin<T, C>, D: CompareDma<T, C>>() -> u8 {
+            D::REQUEST
+        }
+
+        assert_eq!(rx::<USART6, Af<'C', 7, 7>, Stream<1, 0>>(), 71);
+        assert_eq!(tx::<USART6, Af<'C', 6, 7>, Stream<1, 6>>(), 72);
+        assert_eq!(rx::<USART3, Af<'D', 9, 7>, Stream<1, 1>>(), 45);
+        assert_eq!(tx::<USART3, Af<'D', 8, 7>, Stream<1, 3>>(), 46);
+        assert_eq!(rx::<USART1, Af<'A', 10, 7>, Stream<2, 4>>(), 41);
+        assert_eq!(rx::<UART8, Af<'E', 0, 8>, Stream<1, 2>>(), 81);
+        assert_eq!(lane::<TIM3, 3, Af<'B', 0, 2>, Stream<2, 0>>(), 25);
+        assert_eq!(lane::<TIM3, 4, Af<'B', 1, 2>, Stream<2, 1>>(), 26);
+        assert_eq!(lane::<TIM5, 1, Af<'A', 0, 2>, Stream<2, 2>>(), 55);
+        assert_eq!(lane::<TIM5, 2, Af<'A', 1, 2>, Stream<2, 3>>(), 56);
+    }
 }

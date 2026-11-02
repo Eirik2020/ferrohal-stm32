@@ -71,7 +71,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Architecture and process
 
-- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs, timers and USB: 85 facts on the F401, 131 on the F405, 132 on the H743, 135 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
+- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs, timers, USB, DMA and EXTI vectors: 124 facts on the F401, 170 on the F405, 172 on the H743, 176 on the H753) by reading the rows as text, so their layout must stay as it is. The metadata doesn't hold the USB FIFO depth, endpoint count or core kind, the clock limits or the memory map, so those stay checked by hand against the manuals.
 - **Medium: five source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Low: the bench isn't on FerroForge yet.** Decided (2026-11-02): no fork is needed, since FerroForge's macros don't depend on a HAL and FerroHAL provides the RTIC device module; only its CLI backends name stm32f4xx-hal and stm32h7xx-hal. When FerroWasp's swap nears, add a FerroHAL backend to the FerroForge CLI and move the bench runs onto FerroForge tasks, which should cut 15-25 % of the run binaries' lines and prove the pair together.
@@ -106,7 +106,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the Foxeer bench covers the board's buses, not the whole chip.** No UART, timer output or DShot has run on an F405 yet, nor UART4 and UART5, which the F401 doesn't have. The board's UARTs and motor pins go to the outside world, so they need their own plan: no loopback links exist.
 - **Medium: FerroHAL has no way into the ROM bootloader.** The bench's firmware does it by register address (`hil/foxeer-f405-v2`); FerroWasp's `system_bootloader` does it through stm32f4xx-hal's PAC, so the swap needs a FerroHAL form (F4 and H7), with SYSCFG's memory remap.
 - **Low: the bench's NOR commands are its own copy.** They follow FerroWasp's `spi_nor` driver, which compiled unchanged over `BlockingSpi` in a scratch crate but hasn't itself run over FerroHAL. The bench can't depend on it from a public repo. The IMU setup is copied the same way.
-- **Low: one unexplained power loss.** On 2026-11-02 the Foxeer lost its USB connection 1.5 s after one boot and came back reporting a power-on reset. Six later full runs, five of them from DFU, were clean, and no cause was found; a knocked cable fits. Watch for it on later runs.
 - **Low: no reset flag shows after a DFU `leave`.** The firmware reports "other" when flashed from a bootloader entry that cleared the flags. Whether the ROM resets the chip on `leave` or jumps with its setup still in place isn't measured; `freeze` and the drivers worked either way.
 - **Low: a Foxeer firmware that fails before USB can't say why.** It restarts into DFU, which shows only that something failed.
 - **Medium: VOS relies on its reset value.** 168 MHz needs scale 1, the reset value (RM0090 PWR_CR bit 14), so `freeze` doesn't write it; a bootloader that left scale 2 would put 168 MHz out of spec (DS8626: 144 MHz in scale 2). Fix: write the scale in `freeze`, the value from the chip file (one bit here, two on the F401).
@@ -149,7 +148,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ## 5. STM32H743VI (TBS Lucid H7)
 
-- **Medium: its own build isn't run on hardware.** The H753ZI bench runs the same die and driver code under the H753ZI glue. Build run A with the H743VI feature and run it on the H753ZI Nucleo (every pin it uses is bonded on LQFP100), or on the Lucid.
+- **Medium: its own build isn't run on hardware.** The firmware for it is written and builds (`hil/run-lucid.sh`); it hasn't been flashed yet, since the first flash needs the board's BOOT button. The Lucid carries ArduCopter 4.6.1 with ArduPilot's bootloader in sector 0, which the bench image replaces; the app and parameters in later sectors stay. The H753ZI bench runs the same die and driver code under the H753ZI glue.
 - **Low: phantom pins:** ports F to K are handed out though LQFP100 bonds ports A to E, PH0, PH1.
 - Everything in section 4 applies too.
 

@@ -1,0 +1,7 @@
+/* STM32H743VI. Everything runs from AXI SRAM: DMA1 and DMA2 cannot reach the
+   DTCM at 0x2000_0000. */
+MEMORY
+{
+  FLASH : ORIGIN = 0x08000000, LENGTH = 2048K
+  RAM   : ORIGIN = 0x24000000, LENGTH = 512K
+}

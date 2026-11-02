@@ -1,20 +1,7 @@
-//! The real-board bench on the Foxeer F405 V2: no probe, so everything goes
-//! through the flight controller's USB port.
-//!
-//! Commands from `hil/usb_cdc_host.py`, each an 8-byte marker: `BENCHRUN`
-//! runs the checks and reports `PASS` and `FAIL` lines, ending `DONE`;
-//! `BENCHECH` echoes until `BENCHEND`; `BENCHDFU` restarts into the ROM DFU
-//! bootloader.
-//!
-//! The board has no other way back but its BOOT button, so a run that goes
-//! wrong restarts into the bootloader too: a panic, a fault, a watchdog reset
-//! (3 s without the main loop), clocks that don't start, or no host
-//! configuring the device within 30 s. That the board comes up in DFU rather
-//! than as a serial port is the report, for those.
-//!
-//! The checks: the crystal against the host's start-of-frames, the IMU on
-//! SPI1 over DMA with its data-ready on EXTI4, the NOR on SPI2 without DMA,
-//! and USB itself through the host's echo.
+//! The real-board bench on the Foxeer F405 V2, reporting over USB (see
+//! `hil/common/usb_bench.rs`). The checks: the crystal against the host's
+//! start-of-frames, the IMU on SPI1 over DMA with its data-ready on EXTI4, the
+//! NOR on SPI2 without DMA, and USB itself through the host's echo.
 //!
 //! The motor, receiver and ESC telemetry pins stay as reset left them. The
 //! NOR checks erase and program only the scratch sector, which FerroWasp
@@ -24,20 +11,21 @@
 #![no_std]
 #![no_main]
 
-use core::{
-    fmt::{self, Write as _},
-    mem::MaybeUninit,
-    panic::PanicInfo,
-    ptr::{addr_of_mut, read_volatile, write_volatile},
-};
+#[macro_use]
+#[path = "../../common/usb_bench.rs"]
+mod usb_bench;
+#[path = "../../common/imu.rs"]
+mod imu;
 
-use cortex_m::peripheral::{DWT, SCB};
-use cortex_m_rt::{ExceptionFrame, entry, exception};
+use core::ptr::{addr_of_mut, read_volatile, write_volatile};
+
+use cortex_m::peripheral::DWT;
+use cortex_m_rt::entry;
 use embedded_hal::spi::SpiBus;
 use ferrohal_stm32::{
     chip::{Peripherals, SPI1, SPI2, TIM2},
     dma::Stream,
-    exti::{Edge, Exti},
+    exti::Edge,
     gpio::{Alternate, Output, Pin, Pull, Speed},
     iwdg::Watchdog,
     rcc::{
@@ -47,16 +35,14 @@ use ferrohal_stm32::{
     spi::{self, BlockingSpi, BlockingWiring, Buffers, Spi, Wiring},
     time::Hertz,
     timer::Timebase,
-    usb::{
-        UsbBus, UsbFs,
-        usb_device::{
-            bus::UsbBusAllocator,
-            device::{StringDescriptors, UsbDeviceBuilder, UsbDeviceState, UsbVidPid},
-            prelude::UsbDevice,
-        },
-    },
+    usb::UsbFs,
 };
-use usbd_serial::SerialPort;
+
+use imu::Imu;
+use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
+
+/// The endpoint memory `usb_bench` gives the driver: the F4's OTG_FS FIFO.
+const EP_WORDS: usize = 320;
 
 /// The board's 8 MHz crystal to 168 MHz, with 48 MHz on PLLQ for USB.
 const CLOCK_CONFIG: ClockConfig = ClockConfig {
@@ -115,15 +101,6 @@ type NorWiring = BlockingWiring<
     Pin<'C', 3, Alternate<5>>,
 >;
 
-const RUN: &[u8; 8] = b"BENCHRUN";
-const ECHO: &[u8; 8] = b"BENCHECH";
-const END: &[u8; 8] = b"BENCHEND";
-const DFU: &[u8; 8] = b"BENCHDFU";
-
-const WATCHDOG_US: u32 = 3_000_000;
-const CONFIGURED_PATIENCE_US: u32 = 30_000_000;
-const SEND_PATIENCE_US: u32 = 2_000_000;
-
 // The bootloader, by address: nothing of the HAL is up when it's entered.
 const SYSTEM_MEMORY: u32 = 0x1FFF_0000;
 const RCC_CR: *const u32 = 0x4002_3800 as *const u32;
@@ -137,40 +114,21 @@ const OTG_FS_DSTS: *const u32 = 0x5000_0808 as *const u32;
 const CSR_RMVF: u32 = 1 << 24;
 const CSR_WDGRSTF: u32 = 1 << 29;
 const APB2ENR_SYSCFGEN: u32 = 1 << 14;
-const REQUEST_DFU: u32 = 0x4446_5521;
 
-/// Left by [`reboot_to_dfu`]: `.uninit` is RAM a reset leaves alone.
-#[unsafe(link_section = ".uninit.dfu_request")]
-static mut REQUEST: MaybeUninit<u32> = MaybeUninit::uninit();
-
-static mut EP_MEMORY: [u32; 320] = [0; 320];
-static mut BUS: Option<UsbBusAllocator<UsbBus>> = None;
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
-
-/// Resets into the ROM bootloader.
-fn reboot_to_dfu() -> ! {
-    // SAFETY: one aligned word, volatile, and the next thing is the reset.
-    unsafe { addr_of_mut!(REQUEST).cast::<u32>().write_volatile(REQUEST_DFU) };
-    cortex_m::asm::dsb();
-    SCB::sys_reset()
-}
 
 /// Enters the ROM bootloader if the last reset asked for it or was the
 /// watchdog's. First thing in `main`: the bootloader expects the chip as
 /// reset left it, and this leaves one thing changed, the memory mapping it
 /// would have had from the BOOT0 pin.
 fn enter_bootloader_if_requested() {
-    // SAFETY: nothing else runs yet and nothing else owns RCC or SYSCFG. The
-    // request word is read as an integer, volatile: its power-on value is
-    // whatever RAM held. SYSTEM_MEMORY holds the bootloader's stack pointer
-    // and reset vector (AN2606).
+    let requested = usb_bench::take_dfu_request();
+    // SAFETY: nothing else runs yet and nothing else owns RCC or SYSCFG, and
+    // SYSTEM_MEMORY is this chip's bootloader.
     unsafe {
-        let request = addr_of_mut!(REQUEST).cast::<u32>();
-        let word = request.read_volatile();
-        request.write_volatile(0);
         let csr = read_volatile(RCC_CSR);
-        if word != REQUEST_DFU && csr & CSR_WDGRSTF == 0 {
+        if !requested && csr & CSR_WDGRSTF == 0 {
             return;
         }
         // A stale watchdog flag would bring the next boot back here.
@@ -178,113 +136,12 @@ fn enter_bootloader_if_requested() {
         write_volatile(RCC_APB2ENR, read_volatile(RCC_APB2ENR) | APB2ENR_SYSCFGEN);
         let _ = read_volatile(RCC_APB2ENR);
         write_volatile(SYSCFG_MEMRMP, 1);
-        (*SCB::PTR).vtor.write(SYSTEM_MEMORY);
-        cortex_m::asm::dsb();
-        cortex_m::asm::isb();
-        cortex_m::asm::bootload(SYSTEM_MEMORY as *const u32)
+        usb_bench::enter_bootloader(SYSTEM_MEMORY)
     }
 }
 
-#[panic_handler]
-fn panic(_: &PanicInfo) -> ! {
-    reboot_to_dfu()
-}
-
-#[exception]
-unsafe fn HardFault(_: &ExceptionFrame) -> ! {
-    reboot_to_dfu()
-}
-
-/// The USB port and what has to keep running while anything else waits.
-struct Link {
-    device: UsbDevice<'static, UsbBus>,
-    serial: SerialPort<'static, UsbBus>,
-    watchdog: Watchdog,
-    clock: Timebase,
-}
-
-impl Link {
-    /// Microseconds, from TIM2.
-    fn now(&self) -> u32 {
-        self.clock.now()
-    }
-
-    fn service(&mut self) {
-        self.watchdog.feed();
-        self.device.poll(&mut [&mut self.serial]);
-    }
-
-    fn send(&mut self, bytes: &[u8]) {
-        let start = self.now();
-        let mut sent = 0;
-        while sent < bytes.len() && self.now().wrapping_sub(start) < SEND_PATIENCE_US {
-            self.service();
-            if let Ok(count) = self.serial.write(&bytes[sent..]) {
-                sent += count;
-            }
-        }
-    }
-
-    fn line(&mut self, args: fmt::Arguments) {
-        let mut line = Line { bytes: [0; 160], len: 0 };
-        let _ = line.write_fmt(args);
-        let _ = line.write_str("\n");
-        let len = line.len;
-        self.send(&line.bytes[..len]);
-    }
-}
-
-/// One report line, cut short rather than refused if it doesn't fit.
-struct Line {
-    bytes: [u8; 160],
-    len: usize,
-}
-
-impl fmt::Write for Line {
-    fn write_str(&mut self, text: &str) -> fmt::Result {
-        for &byte in text.as_bytes() {
-            if self.len < self.bytes.len() {
-                self.bytes[self.len] = byte;
-                self.len += 1;
-            }
-        }
-        Ok(())
-    }
-}
-
-#[derive(Default)]
-struct Report {
-    passed: u32,
-    failed: u32,
-}
-
-impl Report {
-    fn check(&mut self, link: &mut Link, ok: bool, args: fmt::Arguments) {
-        if ok {
-            self.passed += 1;
-            link.line(format_args!("PASS {args}"));
-        } else {
-            self.failed += 1;
-            link.line(format_args!("FAIL {args}"));
-        }
-    }
-}
-
-macro_rules! check {
-    ($report:expr, $link:expr, $ok:expr, $($arg:tt)*) => {
-        $report.check($link, $ok, format_args!($($arg)*))
-    };
-}
-
-/// Whether `got` is within `hundredths` of a percent of `want`.
-fn close(got: u32, want: u32, hundredths: u32) -> bool {
-    u64::from(got.abs_diff(want)) * 10_000 <= u64::from(want) * u64::from(hundredths)
-}
-
-/// The crystal really runs the chip: RCC's own view, then the CPU's cycles
-/// counted against the host's 1 kHz start-of-frames, the one clock here that
-/// doesn't come from the crystal, then TIM2 against the CPU.
-fn clock_suite(report: &mut Report, link: &mut Link) {
+/// RCC's own view: the crystal really runs the chip.
+fn rcc_suite(report: &mut Report, link: &mut Link) {
     // SAFETY: reads of RCC's status registers.
     let (cr, pllcfgr, cfgr) =
         unsafe { (read_volatile(RCC_CR), read_volatile(RCC_PLLCFGR), read_volatile(RCC_CFGR)) };
@@ -292,301 +149,6 @@ fn clock_suite(report: &mut Report, link: &mut Link) {
     check!(report, link, cr & (1 << 25) != 0, "clocks: PLL locked");
     check!(report, link, pllcfgr & (1 << 22) != 0, "clocks: PLL fed from HSE");
     check!(report, link, (cfgr >> 2) & 0b11 == 0b10, "clocks: SYSCLK is the PLL");
-
-    // SAFETY: a read of the device status register, whose frame number the
-    // USB driver doesn't use. Full speed numbers its frames in 11 bits.
-    let frame = || unsafe { (read_volatile(OTG_FS_DSTS) >> 8) & 0x7FF };
-    const FRAMES: u32 = 1000;
-    let begun = link.now();
-    let first = frame();
-    let mut cycles = None;
-    let mut start_cycles = 0;
-    let mut started = false;
-    while link.now().wrapping_sub(begun) < 2_000_000 {
-        link.service();
-        let now = frame();
-        if !started && now != first {
-            started = true;
-            start_cycles = DWT::cycle_count();
-        } else if started && now.wrapping_sub(first) & 0x7FF > FRAMES {
-            cycles = Some(DWT::cycle_count().wrapping_sub(start_cycles));
-            break;
-        }
-    }
-    let measured = cycles.unwrap_or(0);
-    check!(
-        report,
-        link,
-        close(measured, CLOCKS.sysclk.0, 10),
-        "clocks: {} CPU cycles per 1000 host frames, want {} within 0.1%",
-        measured,
-        CLOCKS.sysclk.0
-    );
-
-    let cycle_start = DWT::cycle_count();
-    let tick_start = link.now();
-    while link.now().wrapping_sub(tick_start) < 100_000 {
-        link.service();
-    }
-    let elapsed = DWT::cycle_count().wrapping_sub(cycle_start);
-    check!(
-        report,
-        link,
-        close(elapsed, CLOCKS.sysclk.0 / 10, 10),
-        "clocks: {} CPU cycles per 100 ms of TIM2 (84 MHz timer clock), want {} within 0.1%",
-        elapsed,
-        CLOCKS.sysclk.0 / 10
-    );
-}
-
-/// One read of WHO_AM_I over DMA, finished by polling.
-fn imu_who_am_i(
-    link: &mut Link,
-    imu: &mut Spi,
-    cs: &mut Pin<'A', 4, Output>,
-) -> Result<u8, spi::Error> {
-    const WHO_AM_I: u8 = 0x75;
-    const READ: u8 = 0x80;
-    cs.set_low();
-    let mut result = imu.start(&[WHO_AM_I | READ, 0]);
-    if result.is_ok() {
-        let start = link.now();
-        result = loop {
-            link.service();
-            if let Some(done) = imu.poll() {
-                break done.map(|_| ());
-            }
-            if link.now().wrapping_sub(start) > 10_000 {
-                imu.abort();
-                break Err(spi::Error::Timeout);
-            }
-        };
-    }
-    cs.set_high();
-    result?;
-    Ok(imu.received().get(1).copied().unwrap_or(0))
-}
-
-/// The IMU over SPI1 on DMA2: the routes the flight code uses, on an F405.
-fn imu_suite(report: &mut Report, link: &mut Link, board: &mut Board) {
-    let Board { imu, imu_cs: cs, imu_ready, .. } = board;
-    let id = imu_who_am_i(link, imu, cs);
-    let known = matches!(id, Ok(0x47 | 0x70 | 0x68));
-    match id {
-        Ok(byte) => check!(
-            report,
-            link,
-            known,
-            "imu: WHO_AM_I over DMA is {:#04x} at {} Hz",
-            byte,
-            imu.frequency().0
-        ),
-        Err(error) => check!(report, link, false, "imu: WHO_AM_I over DMA: {:?}", error),
-    }
-    let mut same = true;
-    for _ in 0..100 {
-        same &= imu_who_am_i(link, imu, cs) == id;
-    }
-    check!(report, link, same, "imu: 100 more DMA reads say the same");
-
-    cs.set_low();
-    let blocking = imu.transfer(&[0x75 | 0x80, 0]).ok().and_then(|rx| rx.get(1).copied());
-    cs.set_high();
-    check!(
-        report,
-        link,
-        blocking == id.ok(),
-        "imu: the blocking path reads {:?}",
-        blocking
-    );
-
-    // Only the ICM-42688-P takes registers this fast; the MPUs stop at 1 MHz.
-    if id == Ok(0x47) {
-        let changed = imu.set_config(&IMU_FAST).is_ok();
-        let mut same = changed;
-        for _ in 0..100 {
-            same &= imu_who_am_i(link, imu, cs) == id;
-        }
-        check!(report, link, same, "imu: 100 DMA reads at {} Hz", imu.frequency().0);
-        imu_data_suite(report, link, imu, cs, imu_ready);
-        let _ = imu.set_config(&IMU_SLOW);
-    }
-    let health = imu.health();
-    check!(
-        report,
-        link,
-        health.dma_errors == 0 && health.overruns == 0 && health.mode_faults == 0 && health.timeouts == 0,
-        "imu: {:?}",
-        health
-    );
-}
-
-fn imu_write(imu: &mut Spi, cs: &mut Pin<'A', 4, Output>, register: u8, value: u8) -> bool {
-    cs.set_low();
-    let ok = imu.transfer(&[register, value]).is_ok();
-    cs.set_high();
-    ok
-}
-
-fn settle(link: &mut Link, us: u32) {
-    let start = link.now();
-    while link.now().wrapping_sub(start) < us {
-        link.service();
-    }
-}
-
-/// The flight path on the real sensor, set up as FerroWasp sets it up: the
-/// data-ready pulse on PC4 sets EXTI line 4, which starts a DMA read of
-/// temperature, accelerometer and gyroscope. Polled here, with the vector
-/// off: the pending flag and the driver's completion are what a handler
-/// would see. Ends with a soft reset, leaving the sensor as power-on did.
-fn imu_data_suite(
-    report: &mut Report,
-    link: &mut Link,
-    imu: &mut Spi,
-    cs: &mut Pin<'A', 4, Output>,
-    ready: &mut Exti<'C', 4>,
-) {
-    const DEVICE_CONFIG: u8 = 0x11;
-    const INT_CONFIG: u8 = 0x14;
-    const TEMP_DATA1: u8 = 0x1D;
-    const INT_STATUS: u8 = 0x2D;
-    const INTF_CONFIG0: u8 = 0x4C;
-    const PWR_MGMT0: u8 = 0x4E;
-    const GYRO_CONFIG0: u8 = 0x4F;
-    const ACCEL_CONFIG0: u8 = 0x50;
-    const GYRO_ACCEL_CONFIG0: u8 = 0x52;
-    const INT_CONFIG1: u8 = 0x64;
-    const INT_SOURCE0: u8 = 0x65;
-    const READ: u8 = 0x80;
-    /// ±16 g, the full scale `ACCEL_CONFIG0` below picks with 2 kHz.
-    const LSB_PER_G: u64 = 2048;
-    const RATE_HZ: u32 = 2000;
-    const SAMPLES: u32 = 400;
-
-    let mut written = imu_write(imu, cs, DEVICE_CONFIG, 1);
-    settle(link, 2_000);
-    cs.set_low();
-    let status = imu.transfer(&[INT_STATUS | READ, 0]).ok().and_then(|rx| rx.get(1).copied());
-    cs.set_high();
-    check!(
-        report,
-        link,
-        written && matches!(status, Some(status) if status & (1 << 4) != 0),
-        "imu: soft reset done, status {:?}",
-        status
-    );
-
-    written = imu_write(imu, cs, INTF_CONFIG0, 0x33);
-    written &= imu_write(imu, cs, GYRO_CONFIG0, 0x05);
-    written &= imu_write(imu, cs, ACCEL_CONFIG0, 0x05);
-    written &= imu_write(imu, cs, GYRO_ACCEL_CONFIG0, 0x11);
-    // The last of the configuration: no writes for 200 us after it.
-    written &= imu_write(imu, cs, PWR_MGMT0, 0x0F);
-    settle(link, 1_000);
-    written &= imu_write(imu, cs, INT_CONFIG, 0x03);
-    written &= imu_write(imu, cs, INT_CONFIG1, 0);
-    written &= imu_write(imu, cs, INT_SOURCE0, 1 << 3);
-    settle(link, 49_000);
-    check!(report, link, written, "imu: configured for 2 kHz data ready on INT1");
-
-    // The rate, with nothing else in the way.
-    ready.clear();
-    let start = link.now();
-    let mut pulses = 0u32;
-    while link.now().wrapping_sub(start) < 200_000 {
-        link.service();
-        if ready.is_pending() {
-            ready.clear();
-            pulses += 1;
-        }
-    }
-    check!(
-        report,
-        link,
-        pulses.abs_diff(RATE_HZ / 5) <= RATE_HZ / 100,
-        "imu: {} data-ready edges in 200 ms on EXTI4, want {} within 5%",
-        pulses,
-        RATE_HZ / 5
-    );
-
-    // Each pulse starts a burst, as in flight.
-    let mut burst = [0u8; 15];
-    burst[0] = TEMP_DATA1 | READ;
-    let mut done = 0u32;
-    let mut failures = 0u32;
-    let mut slowest_us = 0;
-    let mut magnitude_squared = 0u64;
-    let mut temperature = 0i32;
-    let start = link.now();
-    ready.clear();
-    while done < SAMPLES && link.now().wrapping_sub(start) < 1_000_000 {
-        link.service();
-        if !ready.is_pending() {
-            continue;
-        }
-        ready.clear();
-        let began = link.now();
-        cs.set_low();
-        let mut result = imu.start(&burst);
-        if result.is_ok() {
-            result = loop {
-                if let Some(finished) = imu.poll() {
-                    break finished.map(|_| ());
-                }
-                if link.now().wrapping_sub(began) > 1_000 {
-                    imu.abort();
-                    break Err(spi::Error::Timeout);
-                }
-            };
-        }
-        cs.set_high();
-        slowest_us = slowest_us.max(link.now().wrapping_sub(began));
-        let rx = imu.received();
-        if result.is_err() || rx.len() != burst.len() {
-            failures += 1;
-            continue;
-        }
-        let word = |at: usize| i64::from(i16::from_be_bytes([rx[at], rx[at + 1]]));
-        temperature = word(1) as i32;
-        let (x, y, z) = (word(3), word(5), word(7));
-        magnitude_squared += (x * x + y * y + z * z) as u64;
-        done += 1;
-    }
-    let elapsed_us = link.now().wrapping_sub(start);
-    check!(
-        report,
-        link,
-        done == SAMPLES && failures == 0,
-        "imu: {} bursts of 15 bytes at {} Hz, {} failed, slowest {} us",
-        done,
-        imu.frequency().0,
-        failures,
-        slowest_us
-    );
-    let want_us = SAMPLES * 1_000_000 / RATE_HZ;
-    check!(
-        report,
-        link,
-        elapsed_us.abs_diff(want_us) <= want_us / 20,
-        "imu: they took {} us, want {} within 5%: none missed",
-        elapsed_us,
-        want_us
-    );
-    let milli_g = (magnitude_squared / u64::from(done.max(1))).isqrt() * 1000 / LSB_PER_G;
-    check!(
-        report,
-        link,
-        (800..=1200).contains(&milli_g),
-        "imu: accelerometer reads {} mg: gravity, if the board isn't being moved",
-        milli_g
-    );
-    // The datasheet: 25 C + raw / 132.48.
-    let celsius = 25 + temperature * 100 / 13248;
-    check!(report, link, (0..=90).contains(&celsius), "imu: {} C inside", celsius);
-
-    let _ = imu_write(imu, cs, DEVICE_CONFIG, 1);
-    settle(link, 2_000);
 }
 
 const NOR_SECTOR: usize = 4096;
@@ -792,78 +354,6 @@ fn nor_suite(report: &mut Report, link: &mut Link, nor: &mut Nor) {
     );
 }
 
-/// What the checks work on.
-struct Board {
-    imu: Spi,
-    imu_cs: Pin<'A', 4, Output>,
-    imu_ready: Exti<'C', 4>,
-    nor: Nor,
-}
-
-/// Waits for and answers commands. Echoes between `BENCHECH` and `BENCHEND`.
-fn serve(link: &mut Link, board: &mut Board, cause: &str) -> ! {
-    let boot = link.now();
-    let mut configured = false;
-    let mut echoing = false;
-    let mut tail = [0u8; 8];
-    let mut pending = [0u8; 64];
-    let (mut head, mut len) = (0, 0);
-    loop {
-        link.service();
-        if !configured {
-            if link.device.state() == UsbDeviceState::Configured {
-                configured = true;
-            } else if link.now().wrapping_sub(boot) > CONFIGURED_PATIENCE_US {
-                reboot_to_dfu();
-            }
-        }
-        if len == 0 {
-            head = 0;
-            if let Ok(count) = link.serial.read(&mut pending) {
-                len = count;
-            }
-        }
-        if echoing {
-            if len > 0
-                && let Ok(count) = link.serial.write(&pending[head..head + len])
-            {
-                for &byte in &pending[head..head + count] {
-                    tail.rotate_left(1);
-                    tail[7] = byte;
-                    echoing &= tail != *END;
-                }
-                head += count;
-                len -= count;
-            }
-            continue;
-        }
-        for &byte in &pending[head..head + len] {
-            tail.rotate_left(1);
-            tail[7] = byte;
-            if tail == *DFU {
-                // Long enough for the host to let go of the port.
-                let start = link.now();
-                while link.now().wrapping_sub(start) < 100_000 {
-                    link.service();
-                }
-                reboot_to_dfu();
-            }
-            if tail == *ECHO {
-                echoing = true;
-            }
-            if tail == *RUN {
-                let mut report = Report::default();
-                link.line(format_args!("INFO reset cause: {cause}"));
-                clock_suite(&mut report, link);
-                imu_suite(&mut report, link, board);
-                nor_suite(&mut report, link, &mut board.nor);
-                link.line(format_args!("DONE {} passed, {} failed", report.passed, report.failed));
-            }
-        }
-        len = 0;
-    }
-}
-
 #[entry]
 fn main() -> ! {
     enter_bootloader_if_requested();
@@ -879,14 +369,7 @@ fn main() -> ! {
     let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG) else {
         reboot_to_dfu()
     };
-    let cause = rcc.reset_cause();
-    let cause = match (cause.power_on, cause.pin, cause.software, cause.brownout) {
-        (true, ..) => "power on",
-        (_, _, true, _) => "software",
-        (_, _, _, true) => "brownout",
-        (_, true, ..) => "reset pin",
-        _ => "other",
-    };
+    let cause = usb_bench::cause_text(rcc.reset_cause());
     let Ok(watchdog) = Watchdog::start(p.IWDG, WATCHDOG_US) else {
         reboot_to_dfu()
     };
@@ -922,7 +405,7 @@ fn main() -> ! {
             rx: &mut *addr_of_mut!(IMU_RX),
         }
     };
-    let Ok(imu) = Spi::new(&mut rcc, imu_wiring, &IMU_SLOW, buffers) else {
+    let Ok(mut imu_spi) = Spi::new(&mut rcc, imu_wiring, &IMU_SLOW, buffers) else {
         reboot_to_dfu()
     };
 
@@ -943,7 +426,7 @@ fn main() -> ! {
     let Ok(spi) = BlockingSpi::new(&mut rcc, nor_wiring, &NOR_BUS) else {
         reboot_to_dfu()
     };
-    let nor = Nor { spi, cs: nor_cs };
+    let mut nor = Nor { spi, cs: nor_cs };
 
     let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
     let mut ready_pin = c.p4.into_input(&mut c.ctrl);
@@ -959,32 +442,18 @@ fn main() -> ! {
     let Ok(usb) = UsbFs::new(&mut rcc, p.USB_OTG_FS, dm, dp) else {
         reboot_to_dfu()
     };
-    // SAFETY: `main` runs once, and these are the only references.
-    let bus: &'static UsbBusAllocator<UsbBus> = unsafe {
-        let memory = &mut *addr_of_mut!(EP_MEMORY);
-        (*addr_of_mut!(BUS)).insert(UsbBus::new(usb, memory))
+    let mut link = Link::new(usb, "foxeer-f405-v2", watchdog, clock);
+    let mut imu = Imu {
+        spi: &mut imu_spi,
+        cs: &mut imu_cs,
+        ready: imu_ready.handle(),
+        slow: IMU_SLOW,
+        fast: IMU_FAST,
     };
-    let serial = SerialPort::new(bus);
-    let Ok(builder) = UsbDeviceBuilder::new(bus, UsbVidPid(0x16c0, 0x27dd)).strings(&[
-        StringDescriptors::default()
-            .manufacturer("FerroHAL")
-            .product("FerroHAL bench")
-            .serial_number("foxeer-f405-v2"),
-    ]) else {
-        reboot_to_dfu()
-    };
-    let device = builder.device_class(usbd_serial::USB_CLASS_CDC).build();
-    let mut link = Link {
-        device,
-        serial,
-        watchdog,
-        clock,
-    };
-    let mut board = Board {
-        imu,
-        imu_cs,
-        imu_ready,
-        nor,
-    };
-    serve(&mut link, &mut board, cause)
+    usb_bench::serve(&mut link, cause, |report, link| {
+        rcc_suite(report, link);
+        usb_bench::clock_suite(report, link, OTG_FS_DSTS, CLOCKS.sysclk.0);
+        imu.suite(report, link);
+        nor_suite(report, link, &mut nor);
+    })
 }
