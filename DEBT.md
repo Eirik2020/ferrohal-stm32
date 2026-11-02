@@ -4,8 +4,8 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-10-31:
 
-- **F401:** `hil/run-f401.sh` passes 188 of 188 checks across ten runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J).
-- **H753ZI:** `hil/run-h753.sh` passes 411 of 411 checks across eleven runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K).
+- **F401:** `hil/run-f401.sh` passes 194 of 194 checks across eleven runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K).
+- **H753ZI:** `hil/run-h753.sh` passes 417 of 417 checks across twelve runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L).
 - **F405RG, H743VI:** build, glue checked against metapac, values checked against their docs. Not yet run on hardware.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
@@ -59,7 +59,8 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: `verify()` can't check task priorities.** It checks the UART's vectors are enabled at one priority; "above every task that uses it" stays the application's job.
 - **Low: `set_config` exists only on the whole `Uart`;** after `split()` the frame can't change. `Uart::halves()` lends both halves meanwhile.
 - **Low: parts of the DMA API are untested:** double buffering (`Transfer::double_buffer`, `set_idle_buffer`, `current_target`), FIFO threshold mode, and `Channel::start` used directly.
-- **Medium: the SPI is master, full duplex, 8-bit only.** No slave mode, simplex or half-duplex, 16-bit frames, hardware NSS or CRC.
+- **Medium: the SPI is master, full duplex, 8-bit only.** No slave mode, simplex or half-duplex, 16-bit frames, hardware NSS or CRC. That holds for both `Spi` (DMA) and `BlockingSpi` (polled).
+- **Medium: `BlockingSpi` holds the CPU for the whole transfer.** One byte in flight, polled, with gaps between bytes (1.5 times the wire time at 5.25 MHz on the F401, 1.6 at 6.25 MHz on the H753). Fine for FerroWasp's NOR at 10 MHz, not for long transfers at high priority.
 - **Low: SPI bit order is unchecked on hardware.** A MOSI-to-MISO loop returns the bytes whichever bit goes first, so `BitOrder::LsbFirst` is only shown to transfer.
 - **Low: EXTI covers GPIO lines 0 to 15 only,** as interrupts: no event mode (EMR), and none of the internal lines (PVD, RTC, USB wake-up and the like).
 - **Low: EXTI owns the whole SYSCFG token.** It needs only EXTICR, but SYSCFG also holds the H7's I/O compensation cell and the F4's memory remap, which later drivers will want.
@@ -70,6 +71,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs and timers: 82 facts on the F401, 128 on the F405, 129 on the H743, 132 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
 - **Medium: five source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
+- **Low: the bench isn't on FerroForge yet.** Decided (2026-11-02): no fork is needed, since FerroForge's macros don't depend on a HAL and FerroHAL provides the RTIC device module; only its CLI backends name stm32f4xx-hal and stm32h7xx-hal. When FerroWasp's swap nears, add a FerroHAL backend to the FerroForge CLI and move the bench runs onto FerroForge tasks, which should cut 15-25 % of the run binaries' lines and prove the pair together.
 - **Medium: requirements tooling is missing** (§9): no `requirements.yaml`, schema, requirement IDs or publish tool.
 - **Low: kernel clock equals bus clock.** True on F4; on H7 only because `freeze` forces the kernel muxes. Add a kernel-clock field to `Info` before offering other muxes.
 
@@ -99,7 +101,8 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ## 3. STM32F405RG (Foxeer F405 V2)
 
-- **High: not run on hardware.** No Nucleo exists for it; the first run is on the Foxeer F405 V2, which needs the owner's go-ahead and a loopback plan for its pads.
+- **High: not run on hardware.** No Nucleo exists for it; the first run is on the Foxeer F405 V2, flashed over USB (DFU). DFU gives no RTT or semihosting, so results must come back over USB CDC, which FerroHAL doesn't have yet (next step). The Lucid H7 Pro is in the same position.
+- **High: the SPI NOR is unproven on the real chip.** FerroWasp's `spi_nor` driver compiles unchanged over FerroHAL's SPI, and `BlockingSpi` runs on the Foxeer's NOR pins on the F401 (loopback, no NOR chip). Still to do on the Foxeer: JEDEC ID, erase and program of FerroWasp's scratch sector (0x2000), read back.
 - **Medium: VOS relies on its reset value.** 168 MHz needs scale 1, the reset value (RM0090 PWR_CR bit 14), so `freeze` doesn't write it; a bootloader that left scale 2 would put 168 MHz out of spec (DS8626: 144 MHz in scale 2). Fix: write the scale in `freeze`, the value from the chip file (one bit here, two on the F401).
 - **Low: prefetch on revision A.** `freeze` sets PRFTEN; ES0182 2.2.1 says revision A doesn't support the prefetch queue. Later revisions are fixed.
 - **Low: HSE with a crystal is untested** (the Foxeer's 8 MHz crystal).

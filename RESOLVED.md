@@ -24,6 +24,8 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
   - Found on the bench: nothing in the driver; the check's sample window started before the lanes were armed and cut DShot600 frames short, so it now starts last.
   - The no-panic check caught a division in `nearest` the optimiser couldn't prove safe.
 - **Independent watchdog and reset cause** (`iwdg_v1`, `iwdg_v2`, one source). `Watchdog::start(token, timeout_us)` (prescaler and reload from a `const fn` at the nominal LSI), `feed`; `Rcc::reset_cause()` reads and clears RCC's reset flags into a chip-neutral `ResetCause`. On hardware, across the reset it causes: fed every 10 ms a 50 ms watchdog never fires; starved, it resets the chip, the reset cause reads back as the watchdog, and the reset lands within the LSI's spread (F401 53.3 ms, H753ZI 50.5 ms).
+- **Polled SPI** (`BlockingSpi`, both IP versions): a bounded `SpiBus` with no DMA, one byte in flight. Needed by the Foxeer's NOR on SPI2, whose only streams (DMA1 3 and 4) its UARTs hold. On hardware: SPI2 on the Foxeer's NOR pins and SPI3 on the F401, SPI2 and SPI4 on the H753ZI.
+- **SPI wait floor measured:** `PASS_CYCLES` from a guessed 8 to 112, half the fastest pass measured (233 cycles, H753 with caches on).
 - **Shared types:** `resource::{Resource, Signal, IrqError}` for every driver (`Resource::Uart` became `Resource::Peripheral`), `time::CycleClock`, and the bounded waits in `wait`.
 
 ## STM32F401RE
