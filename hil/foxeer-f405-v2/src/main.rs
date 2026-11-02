@@ -100,7 +100,10 @@ where
 {
     master.lead();
     slave.follow(master);
-    let still = !slave.is_running() && slave.counter() == 0;
+    // Not at any one value: an earlier report leaves it where it stopped.
+    let before = slave.counter();
+    link.settle(100);
+    let still = !slave.is_running() && slave.counter() == before;
     check!(report, link, still, "timers: TIM8 waits for TIM1");
     let mut worst = 0;
     let mut stopped = 0;
