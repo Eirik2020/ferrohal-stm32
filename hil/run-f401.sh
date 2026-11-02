@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Runs the Nucleo-F401RE bench: UART runs A to D, with the host echo for
 # USART2 running alongside, SPI and EXTI runs E to G, timer runs H and I,
-# watchdog run J, polled SPI run K. Exits non-zero if any run failed.
+# watchdog run J, polled SPI run K, bootloader request run L. Exits non-zero if any run failed.
 #
 # Needs the links described in nucleo-f401re-loopback/src/board.rs
 # (J1 to J4 for the UARTs, S1 to S5 for the SPIs).
-# Logs go to hil/logs/f401-<run>.log.
+# Logs go to hil/logs/f401-<run>.log. Arguments pick runs, say `e f g`; none runs all.
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -19,12 +19,12 @@ trap 'kill "$echo_pid" 2>/dev/null; wait "$echo_pid" 2>/dev/null' EXIT
 sleep 0.5
 
 status=0
-for run in a b c d e f g h i j k; do
+for run in ${*:-a b c d e f g h i j k l}; do
     log="$here/logs/f401-run-$run.log"
-    # The watchdog run resets the chip on purpose: the debugger must not
+    # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
     # catch that reset, or the second boot never runs.
     runner=()
-    if [ "$run" = j ]; then
+    if [ "$run" = j ] || [ "$run" = l ]; then
         runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32F401RE --probe 0483:374b")
     fi
     (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1

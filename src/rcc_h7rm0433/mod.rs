@@ -77,6 +77,25 @@ pub struct Rcc {
     clocks: Clocks,
 }
 
+/// RCC_RSR's reset flags. A single read: no `Rcc` needed.
+pub(crate) fn read_reset_cause() -> crate::reset::ResetCause {
+    let rsr = RCC_REGS.rsr().read();
+    crate::reset::ResetCause {
+        power_on: rsr.porrstf(),
+        pin: rsr.pinrstf(),
+        brownout: rsr.borrstf(),
+        software: rsr.sftrstf(),
+        independent_watchdog: rsr.iwdg1rstf(),
+        window_watchdog: rsr.wwdg1rstf(),
+        low_power: rsr.lpwrrstf(),
+    }
+}
+
+/// Clears RCC_RSR's reset flags (RMVF).
+pub(crate) fn clear_reset_flags() {
+    RCC_REGS.rsr().modify(|w| w.set_rmvf(true));
+}
+
 impl Rcc {
     /// Starts the USB port's clock and supply: HSI48 as its kernel clock,
     /// and the 3.3 V USB level detector (PWR_CR3's USB33DEN), which `freeze`
@@ -98,17 +117,9 @@ impl Rcc {
     /// Why the chip last reset, read from RCC_RSR, whose flags are then
     /// cleared (RMVF) so the next reset reports only itself.
     pub fn reset_cause(&mut self) -> crate::reset::ResetCause {
-        let rsr = RCC_REGS.rsr().read();
-        RCC_REGS.rsr().modify(|w| w.set_rmvf(true));
-        crate::reset::ResetCause {
-            power_on: rsr.porrstf(),
-            pin: rsr.pinrstf(),
-            brownout: rsr.borrstf(),
-            software: rsr.sftrstf(),
-            independent_watchdog: rsr.iwdg1rstf(),
-            window_watchdog: rsr.wwdg1rstf(),
-            low_power: rsr.lpwrrstf(),
-        }
+        let cause = read_reset_cause();
+        clear_reset_flags();
+        cause
     }
 }
 

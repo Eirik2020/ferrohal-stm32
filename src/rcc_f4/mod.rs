@@ -66,6 +66,26 @@ pub struct Rcc {
     clocks: Clocks,
 }
 
+/// RCC_CSR's reset flags. A single read: no `Rcc` needed.
+pub(crate) fn read_reset_cause() -> crate::reset::ResetCause {
+    let csr = RCC_REGS.csr().read();
+    crate::reset::ResetCause {
+        power_on: csr.porrstf(),
+        pin: csr.padrstf(),
+        brownout: csr.borrstf(),
+        software: csr.sftrstf(),
+        independent_watchdog: csr.wdgrstf(),
+        window_watchdog: csr.wwdgrstf(),
+        low_power: csr.lpwrrstf(),
+    }
+}
+
+/// Clears RCC_CSR's reset flags (RMVF). Read-modify-write of a register only
+/// the reset flags and LSI use, before the watchdog could want the LSI.
+pub(crate) fn clear_reset_flags() {
+    RCC_REGS.csr().modify(|w| w.set_rmvf(true));
+}
+
 impl Rcc {
     /// The frequencies `freeze` set.
     pub fn clocks(&self) -> Clocks {
@@ -84,17 +104,9 @@ impl Rcc {
     /// Why the chip last reset, read from RCC_CSR, whose flags are then
     /// cleared (RMVF) so the next reset reports only itself.
     pub fn reset_cause(&mut self) -> crate::reset::ResetCause {
-        let csr = RCC_REGS.csr().read();
-        RCC_REGS.csr().modify(|w| w.set_rmvf(true));
-        crate::reset::ResetCause {
-            power_on: csr.porrstf(),
-            pin: csr.padrstf(),
-            brownout: csr.borrstf(),
-            software: csr.sftrstf(),
-            independent_watchdog: csr.wdgrstf(),
-            window_watchdog: csr.wwdgrstf(),
-            low_power: csr.lpwrrstf(),
-        }
+        let cause = read_reset_cause();
+        clear_reset_flags();
+        cause
     }
 
     /// Turns a peripheral's clock on. The read back is the delay RM0368

@@ -210,6 +210,16 @@ pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
     pac::IWDG
 }
 
+/// The ROM bootloader's vector table (AN2606).
+pub(crate) const SYSTEM_MEMORY: u32 = 0x1FFF_0000;
+
+/// Maps system memory at address 0, as the BOOT0 pin would for the bootloader.
+pub(crate) fn map_system_memory() {
+    pac::RCC.apb2enr().modify(|w| w.set_syscfgen(true));
+    let _ = pac::RCC.apb2enr().read();
+    pac::SYSCFG.memrm().modify(|w| w.set_mem_mode(1));
+}
+
 /// SYSCFG's clock enable, which EXTI's port selection (EXTICR) needs.
 pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb2, 14);
 

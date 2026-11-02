@@ -120,3 +120,10 @@ fn non_cacheable(rasr: u32) -> bool {
         _ => false,
     }
 }
+
+/// The ROM bootloader's vector table (AN2606).
+pub(crate) const SYSTEM_MEMORY: u32 = 0x1FF0_9800;
+
+/// Nothing to map: the H7 boots from an address in the option bytes, and the
+/// bootloader runs from where it sits.
+pub(crate) fn map_system_memory() {}

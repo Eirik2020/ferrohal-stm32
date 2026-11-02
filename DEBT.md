@@ -104,7 +104,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 ## 3. STM32F405RG (Foxeer F405 V2)
 
 - **Medium: the Foxeer bench covers the board's buses, not the whole chip.** No UART, timer output or DShot has run on an F405 yet, nor UART4 and UART5, which the F401 doesn't have. The board's UARTs and motor pins go to the outside world, so they need their own plan: no loopback links exist.
-- **Medium: FerroHAL has no way into the ROM bootloader.** The bench's firmware does it by register address (`hil/foxeer-f405-v2`); FerroWasp's `system_bootloader` does it through stm32f4xx-hal's PAC, so the swap needs a FerroHAL form (F4 and H7), with SYSCFG's memory remap.
 - **Low: the bench's NOR commands are its own copy.** They follow FerroWasp's `spi_nor` driver, which compiled unchanged over `BlockingSpi` in a scratch crate but hasn't itself run over FerroHAL. The bench can't depend on it from a public repo. The IMU setup is copied the same way.
 - **Low: no reset flag shows after a DFU `leave`.** The firmware reports "other" when flashed from a bootloader entry that cleared the flags. Whether the ROM resets the chip on `leave` or jumps with its setup still in place isn't measured; `freeze` and the drivers worked either way.
 - **Low: a Foxeer firmware that fails before USB can't say why.** It restarts into DFU, which shows only that something failed.
@@ -148,7 +147,10 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ## 5. STM32H743VI (TBS Lucid H7)
 
-- **Medium: its own build isn't run on hardware.** The firmware for it is written and builds (`hil/run-lucid.sh`); it hasn't been flashed yet, since the first flash needs the board's BOOT button. The Lucid carries ArduCopter 4.6.1 with ArduPilot's bootloader in sector 0, which the bench image replaces; the app and parameters in later sectors stay. The H753ZI bench runs the same die and driver code under the H753ZI glue.
+- **Medium: the Lucid bench covers its clocks, IMU and USB only.** `hil/run-lucid.sh` passes 18 of 18 on the board, plus the host's echo up to 64 KiB. UARTs and motor outputs haven't run on an H743; the H753ZI bench runs the same die and driver code under its own glue.
+- **Low: the board needs BOOT held once more.** The firmware on it predates the fix below: its `BENCHDFU` loses the request word at reset, so it can't reach DFU by software. Flashing it once with the button brings the fix.
+- **Low: FerroWasp's H7 reboot request is likely lost the same way.** `ferrowasp-stm32h7-critical`'s `system_bootloader` writes one word to AXI SRAM just before the reset, the write RM0433 2.4 says a reset loses, which the bench measured on this die. FerroHAL's `reset::reboot_to_bootloader` writes the whole doubleword. Not tried on FerroWasp itself.
+- **Low: state kept across a reset on the H7 should be whole doublewords.** The bootloader bench lost results written as single words beside each other across resets, and passed once each had its own doubleword; why isn't explained beyond RM0433 2.4's rule.
 - **Low: phantom pins:** ports F to K are handed out though LQFP100 bonds ports A to E, PH0, PH1.
 - Everything in section 4 applies too.
 

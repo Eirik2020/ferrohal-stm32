@@ -70,6 +70,12 @@ path = "src/bin/run_k.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "run-l"
+path = "src/bin/run_l.rs"
+test = false
+bench = false
+
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32f401re", "rt", "defmt"] }
 embedded-io = "0.7.1"

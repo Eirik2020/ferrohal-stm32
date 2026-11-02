@@ -52,6 +52,11 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
   - **The SPI NOR on the real chip:** Winbond JEDEC ID `ef 40 18` at 10.5 MHz over `BlockingSpi`. Erase (47 ms), 16 pages programmed (slowest 379 µs), read back, erased again, only in FerroWasp's scratch sector; the sectors either side unchanged.
   - **The IMU path:** ICM-42688-P WHO_AM_I over SPI1 on DMA2 streams 3 and 0, then FerroWasp's setup: 405 data-ready edges in 200 ms on EXTI4, 400 bursts of 15 bytes at 10.5 MHz started from them (slowest 24 µs, none failed or missed), the accelerometer reading 993 mg at rest.
 
+## Restarting into the ROM bootloader
+
+- **`reset::reboot_to_bootloader`, `bootloader_requested`, `enter_bootloader`, `peek_cause`** (2026-11-02), for the F4 and H7, with the chips' system memory addresses and the F4's memory remap in the glue. Run L on the F401, run N on the H753ZI: the request survives a software reset, with the data cache off and on, and answers yes once. The Foxeer's bench enters its ROM DFU through it.
+- **Found on the Lucid:** a single word written to AXI SRAM just before a reset is lost (RM0433 2.4; ECC per 64 bits). The bench measured a lone word, a barrier and a read back all lost; a whole doubleword or a further write kept. The F4's RAM has no ECC, so its benches never showed it.
+
 ## STM32H753ZI
 
 - **HSE in bypass runs on hardware.** Run A, the Lucid mirror, freezes from the ST-LINK's 8 MHz MCO (UM2407 7.5.1): 8 MHz reference, 800 MHz wide VCO, 400 MHz core.

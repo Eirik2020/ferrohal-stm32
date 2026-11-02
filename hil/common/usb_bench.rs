@@ -16,16 +16,15 @@
 
 use core::{
     fmt::{self, Write as _},
-    mem::MaybeUninit,
     panic::PanicInfo,
     ptr::{addr_of_mut, read_volatile},
 };
 
-use cortex_m::peripheral::{DWT, SCB};
+use cortex_m::peripheral::DWT;
 use cortex_m_rt::{ExceptionFrame, exception};
 use ferrohal_stm32::{
     iwdg::Watchdog,
-    reset::ResetCause,
+    reset::{self, ResetCause},
     timer::Timebase,
     usb::{
         UsbBus, UsbFs,
@@ -37,6 +36,8 @@ use ferrohal_stm32::{
     },
 };
 use usbd_serial::SerialPort;
+
+pub use ferrohal_stm32::reset::reboot_to_bootloader as reboot_to_dfu;
 
 macro_rules! check {
     ($report:expr, $link:expr, $ok:expr, $($arg:tt)*) => {
@@ -52,48 +53,16 @@ const DFU: &[u8; 8] = b"BENCHDFU";
 pub const WATCHDOG_US: u32 = 3_000_000;
 const CONFIGURED_PATIENCE_US: u32 = 30_000_000;
 const SEND_PATIENCE_US: u32 = 2_000_000;
-const REQUEST_DFU: u32 = 0x4446_5521;
-
-/// Left by [`reboot_to_dfu`]: `.uninit` is RAM a reset leaves alone.
-#[unsafe(link_section = ".uninit.dfu_request")]
-static mut REQUEST: MaybeUninit<u32> = MaybeUninit::uninit();
 
 static mut EP_MEMORY: [u32; crate::EP_WORDS] = [0; crate::EP_WORDS];
 static mut BUS: Option<UsbBusAllocator<UsbBus>> = None;
 
-/// Resets into the ROM bootloader.
-pub fn reboot_to_dfu() -> ! {
-    // SAFETY: one aligned word, volatile, and the next thing is the reset.
-    unsafe { addr_of_mut!(REQUEST).cast::<u32>().write_volatile(REQUEST_DFU) };
-    cortex_m::asm::dsb();
-    SCB::sys_reset()
-}
-
-/// Whether the last reset asked for the bootloader; forgets the request.
-pub fn take_dfu_request() -> bool {
-    // SAFETY: read as an integer, volatile: its power-on value is whatever
-    // RAM held. Nothing else runs yet.
-    unsafe {
-        let request = addr_of_mut!(REQUEST).cast::<u32>();
-        let word = request.read_volatile();
-        request.write_volatile(0);
-        word == REQUEST_DFU
-    }
-}
-
-/// Jumps to the ROM bootloader's vector table.
-///
-/// # Safety
-///
-/// First thing in `main`, the chip as reset left it, and `system_memory`
-/// holding the bootloader's stack pointer and reset vector (AN2606).
-pub unsafe fn enter_bootloader(system_memory: u32) -> ! {
-    // SAFETY: as the caller promises.
-    unsafe {
-        (*SCB::PTR).vtor.write(system_memory);
-        cortex_m::asm::dsb();
-        cortex_m::asm::isb();
-        cortex_m::asm::bootload(system_memory as *const u32)
+/// Enters the ROM bootloader if the last reset asked for it or was the
+/// watchdog's. First thing in `main`.
+pub fn enter_bootloader_if_requested() {
+    if reset::bootloader_requested() || reset::peek_cause().independent_watchdog {
+        // SAFETY: nothing is set up yet.
+        unsafe { reset::enter_bootloader() }
     }
 }
 

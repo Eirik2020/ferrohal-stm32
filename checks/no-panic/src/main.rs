@@ -341,9 +341,21 @@ where
 
 /// The watchdog and the reset cause.
 pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm32::chip::WatchdogPeripheral) {
-    use ferrohal_stm32::iwdg::{Watchdog, divider};
+    use ferrohal_stm32::{
+        iwdg::{Watchdog, divider},
+        reset,
+    };
 
     keep(rcc.reset_cause());
+    keep(reset::peek_cause());
+    keep(reset::bootloader_requested());
+    if black_box(false) {
+        reset::reboot_to_bootloader();
+    }
+    if black_box(false) {
+        // SAFETY: never taken; only its code has to link.
+        unsafe { reset::enter_bootloader() };
+    }
     keep(divider(black_box(50_000)));
     keep(Watchdog::check(black_box(50_000)));
     if let Ok(dog) = Watchdog::start(iwdg, black_box(50_000)) {

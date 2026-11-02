@@ -17,7 +17,7 @@ mod usb_bench;
 #[path = "../../common/imu.rs"]
 mod imu;
 
-use core::ptr::{addr_of_mut, read_volatile, write_volatile};
+use core::ptr::{addr_of_mut, read_volatile};
 
 use cortex_m_rt::entry;
 use ferrohal_stm32::{
@@ -95,37 +95,13 @@ type ImuWiring = Wiring<
     Stream<1, 4>,
 >;
 
-// The bootloader, by address: nothing of the HAL is up when it's entered.
-const SYSTEM_MEMORY: u32 = 0x1FF0_9800;
 const RCC_CR: *const u32 = 0x5802_4400 as *const u32;
 const RCC_CFGR: *const u32 = 0x5802_4410 as *const u32;
 const RCC_PLLCKSELR: *const u32 = 0x5802_4428 as *const u32;
-const RCC_RSR: *mut u32 = 0x5802_44D0 as *mut u32;
 const OTG_FS_DSTS: *const u32 = 0x4008_0808 as *const u32;
-
-const RSR_RMVF: u32 = 1 << 16;
-const RSR_IWDG1RSTF: u32 = 1 << 26;
 
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
-
-/// Enters the ROM bootloader if the last reset asked for it or was the
-/// watchdog's. First thing in `main`: the bootloader expects the chip as
-/// reset left it, before the supply, clocks or caches are set up.
-fn enter_bootloader_if_requested() {
-    let requested = usb_bench::take_dfu_request();
-    // SAFETY: nothing else runs yet and nothing else owns RCC, and
-    // SYSTEM_MEMORY is this chip's bootloader.
-    unsafe {
-        let rsr = read_volatile(RCC_RSR);
-        if !requested && rsr & RSR_IWDG1RSTF == 0 {
-            return;
-        }
-        // A stale watchdog flag would bring the next boot back here.
-        write_volatile(RCC_RSR, rsr | RSR_RMVF);
-        usb_bench::enter_bootloader(SYSTEM_MEMORY)
-    }
-}
 
 /// RCC's own view: the crystal really runs the chip.
 fn rcc_suite(report: &mut Report, link: &mut Link) {
@@ -145,7 +121,7 @@ fn rcc_suite(report: &mut Report, link: &mut Link) {
 
 #[entry]
 fn main() -> ! {
-    enter_bootloader_if_requested();
+    usb_bench::enter_bootloader_if_requested();
 
     let Some(mut core) = cortex_m::Peripherals::take() else {
         reboot_to_dfu()

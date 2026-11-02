@@ -27,7 +27,7 @@ mod macros;
 mod h7;
 
 pub use h7::check_dma_buffer;
-pub(crate) use h7::CLOCK_LIMITS;
+pub(crate) use h7::{CLOCK_LIMITS, SYSTEM_MEMORY, map_system_memory};
 
 tokens!(
     USART1, USART2, USART3, UART4, UART5, USART6, UART7, UART8, LPUART1, TIM1, TIM2, TIM3, TIM4,

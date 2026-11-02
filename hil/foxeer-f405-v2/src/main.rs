@@ -17,7 +17,7 @@ mod usb_bench;
 #[path = "../../common/imu.rs"]
 mod imu;
 
-use core::ptr::{addr_of_mut, read_volatile, write_volatile};
+use core::ptr::{addr_of_mut, read_volatile};
 
 use cortex_m::peripheral::DWT;
 use cortex_m_rt::entry;
@@ -101,44 +101,13 @@ type NorWiring = BlockingWiring<
     Pin<'C', 3, Alternate<5>>,
 >;
 
-// The bootloader, by address: nothing of the HAL is up when it's entered.
-const SYSTEM_MEMORY: u32 = 0x1FFF_0000;
 const RCC_CR: *const u32 = 0x4002_3800 as *const u32;
 const RCC_PLLCFGR: *const u32 = 0x4002_3804 as *const u32;
 const RCC_CFGR: *const u32 = 0x4002_3808 as *const u32;
-const RCC_APB2ENR: *mut u32 = 0x4002_3844 as *mut u32;
-const RCC_CSR: *mut u32 = 0x4002_3874 as *mut u32;
-const SYSCFG_MEMRMP: *mut u32 = 0x4001_3800 as *mut u32;
 const OTG_FS_DSTS: *const u32 = 0x5000_0808 as *const u32;
-
-const CSR_RMVF: u32 = 1 << 24;
-const CSR_WDGRSTF: u32 = 1 << 29;
-const APB2ENR_SYSCFGEN: u32 = 1 << 14;
 
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
-
-/// Enters the ROM bootloader if the last reset asked for it or was the
-/// watchdog's. First thing in `main`: the bootloader expects the chip as
-/// reset left it, and this leaves one thing changed, the memory mapping it
-/// would have had from the BOOT0 pin.
-fn enter_bootloader_if_requested() {
-    let requested = usb_bench::take_dfu_request();
-    // SAFETY: nothing else runs yet and nothing else owns RCC or SYSCFG, and
-    // SYSTEM_MEMORY is this chip's bootloader.
-    unsafe {
-        let csr = read_volatile(RCC_CSR);
-        if !requested && csr & CSR_WDGRSTF == 0 {
-            return;
-        }
-        // A stale watchdog flag would bring the next boot back here.
-        write_volatile(RCC_CSR, csr | CSR_RMVF);
-        write_volatile(RCC_APB2ENR, read_volatile(RCC_APB2ENR) | APB2ENR_SYSCFGEN);
-        let _ = read_volatile(RCC_APB2ENR);
-        write_volatile(SYSCFG_MEMRMP, 1);
-        usb_bench::enter_bootloader(SYSTEM_MEMORY)
-    }
-}
 
 /// RCC's own view: the crystal really runs the chip.
 fn rcc_suite(report: &mut Report, link: &mut Link) {
@@ -356,7 +325,7 @@ fn nor_suite(report: &mut Report, link: &mut Link, nor: &mut Nor) {
 
 #[entry]
 fn main() -> ! {
-    enter_bootloader_if_requested();
+    usb_bench::enter_bootloader_if_requested();
 
     let Some(mut core) = cortex_m::Peripherals::take() else {
         reboot_to_dfu()
