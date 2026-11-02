@@ -382,3 +382,19 @@ macro_rules! timer_trigger {
         }
     };
 }
+
+/// SDMMC rows: `NAME => bus, enable bit;`.
+#[allow(unused_macros)]
+macro_rules! sdmmcs {
+    ($($name:ident => $bus:ident, $bit:literal;)+) => {
+        $(
+            impl crate::sdmmc::Instance for $name {
+                const NAME: &'static str = stringify!($name);
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
+                fn regs() -> stm32_metapac::sdmmc::Sdmmc {
+                    pac::$name
+                }
+            }
+        )+
+    };
+}

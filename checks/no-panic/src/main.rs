@@ -841,6 +841,21 @@ mod chip {
         super::exercise_watchdog(&mut rcc, p.IWDG1);
         super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
         super::exercise_adc_internal(&mut rcc, p.ADC3);
+        {
+            let mut c = p.GPIOC.split(&mut rcc);
+            super::exercise_sdmmc(
+                &mut rcc,
+                ferrohal_stm32::sdmmc::Wiring {
+                    sdmmc: p.SDMMC1,
+                    ck: c.p12.into_alternate::<12>(&mut c.ctrl),
+                    cmd: d.p2.into_alternate::<12>(&mut d.ctrl),
+                    d0: c.p8.into_alternate::<12>(&mut c.ctrl),
+                    d1: c.p9.into_alternate::<12>(&mut c.ctrl),
+                    d2: c.p10.into_alternate::<12>(&mut c.ctrl),
+                    d3: c.p11.into_alternate::<12>(&mut c.ctrl),
+                },
+            );
+        }
         super::exercise_trigger(
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
@@ -996,4 +1011,34 @@ where
     keep(slave.is_running());
     master.stop();
     slave.stop();
+}
+
+/// The SD card driver, on the chips that have it.
+#[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
+pub fn exercise_sdmmc<U, Ck, Cmd, D0, D1, D2, D3>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    wiring: ferrohal_stm32::sdmmc::Wiring<U, Ck, Cmd, D0, D1, D2, D3>,
+) where
+    U: ferrohal_stm32::sdmmc::Instance,
+    Ck: ferrohal_stm32::sdmmc::CkPin<U>,
+    Cmd: ferrohal_stm32::sdmmc::CmdPin<U>,
+    D0: ferrohal_stm32::sdmmc::D0Pin<U>,
+    D1: ferrohal_stm32::sdmmc::D1Pin<U>,
+    D2: ferrohal_stm32::sdmmc::D2Pin<U>,
+    D3: ferrohal_stm32::sdmmc::D3Pin<U>,
+{
+    use ferrohal_stm32::sdmmc::{BLOCK_SIZE, Config, Sdmmc};
+
+    let Ok(mut sd) = Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) else {
+        return;
+    };
+    keep(sd.init_card());
+    keep(sd.block_count());
+    let lba = black_box(0);
+    let mut blocks = [[0u8; BLOCK_SIZE]; 2];
+    keep(sd.read_blocks(lba, black_box(&mut blocks)));
+    keep(sd.write_blocks(lba, black_box(&blocks)));
+    let [block, _] = &mut blocks;
+    keep(sd.read_block(lba, block));
+    keep(sd.write_block(lba, block));
 }

@@ -20,7 +20,8 @@ break unit, channel pins (CHx, CHxN) and compare and update DMA routes, and
 the full-speed USB port's enable bit, vector and DM and DP pins. It also
 checks each SPI's kernel clock, SYSCFG's enable bit, every DMA stream's vector,
 the watchdog's peripheral, the EXTI line vectors `src/exti.rs` shares across
-chips, and each ADC's enable bit, pins (positive inputs) and DMA routes. On a fixed-request DMA a stream that serves one signal on two
+chips, each ADC's enable bit, pins (positive inputs) and DMA routes, and each
+SDMMC's enable bit and pins. On a fixed-request DMA a stream that serves one signal on two
 channels appears once in the glue, with either request. Instances the metadata
 has and the glue leaves out are listed, not failed. Exits 1 on any mismatch.
 
@@ -238,6 +239,15 @@ class Glue:
                     found[(int(controller), int(stream))] = vector
         return found
 
+    def sdmmcs(self):
+        found = {}
+        if not re.search(r"^sdmmcs!\(", self.text, re.M):
+            return found
+        for body in self.rows("sdmmcs"):
+            for name, bus, bit in re.findall(r"(\w+) => (\w+), (\d+);", body):
+                found[name] = (bus, int(bit))
+        return found
+
     def adcs(self):
         found = {}
         for body in self.rows("adcs"):
@@ -304,7 +314,7 @@ class Glue:
     def pins(self):
         found = {}
         for body in self.rows("pins"):
-            m = re.fullmatch(r"(Tx|Rx|Sck|Miso|Mosi)Pin<(\w+)>: (.*)", body.strip(), re.S)
+            m = re.fullmatch(r"(Tx|Rx|Sck|Miso|Mosi|Ck|Cmd|D0|D1|D2|D3)Pin<(\w+)>: (.*)", body.strip(), re.S)
             if not m:
                 self.problems.append(f"cannot parse pins!({body})")
                 continue
@@ -455,6 +465,11 @@ def check(chip, glue_path, metapac):
         token, regs = watchdog
         compare("watchdog token and registers are one peripheral", token, regs)
         compare(f"{token} is a watchdog", token in meta.names("iwdg"), True)
+    for name, enable in sorted(glue.sdmmcs().items()):
+        compare(f"{name} RCC enable", enable, meta.enable(name))
+        signals = ("CK", "CMD", "D0", "D1", "D2", "D3")
+        theirs = {p for p in meta.pins(name) if p[0] in signals}
+        compare(f"{name} pins", pins.get(name, set()), theirs)
     adc_fixed, adc_mux = glue.adc_dma()
     adc_pins = glue.adc_pins()
     for name, enable in sorted(glue.adcs().items()):

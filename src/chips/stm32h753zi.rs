@@ -16,6 +16,7 @@ use crate::{
     dma_v1::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     rcc_h7rm0433::{Bus, RCC, RccBit},
+    sdmmc::{CkPin, CmdPin, D0Pin, D1Pin, D2Pin, D3Pin},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     usart_v4::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
 };
@@ -304,6 +305,18 @@ dma!(
 
 timer_trigger!(TIM8: TIM1, 0);
 timer_trigger!(TIM3: TIM1, 0);
+
+// SDMMC1, on its only pins. SDMMC2 isn't offered.
+
+sdmmcs!(
+    SDMMC1 => Ahb3, 16;
+);
+pins!(CkPin<SDMMC1>: ('C', 12, 12));
+pins!(CmdPin<SDMMC1>: ('D', 2, 12));
+pins!(D0Pin<SDMMC1>: ('C', 8, 12));
+pins!(D1Pin<SDMMC1>: ('C', 9, 12));
+pins!(D2Pin<SDMMC1>: ('C', 10, 12));
+pins!(D3Pin<SDMMC1>: ('C', 11, 12));
 
 // The ADCs: ADC1 for the pins, ADC3 with the internal channels too. ADC2,
 // sharing ADC1's clock, isn't offered, nor the _C pads (PC2_C, PC3_C).

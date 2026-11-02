@@ -97,6 +97,8 @@ pub mod rcc_h7rm0433;
 pub mod adc_v2;
 #[cfg(feature = "adc_v4")]
 pub mod adc_v4;
+#[cfg(feature = "sdmmc_v2")]
+pub mod sdmmc_v2;
 #[cfg(feature = "spi_v2")]
 pub mod spi_v2;
 #[cfg(feature = "spi_v4")]
@@ -124,6 +126,8 @@ pub use rcc_h7rm0433 as rcc;
 use adc_v2 as adc_ip;
 #[cfg(feature = "adc_v4")]
 use adc_v4 as adc_ip;
+#[cfg(feature = "sdmmc_v2")]
+pub use sdmmc_v2 as sdmmc;
 #[cfg(feature = "spi_v2")]
 use spi_v2 as spi_ip;
 #[cfg(feature = "spi_v4")]

@@ -1,12 +1,17 @@
 //! The real-board bench on the TBS Lucid H7, reporting over USB (see
 //! `hil/common/usb_bench.rs`), and the H743VI build's own run on hardware.
 //! The checks: the crystal against the host's start-of-frames, the IMU on
-//! SPI1 over DMA with its data-ready on EXTI2, and USB itself through the
-//! host's echo. The caches stay off, as FerroWasp keeps them on this board.
+//! SPI1 over DMA with its data-ready on EXTI2, its battery inputs, the SD card
+//! if one is in, and USB itself through the host's echo. The caches stay off,
+//! as FerroWasp keeps them on this board.
 //!
-//! The motor, receiver and ESC telemetry pins stay as reset left them, and
-//! the SD card isn't touched. Flashing replaces only the sectors the image
-//! lands in: whatever else the board's flash holds stays.
+//! The motor, receiver and ESC telemetry pins stay as reset left them.
+//! Flashing replaces only the sectors the image lands in: whatever else the
+//! board's flash holds stays.
+//!
+//! The SD check saves 17 blocks far past anything FerroWasp's layout uses,
+//! writes over them, reads back and writes the saved contents back. A power
+//! cut in between would leave those blocks changed; nothing else is written.
 
 #![no_std]
 #![no_main]
@@ -21,6 +26,7 @@ mod imu;
 
 use core::ptr::{addr_of_mut, read_volatile};
 
+use cortex_m::peripheral::DWT;
 use cortex_m_rt::entry;
 use ferrohal_stm32::{
     adc::{Adc, Config as AdcConfig},
@@ -33,6 +39,7 @@ use ferrohal_stm32::{
         AhbPrescaler, ApbPrescaler, Clocks, Config as ClockConfig, Hse, HseMode, Pll, PllSource,
         Supply, Sysclk, VoltageScale,
     },
+    sdmmc::{self, BLOCK_SIZE, Sdmmc},
     spi::{self, Buffers, Spi, Wiring},
     time::Hertz,
     timer::Timebase,
@@ -104,8 +111,139 @@ const RCC_PLLCKSELR: *const u32 = 0x5802_4428 as *const u32;
 const OTG_FS_DSTS: *const u32 = 0x4008_0808 as *const u32;
 
 static mut ADC_SAMPLES: [u16; 2] = [0; 2];
+/// Blocks in the multi-block check, and the saved, written and read copies.
+const SD_BLOCKS: usize = 16;
+static mut SD_SAVED: [[u8; BLOCK_SIZE]; SD_BLOCKS + 1] = [[0; BLOCK_SIZE]; SD_BLOCKS + 1];
+static mut SD_WRITE: [[u8; BLOCK_SIZE]; SD_BLOCKS + 1] = [[0; BLOCK_SIZE]; SD_BLOCKS + 1];
+static mut SD_READ: [[u8; BLOCK_SIZE]; SD_BLOCKS + 1] = [[0; BLOCK_SIZE]; SD_BLOCKS + 1];
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
+
+/// The SD card, if there's one in the slot.
+fn sd_suite(report: &mut Report, link: &mut Link, sd: &mut Sdmmc) {
+    link.service();
+    let card = match sd.init_card() {
+        Ok(card) => card,
+        Err(sdmmc::Error::NoCard) => {
+            link.line(format_args!("INFO sd: no card in the slot; nothing to check"));
+            return;
+        }
+        Err(error) => {
+            check!(report, link, false, "sd: bring-up: {:?}", error);
+            return;
+        }
+    };
+    check!(
+        report,
+        link,
+        card.blocks > 0 && card.clock.0 == 25_000_000,
+        "sd: {} blocks at {} Hz, CID {:032x}",
+        card.blocks,
+        card.clock.0,
+        card.cid
+    );
+    if card.blocks < 1 << 16 {
+        check!(report, link, false, "sd: too small to check safely");
+        return;
+    }
+    let scratch = card.blocks - (1 << 15);
+    // SAFETY: only this suite touches them, and it doesn't run twice at once.
+    let (saved, written, read) = unsafe {
+        (
+            &mut *addr_of_mut!(SD_SAVED),
+            &mut *addr_of_mut!(SD_WRITE),
+            &mut *addr_of_mut!(SD_READ),
+        )
+    };
+    link.service();
+    let result = sd.read_blocks(scratch, &mut saved[..]);
+    check!(report, link, result.is_ok(), "sd: saved 17 blocks: {:?}", result);
+    if result.is_err() {
+        return;
+    }
+    // Different each run, so an old pattern can't pass for a new write.
+    let seed = DWT::cycle_count();
+    for (index, block) in written.iter_mut().enumerate() {
+        for (offset, byte) in block.iter_mut().enumerate() {
+            *byte = pattern(index * BLOCK_SIZE + offset, seed);
+        }
+    }
+
+    let (one, many) = written.split_at(1);
+    let (read_one, read_many) = read.split_at_mut(1);
+    link.service();
+    let start = link.now();
+    let wrote_one = sd.write_blocks(scratch, one);
+    let one_write_us = link.now().wrapping_sub(start);
+    link.service();
+    let read_back_one = sd.read_blocks(scratch, read_one);
+    check!(
+        report,
+        link,
+        wrote_one.is_ok() && read_back_one.is_ok() && read_one[0] == one[0],
+        "sd: one block written and read back in {} us: {:?} {:?}",
+        one_write_us,
+        wrote_one,
+        read_back_one
+    );
+
+    link.service();
+    let start = link.now();
+    let wrote_many = sd.write_blocks(scratch + 1, many);
+    let many_write_us = link.now().wrapping_sub(start);
+    link.service();
+    let start = link.now();
+    let read_back_many = sd.read_blocks(scratch + 1, read_many);
+    let many_read_us = link.now().wrapping_sub(start);
+    check!(
+        report,
+        link,
+        wrote_many.is_ok() && read_back_many.is_ok() && read_many == many,
+        "sd: 16 blocks: written in {} us, read in {} us: {:?} {:?}",
+        many_write_us,
+        many_read_us,
+        wrote_many,
+        read_back_many
+    );
+
+    // Past the end is refused, before anything reaches the card.
+    let refused = sd.read_blocks(card.blocks - 1, read_many);
+    check!(
+        report,
+        link,
+        refused == Err(sdmmc::Error::OutOfRange),
+        "sd: a read past the end is refused: {:?}",
+        refused
+    );
+
+    // One at a time reads what many at once wrote, the other way about.
+    link.service();
+    let single = sd.read_block(scratch + 1, &mut read_many[0]);
+    check!(
+        report,
+        link,
+        single.is_ok() && read_many[0] == many[0],
+        "sd: a single read agrees with a multiple write: {:?}",
+        single
+    );
+
+    link.service();
+    let restored = sd.write_blocks(scratch, &saved[..]);
+    link.service();
+    let checked = sd.read_blocks(scratch, &mut read[..]);
+    check!(
+        report,
+        link,
+        restored.is_ok() && checked.is_ok() && *read == *saved,
+        "sd: the 17 blocks are back as they were: {:?} {:?}",
+        restored,
+        checked
+    );
+}
+
+fn pattern(index: usize, seed: u32) -> u8 {
+    ((index as u32).wrapping_mul(2_654_435_761).wrapping_add(seed) >> 24) as u8
+}
 
 /// RCC's own view: the crystal really runs the chip.
 fn rcc_suite(report: &mut Report, link: &mut Link) {
@@ -207,6 +345,40 @@ fn main() -> ! {
         reboot_to_dfu()
     };
 
+    // The SD card: pull-ups on the command and data lines.
+    let mut ck = c.p12.into_alternate::<12>(&mut c.ctrl);
+    ck.set_speed(&mut c.ctrl, Speed::VeryHigh);
+    let mut cmd = d.p2.into_alternate::<12>(&mut d.ctrl);
+    cmd.set_speed(&mut d.ctrl, Speed::VeryHigh);
+    cmd.set_pull(&mut d.ctrl, Pull::Up);
+    let mut d0 = c.p8.into_alternate::<12>(&mut c.ctrl);
+    d0.set_speed(&mut c.ctrl, Speed::VeryHigh);
+    d0.set_pull(&mut c.ctrl, Pull::Up);
+    let mut d1 = c.p9.into_alternate::<12>(&mut c.ctrl);
+    d1.set_speed(&mut c.ctrl, Speed::VeryHigh);
+    d1.set_pull(&mut c.ctrl, Pull::Up);
+    let mut d2 = c.p10.into_alternate::<12>(&mut c.ctrl);
+    d2.set_speed(&mut c.ctrl, Speed::VeryHigh);
+    d2.set_pull(&mut c.ctrl, Pull::Up);
+    let mut d3 = c.p11.into_alternate::<12>(&mut c.ctrl);
+    d3.set_speed(&mut c.ctrl, Speed::VeryHigh);
+    d3.set_pull(&mut c.ctrl, Pull::Up);
+    let Ok(mut sd) = Sdmmc::new(
+        &mut rcc,
+        sdmmc::Wiring {
+            sdmmc: p.SDMMC1,
+            ck,
+            cmd,
+            d0,
+            d1,
+            d2,
+            d3,
+        },
+        &sdmmc::Config::new(Hertz::mhz(25)),
+    ) else {
+        reboot_to_dfu()
+    };
+
     let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
     dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
     let mut dp = a.p12.into_alternate::<10>(&mut a.ctrl);
@@ -231,5 +403,6 @@ fn main() -> ! {
         check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
         check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);
         board_adc::suite(report, link, &mut scan, &["voltage PC0", "current PC1"], vdda);
+        sd_suite(report, link, &mut sd);
     })
 }
