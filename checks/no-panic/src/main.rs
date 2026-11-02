@@ -352,6 +352,34 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     }
 }
 
+/// The polled SPI through every operation.
+pub fn exercise_blocking<U, K, I, O>(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: spi::BlockingWiring<U, K, I, O>)
+where
+    U: spi::Instance,
+    K: spi::SckPin<U> + ferrohal_stm32::gpio::AltPin,
+    I: spi::MisoPin<U> + ferrohal_stm32::gpio::AltPin,
+    O: spi::MosiPin<U> + ferrohal_stm32::gpio::AltPin,
+{
+    use embedded_hal::spi::SpiBus;
+
+    black_box(&spi::BlockingWiring::<U, K, I, O>::RESOURCES).iter().for_each(keep);
+    let Ok(mut bus) = spi::BlockingSpi::new(rcc, wiring, &black_box(spi::Config::new(Hertz::mhz(10)))) else {
+        return;
+    };
+    let data = black_box(&[0x5au8; 300][..]);
+    let mut buf = [0u8; 300];
+    keep(SpiBus::read(&mut bus, black_box(&mut buf)));
+    keep(SpiBus::write(&mut bus, data));
+    keep(SpiBus::transfer(&mut bus, black_box(&mut buf[..10]), data));
+    keep(SpiBus::transfer_in_place(&mut bus, black_box(&mut buf)));
+    keep(SpiBus::flush(&mut bus));
+    keep(bus.set_config(&black_box(spi::Config::new(Hertz::khz(400)).with_mode(spi::MODE_3))));
+    keep(bus.frequency());
+    keep(bus.name());
+    bus.set_clock(Some(&CLOCK));
+    keep(SpiBus::write(&mut bus, data));
+}
+
 fn exercise_spi(bus: &mut Spi) {
     use embedded_hal::spi::SpiBus;
 
@@ -492,6 +520,15 @@ mod chip {
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
         super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
         super::exercise_watchdog(&mut rcc, p.IWDG);
+        super::exercise_blocking(
+            &mut rcc,
+            spi::BlockingWiring {
+                spi: p.SPI3,
+                sck: b.p3.into_alternate::<6>(&mut b.ctrl),
+                miso: b.p4.into_alternate::<6>(&mut b.ctrl),
+                mosi: b.p5.into_alternate::<6>(&mut b.ctrl),
+            },
+        );
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
         // TIM1 is the F401's only break-unit timer and its only update
         // request on DMA2, so it samples here and the F405 covers CHxN.
@@ -615,6 +652,15 @@ mod chip {
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG);
+        super::exercise_blocking(
+            &mut rcc,
+            spi::BlockingWiring {
+                spi: p.SPI3,
+                sck: b.p3.into_alternate::<6>(&mut b.ctrl),
+                miso: b.p4.into_alternate::<6>(&mut b.ctrl),
+                mosi: b.p5.into_alternate::<6>(&mut b.ctrl),
+            },
+        );
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
         super::exercise_complementary(&mut rcc, p.TIM8, a.p7.into_alternate::<3>(&mut a.ctrl));
         super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
@@ -737,6 +783,15 @@ mod chip {
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG1);
+        super::exercise_blocking(
+            &mut rcc,
+            spi::BlockingWiring {
+                spi: p.SPI3,
+                sck: b.p3.into_alternate::<6>(&mut b.ctrl),
+                miso: b.p4.into_alternate::<6>(&mut b.ctrl),
+                mosi: b.p5.into_alternate::<7>(&mut b.ctrl),
+            },
+        );
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma2.s0);
         super::exercise_complementary(&mut rcc, p.TIM1, a.p7.into_alternate::<1>(&mut a.ctrl));
         super::exercise_sampler(&mut rcc, p.TIM8, dma2.s1);

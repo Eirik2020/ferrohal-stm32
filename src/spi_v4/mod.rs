@@ -103,6 +103,37 @@ impl Unit {
         self.0.sr().read().eot()
     }
 
+    /// A polled transfer of `len` bytes begins: the size, then enable and
+    /// start, with the DMA requests left off.
+    pub(crate) fn start_polled(self, len: u16) {
+        let regs = self.0;
+        regs.cr2().write(|w| w.set_tsize(len));
+        regs.cr1().modify(|w| w.set_spe(true));
+        regs.cr1().modify(|w| w.set_cstart(true));
+    }
+
+    pub(crate) fn tx_ready(self) -> bool {
+        self.0.sr().read().txp()
+    }
+
+    /// One frame into the transmit FIFO, as a byte access.
+    pub(crate) fn write_byte(self, byte: u8) {
+        self.0.txdr8().write_value(byte);
+    }
+
+    pub(crate) fn rx_ready(self) -> bool {
+        self.0.sr().read().rxp()
+    }
+
+    pub(crate) fn read_byte(self) -> u8 {
+        self.0.rxdr8().read()
+    }
+
+    /// A polled transfer ends as a DMA one does: flags cleared, disabled.
+    pub(crate) fn end_polled(self) {
+        self.end();
+    }
+
     /// Overrun and mode fault; `end` clears them.
     pub(crate) fn take_errors(self) -> (bool, bool) {
         let sr = self.0.sr().read();

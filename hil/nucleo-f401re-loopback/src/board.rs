@@ -542,6 +542,48 @@ pub fn run_j(p: Peripherals) -> Result<RunJ, ClockError> {
     })
 }
 
+// Run K: the polled SPI (no DMA), over S4 and S5.
+
+/// SPI2 on the Foxeer F405 V2's NOR flash pins (PB13, PC2, PC3), over S4,
+/// at the Foxeer's 10 MHz in mode 0: 5.25 MHz here.
+pub type Spi2FoxeerNor = spi::BlockingWiring<SPI2, Af5<'B', 13>, Af5<'C', 2>, Af5<'C', 3>>;
+/// SPI3 on port C, over S5.
+pub type Spi3Blocking = spi::BlockingWiring<SPI3, Af6<'C', 10>, Af6<'C', 11>, Af6<'C', 12>>;
+
+pub struct RunK {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub exti: exti::Parts,
+    pub spi2: Spi2FoxeerNor,
+    pub spi3: Spi3Blocking,
+}
+
+pub fn run_k(p: Peripherals) -> Result<RunK, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    Ok(RunK {
+        led,
+        exti,
+        spi2: spi::BlockingWiring {
+            spi: p.SPI2,
+            sck: sck(b.p13, &mut b.ctrl),
+            miso: miso(c.p2, &mut c.ctrl),
+            mosi: mosi(c.p3, &mut c.ctrl),
+        },
+        spi3: spi::BlockingWiring {
+            spi: p.SPI3,
+            sck: sck(c.p10, &mut c.ctrl),
+            miso: miso(c.p11, &mut c.ctrl),
+            mosi: mosi(c.p12, &mut c.ctrl),
+        },
+        rcc,
+    })
+}
+
 /// An SCK or MOSI pin: driven, at high speed for the edges.
 fn sck<const P: char, const N: u8, const AF: u8>(
     pin: Pin<P, N>,

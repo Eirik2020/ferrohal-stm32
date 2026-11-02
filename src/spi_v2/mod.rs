@@ -105,6 +105,30 @@ impl Unit {
         });
     }
 
+    /// A polled transfer of `len` bytes begins: nothing to do, the SPI is
+    /// already enabled.
+    pub(crate) fn start_polled(self, _len: u16) {}
+
+    pub(crate) fn tx_ready(self) -> bool {
+        self.0.sr().read().txe()
+    }
+
+    /// One frame out. With 8-bit frames a write of DR sends one byte.
+    pub(crate) fn write_byte(self, byte: u8) {
+        self.0.dr().write(|w| w.set_dr(u16::from(byte)));
+    }
+
+    pub(crate) fn rx_ready(self) -> bool {
+        self.0.sr().read().rxne()
+    }
+
+    pub(crate) fn read_byte(self) -> u8 {
+        self.0.dr().read().dr() as u8
+    }
+
+    /// A polled transfer ends: nothing to undo.
+    pub(crate) fn end_polled(self) {}
+
     /// After a stopped or failed transfer: requests off, then up to `spins`
     /// register reads for the frames already in the SPI (the one shifting,
     /// the one in its buffer) to finish, since the SPI stays enabled; then

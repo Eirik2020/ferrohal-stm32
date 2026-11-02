@@ -533,6 +533,42 @@ pub fn run_k(p: Peripherals) -> Result<RunK, ClockError> {
     })
 }
 
+// Run L: the polled SPI (no DMA), over S3 and S4.
+
+pub struct RunL {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub exti: exti::Parts,
+    pub spi2: spi::BlockingWiring<SPI2, Af5<'B', 10>, Af5<'C', 2>, Af5<'C', 3>>,
+    pub spi4: spi::BlockingWiring<SPI4, Af5<'E', 12>, Af5<'E', 13>, Af5<'E', 14>>,
+}
+
+pub fn run_l(p: Peripherals) -> Result<RunL, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut b = p.GPIOB.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let mut e = p.GPIOE.split(&mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let led = b.p0.into_push_pull_output(&mut b.ctrl);
+    Ok(RunL {
+        led,
+        exti,
+        spi2: spi::BlockingWiring {
+            spi: p.SPI2,
+            sck: sck(b.p10, &mut b.ctrl),
+            miso: miso(c.p2, &mut c.ctrl),
+            mosi: sck(c.p3, &mut c.ctrl),
+        },
+        spi4: spi::BlockingWiring {
+            spi: p.SPI4,
+            sck: sck(e.p12, &mut e.ctrl),
+            miso: miso(e.p13, &mut e.ctrl),
+            mosi: sck(e.p14, &mut e.ctrl),
+        },
+        rcc,
+    })
+}
+
 /// An SCK or MOSI pin: driven, at high speed for the edges.
 fn sck<const P: char, const N: u8, const AF: u8>(
     pin: Pin<P, N>,

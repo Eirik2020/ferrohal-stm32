@@ -405,36 +405,48 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
         })(),
     );
 
-    report.check(name, "a polling pass takes no less than the driver's floor", (|| {
-        // Polls a slow transfer with the vector masked, as a blocking wait
-        // does, and times the passes: none may beat `PASS_CYCLES`.
-        let slow = slowest(bus)?;
-        set_config(bus, &slow)?;
-        let sent: [u8; 64] = pattern(9);
-        NVIC::mask(rx_vector);
-        let started = bus.lock(|b| b.spi.as_mut().map_or(Ok(()), |s| s.start(&sent)));
-        let mut fastest = u32::MAX;
-        let mut passes = 0;
-        loop {
-            let start = DWT::cycle_count();
-            let done = bus.lock(|b| b.spi.as_mut().and_then(Spi::poll));
-            let cycles = DWT::cycle_count().wrapping_sub(start);
-            if done.is_some() || passes > 100_000 {
-                break;
+    report.check(
+        name,
+        "a polling pass takes no less than the driver's floor",
+        (|| {
+            // Polls a slow transfer with the vector masked, as a blocking wait
+            // does, and times the passes: none may beat `PASS_CYCLES`.
+            let slow = slowest(bus)?;
+            set_config(bus, &slow)?;
+            let sent: [u8; 64] = pattern(9);
+            NVIC::mask(rx_vector);
+            let started = bus.lock(|b| b.spi.as_mut().map_or(Ok(()), |s| s.start(&sent)));
+            let mut fastest = u32::MAX;
+            let mut passes = 0;
+            loop {
+                let start = DWT::cycle_count();
+                let done = bus.lock(|b| b.spi.as_mut().and_then(Spi::poll));
+                let cycles = DWT::cycle_count().wrapping_sub(start);
+                if done.is_some() || passes > 100_000 {
+                    break;
+                }
+                fastest = fastest.min(cycles);
+                passes += 1;
             }
-            fastest = fastest.min(cycles);
-            passes += 1;
-        }
-        // SAFETY: RTIC bound and unmasked this vector; it is unmasked again.
-        unsafe { NVIC::unmask(rx_vector) };
-        set_config(bus, config)?;
-        started.map_err(Fail::Spi)?;
-        defmt::info!("{=str}: fastest polling pass {=u32} cycles over {=u32} passes", name, fastest, passes);
-        if fastest < PASS_FLOOR {
-            return Err(Fail::Bound { waited: fastest, floor: PASS_FLOOR });
-        }
-        Ok(())
-    })());
+            // SAFETY: RTIC bound and unmasked this vector; it is unmasked again.
+            unsafe { NVIC::unmask(rx_vector) };
+            set_config(bus, config)?;
+            started.map_err(Fail::Spi)?;
+            defmt::info!(
+                "{=str}: fastest polling pass {=u32} cycles over {=u32} passes",
+                name,
+                fastest,
+                passes
+            );
+            if fastest < PASS_FLOOR {
+                return Err(Fail::Bound {
+                    waited: fastest,
+                    floor: PASS_FLOOR,
+                });
+            }
+            Ok(())
+        })(),
+    );
 
     if let Some(health) = bus.lock(|b| b.spi.as_ref().map(Spi::health)) {
         defmt::info!(
@@ -578,4 +590,85 @@ pub fn exti_suite<B: Mutex<T = Bus>, const OP: char, const ON: u8, const P: char
     );
     exti.unlisten(ctrl);
     bus.lock(|b| b.counted = None);
+}
+
+/// The polled SPI's checks on one MOSI-to-MISO link: no DMA, no
+/// interrupts. `sck` is the SCK pin's EXTI line, only read for its level.
+pub fn blocking_suite<const P: char, const N: u8>(
+    report: &mut Report,
+    name: &str,
+    spi: &mut ferrohal_stm32::spi::BlockingSpi,
+    config: &spi::Config,
+    cpu: Hertz,
+    sck: &mut Exti<P, N>,
+    ctrl: &mut Ctrl,
+) where
+    Port<P>: PortInstance,
+{
+    sck.unlisten(ctrl);
+    report.check(
+        name,
+        "SpiBus: in place, read, write, uneven transfer",
+        (|| {
+            let sent: [u8; 600] = pattern(10);
+            let mut buf = sent;
+            SpiBus::transfer_in_place(spi, &mut buf).map_err(Fail::Spi)?;
+            compare(&sent, &buf)?;
+            let mut zeros = [0xffu8; 40];
+            SpiBus::read(spi, &mut zeros).map_err(Fail::Spi)?;
+            compare(&[0; 40], &zeros)?;
+            SpiBus::write(spi, &sent[..100]).map_err(Fail::Spi)?;
+            let mut short = [0u8; 10];
+            SpiBus::transfer(spi, &mut short, &sent[..20]).map_err(Fail::Spi)?;
+            compare(&sent[..10], &short)
+        })(),
+    );
+    report.check(
+        name,
+        "every mode: SCK idles at CPOL, bytes loop",
+        (|| {
+            let sent: [u8; 15] = pattern(11);
+            for mode in [MODE_0, MODE_1, MODE_2, MODE_3] {
+                spi.set_config(&config.with_mode(mode))
+                    .map_err(Fail::SpiConfig)?;
+                spin(1_000);
+                let idle_high = mode.polarity == Polarity::IdleHigh;
+                if sck.is_high() != idle_high {
+                    return Err(Fail::Level {
+                        expected_high: idle_high,
+                    });
+                }
+                let mut buf = sent;
+                SpiBus::transfer_in_place(spi, &mut buf).map_err(Fail::Spi)?;
+                compare(&sent, &buf)?;
+            }
+            spi.set_config(config).map(|_| ()).map_err(Fail::SpiConfig)
+        })(),
+    );
+    report.check(
+        name,
+        "64 bytes take at least their time on the wire",
+        (|| {
+            let sent: [u8; 64] = pattern(12);
+            let mut buf = sent;
+            let wire = (u64::from(cpu.0) * 8 * 64 / u64::from(spi.frequency().0)) as u32;
+            let start = DWT::cycle_count();
+            SpiBus::transfer_in_place(spi, &mut buf).map_err(Fail::Spi)?;
+            let cycles = DWT::cycle_count().wrapping_sub(start);
+            compare(&sent, &buf)?;
+            // One byte in flight: the gaps between bytes add, up to four times
+            // the wire time at a fast SCK.
+            let (min, max) = (wire - wire / 50, wire * 4 + 20_000);
+            if !(min..=max).contains(&cycles) {
+                return Err(Fail::Time { cycles, min, max });
+            }
+            defmt::info!(
+                "{=str}: 64 bytes in {=u32} cycles, {=u32} on the wire",
+                name,
+                cycles,
+                wire
+            );
+            Ok(())
+        })(),
+    );
 }

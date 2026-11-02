@@ -14,12 +14,19 @@
 //!   which `received()` holds the bytes clocked in. `abort()` recovers a
 //!   transfer that never finishes.
 //! - **blocking**: `embedded_hal::spi::SpiBus`, each operation bounded.
+//! - **without DMA**: [`BlockingSpi`], a polled `SpiBus` for a bus whose
+//!   DMA routes are taken, from a [`BlockingWiring`] of the instance and
+//!   its pins alone.
 //! - **interrupts**: the receive stream's vector only. FerroHAL never
 //!   touches the NVIC.
 
+#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+mod polled;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub(crate) mod stream_dma;
 
+#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+pub use polled::BlockingSpi;
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
 pub use stream_dma::{Instance, MisoPin, MosiPin, SckPin, Spi, SpiRxDma, SpiTxDma};
 
@@ -140,6 +147,15 @@ pub struct Wiring<U, Sck, Miso, Mosi, TxDma, RxDma> {
     pub mosi: Mosi,
     pub tx_dma: TxDma,
     pub rx_dma: RxDma,
+}
+
+/// What the board file hands to `BlockingSpi::new`: one SPI instance and
+/// its three pins, no DMA streams.
+pub struct BlockingWiring<U, Sck, Miso, Mosi> {
+    pub spi: U,
+    pub sck: Sck,
+    pub miso: Miso,
+    pub mosi: Mosi,
 }
 
 /// The memory the driver's DMA uses, owned by the driver from `new` on.

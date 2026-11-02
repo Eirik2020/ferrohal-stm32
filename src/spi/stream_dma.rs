@@ -74,6 +74,14 @@ impl Info {
     pub(crate) const fn new(unit: Unit, enable: RccBit) -> Self {
         Self { unit, enable }
     }
+
+    pub(crate) fn unit(&self) -> Unit {
+        self.unit
+    }
+
+    pub(crate) fn enable(&self) -> RccBit {
+        self.enable
+    }
 }
 
 /// An SPI instance this chip has. Chip facts: the glue layer implements it.
