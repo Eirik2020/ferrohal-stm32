@@ -373,3 +373,12 @@ macro_rules! adc_dma_mux {
         }
     };
 }
+
+/// A timer another can start: `SLAVE: MASTER, internal trigger number`.
+macro_rules! timer_trigger {
+    ($slave:ident: $master:ident, $itr:literal) => {
+        impl crate::timer::TriggeredBy<$master> for $slave {
+            const ITR: u8 = $itr;
+        }
+    };
+}

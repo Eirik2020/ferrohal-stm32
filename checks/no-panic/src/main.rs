@@ -555,6 +555,11 @@ mod chip {
         super::exercise_watchdog(&mut rcc, p.IWDG);
         super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
         super::exercise_adc_internal(&mut rcc, unsafe { ferrohal_stm32::chip::ADC1::steal() });
+        super::exercise_trigger(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            unsafe { ferrohal_stm32::chip::TIM3::steal() },
+        );
         // PA12 is USART6's here, so the constructor is left to the F405,
         // which shares this code; the F4's clock check runs on its own.
         super::keep_usb_clock(&mut rcc);
@@ -692,6 +697,11 @@ mod chip {
         super::exercise_watchdog(&mut rcc, p.IWDG);
         super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
         super::exercise_adc_internal(&mut rcc, unsafe { ferrohal_stm32::chip::ADC1::steal() });
+        super::exercise_trigger(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            unsafe { ferrohal_stm32::chip::TIM3::steal() },
+        );
         super::exercise_usb(
             &mut rcc,
             p.USB_OTG_FS,
@@ -831,6 +841,11 @@ mod chip {
         super::exercise_watchdog(&mut rcc, p.IWDG1);
         super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
         super::exercise_adc_internal(&mut rcc, p.ADC3);
+        super::exercise_trigger(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            unsafe { ferrohal_stm32::chip::TIM8::steal() },
+        );
         super::exercise_usb(
             &mut rcc,
             p.USB_OTG_FS,
@@ -958,4 +973,27 @@ static mut ADC_BUFFER: [u16; 4] = [0; 4];
 fn adc_buffer() -> &'static mut [u16] {
     // SAFETY: called once, from one chip's check.
     unsafe { &mut *core::ptr::addr_of_mut!(ADC_BUFFER) }
+}
+
+/// One timer starting another.
+pub fn exercise_trigger<M, S>(rcc: &mut ferrohal_stm32::rcc::Rcc, master: M, slave: S)
+where
+    M: ferrohal_stm32::timer::ChannelTimer,
+    S: ferrohal_stm32::timer::TriggeredBy<M>,
+{
+    use ferrohal_stm32::timer::Pwm;
+
+    let (Ok(mut master), Ok(mut slave)) = (
+        Pwm::new(rcc, master, black_box(Hertz::khz(600))),
+        Pwm::new(rcc, slave, black_box(Hertz::khz(600))),
+    ) else {
+        return;
+    };
+    master.lead();
+    slave.follow(&master);
+    master.start();
+    keep(slave.counter());
+    keep(slave.is_running());
+    master.stop();
+    slave.stop();
 }

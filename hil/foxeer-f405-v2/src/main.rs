@@ -37,7 +37,7 @@ use ferrohal_stm32::{
     },
     spi::{self, BlockingSpi, BlockingWiring, Buffers, Spi, Wiring},
     time::Hertz,
-    timer::Timebase,
+    timer::{Pwm, Timebase},
     usb::UsbFs,
 };
 
@@ -112,6 +112,43 @@ const OTG_FS_DSTS: *const u32 = 0x5000_0808 as *const u32;
 static mut ADC_SAMPLES: [u16; 3] = [0; 3];
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
+
+/// TIM1 starting TIM8 from its trigger, as the flight code starts them. No
+/// channel is set up, so no output reaches a motor pin.
+fn motor_timer_suite<M, S>(report: &mut Report, link: &mut Link, master: &mut Pwm<M>, slave: &mut Pwm<S>)
+where
+    M: ferrohal_stm32::timer::ChannelTimer,
+    S: ferrohal_stm32::timer::TriggeredBy<M>,
+{
+    master.lead();
+    slave.follow(master);
+    let still = !slave.is_running() && slave.counter() == 0;
+    check!(report, link, still, "timers: TIM8 waits for TIM1");
+    let mut worst = 0;
+    let mut stopped = 0;
+    for _ in 0..100 {
+        master.stop();
+        slave.stop();
+        master.stage(0);
+        slave.stage(0);
+        master.start();
+        let (lead, follower) = (master.counter(), slave.counter());
+        stopped += u32::from(!slave.is_running());
+        let apart = lead.abs_diff(follower);
+        worst = worst.max(apart.min(master.period().saturating_sub(apart)));
+        link.settle(10);
+    }
+    master.stop();
+    slave.stop();
+    check!(
+        report,
+        link,
+        stopped == 0 && worst <= 64,
+        "timers: 100 starts of TIM8 from TIM1, {} missed, at most {} counts apart",
+        stopped,
+        worst
+    );
+}
 
 /// RCC's own view: the crystal really runs the chip.
 fn rcc_suite(report: &mut Report, link: &mut Link) {
@@ -424,6 +461,13 @@ fn main() -> ! {
         reboot_to_dfu()
     };
 
+    let (Ok(mut tim1), Ok(mut tim8)) = (
+        Pwm::new(&mut rcc, p.TIM1, Hertz::khz(600)),
+        Pwm::new(&mut rcc, p.TIM8, Hertz::khz(600)),
+    ) else {
+        reboot_to_dfu()
+    };
+
     let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
     dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
     let mut dp = a.p12.into_alternate::<10>(&mut a.ctrl);
@@ -445,6 +489,7 @@ fn main() -> ! {
         usb_bench::uid_suite(report, link);
         imu.suite(report, link);
         nor_suite(report, link, &mut nor);
+        motor_timer_suite(report, link, &mut tim1, &mut tim8);
         let vdda = vdda_mv.unwrap_or(0);
         check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
         check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);

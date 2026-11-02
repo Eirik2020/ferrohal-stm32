@@ -242,3 +242,67 @@ pub fn duty_check(
         })(),
     );
 }
+
+/// One timer starting another: the slave sits still until the master starts,
+/// then runs within `max_skew` counts of it, frame after frame. No outputs:
+/// these counters drive no pin.
+pub fn trigger_suite<M, S>(
+    report: &mut Report,
+    name: &str,
+    master: &mut Pwm<M>,
+    slave: &mut Pwm<S>,
+    max_skew: u32,
+) where
+    M: ChannelTimer,
+    S: ferrohal_stm32::timer::TriggeredBy<M>,
+{
+    master.lead();
+    slave.follow(master);
+    cortex_m::asm::delay(10_000);
+    let still = !slave.is_running() && slave.counter() == 0;
+    report.check(
+        name,
+        "the slave waits for the master",
+        if still {
+            Ok(())
+        } else {
+            Err(Fail::Count { expected: 0, got: slave.counter() })
+        },
+    );
+    let mut worst = 0u32;
+    let mut stopped = 0u32;
+    for _ in 0..100 {
+        master.stop();
+        slave.stop();
+        master.stage(0);
+        slave.stage(0);
+        master.start();
+        let (lead, follower) = (master.counter(), slave.counter());
+        stopped += u32::from(!slave.is_running());
+        // Either may just have wrapped from its staged reload value.
+        let apart = lead.abs_diff(follower);
+        worst = worst.max(apart.min(master.period().saturating_sub(apart)));
+        cortex_m::asm::delay(1_000);
+    }
+    master.stop();
+    slave.stop();
+    report.check(
+        name,
+        "100 starts: the master's starts the slave",
+        if stopped == 0 {
+            Ok(())
+        } else {
+            Err(Fail::Count { expected: 0, got: stopped })
+        },
+    );
+    report.check(
+        name,
+        "100 starts: they begin together",
+        if worst <= max_skew {
+            Ok(())
+        } else {
+            Err(Fail::Count { expected: max_skew, got: worst })
+        },
+    );
+    defmt::info!("{=str}: at most {=u32} counts apart, read one after the other", name, worst);
+}

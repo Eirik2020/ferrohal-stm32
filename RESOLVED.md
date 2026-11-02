@@ -63,6 +63,10 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 - **`signature::device_uid`:** the unique ID, in memory order.
 - **Glue:** `check_glue.py` checks each ADC's enable bit, pins and DMA routes, plus each SPI's kernel clock, SYSCFG's enable, DMA stream vectors, the watchdog peripheral and EXTI vectors, the gaps it had before.
 
+## One timer starting another
+
+- **`Pwm::lead` and `Pwm::follow`** (2026-11-02): FerroWasp's Foxeer starts TIM8 from TIM1 so all four lanes begin on one edge. Run N on the F401 (TIM1, TIM3), run P on the H753ZI and the Foxeer's own check (TIM1, TIM8): the slave waits, starts every time over 100 starts, and reads within 3 or 4 counts of the master, read one after the other. No output is enabled in any of them.
+
 ## STM32H753ZI
 
 - **HSE in bypass runs on hardware.** Run A, the Lucid mirror, freezes from the ST-LINK's 8 MHz MCO (UM2407 7.5.1): 8 MHz reference, 800 MHz wide VCO, 400 MHz core.

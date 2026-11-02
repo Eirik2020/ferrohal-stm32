@@ -66,6 +66,13 @@ pub trait ChannelTimer: Instance {
     const BREAK: bool;
 }
 
+/// A timer that another timer's trigger output can start: `M`'s TRGO reaches
+/// this timer as internal trigger `ITR` (RM0090 table 94, RM0368 table 54,
+/// RM0433 table 336). A chip fact, from the glue.
+pub trait TriggeredBy<M: ChannelTimer>: ChannelTimer {
+    const ITR: u8;
+}
+
 /// A pin, in the right alternate function, that carries channel `C` of `T`.
 pub trait ChannelPin<T: ChannelTimer, const C: u8>: crate::Sealed {}
 

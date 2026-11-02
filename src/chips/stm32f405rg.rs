@@ -270,6 +270,11 @@ pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
     pac::IWDG
 }
 
+// Timers another timer's trigger output can start.
+
+timer_trigger!(TIM8: TIM1, 0);
+timer_trigger!(TIM3: TIM1, 0);
+
 // The ADC. ADC2 and ADC3 aren't offered. The calibration values are the
 // datasheets' (DS8626 and DS10086), taken at 3.3 V and 12 bits.
 

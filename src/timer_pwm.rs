@@ -26,7 +26,10 @@ use core::{
     sync::atomic::{Ordering, fence},
 };
 
-use stm32_metapac::timer::{TimAdv, TimGp16, vals::Urs};
+use stm32_metapac::timer::{
+    TimAdv, TimGp16,
+    vals::{Mms, Sms, Ts, Urs},
+};
 
 /// PWM mode 1 in the general-purpose CCMR: `timer_v3` gives that field its
 /// own type, with the H7's extra modes.
@@ -36,6 +39,7 @@ const PWM_MODE1: stm32_metapac::timer::vals::Ocm = stm32_metapac::timer::vals::O
 const PWM_MODE1: stm32_metapac::timer::vals::OcmGp = stm32_metapac::timer::vals::OcmGp::PWM_MODE1;
 
 use super::{
+    TriggeredBy,
     ChannelPin, ChannelTimer, CompareDma, ComplementaryPin, ConfigError, GpioDma, Instance,
     UpdateDma,
 };
@@ -217,6 +221,37 @@ impl<T: ChannelTimer> Pwm<T> {
         } else {
             self.gp.ccer().modify(|w| w.set_cce(index, on));
         }
+    }
+
+    /// Makes this timer the one others start from: its trigger output pulses
+    /// when its counter is enabled. See [`follow`](Self::follow).
+    pub fn lead(&mut self) {
+        self.gp.cr2().modify(|w| w.set_mms(Mms::ENABLE));
+    }
+
+    /// Starts this timer from `master`'s [`start`](Self::start) from now on,
+    /// so both begin on one edge. Don't `start` this one yourself. `stop`,
+    /// `stage` and the rest work as ever; the next master start starts it
+    /// again. `master` has to have called [`lead`](Self::lead).
+    pub fn follow<M: ChannelTimer>(&mut self, _master: &Pwm<M>)
+    where
+        T: TriggeredBy<M>,
+    {
+        self.gp.smcr().modify(|w| {
+            w.set_ts(Ts::from_bits(T::ITR));
+            w.set_sms(Sms::TRIGGER_MODE);
+        });
+    }
+
+    /// The counter's value now.
+    pub fn counter(&self) -> u32 {
+        // SAFETY: CNT, read whole: a 16-bit timer's upper half reads zero.
+        unsafe { core::ptr::read_volatile(self.gp.cnt().as_ptr() as *const u32) }
+    }
+
+    /// Whether the counter is running.
+    pub fn is_running(&self) -> bool {
+        self.gp.cr1().read().cen()
     }
 
     /// Stops the counter, closes every compare request, sets the counter to

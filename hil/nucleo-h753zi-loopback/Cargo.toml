@@ -94,6 +94,12 @@ path = "src/bin/run_o.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "run-p"
+path = "src/bin/run_p.rs"
+test = false
+bench = false
+
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32h753zi", "rt", "defmt", "usb"] }
 usbd-serial = "0.2.2"

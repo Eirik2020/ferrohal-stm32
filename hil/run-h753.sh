@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs the Nucleo-H753ZI bench: UART runs A to E, SPI and EXTI runs F to H,
 # timer runs I and J, watchdog run K,
-# polled SPI run L, USB CDC run M (needs a data cable from CN13 to the host), bootloader request run N, ADC run O. Every UART and SPI looped back to
+# polled SPI run L, USB CDC run M (needs a data cable from CN13 to the host), bootloader request run N, ADC run O, timer trigger run P. Every UART and SPI looped back to
 # itself. Exits non-zero if any run failed.
 #
 # Needs the Zio links described in nucleo-h753zi-loopback/src/board.rs.
@@ -12,7 +12,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$here/logs"
 
 status=0
-for run in ${*:-a b c d e f g h i j k l m n o}; do
+for run in ${*:-a b c d e f g h i j k l m n o p}; do
     log="$here/logs/h753-run-$run.log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
     # catch that reset, or the second boot never runs.

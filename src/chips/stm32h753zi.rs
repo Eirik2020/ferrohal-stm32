@@ -300,6 +300,11 @@ dma!(
     UART8: rx 81, tx 82;
 );
 
+// Timers another timer's trigger output can start.
+
+timer_trigger!(TIM8: TIM1, 0);
+timer_trigger!(TIM3: TIM1, 0);
+
 // The ADCs: ADC1 for the pins, ADC3 with the internal channels too. ADC2,
 // sharing ADC1's clock, isn't offered, nor the _C pads (PC2_C, PC3_C).
 
