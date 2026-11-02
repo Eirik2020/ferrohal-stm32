@@ -31,7 +31,9 @@ mod macros;
 mod h7;
 
 pub use h7::check_dma_buffer;
-pub(crate) use h7::{CLOCK_LIMITS, SYSTEM_MEMORY, map_system_memory};
+pub(crate) use h7::{
+    CLOCK_LIMITS, SYSTEM_MEMORY, TS_CAL1, TS_CAL2, UID_BASE, VREFIN_CAL, map_system_memory,
+};
 
 tokens!(
     USART1, USART2, USART3, UART4, UART5, USART6, UART7, UART8, LPUART1, TIM1, TIM2, TIM3, TIM4,
@@ -300,6 +302,20 @@ dma!(
     UART7: rx 79, tx 80;
     UART8: rx 81, tx 82;
 );
+
+// The ADCs: ADC1 for the pins, ADC3 with the internal channels too. ADC2,
+// sharing ADC1's clock, isn't offered, nor the _C pads (PC2_C, PC3_C).
+
+adcs!(
+    ADC1 => ADC12_COMMON, Ahb1, 5, false;
+    ADC3 => ADC3_COMMON, Ahb4, 24, true;
+);
+adc_internal!(ADC3: 18, 19);
+adc_pins!(ADC1: ('A', 0, 16), ('A', 1, 17), ('A', 2, 14), ('A', 3, 15), ('A', 4, 18), ('A', 5, 19), ('A', 6, 3), ('A', 7, 7),
+    ('B', 0, 9), ('B', 1, 5), ('C', 0, 10), ('C', 1, 11), ('C', 4, 4), ('C', 5, 8));
+adc_pins!(ADC3: ('C', 0, 10), ('C', 1, 11));
+adc_dma_mux!(ADC1: mux 9);
+adc_dma_mux!(ADC3: mux 115);
 
 /// The independent watchdog's token and registers.
 pub type WatchdogPeripheral = IWDG1;

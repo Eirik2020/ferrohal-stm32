@@ -19,8 +19,8 @@ interrupt vector and counter width, and every channel timer's channel count,
 break unit, channel pins (CHx, CHxN) and compare and update DMA routes, and
 the full-speed USB port's enable bit, vector and DM and DP pins. It also
 checks each SPI's kernel clock, SYSCFG's enable bit, every DMA stream's vector,
-the watchdog's peripheral, and the EXTI line vectors `src/exti.rs` shares
-across chips. On a fixed-request DMA a stream that serves one signal on two
+the watchdog's peripheral, the EXTI line vectors `src/exti.rs` shares across
+chips, and each ADC's enable bit, pins (positive inputs) and DMA routes. On a fixed-request DMA a stream that serves one signal on two
 channels appears once in the glue, with either request. Instances the metadata
 has and the glue leaves out are listed, not failed. Exits 1 on any mismatch.
 
@@ -111,6 +111,13 @@ class Metadata:
             for pin, signal, af in re.findall(
                 r'pin: "(\w+)",\s*signal: "(\w+)",\s*af: Some\((\d+)\)', block
             )
+        }
+
+    def analog_pins(self, name):
+        """(signal, pin, None): analog inputs have no alternate function."""
+        return {
+            (signal, pin, None)
+            for pin, signal in re.findall(r'pin: "(\w+)",\s*signal: "(\w+)"', self.peripheral(name))
         }
 
     def dma(self, name):
@@ -230,6 +237,30 @@ class Glue:
                 for stream, vector in re.findall(r"(\d+) => (\w+)", streams):
                     found[(int(controller), int(stream))] = vector
         return found
+
+    def adcs(self):
+        found = {}
+        for body in self.rows("adcs"):
+            for name, bus, bit in re.findall(r"(\w+) => \w+, (\w+), (\d+), \w+;", body):
+                found[name] = (bus, int(bit))
+        return found
+
+    def adc_pins(self):
+        found = {}
+        for name, body in re.findall(r"^adc_pins!\((\w+):(.*?)\);", self.text, re.S | re.M):
+            for port, pin, channel in re.findall(r"\('(\w)', (\d+), (\d+)\)", body):
+                found.setdefault(name, set()).add((f"P{port}{pin}", int(channel)))
+        return found
+
+    def adc_dma(self):
+        """{name: {(controller, stream, request)}} and {name: mux request}."""
+        fixed, mux = {}, {}
+        for name, body in re.findall(r"^adc_dma!\((\w+):(.*?)\);", self.text, re.S | re.M):
+            for row in re.findall(r"\((\d+), (\d+), (\d+)\)", body):
+                fixed.setdefault(name, set()).add(tuple(int(x) for x in row))
+        for name, request in re.findall(r"^adc_dma_mux!\((\w+): mux (\d+)\);", self.text, re.M):
+            mux[name] = int(request)
+        return fixed, mux
 
     def timers(self):
         found = {}
@@ -424,6 +455,23 @@ def check(chip, glue_path, metapac):
         token, regs = watchdog
         compare("watchdog token and registers are one peripheral", token, regs)
         compare(f"{token} is a watchdog", token in meta.names("iwdg"), True)
+    adc_fixed, adc_mux = glue.adc_dma()
+    adc_pins = glue.adc_pins()
+    for name, enable in sorted(glue.adcs().items()):
+        compare(f"{name} RCC enable", enable, meta.enable(name))
+        theirs = {
+            (pin, int(re.search(r"\d+", signal).group()))
+            for signal, pin, _ in meta.analog_pins(name)
+            if re.fullmatch(r"IN(P)?\d+", signal) and not pin.endswith("_C")
+        }
+        compare(f"{name} pins", adc_pins.get(name, set()), theirs)
+        routes = meta.dma(name)
+        if name in adc_mux:
+            theirs = {request for _, _, dmamux, request in routes if dmamux == "DMAMUX1"}
+            compare(f"{name} DMAMUX1 request", {adc_mux[name]}, theirs)
+        else:
+            theirs = {(int(ch[3]), int(ch[7:]), request) for _, ch, _, request in routes}
+            compare(f"{name} DMA routes", adc_fixed.get(name, set()), theirs)
     streams = glue.stream_vectors()
     for (controller, stream), vector in sorted(streams.items()):
         compare(f"DMA{controller} stream {stream} vector", vector, meta.interrupt(f"DMA{controller}", f"CH{stream}"))

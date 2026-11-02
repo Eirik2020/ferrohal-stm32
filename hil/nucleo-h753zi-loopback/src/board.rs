@@ -572,6 +572,48 @@ pub fn run_l(p: Peripherals) -> Result<RunL, ClockError> {
 // Run M: USB CDC, through the user USB connector (CN13) and a cable to the
 // host. PA11 and PA12 reach CN13 through SB21 and SB22 (UM2407 table 14).
 
+// Run O: the ADCs, PD7 driving PA6 over S1 and PF7 driving PF6 over Z10.
+
+pub struct RunO {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub adc1: ferrohal_stm32::chip::ADC1,
+    pub analog1: Pin<'A', 6, ferrohal_stm32::gpio::Analog>,
+    pub drive1: Pin<'D', 7, Output>,
+    pub stream1: Stream<1, 0>,
+    pub adc3: ferrohal_stm32::chip::ADC3,
+    pub analog3: Pin<'F', 6, ferrohal_stm32::gpio::Analog>,
+    pub drive3: Pin<'F', 7, Output>,
+    pub stream3: Stream<2, 0>,
+}
+
+pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let mut d = p.GPIOD.split(&mut rcc);
+    let mut f = p.GPIOF.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = b.p0.into_push_pull_output(&mut b.ctrl);
+    let analog1 = a.p6.into_analog(&mut a.ctrl);
+    let drive1 = d.p7.into_push_pull_output(&mut d.ctrl);
+    let analog3 = f.p6.into_analog(&mut f.ctrl);
+    let drive3 = f.p7.into_push_pull_output(&mut f.ctrl);
+    Ok(RunO {
+        rcc,
+        led,
+        adc1: p.ADC1,
+        analog1,
+        drive1,
+        stream1: dma1.s0,
+        adc3: p.ADC3,
+        analog3,
+        drive3,
+        stream3: dma2.s0,
+    })
+}
+
 pub struct RunM {
     pub rcc: Rcc,
     pub led: Led,

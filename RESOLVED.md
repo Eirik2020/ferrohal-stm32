@@ -57,6 +57,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 - **`reset::reboot_to_bootloader`, `bootloader_requested`, `enter_bootloader`, `peek_cause`** (2026-11-02), for the F4 and H7, with the chips' system memory addresses and the F4's memory remap in the glue. Run L on the F401, run N on the H753ZI: the request survives a software reset, with the data cache off and on, and answers yes once. The Foxeer's bench enters its ROM DFU through it.
 - **Found on the Lucid:** a single word written to AXI SRAM just before a reset is lost (RM0433 2.4; ECC per 64 bits). The bench measured a lone word, a barrier and a read back all lost; a whole doubleword or a further write kept. The F4's RAM has no ECC, so its benches never showed it.
 
+## ADC and unique ID
+
+- **`adc::Adc` and `AdcScan`** (2026-11-02), on `adc_v2` and `adc_v4`: ADC1 and, on the H7, ADC3, read one at a time or as a sequence over DMA. Run M on the F401, run O on the H753ZI, and the Foxeer's battery inputs in FerroWasp's sequence (temperature, voltage, current; 77 µs at the slowest). Physical checks: both rails over the SPI links, VDDA 3302 to 3333 mV and the internal reference 1202 to 1222 mV against factory calibration, the die at 27 to 36 °C.
+- **`signature::device_uid`:** the unique ID, in memory order.
+- **Glue:** `check_glue.py` checks each ADC's enable bit, pins and DMA routes, plus each SPI's kernel clock, SYSCFG's enable, DMA stream vectors, the watchdog peripheral and EXTI vectors, the gaps it had before.
+
 ## STM32H753ZI
 
 - **HSE in bypass runs on hardware.** Run A, the Lucid mirror, freezes from the ST-LINK's 8 MHz MCO (UM2407 7.5.1): 8 MHz reference, 800 MHz wide VCO, 400 MHz core.

@@ -347,6 +347,7 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     };
 
     keep(rcc.reset_cause());
+    keep(ferrohal_stm32::signature::device_uid());
     keep(reset::peek_cause());
     keep(reset::bootloader_requested());
     if black_box(false) {
@@ -552,6 +553,8 @@ mod chip {
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
         super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
         super::exercise_watchdog(&mut rcc, p.IWDG);
+        super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
+        super::exercise_adc_internal(&mut rcc, unsafe { ferrohal_stm32::chip::ADC1::steal() });
         // PA12 is USART6's here, so the constructor is left to the F405,
         // which shares this code; the F4's clock check runs on its own.
         super::keep_usb_clock(&mut rcc);
@@ -687,6 +690,8 @@ mod chip {
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG);
+        super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
+        super::exercise_adc_internal(&mut rcc, unsafe { ferrohal_stm32::chip::ADC1::steal() });
         super::exercise_usb(
             &mut rcc,
             p.USB_OTG_FS,
@@ -824,6 +829,8 @@ mod chip {
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG1);
+        super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
+        super::exercise_adc_internal(&mut rcc, p.ADC3);
         super::exercise_usb(
             &mut rcc,
             p.USB_OTG_FS,
@@ -891,4 +898,64 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
     park()
+}
+
+/// The ADC, one channel at a time and as a sequence over DMA.
+pub fn exercise_adc<A, P, S>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    token: A,
+    pin: P,
+    stream: S,
+    buffer: &'static mut [u16],
+) where
+    A: ferrohal_stm32::adc::Instance,
+    P: ferrohal_stm32::adc::AdcPin<A>,
+    S: ferrohal_stm32::adc::AdcDma<A>,
+{
+    use ferrohal_stm32::adc::{Adc, Config};
+
+    let Ok(mut adc) = Adc::new(rcc, token, &Config::slow_source()) else {
+        return;
+    };
+    let channel = adc.channel(&pin);
+    keep(channel.number());
+    keep(adc.read(channel));
+    keep(adc.max_sample());
+    keep(adc.to_millivolts(black_box(1), black_box(3300)));
+    let Ok(mut scan) = adc.into_scan(stream, &[channel, channel], buffer) else {
+        return;
+    };
+    keep(scan.start());
+    keep(scan.poll().map(|result| result.map(|samples| samples.len())));
+    keep(scan.on_interrupt().map(|result| result.map(|samples| samples.len())));
+    keep(scan.samples().first().copied());
+    scan.abort();
+    keep(scan.is_busy());
+    keep(scan.interrupt());
+    keep(scan.max_sample());
+    keep(scan.to_millivolts(black_box(1), black_box(3300)));
+}
+
+/// The internal channels, on the ADC that has them.
+pub fn exercise_adc_internal<A: ferrohal_stm32::adc::InternalChannels>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    token: A,
+) {
+    use ferrohal_stm32::adc::{Adc, Config};
+
+    let Ok(mut adc) = Adc::new(rcc, token, &Config::slow_source()) else {
+        return;
+    };
+    keep(adc.vdda_millivolts());
+    keep(adc.temperature_decidegrees());
+    keep(adc.vrefint_channel().number());
+    keep(adc.temperature_channel().number());
+}
+
+static mut ADC_BUFFER: [u16; 4] = [0; 4];
+
+/// The ADC sequence's buffer. Called once.
+fn adc_buffer() -> &'static mut [u16] {
+    // SAFETY: called once, from one chip's check.
+    unsafe { &mut *core::ptr::addr_of_mut!(ADC_BUFFER) }
 }

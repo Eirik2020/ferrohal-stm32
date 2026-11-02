@@ -306,3 +306,70 @@ pub(crate) fn within(buffer: &[u8], regions: &[(usize, usize)]) -> bool {
         .iter()
         .any(|&(base, len)| start >= base && end <= base.saturating_add(len))
 }
+
+/// ADC rows: `NAME => common registers, bus, enable bit, internal channels;`.
+macro_rules! adcs {
+    ($($name:ident => $common:ident, $bus:ident, $bit:literal, $internal:literal;)+) => {
+        $(
+            impl crate::adc::Instance for $name {
+                const NAME: &'static str = stringify!($name);
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
+                const BUS: Bus = Bus::$bus;
+                const INTERNAL: bool = $internal;
+                fn unit() -> crate::adc_ip::Unit {
+                    crate::adc_ip::Unit::new(pac::$name, pac::$common)
+                }
+            }
+        )+
+    };
+}
+
+/// An ADC's internal channels: `NAME: temperature sensor, VREFINT`.
+macro_rules! adc_internal {
+    ($name:ident: $temperature:literal, $vrefint:literal) => {
+        impl crate::adc::InternalChannels for $name {
+            const TEMPERATURE: u8 = $temperature;
+            const VREFINT: u8 = $vrefint;
+        }
+    };
+}
+
+/// An ADC's pins: `NAME: (port, pin, channel), ...`.
+macro_rules! adc_pins {
+    ($name:ident: $(($port:literal, $pin:literal, $channel:literal)),+ $(,)?) => {
+        $(impl crate::adc::AdcPin<$name> for Pin<$port, $pin, crate::gpio::Analog> {
+            const CHANNEL: u8 = $channel;
+        })+
+    };
+}
+
+/// An ADC's DMA streams on a fixed-request DMA: `NAME: (controller, stream,
+/// channel), ...`.
+#[allow(unused_macros)]
+macro_rules! adc_dma {
+    ($name:ident: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
+        $(
+            // SAFETY: the DMA request table's route for this ADC, from
+            // stm32-metapac's metadata.
+            unsafe impl crate::adc::AdcDma<$name> for Stream<$dma, $stream> {
+                const REQUEST: u8 = $request;
+            }
+        )+
+    };
+}
+
+/// An ADC's DMAMUX1 request: any stream of DMA1 or DMA2 serves it.
+#[allow(unused_macros)]
+macro_rules! adc_dma_mux {
+    ($name:ident: mux $request:literal) => {
+        // SAFETY: the DMAMUX1 request ID for this ADC, from stm32-metapac's
+        // metadata (RM0433 table 121).
+        unsafe impl<const D: u8, const N: u8> crate::adc::AdcDma<$name> for Stream<D, N>
+        where
+            Dma<D>: DmaInstance,
+            Stream<D, N>: crate::dma::StreamInterrupt,
+        {
+            const REQUEST: u8 = $request;
+        }
+    };
+}

@@ -127,3 +127,11 @@ pub(crate) const SYSTEM_MEMORY: u32 = 0x1FF0_9800;
 /// Nothing to map: the H7 boots from an address in the option bytes, and the
 /// bootloader runs from where it sits.
 pub(crate) fn map_system_memory() {}
+
+// The ADC's factory calibration (DS12110, DS12117), at 3.3 V and 16 bits.
+pub(crate) const VREFIN_CAL: *const u16 = 0x1FF1_E860 as *const u16;
+pub(crate) const TS_CAL1: *const u16 = 0x1FF1_E820 as *const u16;
+pub(crate) const TS_CAL2: *const u16 = 0x1FF1_E840 as *const u16;
+
+/// The unique ID's block (RM0433 61.1).
+pub(crate) const UID_BASE: usize = 0x1FF1_E800;

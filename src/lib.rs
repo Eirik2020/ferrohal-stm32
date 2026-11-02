@@ -45,7 +45,9 @@ compile_error!("enable one chip feature, such as `stm32f401re` or `stm32h753zi`"
 ))]
 compile_error!("enable only one chip feature");
 
+pub mod adc;
 pub mod reset;
+pub mod signature;
 pub mod resource;
 pub mod spi;
 pub mod time;
@@ -91,6 +93,10 @@ pub mod gpio_v2;
 pub mod rcc_f4;
 #[cfg(feature = "rcc_h7rm0433")]
 pub mod rcc_h7rm0433;
+#[cfg(feature = "adc_v2")]
+pub mod adc_v2;
+#[cfg(feature = "adc_v4")]
+pub mod adc_v4;
 #[cfg(feature = "spi_v2")]
 pub mod spi_v2;
 #[cfg(feature = "spi_v4")]
@@ -114,6 +120,10 @@ pub use gpio_v2 as gpio;
 pub use rcc_f4 as rcc;
 #[cfg(feature = "rcc_h7rm0433")]
 pub use rcc_h7rm0433 as rcc;
+#[cfg(feature = "adc_v2")]
+use adc_v2 as adc_ip;
+#[cfg(feature = "adc_v4")]
+use adc_v4 as adc_ip;
 #[cfg(feature = "spi_v2")]
 use spi_v2 as spi_ip;
 #[cfg(feature = "spi_v4")]

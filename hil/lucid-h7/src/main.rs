@@ -14,6 +14,8 @@
 #[macro_use]
 #[path = "../../common/usb_bench.rs"]
 mod usb_bench;
+#[path = "../../common/board_adc.rs"]
+mod board_adc;
 #[path = "../../common/imu.rs"]
 mod imu;
 
@@ -21,6 +23,7 @@ use core::ptr::{addr_of_mut, read_volatile};
 
 use cortex_m_rt::entry;
 use ferrohal_stm32::{
+    adc::{Adc, Config as AdcConfig},
     chip::{Peripherals, SPI1, TIM2},
     dma::Stream,
     exti::Edge,
@@ -100,6 +103,7 @@ const RCC_CFGR: *const u32 = 0x5802_4410 as *const u32;
 const RCC_PLLCKSELR: *const u32 = 0x5802_4428 as *const u32;
 const OTG_FS_DSTS: *const u32 = 0x4008_0808 as *const u32;
 
+static mut ADC_SAMPLES: [u16; 2] = [0; 2];
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
 
@@ -183,6 +187,26 @@ fn main() -> ! {
     // In EXTI only, so the flag latches: its NVIC vector stays off.
     imu_ready.listen(&mut exti.ctrl);
 
+    // The battery inputs on ADC1, over a stream the flight code leaves free;
+    // VDDA and the die from ADC3's internal channels.
+    let Ok(mut adc3) = Adc::new(&mut rcc, p.ADC3, &AdcConfig::slow_source()) else {
+        reboot_to_dfu()
+    };
+    let vdda_mv = adc3.vdda_millivolts();
+    let die_tenths = adc3.temperature_decidegrees();
+    let Ok(adc1) = Adc::new(&mut rcc, p.ADC1, &AdcConfig::slow_source()) else {
+        reboot_to_dfu()
+    };
+    let voltage = c.p0.into_analog(&mut c.ctrl);
+    let current = c.p1.into_analog(&mut c.ctrl);
+    let channels = [adc1.channel(&voltage), adc1.channel(&current)];
+    // SAFETY: `main` runs once, and this is the only reference.
+    let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
+    let dma2 = p.DMA2.split(&mut rcc);
+    let Ok(mut scan) = adc1.into_scan(dma2.s5, &channels, samples) else {
+        reboot_to_dfu()
+    };
+
     let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
     dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
     let mut dp = a.p12.into_alternate::<10>(&mut a.ctrl);
@@ -201,6 +225,11 @@ fn main() -> ! {
     usb_bench::serve(&mut link, cause, |report, link| {
         rcc_suite(report, link);
         usb_bench::clock_suite(report, link, OTG_FS_DSTS, CLOCKS.cpu.0);
+        usb_bench::uid_suite(report, link);
         imu.suite(report, link);
+        let vdda = vdda_mv.unwrap_or(0);
+        check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
+        check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);
+        board_adc::suite(report, link, &mut scan, &["voltage PC0", "current PC1"], vdda);
     })
 }

@@ -58,6 +58,8 @@ dma_v2 = []
 gpio_v2 = []
 rcc_f4 = []
 rcc_h7rm0433 = []
+adc_v2 = []
+adc_v4 = []
 
 # Chip features are metapac's chip names, passed straight through.
 stm32f401re = [
@@ -72,6 +74,7 @@ stm32f401re = [
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
+    "adc_v2",
 ]
 stm32f405rg = [
     "stm32-metapac/stm32f405rg",
@@ -85,6 +88,7 @@ stm32f405rg = [
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
+    "adc_v2",
 ]
 stm32h743vi = [
     "stm32-metapac/stm32h743vi",
@@ -98,6 +102,7 @@ stm32h743vi = [
     "dma_v1",
     "gpio_v2",
     "rcc_h7rm0433",
+    "adc_v4",
 ]
 stm32h753zi = [
     "stm32-metapac/stm32h753zi",
@@ -111,6 +116,7 @@ stm32h753zi = [
     "dma_v1",
     "gpio_v2",
     "rcc_h7rm0433",
+    "adc_v4",
 ]
 
 [package.metadata.docs.rs]

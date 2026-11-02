@@ -97,6 +97,15 @@ pub(crate) fn clear_reset_flags() {
 }
 
 impl Rcc {
+    /// Selects per_ck for the ADCs' kernel clock (ADCSEL), which reset leaves
+    /// on HSI, 64 MHz. Whether HSI is running: `freeze` never stops it.
+    pub(crate) fn adc_clock(&mut self) -> bool {
+        RCC_REGS
+            .d3ccipr()
+            .modify(|w| w.set_adcsel(stm32_metapac::rcc::vals::Adcsel::PER));
+        RCC_REGS.cr().read().hsirdy()
+    }
+
     /// Starts the USB port's clock and supply: HSI48 as its kernel clock,
     /// and the 3.3 V USB level detector (PWR_CR3's USB33DEN), which `freeze`
     /// owns with the rest of PWR. HSI48 runs untrimmed: the CRS's sync to

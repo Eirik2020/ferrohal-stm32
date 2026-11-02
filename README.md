@@ -16,7 +16,7 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 | STM32F401RE | Nucleo-F401RE |
 | STM32F405RG | Foxeer F405 V2 |
 | STM32H753ZI | Nucleo-H753ZI |
-| STM32H743VI | TBS Lucid H7 (same die as the H753ZI; its own build not yet run on hardware) |
+| STM32H743VI | TBS Lucid H7 |
 
 - **RCC:** explicit clock trees from HSI or HSE, validated by a `const fn`.
 - **GPIO:** typestate pins, one owner per port's shared registers.
@@ -28,8 +28,10 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 - **Timers:** an exact-rate tick, a 32-bit timebase, PWM on CHx and CHxN, compare registers fed by DMA (the DShot transmit primitive), and timer-paced sampling of a GPIO port.
 - **Watchdog:** the independent watchdog, and the reason for the last reset.
 - **USB:** full-speed device for `usb-device` and `usbd-serial`, behind the `usb` feature.
+- **ADC:** one channel at a time or a sequence over DMA, with the internal reference and temperature sensor against their factory calibration.
+- **System:** restarting into the ROM bootloader, and the unique device ID.
 
-Not yet: SDMMC, ADC, I2C, BDMA, input capture.
+Not yet: SDMMC, I2C, BDMA, input capture.
 
 ## Checking it
 
@@ -38,9 +40,10 @@ checks/run.sh        # clippy, no reachable panic, glue against metapac, host te
 hil/run-f401.sh      # the Nucleo-F401RE bench
 hil/run-h753.sh      # the Nucleo-H753ZI bench
 hil/run-foxeer.sh    # the Foxeer F405 V2 bench, over its USB port
+hil/run-lucid.sh     # the TBS Lucid H7 bench, over its USB port
 ```
 
-The benches flash RTIC firmwares over probe-rs and need the jumpers listed at the top of each board's `hil/*/src/board.rs` (UART TX-to-RX links, SPI MOSI-to-MISO links). The Foxeer has no probe: its firmware is flashed through the ROM DFU bootloader and reports over USB, against the board's own crystal, IMU and SPI NOR.
+The benches flash RTIC firmwares over probe-rs and need the jumpers listed at the top of each board's `hil/*/src/board.rs` (UART TX-to-RX links, SPI MOSI-to-MISO links). The flight controllers have no probe: their firmware is flashed through the ROM DFU bootloader and reports over USB, against each board's own crystal, IMU, battery inputs and, on the Foxeer, SPI NOR.
 
 ## Status
 

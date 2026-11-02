@@ -550,6 +550,34 @@ pub type Spi2FoxeerNor = spi::BlockingWiring<SPI2, Af5<'B', 13>, Af5<'C', 2>, Af
 /// SPI3 on port C, over S5.
 pub type Spi3Blocking = spi::BlockingWiring<SPI3, Af6<'C', 10>, Af6<'C', 11>, Af6<'C', 12>>;
 
+// Run M: the ADC, PA7 driving PA6 over S1.
+
+pub struct RunM {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub adc: ferrohal_stm32::chip::ADC1,
+    pub analog: Pin<'A', 6, ferrohal_stm32::gpio::Analog>,
+    pub drive: Pin<'A', 7, Output>,
+    pub stream: Stream<2, 0>,
+}
+
+pub fn run_m(p: Peripherals) -> Result<RunM, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    let analog = a.p6.into_analog(&mut a.ctrl);
+    let drive = a.p7.into_push_pull_output(&mut a.ctrl);
+    Ok(RunM {
+        rcc,
+        led,
+        adc: p.ADC1,
+        analog,
+        drive,
+        stream: dma2.s0,
+    })
+}
+
 pub struct RunK {
     pub rcc: Rcc,
     pub led: Led,

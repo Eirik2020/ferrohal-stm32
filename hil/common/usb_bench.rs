@@ -25,6 +25,7 @@ use cortex_m_rt::{ExceptionFrame, exception};
 use ferrohal_stm32::{
     iwdg::Watchdog,
     reset::{self, ResetCause},
+    signature,
     timer::Timebase,
     usb::{
         UsbBus, UsbFs,
@@ -210,6 +211,18 @@ pub fn cause_text(cause: ResetCause) -> &'static str {
     } else {
         "other"
     }
+}
+
+/// The chip's unique ID, for the log.
+pub fn uid_suite(report: &mut Report, link: &mut Link) {
+    let uid = signature::device_uid();
+    check!(
+        report,
+        link,
+        uid != [0; 12] && uid != [0xFF; 12],
+        "uid: {:02x?}",
+        uid
+    );
 }
 
 /// The CPU's cycles counted against the host's 1 kHz start-of-frames, the one

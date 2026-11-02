@@ -4,10 +4,10 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-11-02:
 
-- **F401:** `hil/run-f401.sh` passes 194 of 194 checks across eleven runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K).
-- **H753ZI:** `hil/run-h753.sh` passes 428 of 428 checks across thirteen runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L), USB CDC with the host checking every byte (M).
-- **F405RG:** `hil/run-foxeer.sh` passes 28 of 28 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal, IMU over DMA with EXTI data ready, and real SPI NOR. UART and timer outputs haven't run on it.
-- **H743VI:** builds, glue checked against metapac, values checked against its docs. Not yet run on hardware.
+- **F401:** `hil/run-f401.sh` passes all thirteen runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K), the bootloader request (L), the ADC (M).
+- **H753ZI:** `hil/run-h753.sh` passes all fifteen runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L), USB CDC with the host checking every byte (M), the bootloader request (N), the ADCs (O). Run M needs a cable from CN13, and last ran before the bootloader work.
+- **F405RG:** `hil/run-foxeer.sh` passes 33 of 33 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal, IMU over DMA with EXTI data ready, real SPI NOR and its battery inputs. UART and timer outputs haven't run on it.
+- **H743VI:** `hil/run-lucid.sh` passed 18 of 18 on the TBS Lucid H7, plus the host's USB echo: its crystal, IMU over DMA with EXTI data ready. Its battery inputs are in the firmware, waiting for the next flash. UART and timer outputs haven't run on it.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
@@ -15,7 +15,7 @@ Status as of 2026-11-02:
 | STM32F401RE | Nucleo-F401RE | `usart_v2`, `spi_v2`, `exti_v1`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 USART DMA routes; USART2 through a host echo on the ST-LINK VCP. All three SPIs on all 15 pin entries and all 10 SPI DMA routes. EXTI on PA12 and on every SPI SCK pin. |
 | STM32F405RG | Foxeer F405 V2 | as the F401 | HSE crystal to 168 MHz, checked against the host's USB frames. USB CDC on OTG_FS. SPI1 on the IMU's pins and DMA2 streams, EXTI4 from its data-ready, SPI2 polled on the real NOR. TIM2 timebase; the watchdog started and fed. |
 | STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
-| STM32H743VI | TBS Lucid H7 | as the H753ZI | Not as its own build; same die as the H753ZI. |
+| STM32H743VI | TBS Lucid H7 | as the H753ZI | HSE crystal to 400 MHz, checked against the host's USB frames. USB CDC on OTG_FS from HSI48. SPI1 on the IMU's pins and DMA1 streams 4 and 5, EXTI2 from its data-ready. |
 
 Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp). **Medium** is a gap someone will hit soon. **Low** is cleanup, or a limit worth knowing. Section numbers (§) refer to `ferrohal-architecture.md`.
 
@@ -62,6 +62,8 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: `verify()` can't check task priorities.** It checks the UART's vectors are enabled at one priority; "above every task that uses it" stays the application's job.
 - **Low: `set_config` exists only on the whole `Uart`;** after `split()` the frame can't change. `Uart::halves()` lends both halves meanwhile.
 - **Low: parts of the DMA API are untested:** double buffering (`Transfer::double_buffer`, `set_idle_buffer`, `current_target`), FIFO threshold mode, and `Channel::start` used directly.
+- **Medium: the ADC is regular conversions by software start only.** No timer trigger, injected channels, watchdogs, oversampling, or differential inputs; ADC2 isn't offered, nor the H7's `_C` pads. An `AdcScan` holds its ADC for good, and one sample time serves every channel.
+- **Low: the H7's ADC runs at a fixed 4 MHz,** per_ck (HSI) over 16, FerroWasp's speed, with BOOST left at its reset value, which suits that clock on both silicon revisions. ES0392 2.9.8 limits ADC3's resolution while the LSE runs; nothing here starts it. The Nucleo's bench reads 16 bits to within a few hundred counts on the rails, with no accuracy figure beyond that.
 - **Medium: the SPI is master, full duplex, 8-bit only.** No slave mode, simplex or half-duplex, 16-bit frames, hardware NSS or CRC. That holds for both `Spi` (DMA) and `BlockingSpi` (polled).
 - **Medium: `BlockingSpi` holds the CPU for the whole transfer.** One byte in flight, polled, with gaps between bytes (1.5 times the wire time at 5.25 MHz on the F401, 1.6 at 6.25 MHz on the H753). Fine for FerroWasp's NOR at 10 MHz, not for long transfers at high priority.
 - **Low: SPI bit order is unchecked on hardware.** A MOSI-to-MISO loop returns the bytes whichever bit goes first, so `BitOrder::LsbFirst` is only shown to transfer.
@@ -71,7 +73,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Architecture and process
 
-- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs, timers, USB, DMA and EXTI vectors: 124 facts on the F401, 170 on the F405, 172 on the H743, 176 on the H753) by reading the rows as text, so their layout must stay as it is. The metadata doesn't hold the USB FIFO depth, endpoint count or core kind, the clock limits or the memory map, so those stay checked by hand against the manuals.
+- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs, timers, USB, ADCs, DMA and EXTI vectors: 127 facts on the F401, 173 on the F405, 178 on the H743, 182 on the H753) by reading the rows as text, so their layout must stay as it is. The metadata doesn't hold the USB FIFO depth, endpoint count or core kind, the clock limits or the memory map, so those stay checked by hand against the manuals.
 - **Medium: five source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Low: the bench isn't on FerroForge yet.** Decided (2026-11-02): no fork is needed, since FerroForge's macros don't depend on a HAL and FerroHAL provides the RTIC device module; only its CLI backends name stm32f4xx-hal and stm32h7xx-hal. When FerroWasp's swap nears, add a FerroHAL backend to the FerroForge CLI and move the bench runs onto FerroForge tasks, which should cut 15-25 % of the run binaries' lines and prove the pair together.

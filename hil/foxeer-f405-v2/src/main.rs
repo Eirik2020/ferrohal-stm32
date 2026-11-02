@@ -14,6 +14,8 @@
 #[macro_use]
 #[path = "../../common/usb_bench.rs"]
 mod usb_bench;
+#[path = "../../common/board_adc.rs"]
+mod board_adc;
 #[path = "../../common/imu.rs"]
 mod imu;
 
@@ -23,6 +25,7 @@ use cortex_m::peripheral::DWT;
 use cortex_m_rt::entry;
 use embedded_hal::spi::SpiBus;
 use ferrohal_stm32::{
+    adc::{Adc, Config as AdcConfig},
     chip::{Peripherals, SPI1, SPI2, TIM2},
     dma::Stream,
     exti::Edge,
@@ -106,6 +109,7 @@ const RCC_PLLCFGR: *const u32 = 0x4002_3804 as *const u32;
 const RCC_CFGR: *const u32 = 0x4002_3808 as *const u32;
 const OTG_FS_DSTS: *const u32 = 0x5000_0808 as *const u32;
 
+static mut ADC_SAMPLES: [u16; 3] = [0; 3];
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
 
@@ -404,6 +408,22 @@ fn main() -> ! {
     // In EXTI only, so the flag latches: its NVIC vector stays off.
     imu_ready.listen(&mut exti.ctrl);
 
+    // The battery inputs, on ADC1 with the temperature sensor: the sequence
+    // and the free stream the flight code uses.
+    let Ok(mut adc) = Adc::new(&mut rcc, p.ADC1, &AdcConfig::slow_source()) else {
+        reboot_to_dfu()
+    };
+    let voltage = c.p0.into_analog(&mut c.ctrl);
+    let current = c.p1.into_analog(&mut c.ctrl);
+    let vdda_mv = adc.vdda_millivolts();
+    let die_tenths = adc.temperature_decidegrees();
+    let channels = [adc.temperature_channel(), adc.channel(&voltage), adc.channel(&current)];
+    // SAFETY: `main` runs once, and this is the only reference.
+    let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
+    let Ok(mut scan) = adc.into_scan(dma2.s4, &channels, samples) else {
+        reboot_to_dfu()
+    };
+
     let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
     dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
     let mut dp = a.p12.into_alternate::<10>(&mut a.ctrl);
@@ -422,7 +442,12 @@ fn main() -> ! {
     usb_bench::serve(&mut link, cause, |report, link| {
         rcc_suite(report, link);
         usb_bench::clock_suite(report, link, OTG_FS_DSTS, CLOCKS.sysclk.0);
+        usb_bench::uid_suite(report, link);
         imu.suite(report, link);
         nor_suite(report, link, &mut nor);
+        let vdda = vdda_mv.unwrap_or(0);
+        check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
+        check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);
+        board_adc::suite(report, link, &mut scan, &["temperature", "voltage PC0", "current PC1"], vdda);
     })
 }

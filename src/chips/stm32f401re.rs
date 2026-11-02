@@ -210,6 +210,24 @@ pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
     pac::IWDG
 }
 
+// The ADC. ADC2 and ADC3 aren't offered. The calibration values are the
+// datasheets' (DS8626 and DS10086), taken at 3.3 V and 12 bits.
+
+adcs!(
+    ADC1 => ADC1_COMMON, Apb2, 8, true;
+);
+adc_internal!(ADC1: 18, 17);
+adc_pins!(ADC1: ('A', 0, 0), ('A', 1, 1), ('A', 2, 2), ('A', 3, 3), ('A', 4, 4), ('A', 5, 5), ('A', 6, 6), ('A', 7, 7),
+    ('B', 0, 8), ('B', 1, 9), ('C', 0, 10), ('C', 1, 11), ('C', 2, 12), ('C', 3, 13), ('C', 4, 14), ('C', 5, 15));
+adc_dma!(ADC1: (2, 0, 0), (2, 4, 0));
+
+pub(crate) const VREFIN_CAL: *const u16 = 0x1FFF_7A2A as *const u16;
+pub(crate) const TS_CAL1: *const u16 = 0x1FFF_7A2C as *const u16;
+pub(crate) const TS_CAL2: *const u16 = 0x1FFF_7A2E as *const u16;
+
+/// The unique ID's block (RM0090 39.1, RM0368 25.1).
+pub(crate) const UID_BASE: usize = 0x1FFF_7A10;
+
 /// The ROM bootloader's vector table (AN2606).
 pub(crate) const SYSTEM_MEMORY: u32 = 0x1FFF_0000;
 
