@@ -106,7 +106,8 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ## 3. STM32F405RG (Foxeer F405 V2)
 
-- **Medium: the Foxeer bench covers the board's buses, not the whole chip.** No UART has run on an F405 yet, nor UART4 and UART5, which the F401 doesn't have, and no frame has reached a motor pad: the motor check runs with outputs off. The board's UARTs and motor pins go to the outside world, so they need their own plan: no loopback links exist.
+- **Low: UART4 and UART5 have never run on `usart_v2`.** The F401 doesn't have them, and the F405 shares its driver with the F401, so no separate F405 UART bench is planned (decided 2026-11-02). Their glue is checked, and UART4 is the Foxeer's MSP port, so the swap's bench run will exercise it.
+- **Low: no frame has reached a Foxeer motor pad.** The motor check runs with outputs off; real DShot on the pads waits (decided 2026-11-02). The same lanes are read back by samplers on the Nucleos.
 - **Low: the bench's NOR commands are its own copy.** They follow FerroWasp's `spi_nor` driver, which compiled unchanged over `BlockingSpi` in a scratch crate but hasn't itself run over FerroHAL. The bench can't depend on it from a public repo. The IMU setup is copied the same way.
 - **Medium: a firmware with interrupts should build `cortex-m-rt` with `set-vtor` on the F405.** The first RTIC firmware (`hil/foxeer-f405-v2/src/bin/usb_irq.rs`) failed to enumerate after a DFU `leave`, with STALLed descriptor reads; with `set-vtor` it echoes up to 64 KiB. The F4's ROM leaves by jumping, no reset (the reset flags read empty after a `leave`; the H743 shows a software reset), which would leave VTOR on the ROM. No control run without `set-vtor` has confirmed that yet. FerroWasp's image doesn't set VTOR, so it may be exposed.
 - **Low: a Foxeer firmware that fails before USB can't say why.** It restarts into DFU, which shows only that something failed.
