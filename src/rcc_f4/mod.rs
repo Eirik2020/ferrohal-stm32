@@ -72,6 +72,15 @@ impl Rcc {
         self.clocks
     }
 
+    /// Checks the USB port's 48 MHz clock: PLLQ, which `Config` set. These
+    /// chips have no other source.
+    pub fn usb_clock(&mut self) -> Result<(), ClockError> {
+        match self.clocks.pll_q {
+            Some(Hertz(48_000_000)) => Ok(()),
+            _ => Err(ClockError::Usb),
+        }
+    }
+
     /// Why the chip last reset, read from RCC_CSR, whose flags are then
     /// cleared (RMVF) so the next reset reports only itself.
     pub fn reset_cause(&mut self) -> crate::reset::ResetCause {
@@ -515,6 +524,8 @@ pub enum ClockError {
     PllTimeout,
     /// A clock switch or the flash latency did not take within its bound.
     SwitchTimeout,
+    /// The USB port needs 48 MHz from PLLQ, and `Config` doesn't give it.
+    Usb,
 }
 
 /// A chip's clock limits, from its datasheet. Supplied by the glue layer.

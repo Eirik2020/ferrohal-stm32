@@ -1,0 +1,96 @@
+"""The host side of the USB CDC bench: finds the board's serial port, sends
+blocks of every interesting size, and checks each byte that comes back.
+
+    python3 -I usb_cdc_host.py [seconds to wait for the port]
+
+The sizes around 64 bytes straddle the full-speed packet size, where a
+transfer ending on a whole packet needs a zero-length packet to finish. Ends
+the board's run with the END marker. Exits non-zero on any mismatch.
+"""
+
+import glob
+import os
+import select
+import sys
+import termios
+import time
+
+END = b"BENCHEND"
+wait = float(sys.argv[1]) if len(sys.argv) > 1 else 30.0
+
+
+def find_port():
+    deadline = time.monotonic() + wait
+    while time.monotonic() < deadline:
+        ports = glob.glob("/dev/serial/by-id/*FerroHAL*")
+        if ports:
+            # udev has just made it; give permissions a moment to settle.
+            time.sleep(0.3)
+            return ports[0]
+        time.sleep(0.1)
+    sys.exit(
+        f"FAIL no FerroHAL serial port within {wait:.0f} s: is a data cable in the user USB port? "
+        "A charge-only cable gives the board VBUS and the host nothing."
+    )
+
+
+port = find_port()
+fd = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+attrs = termios.tcgetattr(fd)
+attrs[0] = 0
+attrs[1] = 0
+attrs[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
+attrs[3] = 0
+attrs[6][termios.VMIN] = 0
+attrs[6][termios.VTIME] = 0
+termios.tcsetattr(fd, termios.TCSANOW, attrs)
+termios.tcflush(fd, termios.TCIOFLUSH)
+print(f"PASS host: port {os.path.basename(port)}", flush=True)
+
+
+def pattern(size, seed):
+    return bytes(((i * 2654435761 + seed * 40503) >> 24) & 0xFF for i in range(size))
+
+
+def echo(data, timeout=10.0):
+    """Sends `data`, returns what came back, stopping at its length."""
+    sent, got = 0, bytearray()
+    deadline = time.monotonic() + timeout
+    while len(got) < len(data) and time.monotonic() < deadline:
+        want_write = [fd] if sent < len(data) else []
+        readable, writable, _ = select.select([fd], want_write, [], 0.2)
+        if writable:
+            try:
+                sent += os.write(fd, data[sent : sent + 512])
+            except BlockingIOError:
+                pass
+        if readable:
+            got += os.read(fd, 4096)
+    return bytes(got)
+
+
+failed = 0
+for seed, size in enumerate([1, 63, 64, 65, 128, 512, 4096]):
+    data = pattern(size, seed)
+    back = echo(data)
+    if back == data:
+        print(f"PASS host: {size} bytes echoed", flush=True)
+    else:
+        failed += 1
+        at = next((i for i, (a, b) in enumerate(zip(data, back)) if a != b), min(len(data), len(back)))
+        print(f"FAIL host: {size} bytes: {len(back)} came back, first difference at {at}", flush=True)
+
+data = pattern(64 * 1024, 99)
+start = time.monotonic()
+back = echo(data, 30.0)
+elapsed = time.monotonic() - start
+if back == data:
+    print(f"PASS host: 64 KiB echoed at {len(data) / elapsed / 1024:.0f} KiB/s", flush=True)
+else:
+    failed += 1
+    print(f"FAIL host: 64 KiB: {len(back)} bytes came back", flush=True)
+
+os.write(fd, END)
+time.sleep(0.2)
+os.close(fd)
+sys.exit(1 if failed else 0)

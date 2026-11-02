@@ -24,7 +24,7 @@ use stm32_metapac::{
     pwr::vals::Vos,
     rcc::vals::{
         Hpre, Hsidiv, Plldiv, Pllm, Plln, Pllrge, Pllsrc, Pllvcosel, Ppre, Saisel, Spi45sel, Sw,
-        Usart16910sel, Usart234578sel,
+        Usart16910sel, Usart234578sel, Usbsel,
     },
 };
 
@@ -37,6 +37,8 @@ pub const HSI: Hertz = Hertz(64_000_000);
 /// and these run from HSI (64 MHz) until the switch, so each count is a
 /// floor on the time allowed: at least 100 ms for HSE and the supply, 6 ms
 /// for the PLL.
+/// Spins allowed for HSI48 and the USB supply to report ready.
+const HSI48_SPINS: u32 = 1_000_000;
 const SUPPLY_SPINS: u32 = 6_400_000;
 const HSE_SPINS: u32 = 6_400_000;
 const PLL_SPINS: u32 = 400_000;
@@ -76,6 +78,23 @@ pub struct Rcc {
 }
 
 impl Rcc {
+    /// Starts the USB port's clock and supply: HSI48 as its kernel clock,
+    /// and the 3.3 V USB level detector (PWR_CR3's USB33DEN), which `freeze`
+    /// owns with the rest of PWR. HSI48 runs untrimmed: the CRS's sync to
+    /// USB start-of-frame doesn't work on revision Y (ES0392 2.2.3).
+    pub fn usb_clock(&mut self) -> Result<(), ClockError> {
+        RCC_REGS.cr().modify(|w| w.set_hsi48on(true));
+        if !wait(HSI48_SPINS, || RCC_REGS.cr().read().hsi48rdy()) {
+            return Err(ClockError::UsbTimeout);
+        }
+        RCC_REGS.d2ccip2r().modify(|w| w.set_usbsel(Usbsel::HSI48));
+        PWR.cr3().modify(|w| w.set_usb33den(true));
+        if !wait(HSI48_SPINS, || PWR.cr3().read().usb33rdy()) {
+            return Err(ClockError::UsbTimeout);
+        }
+        Ok(())
+    }
+
     /// Why the chip last reset, read from RCC_RSR, whose flags are then
     /// cleared (RMVF) so the next reset reports only itself.
     pub fn reset_cause(&mut self) -> crate::reset::ResetCause {
@@ -406,6 +425,8 @@ impl VoltageScale {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ClockError {
+    /// HSI48 or the USB supply didn't report ready within its bound.
+    UsbTimeout,
     HseFrequency,
     HseNotConfigured,
     PllNotConfigured,

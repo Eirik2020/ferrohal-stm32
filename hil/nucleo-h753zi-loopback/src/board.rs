@@ -569,6 +569,42 @@ pub fn run_l(p: Peripherals) -> Result<RunL, ClockError> {
     })
 }
 
+// Run M: USB CDC, through the user USB connector (CN13) and a cable to the
+// host. PA11 and PA12 reach CN13 through SB21 and SB22 (UM2407 table 14).
+
+pub struct RunM {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub usb: ferrohal_stm32::chip::USB_OTG_FS,
+    pub dm: Pin<'A', 11, Alternate<10>>,
+    pub dp: Pin<'A', 12, Alternate<10>>,
+    /// CN13's VBUS, through SB23: high with a cable in.
+    pub vbus: Pin<'A', 9>,
+    pub tim2: TIM2,
+}
+
+pub fn run_m(p: Peripherals) -> Result<RunM, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let led = b.p0.into_push_pull_output(&mut b.ctrl);
+    let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
+    dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
+    let mut dp = a.p12.into_alternate::<10>(&mut a.ctrl);
+    dp.set_speed(&mut a.ctrl, Speed::VeryHigh);
+    // No pull: the board drives PA9 through a divider a pull would load.
+    let vbus = a.p9.into_input(&mut a.ctrl);
+    Ok(RunM {
+        rcc,
+        led,
+        usb: p.USB_OTG_FS,
+        dm,
+        dp,
+        vbus,
+        tim2: p.TIM2,
+    })
+}
+
 /// An SCK or MOSI pin: driven, at high speed for the edges.
 fn sck<const P: char, const N: u8, const AF: u8>(
     pin: Pin<P, N>,

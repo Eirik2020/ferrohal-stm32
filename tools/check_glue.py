@@ -16,7 +16,8 @@ metadata of the stm32-metapac version Cargo.lock pins:
 It also checks every GPIO port's and DMA controller's enable bit, each
 controller's first DMAMUX channel, every timer's enable bit, update
 interrupt vector and counter width, and every channel timer's channel count,
-break unit, channel pins (CHx, CHxN) and compare and update DMA routes. On a
+break unit, channel pins (CHx, CHxN) and compare and update DMA routes, and
+the full-speed USB port's enable bit, vector and DM and DP pins. On a
 fixed-request DMA a stream that serves one signal on two channels appears
 once in the glue, with either request. Instances the metadata has and the glue
 leaves out are listed, not failed. Exits 1 on any mismatch.
@@ -197,6 +198,10 @@ class Glue:
                 found[name] = (int(channels), kind == "break")
         return found
 
+    def usb_fs(self):
+        m = re.search(r"^usb_fs!\(\s*(\w+) => (\w+), (\d+), (\w+), \d+, \d+, \w+;", self.text, re.M)
+        return (m.group(1), (m.group(2), int(m.group(3))), m.group(4)) if m else None
+
     def timer_pins(self):
         found = {}
         for tim, signal, rows in re.findall(r"^timer_pins!\((\w+) (\w+): (.*?)\);", self.text, re.M):
@@ -327,6 +332,14 @@ def check(chip, glue_path, metapac):
         else:
             theirs = {(signal, request) for signal, _, dmamux, request in routes if dmamux == "DMAMUX1"}
             compare(f"{name} DMAMUX1 requests", ours, theirs)
+    usb = glue.usb_fs()
+    if usb:
+        name, enable, vector = usb
+        compare(f"{name} RCC enable", enable, meta.enable(name))
+        vectors = set(re.findall(r'interrupt: "(\w+)"', meta.peripheral(name)))
+        compare(f"{name} vector is the metadata's", vector in vectors, True)
+        theirs = {p for p in meta.pins(name) if p[0] in ("DM", "DP")}
+        compare(f"{name} pins", {("DM", "PA11", 10), ("DP", "PA12", 10)}, theirs)
     for regs, enable in sorted(glue.ports().items()):
         compare(f"{regs} RCC enable", enable, meta.enable(regs))
     for dma, enable in sorted(glue.dma_controllers().items()):

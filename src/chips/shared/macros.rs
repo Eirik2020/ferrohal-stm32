@@ -242,6 +242,50 @@ macro_rules! gpio_dma {
     };
 }
 
+/// The full-speed USB port's row: `TOKEN => bus, enable bit, vector, FIFO
+/// words, endpoints, core;`, on PA11 and PA12 in alternate function 10.
+/// `core` is `fs_core` for a full-speed-only controller, or `hs_core` for
+/// the high-speed-capable one the H7's port is, running on its internal
+/// full-speed PHY.
+macro_rules! usb_fs {
+    ($name:ident => $bus:ident, $bit:literal, $vector:ident, $fifo:literal, $endpoints:literal, $core:ident;) => {
+        #[cfg(feature = "usb")]
+        pub(crate) const USB_FS_HS_CORE: bool = usb_core!($core);
+        #[cfg(feature = "usb")]
+        pub(crate) struct UsbFsFacts {
+            pub registers: *const (),
+            pub enable: RccBit,
+        }
+
+        // SAFETY: an address and an enable bit, both constant.
+        #[cfg(feature = "usb")]
+        unsafe impl Sync for UsbFsFacts {}
+
+        #[cfg(feature = "usb")]
+        pub(crate) const USB_FS: UsbFsFacts = UsbFsFacts {
+            registers: pac::$name.as_ptr() as *const (),
+            enable: RccBit::new(Bus::$bus, $bit),
+        };
+        #[cfg(feature = "usb")]
+        pub(crate) const USB_FS_INTERRUPT: Interrupt = Interrupt::$vector;
+        #[cfg(feature = "usb")]
+        pub(crate) const USB_FS_FIFO_WORDS: usize = $fifo;
+        #[cfg(feature = "usb")]
+        pub(crate) const USB_FS_ENDPOINTS: usize = $endpoints;
+    };
+}
+
+// Used only with the `usb` feature on.
+#[allow(unused_macros)]
+macro_rules! usb_core {
+    (fs_core) => {
+        false
+    };
+    (hs_core) => {
+        true
+    };
+}
+
 /// The vector each DMA stream raises.
 macro_rules! stream_interrupts {
     ($($dma:literal: [$($stream:literal => $vector:ident),+];)+) => {

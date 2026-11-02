@@ -5,7 +5,7 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 Status as of 2026-10-31:
 
 - **F401:** `hil/run-f401.sh` passes 194 of 194 checks across eleven runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K).
-- **H753ZI:** `hil/run-h753.sh` passes 417 of 417 checks across twelve runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L).
+- **H753ZI:** `hil/run-h753.sh` passes 428 of 428 checks across thirteen runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L), USB CDC with the host checking every byte (M).
 - **F405RG, H743VI:** build, glue checked against metapac, values checked against their docs. Not yet run on hardware.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
@@ -45,6 +45,8 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: `Uart::new` drops its tokens on error.** Mitigated by checking frames while compiling (`Uart::check::<U>` in a `const` assert); buffers and a running stream remain run-time errors. Fix: return the tokens with the error.
 - **Medium: there's no `release()`/`free()`;** the driver can't be torn down.
 - **Medium: the blocking `embedded_io::Read::read` has no bound.** Document `read_within` as the form for FerroForge tasks.
+- **Medium: USB sits outside the no-panic proof.** `synopsys-usb-otg` has about 30 panic and unwrap sites and spins unbounded on registers (it hung forever in core reset before the H7's `hs` mode was set). It's behind the `usb` feature; the check covers only FerroHAL's clock and constructor. A flight firmware should keep USB from taking down anything critical.
+- **Medium: USB is device-mode CDC on OTG_FS, tested on the H753ZI only.** No OTG_HS (the Foxeer's and Lucid's ports are OTG_FS, so not needed yet), no host mode. The F401's Nucleo has no USB connector; the F405 and H743 run it on their own boards next. The bench polls from the main loop; the OTG vector hasn't been run bound.
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1). `UartIrq` can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover to rtic-monotonics** (§7 hook 5, §8 foot-gun 1). FerroHAL's `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL timer token as its monotonic.
@@ -68,7 +70,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Architecture and process
 
-- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs and timers: 82 facts on the F401, 128 on the F405, 129 on the H743, 132 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
+- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs, timers and USB: 85 facts on the F401, 131 on the F405, 132 on the H743, 135 on the H753) by reading the rows as text, so their layout must stay as it is. It doesn't check the SPI kernel-clock column or the EXTI vectors.
 - **Medium: five source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Low: the bench isn't on FerroForge yet.** Decided (2026-11-02): no fork is needed, since FerroForge's macros don't depend on a HAL and FerroHAL provides the RTIC device module; only its CLI backends name stm32f4xx-hal and stm32h7xx-hal. When FerroWasp's swap nears, add a FerroHAL backend to the FerroForge CLI and move the bench runs onto FerroForge tasks, which should cut 15-25 % of the run binaries' lines and prove the pair together.
@@ -125,6 +127,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: much of the clock tree isn't offered:** PLL2, PLL3, fractional mode, CSI, HSI48, HSIDIV other than 1, TIMPRE.
 - **Medium: kernel clock muxes are forced** (USART16910SEL = PCLK2, USART234578SEL = PCLK1, SPI123SEL = PLL1Q, SPI45SEL = PCLK2). SPI1 to SPI3 can't be opened without PLL1's Q output.
 - **Low: no IO compensation cell** (SYSCFG CCCSR); needed for fast GPIO above about 50 MHz.
+- **Medium: HSI48 runs untrimmed for USB.** Full speed asks for 48 MHz to 0.25 %. The CRS can trim HSI48 from USB start-of-frame, but ES0392 2.2.3 says that doesn't work on revision Y, and the silicon revision isn't read. FerroWasp also runs it untrimmed. Enumeration and 64 KiB of echo pass on the bench; add CRS for revision V if a host proves picky.
 - **Low: wait-state tables are transcribed** (RM0433 table 17), checked once against embassy and the manual.
 - **Low: HSE with a crystal is untested;** only bypass has run.
 

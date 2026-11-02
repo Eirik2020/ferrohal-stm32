@@ -16,9 +16,16 @@ embedded-io = "0.7.1"
 defmt = { version = "1.0.1", optional = true }
 # Conversions only; FerroHAL's own API never takes fugit types.
 fugit = { version = "0.6", optional = true }
+# The USB device stack FerroWasp already uses. Third-party, and not free of
+# panics, so it stays behind a feature.
+usb-device = { version = "0.3.2", optional = true }
+synopsys-usb-otg = { version = "0.4.0", default-features = false, features = ["cortex-m"], optional = true }
 
 [features]
 default = []
+
+# The full-speed USB OTG port, as a `usb-device` bus.
+usb = ["dep:usb-device", "dep:synopsys-usb-otg"]
 
 # The vector table and the svd2rust-shaped device module RTIC needs. The
 # backend turns this on; nothing else should enable metapac's `rt`.
@@ -61,6 +68,7 @@ stm32f401re = [
     "exti_v1",
     "timer_v1",
     "iwdg_v1",
+    "synopsys-usb-otg?/fs",
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
@@ -73,6 +81,7 @@ stm32f405rg = [
     "exti_v1",
     "timer_v1",
     "iwdg_v1",
+    "synopsys-usb-otg?/fs",
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
@@ -85,6 +94,7 @@ stm32h743vi = [
     "exti_h7",
     "timer_v3",
     "iwdg_v2",
+    "synopsys-usb-otg?/hs",
     "dma_v1",
     "gpio_v2",
     "rcc_h7rm0433",
@@ -97,6 +107,7 @@ stm32h753zi = [
     "exti_h7",
     "timer_v3",
     "iwdg_v2",
+    "synopsys-usb-otg?/hs",
     "dma_v1",
     "gpio_v2",
     "rcc_h7rm0433",

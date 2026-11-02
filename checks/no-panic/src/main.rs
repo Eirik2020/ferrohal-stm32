@@ -380,6 +380,26 @@ where
     keep(SpiBus::write(&mut bus, data));
 }
 
+/// The USB clock check alone.
+#[cfg(feature = "stm32f401re")]
+fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
+    keep(rcc.usb_clock());
+}
+
+/// USB's own part: the clock and the constructor. The controller's driver is
+/// third-party and sits outside this check.
+#[cfg(not(feature = "stm32f401re"))]
+pub fn exercise_usb(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    token: ferrohal_stm32::chip::USB_OTG_FS,
+    dm: ferrohal_stm32::gpio::Pin<'A', 11, ferrohal_stm32::gpio::Alternate<10>>,
+    dp: ferrohal_stm32::gpio::Pin<'A', 12, ferrohal_stm32::gpio::Alternate<10>>,
+) {
+    keep(ferrohal_stm32::usb::UsbFs::interrupt());
+    keep(rcc.usb_clock());
+    keep(ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp));
+}
+
 fn exercise_spi(bus: &mut Spi) {
     use embedded_hal::spi::SpiBus;
 
@@ -520,6 +540,9 @@ mod chip {
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
         super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
         super::exercise_watchdog(&mut rcc, p.IWDG);
+        // PA12 is USART6's here, so the constructor is left to the F405,
+        // which shares this code; the F4's clock check runs on its own.
+        super::keep_usb_clock(&mut rcc);
         super::exercise_blocking(
             &mut rcc,
             spi::BlockingWiring {
@@ -652,6 +675,12 @@ mod chip {
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG);
+        super::exercise_usb(
+            &mut rcc,
+            p.USB_OTG_FS,
+            a.p11.into_alternate::<10>(&mut a.ctrl),
+            a.p12.into_alternate::<10>(&mut a.ctrl),
+        );
         super::exercise_blocking(
             &mut rcc,
             spi::BlockingWiring {
@@ -783,6 +812,12 @@ mod chip {
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG1);
+        super::exercise_usb(
+            &mut rcc,
+            p.USB_OTG_FS,
+            a.p11.into_alternate::<10>(&mut a.ctrl),
+            a.p12.into_alternate::<10>(&mut a.ctrl),
+        );
         super::exercise_blocking(
             &mut rcc,
             spi::BlockingWiring {

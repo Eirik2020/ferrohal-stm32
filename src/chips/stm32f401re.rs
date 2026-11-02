@@ -328,6 +328,12 @@ gpio_dma!(
     2: [0, 1, 2, 3, 4, 5, 6, 7];
 );
 
+// The full-speed USB port.
+
+usb_fs!(
+    USB_OTG_FS => Ahb2, 7, OTG_FS, 320, 4, fs_core;
+);
+
 // The vector each DMA stream raises.
 
 stream_interrupts!(

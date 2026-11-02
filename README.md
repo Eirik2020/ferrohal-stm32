@@ -23,9 +23,13 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 - **DMA:** the stream DMA as it is, with DMAMUX on the H7.
 - **UART over DMA:** a never-stopping receive ring with idle- and error-ended chunks, queued transmit frames, receive-only UARTs, RX/TX inversion (H7), `embedded-io`.
 - **SPI master over DMA:** one full-duplex transfer at a time, finished by the receive stream's interrupt or by polling, plus a bounded `embedded-hal` `SpiBus`.
+- **SPI without DMA:** a polled, bounded `SpiBus`, for a bus whose streams are taken.
 - **EXTI:** GPIO lines with typed line tokens; a line can watch a pin a peripheral drives.
+- **Timers:** an exact-rate tick, a 32-bit timebase, PWM on CHx and CHxN, compare registers fed by DMA (the DShot transmit primitive), and timer-paced sampling of a GPIO port.
+- **Watchdog:** the independent watchdog, and the reason for the last reset.
+- **USB:** full-speed device for `usb-device` and `usbd-serial`, behind the `usb` feature.
 
-Not yet: timers, USB, SDMMC, ADC, watchdog, I2C, BDMA.
+Not yet: SDMMC, ADC, I2C, BDMA, input capture.
 
 ## Checking it
 

@@ -25,6 +25,8 @@ step() {
 
 for chip in "${chips[@]}"; do
     step "clippy ($chip)" \
+        cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb" -- -D warnings
+    step "clippy without usb ($chip)" \
         cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit" -- -D warnings
     # From its own directory: cargo reads .cargo/config.toml from where it
     # runs, and without that package's link.x the linker can discard

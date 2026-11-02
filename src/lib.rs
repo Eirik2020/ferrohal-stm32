@@ -15,7 +15,7 @@
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
 //!   map) and the svd2rust-style [`chip::Peripherals`].
-//! - Neutral names: [`uart`] and [`spi`], and `exti`, `timer`, `iwdg`,
+//! - Neutral names: [`uart`], [`spi`] and `usb`, and `exti`, `timer`, `iwdg`,
 //!   `rcc`, `gpio`, `dma` for whichever IP version the chip carries.
 //! - [`device`] (feature `rt`): the module RTIC's `device = ...` names.
 //!
@@ -50,6 +50,8 @@ pub mod resource;
 pub mod spi;
 pub mod time;
 pub mod uart;
+#[cfg(feature = "usb")]
+pub mod usb;
 mod wait;
 
 // EXTI: one source, two IP versions (see the module).
