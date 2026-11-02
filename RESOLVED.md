@@ -47,6 +47,10 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 - **Errata review** (ES0182): 2.2.13 RCC enable delay handled; 2.2.1 (prefetch, rev A), 2.2.19 (DMA2 AHB/APB2), 2.11.1 (IDLE), 2.11.2 (PE) tracked in DEBT.md. Not applicable: 2.2.11 (APB slowed during DMA: clocks are set once, before any driver), 2.6.1 (DAC), 2.11.3–2.11.8 (mute mode, CTS, smartcard, NACK, guard time, CTS with break: none used).
 - **UART4 and UART5.** metapac 21 types them as `usart::Usart`; 0.5 and 1.5 stop bits are refused per instance (`Instance::FRACTIONAL_STOP_BITS`) by `Uart::new`, `UartRx::new`, `set_config` and `Uart::check`.
 - **CCM RAM is refused for DMA:** `check_dma_buffer` accepts SRAM1 and SRAM2 only (0x2000_0000, 128 KiB).
+- **Runs on hardware** (2026-11-02, `hil/run-foxeer.sh`, 28 of 28 and the host's echo up to 64 KiB, at 561 KiB/s), on the Foxeer F405 V2 over its USB port, flashed through the ROM DFU bootloader:
+  - **HSE with a crystal:** 8 MHz to 168 MHz. RCC agrees, and the CPU counts 167.9 million cycles per 1000 host USB frames, the one clock not from the crystal.
+  - **The SPI NOR on the real chip:** Winbond JEDEC ID `ef 40 18` at 10.5 MHz over `BlockingSpi`. Erase (47 ms), 16 pages programmed (slowest 379 µs), read back, erased again, only in FerroWasp's scratch sector; the sectors either side unchanged.
+  - **The IMU path:** ICM-42688-P WHO_AM_I over SPI1 on DMA2 streams 3 and 0, then FerroWasp's setup: 405 data-ready edges in 200 ms on EXTI4, 400 bursts of 15 bytes at 10.5 MHz started from them (slowest 24 µs, none failed or missed), the accelerometer reading 993 mg at rest.
 
 ## STM32H753ZI
 

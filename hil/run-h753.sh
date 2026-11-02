@@ -23,7 +23,7 @@ for run in a b c d e f g h i j k l m; do
     # The USB run needs its host side alongside: the host checks every byte.
     host=""
     if [ "$run" = m ]; then
-        python3 -I "$here/usb_cdc_host.py" 30 > "$log.host" 2>&1 &
+        python3 -I "$here/usb_cdc_host.py" 30 h753zi > "$log.host" 2>&1 &
         host=$!
     fi
     (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1

@@ -1,0 +1,28 @@
+[package]
+name = "foxeer-f405-v2"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "foxeer-f405-v2"
+path = "src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+ferrohal-stm32 = { path = "../..", features = ["stm32f405rg", "rt", "usb"] }
+usbd-serial = "0.2.2"
+embedded-hal = "1.0.0"
+
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.6"
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = true
+opt-level = "s"
+
+# Not part of any workspace around it.
+[workspace]

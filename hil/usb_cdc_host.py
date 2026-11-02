@@ -1,7 +1,11 @@
 """The host side of the USB CDC bench: finds the board's serial port, sends
 blocks of every interesting size, and checks each byte that comes back.
 
-    python3 -I usb_cdc_host.py [seconds to wait for the port]
+    python3 -I usb_cdc_host.py [seconds to wait for the port] [board serial] [report]
+
+A board serial picks that board's port when several are connected. With
+`report` (a board with no probe, reporting over this port), asks the board to
+run its checks and prints its report first, then asks it to echo.
 
 The sizes around 64 bytes straddle the full-speed packet size, where a
 transfer ending on a whole packet needs a zero-length packet to finish. Ends
@@ -16,13 +20,17 @@ import termios
 import time
 
 END = b"BENCHEND"
+RUN = b"BENCHRUN"
+ECHO = b"BENCHECH"
 wait = float(sys.argv[1]) if len(sys.argv) > 1 else 30.0
+board = sys.argv[2] if len(sys.argv) > 2 else ""
+reports = len(sys.argv) > 3
 
 
 def find_port():
     deadline = time.monotonic() + wait
     while time.monotonic() < deadline:
-        ports = glob.glob("/dev/serial/by-id/*FerroHAL*")
+        ports = glob.glob(f"/dev/serial/by-id/*FerroHAL*{board}*")
         if ports:
             # udev has just made it; give permissions a moment to settle.
             time.sleep(0.3)
@@ -69,7 +77,31 @@ def echo(data, timeout=10.0):
     return bytes(got)
 
 
+def report(timeout=60.0):
+    """Runs the board's checks, printing its report; returns how many failed."""
+    os.write(fd, RUN)
+    text = bytearray()
+    deadline = time.monotonic() + timeout
+    failures = 0
+    while time.monotonic() < deadline:
+        if select.select([fd], [], [], 0.2)[0]:
+            text += os.read(fd, 4096)
+        while b"\n" in text:
+            line, _, rest = text.partition(b"\n")
+            text = bytearray(rest)
+            line = line.decode(errors="replace")
+            print(line, flush=True)
+            failures += line.startswith("FAIL")
+            if line.startswith("DONE"):
+                return failures
+    print(f"FAIL host: no DONE within {timeout:.0f} s", flush=True)
+    return failures + 1
+
+
 failed = 0
+if reports:
+    failed += report()
+    os.write(fd, ECHO)
 for seed, size in enumerate([1, 63, 64, 65, 128, 512, 4096]):
     data = pattern(size, seed)
     back = echo(data)

@@ -14,7 +14,7 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 | Chip | Board it's tested on |
 |---|---|
 | STM32F401RE | Nucleo-F401RE |
-| STM32F405RG | Foxeer F405 V2 (not yet run on hardware) |
+| STM32F405RG | Foxeer F405 V2 |
 | STM32H753ZI | Nucleo-H753ZI |
 | STM32H743VI | TBS Lucid H7 (same die as the H753ZI; its own build not yet run on hardware) |
 
@@ -37,9 +37,10 @@ Not yet: SDMMC, ADC, I2C, BDMA, input capture.
 checks/run.sh        # clippy, no reachable panic, glue against metapac, host tests: all four chips
 hil/run-f401.sh      # the Nucleo-F401RE bench
 hil/run-h753.sh      # the Nucleo-H753ZI bench
+hil/run-foxeer.sh    # the Foxeer F405 V2 bench, over its USB port
 ```
 
-The benches flash RTIC firmwares over probe-rs and need the jumpers listed at the top of each board's `hil/*/src/board.rs` (UART TX-to-RX links, SPI MOSI-to-MISO links).
+The benches flash RTIC firmwares over probe-rs and need the jumpers listed at the top of each board's `hil/*/src/board.rs` (UART TX-to-RX links, SPI MOSI-to-MISO links). The Foxeer has no probe: its firmware is flashed through the ROM DFU bootloader and reports over USB, against the board's own crystal, IMU and SPI NOR.
 
 ## Status
 

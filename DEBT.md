@@ -2,17 +2,18 @@
 
 Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is history and needn't be read to work on the crate.
 
-Status as of 2026-10-31:
+Status as of 2026-11-02:
 
 - **F401:** `hil/run-f401.sh` passes 194 of 194 checks across eleven runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K).
 - **H753ZI:** `hil/run-h753.sh` passes 428 of 428 checks across thirteen runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L), USB CDC with the host checking every byte (M).
-- **F405RG, H743VI:** build, glue checked against metapac, values checked against their docs. Not yet run on hardware.
+- **F405RG:** `hil/run-foxeer.sh` passes 28 of 28 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal, IMU over DMA with EXTI data ready, and real SPI NOR. UART and timer outputs haven't run on it.
+- **H743VI:** builds, glue checked against metapac, values checked against its docs. Not yet run on hardware.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
 |---|---|---|---|
 | STM32F401RE | Nucleo-F401RE | `usart_v2`, `spi_v2`, `exti_v1`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 USART DMA routes; USART2 through a host echo on the ST-LINK VCP. All three SPIs on all 15 pin entries and all 10 SPI DMA routes. EXTI on PA12 and on every SPI SCK pin. |
-| STM32F405RG | Foxeer F405 V2 | as the F401 | Not yet. |
+| STM32F405RG | Foxeer F405 V2 | as the F401 | HSE crystal to 168 MHz, checked against the host's USB frames. USB CDC on OTG_FS. SPI1 on the IMU's pins and DMA2 streams, EXTI4 from its data-ready, SPI2 polled on the real NOR. TIM2 timebase; the watchdog started and fed. |
 | STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
 | STM32H743VI | TBS Lucid H7 | as the H753ZI | Not as its own build; same die as the H753ZI. |
 
@@ -46,7 +47,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: there's no `release()`/`free()`;** the driver can't be torn down.
 - **Medium: the blocking `embedded_io::Read::read` has no bound.** Document `read_within` as the form for FerroForge tasks.
 - **Medium: USB sits outside the no-panic proof.** `synopsys-usb-otg` has about 30 panic and unwrap sites and spins unbounded on registers (it hung forever in core reset before the H7's `hs` mode was set). It's behind the `usb` feature; the check covers only FerroHAL's clock and constructor. A flight firmware should keep USB from taking down anything critical.
-- **Medium: USB is device-mode CDC on OTG_FS, tested on the H753ZI only.** No OTG_HS (the Foxeer's and Lucid's ports are OTG_FS, so not needed yet), no host mode. The F401's Nucleo has no USB connector; the F405 and H743 run it on their own boards next. The bench polls from the main loop; the OTG vector hasn't been run bound.
+- **Medium: USB is device-mode CDC on OTG_FS, tested on the H753ZI and the Foxeer's F405.** No OTG_HS (the Foxeer's and Lucid's ports are OTG_FS, so not needed yet), no host mode. The F401's Nucleo has no USB connector; the H743 runs it on the Lucid next. The benches poll from the main loop; the OTG vector hasn't been run bound.
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1). `UartIrq` can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover to rtic-monotonics** (§7 hook 5, §8 foot-gun 1). FerroHAL's `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL timer token as its monotonic.
@@ -95,7 +96,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 ## 2. STM32F401RE (Nucleo-F401RE)
 
 - **Low: VOS isn't written.** 84 MHz is reached in the reset scale (scale 2).
-- **Low: the USB clock isn't checked:** `pll_q` is reported, not required to be 48 MHz.
 - **Low: only one supply range** (2.7–3.6 V) in `Supply`.
 - **Low: HSE with a crystal is untested;** only bypass (the ST-LINK MCO) has run.
 - **Low: phantom pins:** LQFP64 bonds only PD2, PH0, PH1 outside ports A to C, and no port E.
@@ -103,11 +103,14 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ## 3. STM32F405RG (Foxeer F405 V2)
 
-- **High: not run on hardware.** No Nucleo exists for it; the first run is on the Foxeer F405 V2, flashed over USB (DFU). DFU gives no RTT or semihosting, so results must come back over USB CDC, which FerroHAL doesn't have yet (next step). The Lucid H7 Pro is in the same position.
-- **High: the SPI NOR is unproven on the real chip.** FerroWasp's `spi_nor` driver compiles unchanged over FerroHAL's SPI, and `BlockingSpi` runs on the Foxeer's NOR pins on the F401 (loopback, no NOR chip). Still to do on the Foxeer: JEDEC ID, erase and program of FerroWasp's scratch sector (0x2000), read back.
+- **Medium: the Foxeer bench covers the board's buses, not the whole chip.** No UART, timer output or DShot has run on an F405 yet, nor UART4 and UART5, which the F401 doesn't have. The board's UARTs and motor pins go to the outside world, so they need their own plan: no loopback links exist.
+- **Medium: FerroHAL has no way into the ROM bootloader.** The bench's firmware does it by register address (`hil/foxeer-f405-v2`); FerroWasp's `system_bootloader` does it through stm32f4xx-hal's PAC, so the swap needs a FerroHAL form (F4 and H7), with SYSCFG's memory remap.
+- **Low: the bench's NOR commands are its own copy.** They follow FerroWasp's `spi_nor` driver, which compiled unchanged over `BlockingSpi` in a scratch crate but hasn't itself run over FerroHAL. The bench can't depend on it from a public repo. The IMU setup is copied the same way.
+- **Low: one unexplained power loss.** On 2026-11-02 the Foxeer lost its USB connection 1.5 s after one boot and came back reporting a power-on reset. Five later full runs, four of them from DFU, were clean, and no cause was found; a knocked cable fits. Watch for it on later runs.
+- **Low: no reset flag shows after a DFU `leave`.** The firmware reports "other" when flashed from a bootloader entry that cleared the flags. Whether the ROM resets the chip on `leave` or jumps with its setup still in place isn't measured; `freeze` and the drivers worked either way.
+- **Low: a Foxeer firmware that fails before USB can't say why.** It restarts into DFU, which shows only that something failed.
 - **Medium: VOS relies on its reset value.** 168 MHz needs scale 1, the reset value (RM0090 PWR_CR bit 14), so `freeze` doesn't write it; a bootloader that left scale 2 would put 168 MHz out of spec (DS8626: 144 MHz in scale 2). Fix: write the scale in `freeze`, the value from the chip file (one bit here, two on the F401).
 - **Low: prefetch on revision A.** `freeze` sets PRFTEN; ES0182 2.2.1 says revision A doesn't support the prefetch queue. Later revisions are fixed.
-- **Low: HSE with a crystal is untested** (the Foxeer's 8 MHz crystal).
 - **Low: phantom pins:** ports E to I are handed out though LQFP64 bonds only ports A to C, PD2, PH0, PH1.
 - **High: bidirectional DShot meets ES0182 2.2.19.** The Foxeer's motor timers are TIM1 and TIM8 (APB2) on DMA2, and reading the ESC replies samples GPIO (AHB), which only DMA2 reaches on the F4. DMA2 serving both at once can corrupt data. FerroHAL's `Sampler` documents it; the bench keeps lanes on DMA1 to avoid it. Before bidirectional DShot on the F405: never sample one lane while another timer's DMA2 compare traffic runs, or route the GPIO side through DMA2's memory port as the erratum describes.
 - **Low: complementary outputs are untested on the F401 and F405 hardware.** The F401's only break-unit timer, TIM1, is also its only timer whose update request reaches DMA2, so the bench can't sample a CHxN output there; the H753ZI bench covers CHxN. The Foxeer's motor 4 is TIM1 CH3N.
