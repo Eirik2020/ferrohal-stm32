@@ -8,10 +8,11 @@
 //! yet: [`peek_cause`] reads the reset flags without one.
 //!
 //! The F4's bootloader leaves for the application by jumping there, with no
-//! reset: VTOR, and on the F4 the memory remap, stay as they were. A firmware
-//! that uses interrupts should build `cortex-m-rt` with its `set-vtor` feature
-//! rather than depend on them. (Measured: the flags read empty after a `leave`
-//! on the F405, and show a software reset on the H743.)
+//! reset: VTOR, and on the F4 the memory remap, stay as they were. (Measured:
+//! the flags read empty after a `leave` on the F405, and show a software reset
+//! on the H743.) The crate's `rt` feature turns on `cortex-m-rt`'s `set-vtor`,
+//! so a firmware's reset handler takes VTOR back; without it, its interrupts
+//! ran the ROM's handlers and the Foxeer's USB never enumerated.
 
 use core::{mem::MaybeUninit, ptr::addr_of_mut};
 

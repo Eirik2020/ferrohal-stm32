@@ -64,6 +64,7 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 ## USB from its interrupt
 
 - **`OTG_FS` under RTIC at priority 5** (2026-11-02), FerroWasp's arrangement, on the Foxeer and the Lucid: the host's echo up to 64 KiB, at the polled rate. The firmware services USB only from that vector.
+- **VTOR after a DFU `leave`:** the F405's ROM jumps to the application with no reset, leaving VTOR on the ROM, so the firmware's first interrupts ran the ROM's USB handler. The control run proved it: the same firmware without `set-vtor` gets STALLed descriptor reads and `unable to enumerate`; with it, it echoes up to 64 KiB. FerroHAL's `rt` feature now turns `set-vtor` on, for every firmware.
 - **`reset::enter_bootloader` hands the ROM a clean core:** SysTick off, every NVIC line disabled and cleared, interrupts unmasked. RTIC's `init` runs masked with its lines enabled, and the ROM's USB needs interrupts: without this the board came up in the ROM but never enumerated.
 
 ## ADC and unique ID

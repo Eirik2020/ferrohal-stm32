@@ -22,9 +22,7 @@ usbd-serial = "0.2.2"
 embedded-hal = "1.0.0"
 
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
-# `set-vtor`: the F4's ROM bootloader leaves by jumping here, with no reset,
-# and whatever it left in VTOR would take this firmware's interrupts.
-cortex-m-rt = { version = "0.7.6", features = ["set-vtor"] }
+cortex-m-rt = "0.7.6"
 rtic = { version = "2.4.0", features = ["thumbv7-backend"] }
 
 [profile.release]

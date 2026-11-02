@@ -11,6 +11,7 @@ publish = false
 # pins the metadata the hand-written routing tables were checked against.
 stm32-metapac = { version = "=21.0.0", default-features = false, features = ["pac"] }
 cortex-m = "0.7.7"
+cortex-m-rt = { version = "0.7.6", optional = true }
 embedded-hal = "1.0.0"
 embedded-io = "0.7.1"
 defmt = { version = "1.0.1", optional = true }
@@ -29,7 +30,11 @@ usb = ["dep:usb-device", "dep:synopsys-usb-otg"]
 
 # The vector table and the svd2rust-shaped device module RTIC needs. The
 # backend turns this on; nothing else should enable metapac's `rt`.
-rt = ["stm32-metapac/rt"]
+#
+# `set-vtor` comes with it: the F4's ROM bootloader leaves for the application by
+# jumping, with no reset, so VTOR would still point at the ROM and an interrupt
+# would run the ROM's handler. The Foxeer's USB failed to enumerate that way.
+rt = ["stm32-metapac/rt", "dep:cortex-m-rt", "cortex-m-rt/set-vtor"]
 defmt = ["dep:defmt", "stm32-metapac/defmt"]
 # `From` conversions between `time::Hertz` and fugit 0.6's `HertzU32`, the
 # fugit rtic-monotonics 3 uses.

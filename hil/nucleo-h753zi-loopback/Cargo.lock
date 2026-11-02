@@ -179,6 +179,7 @@ name = "ferrohal-stm32"
 version = "0.1.0"
 dependencies = [
  "cortex-m",
+ "cortex-m-rt",
  "defmt 1.2.0",
  "embedded-hal 1.0.0",
  "embedded-io 0.7.1",
