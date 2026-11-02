@@ -15,7 +15,7 @@
 
 use core::{mem::MaybeUninit, ptr::addr_of_mut};
 
-use cortex_m::peripheral::SCB;
+use cortex_m::peripheral::{NVIC, SCB, SYST};
 
 const REQUESTED: u32 = 0x4446_5521;
 
@@ -83,19 +83,32 @@ pub fn peek_cause() -> ResetCause {
 /// Jumps to the ROM bootloader, clearing the reset flags so a stale one can't
 /// bring a later boot back here.
 ///
+/// The bootloader's USB runs on interrupts, so this hands it the core as reset
+/// would: SysTick off, every NVIC line disabled and none pending, interrupts
+/// unmasked. An RTIC `init` gets here with them masked and its lines enabled.
+///
 /// # Safety
 ///
-/// Call it first in `main`, with the chip as reset left it: no clock, cache,
-/// interrupt or peripheral set up. The jump abandons everything in RAM.
+/// Call it first in `main` or in `init`, with the chip as reset left it: no
+/// clock, cache or peripheral set up. The jump abandons everything in RAM.
 pub unsafe fn enter_bootloader() -> ! {
+    cortex_m::interrupt::disable();
     crate::rcc::clear_reset_flags();
     crate::chip::map_system_memory();
     // SAFETY: as the caller promises, and SYSTEM_MEMORY holds the bootloader's
-    // stack pointer and reset vector (AN2606).
+    // stack pointer and reset vector (AN2606). Interrupts stay masked until
+    // no line can fire one of this firmware's handlers.
     unsafe {
+        (*SYST::PTR).csr.write(0);
+        let nvic = &*NVIC::PTR;
+        for index in 0..nvic.icer.len() {
+            nvic.icer[index].write(u32::MAX);
+            nvic.icpr[index].write(u32::MAX);
+        }
         (*SCB::PTR).vtor.write(crate::chip::SYSTEM_MEMORY);
         cortex_m::asm::dsb();
         cortex_m::asm::isb();
+        cortex_m::interrupt::enable();
         cortex_m::asm::bootload(crate::chip::SYSTEM_MEMORY as *const u32)
     }
 }
