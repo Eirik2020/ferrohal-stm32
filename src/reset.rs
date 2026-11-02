@@ -6,6 +6,12 @@
 //! the next boot, first thing in `main`, checks [`bootloader_requested`] and
 //! calls [`enter_bootloader`]. Before the clocks are set up, no `Rcc` exists
 //! yet: [`peek_cause`] reads the reset flags without one.
+//!
+//! The F4's bootloader leaves for the application by jumping there, with no
+//! reset: VTOR, and on the F4 the memory remap, stay as they were. A firmware
+//! that uses interrupts should build `cortex-m-rt` with its `set-vtor` feature
+//! rather than depend on them. (Measured: the flags read empty after a `leave`
+//! on the F405, and show a software reset on the H743.)
 
 use core::{mem::MaybeUninit, ptr::addr_of_mut};
 

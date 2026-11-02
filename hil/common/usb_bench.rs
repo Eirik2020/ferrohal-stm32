@@ -52,7 +52,7 @@ const END: &[u8; 8] = b"BENCHEND";
 const DFU: &[u8; 8] = b"BENCHDFU";
 
 pub const WATCHDOG_US: u32 = 3_000_000;
-const CONFIGURED_PATIENCE_US: u32 = 30_000_000;
+pub const CONFIGURED_PATIENCE_US: u32 = 30_000_000;
 const SEND_PATIENCE_US: u32 = 2_000_000;
 
 static mut EP_MEMORY: [u32; crate::EP_WORDS] = [0; crate::EP_WORDS];
@@ -125,6 +125,43 @@ impl Link {
     pub fn service(&mut self) {
         self.watchdog.feed();
         self.device.poll(&mut [&mut self.serial]);
+    }
+
+    /// Whether a host has configured the device.
+    pub fn configured(&self) -> bool {
+        self.device.state() == UsbDeviceState::Configured
+    }
+
+    /// One go at the device from its interrupt: echoes what's there, and
+    /// restarts into the bootloader on `BENCHDFU`. For a firmware whose only
+    /// service of USB is its interrupt. A host that stops reading loses the
+    /// rest of the packet, once the bound on waiting for it runs out.
+    pub fn echo_from_interrupt(&mut self, tail: &mut [u8; 8]) {
+        if !self.device.poll(&mut [&mut self.serial]) {
+            return;
+        }
+        let mut pending = [0u8; 64];
+        let Ok(count) = self.serial.read(&mut pending) else {
+            return;
+        };
+        for &byte in pending.get(..count).unwrap_or(&[]) {
+            tail.rotate_left(1);
+            tail[7] = byte;
+            if tail == DFU {
+                reboot_to_dfu();
+            }
+        }
+        let mut sent = 0;
+        let mut tries = 200_000u32;
+        while sent < count && tries > 0 {
+            tries -= 1;
+            match self.serial.write(pending.get(sent..count).unwrap_or(&[])) {
+                Ok(written) => sent += written,
+                Err(_) => {
+                    self.device.poll(&mut [&mut self.serial]);
+                }
+            }
+        }
     }
 
     pub fn settle(&mut self, us: u32) {

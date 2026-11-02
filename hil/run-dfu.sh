@@ -19,28 +19,42 @@ elf="$crate/target/thumbv7em-none-eabihf/release/$board"
 mkdir -p "$here/logs"
 
 (cd "$crate" && cargo build --release) || exit 1
-arm-none-eabi-objcopy -O binary "$elf" "$elf.bin" || exit 1
 
 dfu_serial() {
     dfu-util -d 0483:df11 -l 2>/dev/null | grep -F "$layout" | sed -n 's/.*serial="\([^"]*\)".*/\1/p' | head -1
 }
 
-for port in /dev/serial/by-id/*FerroHAL*"$board"*; do
-    [ -e "$port" ] && printf BENCHDFU > "$port"
-done
-serial=""
-for _ in $(seq 1 100); do
-    serial="$(dfu_serial)"
-    [ -n "$serial" ] && break
-    sleep 0.3
-done
-if [ -z "$serial" ]; then
-    echo "FAIL no $board in DFU: hold BOOT while plugging in the USB cable, then run this again"
-    exit 1
-fi
+# Flashes one firmware of the crate, from whatever of this bench is running.
+flash() {
+    local elf="$crate/target/thumbv7em-none-eabihf/release/$1"
+    arm-none-eabi-objcopy -O binary "$elf" "$elf.bin" || return 1
+    local port
+    for port in /dev/serial/by-id/*FerroHAL*"$board"*; do
+        [ -e "$port" ] && printf BENCHDFU > "$port"
+    done
+    local serial=""
+    for _ in $(seq 1 100); do
+        serial="$(dfu_serial)"
+        [ -n "$serial" ] && break
+        sleep 0.3
+    done
+    if [ -z "$serial" ]; then
+        echo "FAIL no $board in DFU: hold BOOT while plugging in the USB cable, then run this again"
+        return 1
+    fi
+    # `dfu-util` exits non-zero when the board leaves DFU before the last status.
+    dfu-util -d 0483:df11 -S "$serial" -a 0 -s 0x08000000:leave -D "$elf.bin" 2>&1 | tail -2
+    # The old firmware's port goes first, or the host could find it again.
+    sleep 1
+}
 
-# `dfu-util` exits non-zero when the board leaves DFU before the last status.
-dfu-util -d 0483:df11 -S "$serial" -a 0 -s 0x08000000:leave -D "$elf.bin" 2>&1 | tail -2
+status=0
+# USB under RTIC: only its interrupt services it, the host checks every byte.
+flash usb-irq || exit 1
+python3 -I "$here/usb_cdc_host.py" 30 "$board" 2>&1 | tee "$here/logs/$board-usb-irq.log"
+[ "${PIPESTATUS[0]}" -eq 0 ] || status=1
 
+flash "$board" || exit 1
 python3 -I "$here/usb_cdc_host.py" 30 "$board" report 2>&1 | tee "$here/logs/$board.log"
-exit "${PIPESTATUS[0]}"
+[ "${PIPESTATUS[0]}" -eq 0 ] || status=1
+exit "$status"

@@ -94,6 +94,14 @@ impl Watchdog {
         }
     }
 
+    /// Another handle on the running watchdog, for a second context to feed
+    /// it from. Feeding is a single key write, so handles need no owner.
+    pub const fn handle(&self) -> Self {
+        Self {
+            timeout_us: self.timeout_us,
+        }
+    }
+
     /// Reloads the counter: the next reset is a full timeout away.
     pub fn feed(&self) {
         crate::chip::iwdg_regs().kr().write(|w| w.set_key(Key::RESET));

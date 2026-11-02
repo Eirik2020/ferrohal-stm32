@@ -19,10 +19,13 @@
 #[macro_use]
 #[path = "../../common/usb_bench.rs"]
 mod usb_bench;
+mod clocks;
 #[path = "../../common/board_adc.rs"]
 mod board_adc;
 #[path = "../../common/imu.rs"]
 mod imu;
+#[path = "../../common/motor_lanes.rs"]
+mod motor_lanes;
 
 use core::ptr::{addr_of_mut, read_volatile};
 
@@ -35,53 +38,20 @@ use ferrohal_stm32::{
     exti::Edge,
     gpio::{Alternate, Pin, Pull, Speed},
     iwdg::Watchdog,
-    rcc::{
-        AhbPrescaler, ApbPrescaler, Clocks, Config as ClockConfig, Hse, HseMode, Pll, PllSource,
-        Supply, Sysclk, VoltageScale,
-    },
     sdmmc::{self, BLOCK_SIZE, Sdmmc},
     spi::{self, Buffers, Spi, Wiring},
     time::Hertz,
-    timer::Timebase,
+    timer::{Pwm, Timebase},
     usb::UsbFs,
 };
 
+use clocks::{CLOCK_CONFIG, CLOCKS};
 use imu::Imu;
 use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
 
 /// The endpoint memory `usb_bench` gives the driver: the H7's OTG_FS FIFO.
 const EP_WORDS: usize = 1024;
 
-/// The board's 8 MHz crystal to a 400 MHz core: 800 MHz wide VCO, 200 MHz AXI
-/// and AHB, every APB at 100 MHz, 100 MHz on PLL1Q for SPI1 to SPI3. USB runs
-/// from HSI48.
-const CLOCK_CONFIG: ClockConfig = ClockConfig {
-    hse: Some(Hse {
-        freq: Hertz::mhz(8),
-        mode: HseMode::Oscillator,
-    }),
-    pll1: Some(Pll {
-        source: PllSource::Hse,
-        prediv: 1,
-        mul: 100,
-        divp: Some(2),
-        divq: Some(8),
-        divr: None,
-    }),
-    sys: Sysclk::Pll1P,
-    cpu_pre: AhbPrescaler::Div1,
-    ahb_pre: AhbPrescaler::Div2,
-    apb1_pre: ApbPrescaler::Div2,
-    apb2_pre: ApbPrescaler::Div2,
-    apb3_pre: ApbPrescaler::Div2,
-    apb4_pre: ApbPrescaler::Div2,
-    supply: Supply::Ldo,
-    voltage_scale: VoltageScale::Scale1,
-};
-const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
-    Ok(clocks) => clocks,
-    Err(_) => panic!("CLOCK_CONFIG breaks the H743's limits"),
-};
 const _: () = assert!(Timebase::check::<TIM2>(&CLOCKS, Hertz::mhz(1)).is_ok());
 
 /// The IMU's register speed, on the routes FerroWasp's manifest gives it.
@@ -111,6 +81,7 @@ const RCC_PLLCKSELR: *const u32 = 0x5802_4428 as *const u32;
 const OTG_FS_DSTS: *const u32 = 0x4008_0808 as *const u32;
 
 static mut ADC_SAMPLES: [u16; 2] = [0; 2];
+static mut LANES: [[u32; 20]; 4] = [[0; 20]; 4];
 /// Blocks in the multi-block check, and the saved, written and read copies.
 const SD_BLOCKS: usize = 16;
 static mut SD_SAVED: [[u8; BLOCK_SIZE]; SD_BLOCKS + 1] = [[0; BLOCK_SIZE]; SD_BLOCKS + 1];
@@ -325,6 +296,35 @@ fn main() -> ! {
     // In EXTI only, so the flag latches: its NVIC vector stays off.
     imu_ready.listen(&mut exti.ctrl);
 
+    // The motor pads get their timers with duty 0 and the counters stopped,
+    // and lose them again before anything counts: no frame reaches one. The
+    // streams are the flight code's.
+    let (Ok(mut tim3), Ok(mut tim5)) = (
+        Pwm::new(&mut rcc, p.TIM3, Hertz::khz(600)),
+        Pwm::new(&mut rcc, p.TIM5, Hertz::khz(600)),
+    ) else {
+        reboot_to_dfu()
+    };
+    let channel3 = tim3.channel::<3, _>(b.p0.into_alternate::<2>(&mut b.ctrl));
+    tim3.set_output::<3>(false);
+    let channel4 = tim3.channel::<4, _>(b.p1.into_alternate::<2>(&mut b.ctrl));
+    tim3.set_output::<4>(false);
+    let channel1 = tim5.channel::<1, _>(a.p0.into_alternate::<2>(&mut a.ctrl));
+    tim5.set_output::<1>(false);
+    let channel2 = tim5.channel::<2, _>(a.p1.into_alternate::<2>(&mut a.ctrl));
+    tim5.set_output::<2>(false);
+    // SAFETY: `main` runs once, and this is the only reference.
+    let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
+    let dma2 = p.DMA2.split(&mut rcc);
+    let (Ok(mut lane1), Ok(mut lane2), Ok(mut lane3), Ok(mut lane4)) = (
+        channel3.into_lane(dma2.s0, &mut one[..]),
+        channel4.into_lane(dma2.s1, &mut two[..]),
+        channel1.into_lane(dma2.s2, &mut three[..]),
+        channel2.into_lane(dma2.s3, &mut four[..]),
+    ) else {
+        reboot_to_dfu()
+    };
+
     // The battery inputs on ADC1, over a stream the flight code leaves free;
     // VDDA and the die from ADC3's internal channels.
     let Ok(mut adc3) = Adc::new(&mut rcc, p.ADC3, &AdcConfig::slow_source()) else {
@@ -340,7 +340,6 @@ fn main() -> ! {
     let channels = [adc1.channel(&voltage), adc1.channel(&current)];
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
-    let dma2 = p.DMA2.split(&mut rcc);
     let Ok(mut scan) = adc1.into_scan(dma2.s5, &channels, samples) else {
         reboot_to_dfu()
     };
@@ -404,5 +403,17 @@ fn main() -> ! {
         check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);
         board_adc::suite(report, link, &mut scan, &["voltage PC0", "current PC1"], vdda);
         sd_suite(report, link, &mut sd);
+        motor_lanes::suite(
+            report,
+            link,
+            &mut tim3,
+            &mut tim5,
+            (&mut lane1, &mut lane2, &mut lane3, &mut lane4),
+            (0b1100, 0b0011),
+            |tim3, tim5| {
+                tim3.start();
+                tim5.start();
+            },
+        );
     })
 }

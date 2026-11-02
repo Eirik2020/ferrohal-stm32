@@ -10,13 +10,22 @@ path = "src/main.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "usb-irq"
+path = "src/bin/usb_irq.rs"
+test = false
+bench = false
+
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32f405rg", "rt", "usb"] }
 usbd-serial = "0.2.2"
 embedded-hal = "1.0.0"
 
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
-cortex-m-rt = "0.7.6"
+# `set-vtor`: the F4's ROM bootloader leaves by jumping here, with no reset,
+# and whatever it left in VTOR would take this firmware's interrupts.
+cortex-m-rt = { version = "0.7.6", features = ["set-vtor"] }
+rtic = { version = "2.4.0", features = ["thumbv7-backend"] }
 
 [profile.release]
 codegen-units = 1

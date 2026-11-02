@@ -362,6 +362,7 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     if let Ok(dog) = Watchdog::start(iwdg, black_box(50_000)) {
         dog.feed();
         keep(dog.timeout_us());
+        keep(dog.handle().timeout_us());
     }
 }
 

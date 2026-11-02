@@ -495,6 +495,43 @@ mod tests {
         );
     }
 
+    /// Every UART and motor route the Foxeer's manifest claims is one this
+    /// glue offers, on the pin and alternate function it names and with its
+    /// DMA channel. That it compiles is half the check.
+    #[test]
+    fn foxeer_manifest_routes_exist() {
+        use crate::{
+            timer::{ChannelPin, ChannelTimer, CompareDma, ComplementaryPin},
+            usart_v2::Instance,
+        };
+
+        type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;
+        fn tx<U: Instance, P: TxPin<U>, D: TxDma<U>>() -> u8 {
+            D::REQUEST
+        }
+        fn rx<U: Instance, P: RxPin<U>, D: RxDma<U>>() -> u8 {
+            D::REQUEST
+        }
+        fn lane<T: ChannelTimer, const C: u8, P: ChannelPin<T, C>, D: CompareDma<T, C>>() -> u8 {
+            D::REQUEST
+        }
+        fn lane_n<T: ChannelTimer, const C: u8, P: ComplementaryPin<T, C>, D: CompareDma<T, C>>() -> u8 {
+            D::REQUEST
+        }
+
+        assert_eq!(rx::<USART2, Af<'A', 3, 7>, Stream<1, 5>>(), 4);
+        assert_eq!(tx::<USART2, Af<'A', 2, 7>, Stream<1, 6>>(), 4);
+        assert_eq!(rx::<USART3, Af<'C', 11, 7>, Stream<1, 1>>(), 4);
+        assert_eq!(tx::<USART3, Af<'C', 10, 7>, Stream<1, 3>>(), 4);
+        assert_eq!(rx::<UART4, Af<'A', 1, 8>, Stream<1, 2>>(), 4);
+        assert_eq!(tx::<UART4, Af<'A', 0, 8>, Stream<1, 4>>(), 4);
+        assert_eq!(rx::<USART1, Af<'A', 10, 7>, Stream<2, 5>>(), 4);
+        assert_eq!(lane::<TIM1, 1, Af<'A', 8, 1>, Stream<2, 1>>(), 6);
+        assert_eq!(lane::<TIM8, 4, Af<'C', 9, 3>, Stream<2, 7>>(), 7);
+        assert_eq!(lane::<TIM8, 3, Af<'C', 8, 3>, Stream<2, 2>>(), 0);
+        assert_eq!(lane_n::<TIM1, 3, Af<'B', 15, 1>, Stream<2, 6>>(), 6);
+    }
+
     /// The Foxeer's IMU bus, as its manifest claims it.
     #[test]
     fn imu_spi_describes_itself() {

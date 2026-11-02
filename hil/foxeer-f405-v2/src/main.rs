@@ -14,10 +14,13 @@
 #[macro_use]
 #[path = "../../common/usb_bench.rs"]
 mod usb_bench;
+mod clocks;
 #[path = "../../common/board_adc.rs"]
 mod board_adc;
 #[path = "../../common/imu.rs"]
 mod imu;
+#[path = "../../common/motor_lanes.rs"]
+mod motor_lanes;
 
 use core::ptr::{addr_of_mut, read_volatile};
 
@@ -31,45 +34,19 @@ use ferrohal_stm32::{
     exti::Edge,
     gpio::{Alternate, Output, Pin, Pull, Speed},
     iwdg::Watchdog,
-    rcc::{
-        AhbPrescaler, ApbPrescaler, Clocks, Config as ClockConfig, Hse, HseMode, Pll, PllP,
-        PllSource, Supply, Sysclk,
-    },
     spi::{self, BlockingSpi, BlockingWiring, Buffers, Spi, Wiring},
     time::Hertz,
     timer::{Pwm, Timebase},
     usb::UsbFs,
 };
 
+use clocks::{CLOCK_CONFIG, CLOCKS};
 use imu::Imu;
 use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
 
 /// The endpoint memory `usb_bench` gives the driver: the F4's OTG_FS FIFO.
 const EP_WORDS: usize = 320;
 
-/// The board's 8 MHz crystal to 168 MHz, with 48 MHz on PLLQ for USB.
-const CLOCK_CONFIG: ClockConfig = ClockConfig {
-    hse: Some(Hse {
-        freq: Hertz::mhz(8),
-        mode: HseMode::Oscillator,
-    }),
-    pll: Some(Pll {
-        source: PllSource::Hse,
-        prediv: 8,
-        mul: 336,
-        divp: PllP::Div2,
-        divq: Some(7),
-    }),
-    sys: Sysclk::PllP,
-    ahb_pre: AhbPrescaler::Div1,
-    apb1_pre: ApbPrescaler::Div4,
-    apb2_pre: ApbPrescaler::Div2,
-    supply: Supply::V2_7To3_6,
-};
-const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
-    Ok(clocks) => clocks,
-    Err(_) => panic!("CLOCK_CONFIG breaks the F405's limits"),
-};
 const _: () = assert!(Timebase::check::<TIM2>(&CLOCKS, Hertz::mhz(1)).is_ok());
 
 /// The IMU's register speed, on the routes FerroWasp's manifest gives it.
@@ -110,11 +87,12 @@ const RCC_CFGR: *const u32 = 0x4002_3808 as *const u32;
 const OTG_FS_DSTS: *const u32 = 0x5000_0808 as *const u32;
 
 static mut ADC_SAMPLES: [u16; 3] = [0; 3];
+static mut LANES: [[u32; 20]; 4] = [[0; 20]; 4];
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
 
-/// TIM1 starting TIM8 from its trigger, as the flight code starts them. No
-/// channel is set up, so no output reaches a motor pin.
+/// TIM1 starting TIM8 from its trigger, as the flight code starts them. Their
+/// outputs are off, so nothing reaches a motor pin.
 fn motor_timer_suite<M, S>(report: &mut Report, link: &mut Link, master: &mut Pwm<M>, slave: &mut Pwm<S>)
 where
     M: ferrohal_stm32::timer::ChannelTimer,
@@ -468,6 +446,28 @@ fn main() -> ! {
         reboot_to_dfu()
     };
 
+    // The motor pads get their timers with duty 0 and the counters stopped,
+    // and lose them again before anything counts: no frame reaches one. The
+    // streams and channels are the flight code's.
+    let channel1 = tim1.channel::<1, _>(a.p8.into_alternate::<1>(&mut a.ctrl));
+    tim1.set_output::<1>(false);
+    let channel3n = tim1.complementary::<3, _>(b.p15.into_alternate::<1>(&mut b.ctrl));
+    tim1.set_output::<3>(false);
+    let channel3 = tim8.channel::<3, _>(c.p8.into_alternate::<3>(&mut c.ctrl));
+    tim8.set_output::<3>(false);
+    let channel4 = tim8.channel::<4, _>(c.p9.into_alternate::<3>(&mut c.ctrl));
+    tim8.set_output::<4>(false);
+    // SAFETY: `main` runs once, and this is the only reference.
+    let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
+    let (Ok(mut lane1), Ok(mut lane2), Ok(mut lane3), Ok(mut lane4)) = (
+        channel1.into_lane(dma2.s1, &mut one[..]),
+        channel3n.into_lane(dma2.s6, &mut two[..]),
+        channel3.into_lane(dma2.s2, &mut three[..]),
+        channel4.into_lane(dma2.s7, &mut four[..]),
+    ) else {
+        reboot_to_dfu()
+    };
+
     let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
     dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
     let mut dp = a.p12.into_alternate::<10>(&mut a.ctrl);
@@ -490,6 +490,15 @@ fn main() -> ! {
         imu.suite(report, link);
         nor_suite(report, link, &mut nor);
         motor_timer_suite(report, link, &mut tim1, &mut tim8);
+        motor_lanes::suite(
+            report,
+            link,
+            &mut tim1,
+            &mut tim8,
+            (&mut lane1, &mut lane2, &mut lane3, &mut lane4),
+            (0b0101, 0b1100),
+            |tim1, _| tim1.start(),
+        );
         let vdda = vdda_mv.unwrap_or(0);
         check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
         check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);
