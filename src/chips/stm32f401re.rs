@@ -4,6 +4,8 @@
 //! channels) was read from stm32-metapac 21.0.0's metadata for this chip.
 //! They are hand-written for now, in the trait shapes a generator would
 //! emit from that metadata later.
+//!
+//! Requirements: GLUE-001, GLUE-002
 
 use stm32_metapac as pac;
 

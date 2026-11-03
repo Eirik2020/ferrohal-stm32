@@ -8,6 +8,8 @@
 //!
 //! The Foxeer F405 V2 flight controller carries this chip; there is no
 //! Nucleo for it, so its hardware tests run on that board.
+//!
+//! Requirements: GLUE-001, GLUE-002, GLUE-003
 
 use stm32_metapac as pac;
 

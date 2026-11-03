@@ -6,6 +6,8 @@
 //! Unlike v2, errors clear through ICR, a write-one-to-clear register, so
 //! clearing one never reads the data register. The receive and transmit
 //! FIFOs stay off: DMA serves one byte per request.
+//!
+//! Requirements: USART-001, USART-002, USART-003, USARTV4-001
 
 use stm32_metapac::usart::{
     regs::Icr,

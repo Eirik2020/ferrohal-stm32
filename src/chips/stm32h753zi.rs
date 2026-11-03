@@ -5,6 +5,8 @@
 //! chip. They are hand-written for now, in the trait shapes a generator
 //! would emit later. Clock limits and the memory map, shared with the H743,
 //! are in `shared/h7.rs`.
+//!
+//! Requirements: GLUE-001, GLUE-002
 
 use stm32_metapac as pac;
 

@@ -78,7 +78,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: five source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Low: the bench isn't on FerroForge yet.** Decided (2026-11-02): no fork is needed, since FerroForge's macros don't depend on a HAL and FerroHAL provides the RTIC device module; only its CLI backends name stm32f4xx-hal and stm32h7xx-hal. When FerroWasp's swap nears, add a FerroHAL backend to the FerroForge CLI and move the bench runs onto FerroForge tasks, which should cut 15-25 % of the run binaries' lines and prove the pair together.
-- **Medium: requirements tooling is missing** (§9): no `requirements.yaml`, schema, requirement IDs or publish tool.
+- **Medium: requirements cover the UART only** (§9): SPI, DMA, timers, DShot lanes, USB, ADC, SDMMC and the rest have none yet. `every_file_traced` in `reqtool.toml` stays off until they do, and neither the catalog links nor the diff analysis record is built.
 - **Low: kernel clock equals bus clock.** True on F4; on H7 only because `freeze` forces the kernel muxes. Add a kernel-clock field to `Info` before offering other muxes.
 
 ### GPIO
@@ -171,3 +171,5 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 Code that exists only for the move of FerroWasp onto FerroHAL (§15). Each is marked `TRANSITION:` in its documentation and is removed once FerroWasp uses FerroHAL's native model.
 
 - None yet. The compatibility adapter for FerroWasp's `UartRxDmaTransfer` and `UartTxDmaTransfer` will be the first, built at swap time.
+
+The swap also has to settle versions, since FerroHAL's pins and FerroWasp's safety-critical crates' pins can't resolve together: `defmt` is `=1.2.0` here and `=1.0.1` there, `cortex-m` `=0.7.10` here and `=0.7.7` there. FerroHAL's are the versions its benches ran on.

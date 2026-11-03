@@ -1,0 +1,646 @@
+schema_version: 2
+requirements:
+  - id: UART-001
+    title: The UART has one API on every chip
+    statement: >-
+      Firmware shall reach the same UART driver API, by the same name,
+      whatever USART version its chip has.
+    rationale: >-
+      A single unified HAL: code above the driver must not change when the
+      chip does.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-002
+    title: The API supports bidirectional DMA
+    statement: >-
+      The API shall support bidirectional communication using DMA.
+    rationale: >-
+      A UART that holds the CPU for every byte would not suit a flight
+      controller or most other firmware.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-003
+    title: No scheduler is assumed
+    statement: >-
+      The UART driver shall leave interrupt vectors, priorities and tasks to
+      its caller, and be served by a handle the caller invokes.
+    rationale: >-
+      FerroHAL works from RTIC, async or bare metal, so it cannot own any of
+      them.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-004
+    title: A bad configuration is refused first
+    statement: >-
+      Creating or reconfiguring a UART shall refuse a configuration it
+      cannot honour before writing any register.
+    rationale: >-
+      A half-applied configuration would leave a line in a state nobody
+      asked for.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::chip::tests::uart4_and_uart5_refuse_fractional_stop_bits
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-005
+    title: Line faults reach the reader
+    statement: >-
+      A framing, parity, noise or overrun fault on the line shall reach the
+      reader as an error.
+    rationale: >-
+      A fault that passes silently leaves corrupt or missing bytes looking
+      good.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-006
+    title: Waits are bounded
+    statement: >-
+      A blocking UART call shall end within its counted bound, whether or
+      not the hardware responds.
+    rationale: >-
+      A wait with no bound can hang a stop path, and the HAL does not panic
+      or spin for ever.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-007
+    title: A chunk ends at idle or a full buffer
+    statement: >-
+      A chunked read shall end its chunk where the line goes idle, or where
+      the buffer fills if that comes first.
+    rationale: >-
+      Frame protocols find their boundaries from the idle line.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-008
+    title: A break is reported as a gap
+    statement: >-
+      A received break shall be reported as a gap that ends its chunk.
+    rationale: >-
+      A reader parsing frames has to know the stream was interrupted.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-009
+    title: A reader that falls behind is told
+    statement: >-
+      A reader that falls more than one ring behind shall get an overrun
+      error, with the gap marked in its chunks.
+    rationale: >-
+      Bytes lost to a late reader must not look like a continuous stream.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-010
+    title: Frames arrive whole and in order
+    statement: >-
+      Queued transmit frames shall arrive whole and in the order they were
+      queued.
+    rationale: >-
+      A frame split or reordered on the wire is a corrupt frame at the far
+      end.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-011
+    title: An oversized frame is refused whole
+    statement: >-
+      A transmit frame that can never fit shall be refused whole, with
+      nothing sent.
+    rationale: >-
+      Sending part of a frame would put a corrupt frame on the wire.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::refuses_empty_and_oversized_frames
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-012
+    title: A running UART can change its frame
+    statement: >-
+      Reconfiguring a running UART shall leave it carrying traffic in the
+      new frame format.
+    rationale: >-
+      Firmware changes baud rates and framing while running, and has to be
+      able to go back.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-013
+    title: A break can be sent
+    statement: >-
+      The transmit half shall send a line break on request.
+    rationale: >-
+      Some protocols use a break to mark a frame.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UARTDMA-001
+    title: The receive position stays continuous
+    statement: >-
+      The receive ring shall track where DMA has written continuously across
+      laps, and when its lap count wraps.
+    rationale: >-
+      Every read and every gap is worked out from this position.
+    derived_from: [UART-002]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::written_follows_the_dma_across_laps
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::written_stays_continuous_when_the_count_wraps
+
+  - id: UARTDMA-002
+    title: A late interrupt loses nothing
+    statement: >-
+      An interrupt arriving late by most of a lap shall not lose or repeat
+      received bytes.
+    rationale: >-
+      A scheduler is free to delay an interrupt, and the driver cannot see
+      why.
+    derived_from: [UART-002, UART-003]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::written_accounts_for_a_crossing_not_yet_counted
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UARTDMA-003
+    title: A read takes up to the next boundary
+    statement: >-
+      A chunked read shall take bytes up to the next recorded boundary,
+      waiting while the chunk is still open.
+    rationale: >-
+      This is how a chunk comes to end at the idle line or a fault.
+    derived_from: [UART-007]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::plan_waits_for_an_open_chunk
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::plan_takes_up_to_the_mark
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::plan_fills_the_buffer_before_a_distant_mark
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::plan_works_across_the_count_wrapping
+
+  - id: UARTDMA-004
+    title: Old boundaries are dropped
+    statement: >-
+      A chunked read shall drop a boundary that is stale or already passed,
+      and keep one recorded after it read the position.
+    rationale: >-
+      An interrupt can record a boundary while a read is under way.
+    derived_from: [UART-007, UART-009]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::plan_drops_stale_and_passed_marks
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::plan_keeps_a_mark_recorded_after_the_write_count_was_read
+
+  - id: UARTDMA-005
+    title: The boundary queue is bounded
+    statement: >-
+      The receive boundary queue shall be first in, first out and bounded,
+      keeping each boundary with its kind.
+    rationale: >-
+      It is filled from an interrupt, so it cannot grow or block.
+    derived_from: [UART-005, UART-007]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::queue_is_first_in_first_out_and_bounded
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::queue_keeps_kind_and_epoch
+
+  - id: UARTDMA-006
+    title: A frame stays contiguous in the ring
+    statement: >-
+      Each transmit frame shall sit contiguously in the ring, going to the
+      ring's start when it does not fit before the end.
+    rationale: >-
+      Each frame goes out as one DMA transfer.
+    derived_from: [UART-010]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::an_empty_ring_takes_a_frame_at_its_start
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::frames_follow_each_other
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::a_frame_too_long_for_the_tail_wraps_to_the_start
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::a_wrapped_ring_fills_up_to_the_oldest_frame
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::largest_agrees_with_place
+
+  - id: UARTDMA-007
+    title: The frame queue is bounded
+    statement: >-
+      The transmit frame queue shall be first in, first out and bounded,
+      keeping each frame's offset and length.
+    rationale: >-
+      Frames must leave in order, and a queue served from an interrupt
+      cannot grow.
+    derived_from: [UART-010]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::queue_is_first_in_first_out_and_bounded
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::queue_keeps_offset_and_length
+
+  - id: UARTDMA-008
+    title: Queued frames go out with or without the interrupt
+    statement: >-
+      Queued frames shall go out by the interrupt chaining them, or by
+      polling when the vectors are masked.
+    rationale: >-
+      A caller with no interrupt free must still be able to transmit.
+    derived_from: [UART-003, UART-010]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UARTDMA-009
+    title: A stream that will not stop is not reused
+    statement: >-
+      A DMA stream that does not stop when told shall be left unused in
+      that direction.
+    rationale: >-
+      Reusing a stream still running would corrupt memory; failing closed is
+      the only safe answer.
+    derived_from: [UART-006]
+    verification:
+      entries: []
+
+  - id: USART-001
+    title: Frame settings leave the line ready
+    statement: >-
+      Writing the frame settings shall leave the transmitter and receiver
+      off, the USART on and both DMA requests enabled.
+    rationale: >-
+      The driver starts the streams first and only then turns the line on.
+    derived_from: [UART-002, UART-012]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: USART-002
+    title: Line events are reported and cleared
+    statement: >-
+      Taking a line's events shall report overrun, framing, parity, noise
+      and idle, and clear them.
+    rationale: >-
+      The driver turns these into errors and chunk boundaries, and an
+      uncleared one would repeat.
+    derived_from: [UART-005, UART-007]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: USART-003
+    title: A requested break is sent once
+    statement: >-
+      Requesting a break shall send one, and show it pending until its stop
+      bit.
+    rationale: >-
+      The transmit half waits for the break to finish before sending more.
+    derived_from: [UART-013]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: USARTV2-001
+    title: USART v2 refuses inversion
+    statement: >-
+      USART v2 shall refuse a frame asking for line inversion, since it has
+      no such bits.
+    rationale: >-
+      Accepting it would give a frame that cannot work.
+    derived_from: [UART-004]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+
+  - id: USARTV4-001
+    title: USART v4 inverts both directions
+    statement: >-
+      USART v4 shall carry traffic with both directions inverted when asked.
+    rationale: >-
+      Inverted serial receivers connect directly on these chips.
+    derived_from: [UART-001]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: GLUE-001
+    title: Routing rows match the metadata
+    statement: >-
+      Each chip's routing rows shall match the metadata of the pinned
+      register crate.
+    rationale: >-
+      The rows are written by hand, and a wrong one routes a signal to the
+      wrong pin or stream.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: analysis
+          target: host
+          setup: none
+          method:
+            procedure: requirements/benches.md#Chip glue against metapac
+
+  - id: GLUE-002
+    title: A wiring describes itself
+    statement: >-
+      A UART wiring shall report the instance, pins and DMA streams the
+      board chose.
+    rationale: >-
+      A board can then be checked against its manifest without running.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::chip::tests::wiring_describes_itself
+
+  - id: GLUE-003
+    title: A buffer DMA cannot reach is refused
+    statement: >-
+      A chip with memory its DMA cannot reach shall refuse a DMA buffer in
+      that memory.
+    rationale: >-
+      DMA to such an address fails without a useful report, so the check has
+      to come first.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::chip::tests::ccm_ram_is_refused
