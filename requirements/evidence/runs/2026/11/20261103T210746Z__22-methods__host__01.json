@@ -1,0 +1,758 @@
+{
+  "schema_version": 4,
+  "run_id": "20261103T210746Z__22-methods__host__01",
+  "recorded_at_utc": "2026-11-03T21:07:46Z",
+  "board": null,
+  "revision": "413396d93acad0ed6e6630e0dea5393754976745",
+  "working_tree": "clean",
+  "modules": {
+    "src/adc/mod.rs": [
+      "extern:defmt@1.2.0",
+      "src/adc_v2/mod.rs",
+      "src/adc_v4/mod.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/spi_v2/mod.rs",
+      "src/spi_v4/mod.rs"
+    ],
+    "src/chips/shared/macros.rs": [
+      "extern:stm32-metapac@21.0.0",
+      "src/adc/mod.rs",
+      "src/adc_v2/mod.rs",
+      "src/adc_v4/mod.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/mod.rs",
+      "src/spi/stream_dma.rs",
+      "src/spi_v2/mod.rs",
+      "src/spi_v4/mod.rs",
+      "src/timer.rs",
+      "src/uart/stream_dma.rs"
+    ],
+    "src/chips/stm32f401re.rs": [
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/shared/macros.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/exti.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/resource.rs",
+      "src/spi/mod.rs",
+      "src/spi/stream_dma.rs",
+      "src/time.rs",
+      "src/uart/mod.rs",
+      "src/uart/stream_dma.rs",
+      "src/usart_v2/mod.rs",
+      "src/usart_v4/mod.rs"
+    ],
+    "src/chips/stm32f405rg.rs": [
+      "extern:stm32-metapac@21.0.0",
+      "src/adc/mod.rs",
+      "src/chips/shared/macros.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/exti.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/resource.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/mod.rs",
+      "src/spi/stream_dma.rs",
+      "src/time.rs",
+      "src/timer.rs",
+      "src/uart/mod.rs",
+      "src/uart/stream_dma.rs",
+      "src/usart_v2/mod.rs",
+      "src/usart_v4/mod.rs"
+    ],
+    "src/chips/stm32h743vi.rs": [
+      "extern:stm32-metapac@21.0.0",
+      "src/adc/mod.rs",
+      "src/chips/shared/h7.rs",
+      "src/chips/shared/macros.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/exti.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/resource.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/mod.rs",
+      "src/spi/stream_dma.rs",
+      "src/time.rs",
+      "src/timer.rs",
+      "src/uart/mod.rs",
+      "src/uart/stream_dma.rs",
+      "src/usart_v2/mod.rs",
+      "src/usart_v4/mod.rs"
+    ],
+    "src/chips/stm32h753zi.rs": [
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/shared/h7.rs",
+      "src/chips/shared/macros.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/dma_stream.rs",
+      "src/exti.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/resource.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/stream_dma.rs",
+      "src/uart/mod.rs",
+      "src/uart/stream_dma.rs",
+      "src/usart_v2/mod.rs",
+      "src/usart_v4/mod.rs"
+    ],
+    "src/dma_stream.rs": [
+      "extern:defmt@1.2.0",
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs"
+    ],
+    "src/exti.rs": [
+      "extern:defmt@1.2.0",
+      "extern:embedded-hal@1.0.0",
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/stm32f401re.rs",
+      "src/gpio_v2/mod.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs"
+    ],
+    "src/gpio_v2/mod.rs": [
+      "extern:defmt@1.2.0",
+      "extern:embedded-hal@1.0.0",
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/exti.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs"
+    ],
+    "src/lib.rs": [
+      "src/adc_v2/mod.rs",
+      "src/adc_v4/mod.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/exti.rs",
+      "src/gpio_v2/mod.rs",
+      "src/iwdg.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi_v2/mod.rs",
+      "src/spi_v4/mod.rs",
+      "src/timer.rs",
+      "src/usart_v2/mod.rs",
+      "src/usart_v4/mod.rs"
+    ],
+    "src/rcc_f4/mod.rs": [
+      "extern:defmt@1.2.0",
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/stm32f401re.rs",
+      "src/reset.rs",
+      "src/time.rs"
+    ],
+    "src/rcc_h7rm0433/mod.rs": [
+      "extern:defmt@1.2.0",
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/stm32f401re.rs",
+      "src/reset.rs",
+      "src/time.rs"
+    ],
+    "src/resource.rs": [
+      "extern:cortex-m@0.7.10",
+      "extern:defmt@1.2.0",
+      "src/chips/stm32f401re.rs"
+    ],
+    "src/sdmmc_v2/mod.rs": [
+      "extern:cortex-m@0.7.10",
+      "extern:defmt@1.2.0",
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/time.rs"
+    ],
+    "src/spi/mod.rs": [
+      "extern:defmt@1.2.0",
+      "extern:embedded-hal@1.0.0",
+      "src/chips/stm32f401re.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/resource.rs",
+      "src/spi/polled.rs",
+      "src/spi/stream_dma.rs",
+      "src/time.rs",
+      "src/uart/mod.rs"
+    ],
+    "src/spi/stream_dma.rs": [
+      "extern:cortex-m@0.7.10",
+      "extern:embedded-hal@1.0.0",
+      "src/adc/mod.rs",
+      "src/adc_v2/mod.rs",
+      "src/adc_v4/mod.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/resource.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/mod.rs",
+      "src/spi_v2/mod.rs",
+      "src/spi_v4/mod.rs",
+      "src/time.rs",
+      "src/uart/mod.rs",
+      "src/uart/stream_dma.rs",
+      "src/wait.rs"
+    ],
+    "src/time.rs": [
+      "extern:defmt@1.2.0",
+      "extern:fugit@0.6.0"
+    ],
+    "src/timer.rs": [
+      "extern:defmt@1.2.0",
+      "extern:stm32-metapac@21.0.0",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/resource.rs",
+      "src/spi/mod.rs",
+      "src/time.rs",
+      "src/timer_pwm.rs",
+      "src/uart/mod.rs"
+    ],
+    "src/uart/mod.rs": [
+      "extern:defmt@1.2.0",
+      "extern:embedded-io@0.7.1",
+      "src/chips/stm32f401re.rs",
+      "src/resource.rs",
+      "src/time.rs",
+      "src/uart/stream_dma.rs",
+      "src/usart_v2/mod.rs"
+    ],
+    "src/uart/ring.rs": [],
+    "src/uart/stream_dma.rs": [
+      "extern:embedded-io@0.7.1",
+      "src/adc/mod.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/exti.rs",
+      "src/gpio_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/resource.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/mod.rs",
+      "src/spi/stream_dma.rs",
+      "src/time.rs",
+      "src/uart/mod.rs",
+      "src/uart/ring.rs",
+      "src/uart/tx_ring.rs",
+      "src/usart_v2/mod.rs",
+      "src/usart_v4/mod.rs",
+      "src/wait.rs"
+    ],
+    "src/uart/tx_ring.rs": [],
+    "src/usart_v2/mod.rs": [
+      "extern:stm32-metapac@21.0.0",
+      "src/adc/mod.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/mod.rs",
+      "src/spi/stream_dma.rs",
+      "src/uart/mod.rs",
+      "src/uart/stream_dma.rs"
+    ],
+    "src/usart_v4/mod.rs": [
+      "extern:stm32-metapac@21.0.0",
+      "src/adc/mod.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/mod.rs",
+      "src/spi/stream_dma.rs",
+      "src/uart/mod.rs",
+      "src/uart/stream_dma.rs"
+    ]
+  },
+  "identities": {
+    "extern:cortex-m@0.7.10": "0.7.10",
+    "extern:defmt@1.2.0": "1.2.0",
+    "extern:embedded-hal@1.0.0": "1.0.0",
+    "extern:embedded-io@0.7.1": "0.7.1",
+    "extern:fugit@0.6.0": "0.6.0",
+    "extern:stm32-metapac@21.0.0": "21.0.0",
+    "src/adc/mod.rs": "112bfdaa0696be5ab0fc6db9338616fe01dc2d59da8f0622feb1005729403251",
+    "src/adc_v2/mod.rs": "63d8da380a40883c1fa08ace773570005dd5a66332ff39a15534a6cfa0c5bf06",
+    "src/adc_v4/mod.rs": "183430c9c611cf88cad32ebcf1a139468a565eb6c6c4e68b6c2d9ee2a4df5c0c",
+    "src/chips/shared/h7.rs": "c5ffb0a500562a7f4b7631fa03e81e6a8f0b380bf7486c1ca8b2d51bde97c92a",
+    "src/chips/shared/macros.rs": "61a93392253151462f5717ab53cf17bcab1a5de4e7c1559f52363637df5b630f",
+    "src/chips/stm32f401re.rs": "825c32b5978c913a7a3f62d1740d64c9b63cdd2ae075a830e88933af51678493",
+    "src/chips/stm32f405rg.rs": "8f6d82c0319828e9b583aaa9d923f8df172e4e439ef2795d22a73191838aa8d5",
+    "src/chips/stm32h743vi.rs": "48df77d761de9fe23628ac6f3643c3ef730f2329ce31c26907f93ec04fbe6bcf",
+    "src/chips/stm32h753zi.rs": "290f3d9c11166b592ff6c3e7500402dcf77bc4152820c762cee985596113e735",
+    "src/dma_stream.rs": "3e35e8f1a2022b515a4e63e51e5878ebafc0a96508a34eddd9e723314c9f0cb8",
+    "src/exti.rs": "297dc3e5fa898c94dece4413df6612fe872a911f337941c50c33c079092564d9",
+    "src/gpio_v2/mod.rs": "26749974a5d0626a2ab72d9b31781c58f9f6662043ee936a07e8af7774add8f0",
+    "src/iwdg.rs": "1b6e6062efb376915b1cf10a5dc9ec570df085fc7d11b3635882d9a323b72286",
+    "src/lib.rs": "76d4075f76817a01599ddf93f4a107b683dfc1271628bfb0fc86949022974afe",
+    "src/rcc_f4/mod.rs": "fb88291da883794c470da6f21c1feb951556080a1bd8a844b481e7e755555524",
+    "src/rcc_h7rm0433/mod.rs": "bbfca02d172c011a39e4f66ea13e293f94dfb595571359dd84691d408d7c708b",
+    "src/reset.rs": "6f6cb95d75513e0e29e55863faa3d30ec3d0d4b1037f9e1fc4d421e1c50774f8",
+    "src/resource.rs": "720671dab873c8d39f5bd3b522978be67937379798c3c6d5ccef3ddfbabea375",
+    "src/sdmmc_v2/mod.rs": "9dce13004420e52092b6ab860902fb275f4739454e6326dcfc34f97a57654671",
+    "src/spi/mod.rs": "1452d4be9e5c03426ad0ede10f85705ff67abebb5a51aa490f25db1a489da961",
+    "src/spi/polled.rs": "3703da6749563c6edc11ae0c4c7fe0a35c2de1dc983a2146c70b2e6f663305bd",
+    "src/spi/stream_dma.rs": "151b667d0a81ec3a1d8e014a8be7911f79a8cf278359732a6a0a0a47ea14263e",
+    "src/spi_v2/mod.rs": "69cb31fbbecd51547b3b1982a3543cc4999bf045355b742242e9029b31bbfafd",
+    "src/spi_v4/mod.rs": "abdbf4b6362905e51318c371aa0aa7d8a865e569373a48fabe09fa6859360edd",
+    "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+    "src/timer.rs": "5e22c6f4a4606cdd8a3f52dca0ab8a95debec20349e0b0ee125103e44fb71bf0",
+    "src/timer_pwm.rs": "3a79be2276669f668ca9e6565fc52d49c4342d8e7bb9508883e3b56ec38e15dc",
+    "src/uart/mod.rs": "1cc227b7b692d0f9e96bf9e2e5d1715d0893740ef2023ca831351ab74cb42a67",
+    "src/uart/ring.rs": "ba8a554d40c7669ea29fc55648f0ba38561108f2e0aaf73ca0bb4674178f1b17",
+    "src/uart/stream_dma.rs": "5412269e1e501e603651907de7636ace6452fdd54b8bc5e31f6fa924f7cc0625",
+    "src/uart/tx_ring.rs": "e33970366ee886b969596f95e1b20b9c992a22b3a98be6fdf1e40980d264774a",
+    "src/usart_v2/mod.rs": "723c18dc092d43aac1e7d720de16e01e2cdc0254ec0ea795f1ea2316b03f3630",
+    "src/usart_v4/mod.rs": "2ef688b25ab933287effc3b5f880fd11dcab1068e560c75ffbefbe474b67d1ae",
+    "src/wait.rs": "4698809e5b671e6860cc3d68b64a7cfd4febb4d0ad7c9e4fde87905efcc99714"
+  },
+  "results": [
+    {
+      "requirement": "GLUE-003",
+      "method": {
+        "test": "ferrohal_stm32::chip::tests::ccm_ram_is_refused"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "c116d1da55a6b7c93bea5d76edbb74ddcc0f9c4df9f5fc262afab4a6581cd46f",
+      "exercised": [
+        "src/adc/mod.rs",
+        "src/chips/shared/macros.rs",
+        "src/chips/stm32f401re.rs",
+        "src/chips/stm32f405rg.rs",
+        "src/chips/stm32h743vi.rs",
+        "src/chips/stm32h753zi.rs",
+        "src/dma_stream.rs",
+        "src/exti.rs",
+        "src/gpio_v2/mod.rs",
+        "src/lib.rs",
+        "src/rcc_f4/mod.rs",
+        "src/rcc_h7rm0433/mod.rs",
+        "src/resource.rs",
+        "src/sdmmc_v2/mod.rs",
+        "src/spi/mod.rs",
+        "src/spi/stream_dma.rs",
+        "src/time.rs",
+        "src/timer.rs",
+        "src/uart/mod.rs",
+        "src/uart/stream_dma.rs",
+        "src/usart_v2/mod.rs",
+        "src/usart_v4/mod.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-004",
+      "method": {
+        "test": "ferrohal_stm32::chip::tests::uart4_and_uart5_refuse_fractional_stop_bits"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "f6d152f78e702e0cc862938af1d6e3f392ad3c3fb462c927689addbcb642bf23",
+      "exercised": [
+        "src/adc/mod.rs",
+        "src/chips/shared/macros.rs",
+        "src/chips/stm32f401re.rs",
+        "src/chips/stm32f405rg.rs",
+        "src/chips/stm32h743vi.rs",
+        "src/chips/stm32h753zi.rs",
+        "src/dma_stream.rs",
+        "src/exti.rs",
+        "src/gpio_v2/mod.rs",
+        "src/lib.rs",
+        "src/rcc_f4/mod.rs",
+        "src/rcc_h7rm0433/mod.rs",
+        "src/resource.rs",
+        "src/sdmmc_v2/mod.rs",
+        "src/spi/mod.rs",
+        "src/spi/stream_dma.rs",
+        "src/time.rs",
+        "src/timer.rs",
+        "src/uart/mod.rs",
+        "src/uart/stream_dma.rs",
+        "src/usart_v2/mod.rs",
+        "src/usart_v4/mod.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "GLUE-002",
+      "method": {
+        "test": "ferrohal_stm32::chip::tests::wiring_describes_itself"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "7c46e0f5b6d583d53582d8a9862e2e0eac93fdc620f9570c18c87f43724ab9c8",
+      "exercised": [
+        "src/chips/shared/macros.rs",
+        "src/chips/stm32f401re.rs",
+        "src/chips/stm32f405rg.rs",
+        "src/chips/stm32h743vi.rs",
+        "src/chips/stm32h753zi.rs",
+        "src/dma_stream.rs",
+        "src/exti.rs",
+        "src/gpio_v2/mod.rs",
+        "src/lib.rs",
+        "src/rcc_f4/mod.rs",
+        "src/rcc_h7rm0433/mod.rs",
+        "src/resource.rs",
+        "src/spi/mod.rs",
+        "src/spi/stream_dma.rs",
+        "src/time.rs",
+        "src/uart/mod.rs",
+        "src/uart/stream_dma.rs",
+        "src/usart_v2/mod.rs",
+        "src/usart_v4/mod.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-004",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::plan_drops_stale_and_passed_marks"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "68cb181d596acc133e23879ccffb78f023c363c617948485d82bbcc17da114a3",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-003",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::plan_fills_the_buffer_before_a_distant_mark"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "ac4b9c987dbcb8ae14449dd46c228af6a3c4c5403ec4cd11fcc445e08b232e49",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-004",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::plan_keeps_a_mark_recorded_after_the_write_count_was_read"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "a1d1d415bb9be38c4725ff20e86b2f04548fa48533afbede3c9b6b71324b86fc",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-003",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::plan_takes_up_to_the_mark"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "31e19bd8d72bfb9394dcd5c40a5d70e605334c5fb555f46f102036fe15597205",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-003",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::plan_waits_for_an_open_chunk"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "192e7f81e7c9be843ebf8c936e9eba4eadf8a403935a7a54cf247194de4a894b",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-003",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::plan_works_across_the_count_wrapping"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "b5aaeda27e27544763b60f98d640980a9f0b3b2c7049eb49120c2852d3361f23",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-005",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::queue_is_first_in_first_out_and_bounded"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "7cf8657c61215debfb4b40f651d8c7822d00f85037aa62726a33f51892f1da81",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-005",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::queue_keeps_kind_and_epoch"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "e0a20d692e371285b25a0b7e5a96b87341c8219031b3408d04c0c0b05170af21",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-002",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::written_accounts_for_a_crossing_not_yet_counted"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "aec03ffb158db303baef9c09897d377b7703e48a738297d42bf8d294f4fbfc69",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-001",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::written_follows_the_dma_across_laps"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "7b1f4db85645f98cb556addd66e2a13c41e6cc842ee149521fed26de939bc876",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-001",
+      "method": {
+        "test": "ferrohal_stm32::uart::ring::tests::written_stays_continuous_when_the_count_wraps"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "f45425d43c482dcc43b959d042349a0fa6395a7500aa2f0c1f3be335d04fe328",
+      "exercised": [
+        "src/uart/ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-006",
+      "method": {
+        "test": "ferrohal_stm32::uart::tx_ring::tests::a_frame_too_long_for_the_tail_wraps_to_the_start"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "674861f4f2a0133765e4eb9337ec4690d9eeb4137b7d9250abbc48dc5fa930e1",
+      "exercised": [
+        "src/uart/tx_ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-006",
+      "method": {
+        "test": "ferrohal_stm32::uart::tx_ring::tests::a_wrapped_ring_fills_up_to_the_oldest_frame"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "b14eabc34380192411756b87ce82a77a94926a430883aac831557cc2ad614529",
+      "exercised": [
+        "src/uart/tx_ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-006",
+      "method": {
+        "test": "ferrohal_stm32::uart::tx_ring::tests::an_empty_ring_takes_a_frame_at_its_start"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "4e00e99f1c8a9eccbeefbc3a023799a09675cf9af13798ffa0665ea1e73f8fb8",
+      "exercised": [
+        "src/uart/tx_ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-006",
+      "method": {
+        "test": "ferrohal_stm32::uart::tx_ring::tests::frames_follow_each_other"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "889d165f8a8d14c44ccd0a8747b435e7cb571af0f69021fafd7ff0761658a2b7",
+      "exercised": [
+        "src/uart/tx_ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-006",
+      "method": {
+        "test": "ferrohal_stm32::uart::tx_ring::tests::largest_agrees_with_place"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "24a176e2ae49ee3d4efea9092f42ba481608f342e52895d5fe073a3a058dd39f",
+      "exercised": [
+        "src/uart/tx_ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-007",
+      "method": {
+        "test": "ferrohal_stm32::uart::tx_ring::tests::queue_is_first_in_first_out_and_bounded"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "d1fb14929e3c654702f76936a24e371cb491d0a7b639f3df7bfedebff8733c1b",
+      "exercised": [
+        "src/uart/tx_ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-007",
+      "method": {
+        "test": "ferrohal_stm32::uart::tx_ring::tests::queue_keeps_offset_and_length"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "df41a5c901bb8df5e7d0e73a69dd3c14d228c06f963bd142460cecda176c3e86",
+      "exercised": [
+        "src/uart/tx_ring.rs"
+      ],
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-011",
+      "method": {
+        "test": "ferrohal_stm32::uart::tx_ring::tests::refuses_empty_and_oversized_frames"
+      },
+      "level": "unit",
+      "target": "host",
+      "setup": "none",
+      "claim": "970bb2d3b76379e00584bae1f6a4cd500c0019e74ae9cfd9658b92e9c3027460",
+      "exercised": [
+        "src/uart/tx_ring.rs"
+      ],
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null
+}
