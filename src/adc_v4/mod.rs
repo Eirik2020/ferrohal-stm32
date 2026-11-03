@@ -4,6 +4,8 @@
 //! the asynchronous clock mode, independent of the core clock. Single-ended,
 //! 16 bits, with linearity calibration at startup. ADC1 and ADC2 share their
 //! clock and common registers; only ADC1 and ADC3 are offered.
+//!
+//! Requirements: ADC-001
 
 use stm32_metapac::{
     adc::{

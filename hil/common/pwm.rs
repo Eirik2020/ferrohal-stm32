@@ -187,19 +187,19 @@ pub fn lane_pair_check<T: ChannelTimer, const A: u8, const B: u8>(
         }
     })();
     if let Err(fail) = result {
-        report.check(name, "both lanes and the sampler finish", Err(fail));
+        report.check(name, "both lanes and the sampler finish [PWM-003]", Err(fail));
         sampler.stop();
         return;
     }
-    report.check(name, "both lanes and the sampler finish", Ok(()));
+    report.check(name, "both lanes and the sampler finish [PWM-003]", Ok(()));
     report.check(
         name,
-        "first lane: its 16 bits, one period apart",
+        "first lane: its 16 bits, one period apart [PWM-002]",
         decode(sampler.samples(), pins.0, patterns.0, per_bit16),
     );
     report.check(
         name,
-        "second lane: its 16 bits, one period apart",
+        "second lane: its 16 bits, one period apart [PWM-002]",
         decode(sampler.samples(), pins.1, patterns.1, per_bit16),
     );
 }
@@ -216,7 +216,7 @@ pub fn duty_check(
 ) {
     report.check(
         name,
-        "duty as set, to 1/16",
+        "duty as set, to 1/16 [PWM-001]",
         (|| {
             sampler.start(1000).map_err(|_| Fail::Count {
                 expected: 1000,
@@ -262,7 +262,7 @@ pub fn trigger_suite<M, S>(
     let still = !slave.is_running() && slave.counter() == 0;
     report.check(
         name,
-        "the slave waits for the master",
+        "the slave waits for the master [PWM-004]",
         if still {
             Ok(())
         } else {
@@ -288,7 +288,7 @@ pub fn trigger_suite<M, S>(
     slave.stop();
     report.check(
         name,
-        "100 starts: the master's starts the slave",
+        "100 starts: the master's starts the slave [PWM-005]",
         if stopped == 0 {
             Ok(())
         } else {
@@ -297,7 +297,7 @@ pub fn trigger_suite<M, S>(
     );
     report.check(
         name,
-        "100 starts: they begin together",
+        "100 starts: they begin together [PWM-005]",
         if worst <= max_skew {
             Ok(())
         } else {

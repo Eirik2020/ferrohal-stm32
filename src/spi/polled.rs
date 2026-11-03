@@ -7,6 +7,8 @@
 //! receiver can never overrun. Every transfer is bounded: twice its time on
 //! the wire plus a margin, measured with a [`CycleClock`] when one is set,
 //! otherwise counted as register polls of at least a cycle each.
+//!
+//! Requirements: SPIPOLL-001, SPIPOLL-002
 
 use crate::{
     gpio::AltPin,

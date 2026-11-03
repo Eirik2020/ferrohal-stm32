@@ -25,6 +25,8 @@
 //! write that cannot disturb the others. On `dma_v1`, each stream owns its
 //! DMAMUX channel's configuration register outright. The controller's clock
 //! is the only shared write, made through [`Rcc`].
+//!
+//! Requirements: DMA-001
 
 use core::sync::atomic::{Ordering, fence};
 

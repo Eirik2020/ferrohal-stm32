@@ -2,6 +2,8 @@
 //! bound is CPU cycles, measured by the caller's [`CycleClock`] when one is
 //! set, otherwise counted as loop passes against the fewest cycles a pass
 //! can take, so a counted bound is never shorter than asked.
+//!
+//! Requirements: WAIT-001
 
 use crate::time::CycleClock;
 

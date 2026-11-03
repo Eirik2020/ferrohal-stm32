@@ -1,0 +1,52 @@
+schema_version: 2
+requirements:
+  - id: IWDG-001
+    title: A fed watchdog does not reset
+    statement: >-
+      A watchdog fed within its timeout shall not reset the chip.
+    rationale: >-
+      Firmware running normally must keep running.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
+
+  - id: IWDG-002
+    title: A starved watchdog resets the chip
+    statement: >-
+      A watchdog not fed shall reset the chip, within the spread its clock
+      allows.
+    rationale: >-
+      This is the whole purpose of a watchdog.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
+
+  - id: IWDG-003
+    title: The prescaler is the finest that fits
+    statement: >-
+      The watchdog shall use the finest prescaler that reaches its timeout.
+    rationale: >-
+      A finer prescaler keeps the timeout closest to what was asked.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::iwdg::tests::divider_picks_the_finest_prescaler

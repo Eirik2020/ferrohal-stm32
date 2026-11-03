@@ -18,6 +18,8 @@
 //! Ported in part from embassy-stm32 0.6.0's `rcc/h.rs` (MIT OR
 //! Apache-2.0, Embassy project contributors): the power-up order, the PLL
 //! programming and the flash table. See `THIRD-PARTY.md`.
+//!
+//! Requirements: RCC-001, RCC-002
 
 use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,

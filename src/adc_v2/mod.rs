@@ -3,6 +3,8 @@
 //! The ADC clock is PCLK2 over 2, 4, 6 or 8, at most 36 MHz (DS8626, DS10086).
 //! Single conversions and sequences share the sequence registers, so a `read`
 //! between sequences isn't offered once an `AdcScan` holds the ADC.
+//!
+//! Requirements: ADC-001
 
 use stm32_metapac::{
     adc::{

@@ -14,6 +14,8 @@
 //!
 //! A timer's counter clock is its bus's timer clock (`Clocks::timer`): twice
 //! the bus clock when the bus prescaler divides.
+//!
+//! Requirements: TIMER-001, TIMER-002, TIMER-003, TIMER-004, TIMER-005
 
 use stm32_metapac::timer::{
     TimCore, TimGp32,

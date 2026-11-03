@@ -1,0 +1,20 @@
+schema_version: 2
+requirements:
+  - id: USB-001
+    title: USB carries CDC serial
+    statement: >-
+      The USB port shall enumerate as a CDC serial device and echo what the
+      host sends, polled or from its interrupt.
+    rationale: >-
+      Flight boards have no probe, so USB is how they are configured.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The TBS Lucid H7 board bench

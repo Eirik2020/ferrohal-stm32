@@ -1,0 +1,197 @@
+schema_version: 2
+requirements:
+  - id: TIMER-001
+    title: A tick runs at its rate
+    statement: >-
+      A tick shall interrupt at its configured rate, to 0.05 percent of the
+      cycle counter.
+    rationale: >-
+      A scheduler or watchdog runs from this.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: TIMER-002
+    title: A tick can be paused
+    statement: >-
+      A paused tick shall raise no interrupts until it runs again.
+    rationale: >-
+      Firmware has to be able to stop one without tearing it down.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: TIMER-003
+    title: A timebase counts at its frequency
+    statement: >-
+      A timebase shall count at its configured frequency, to 0.01 percent of
+      the cycle counter.
+    rationale: >-
+      Timestamps are only as good as this count.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: TIMER-004
+    title: A rate that cannot be exact is refused
+    statement: >-
+      A timer rate the clock does not divide exactly shall be refused, not
+      rounded.
+    rationale: >-
+      A tick that drifts is worse than one that will not build.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer::tests::divider_is_exact_or_refuses
+
+  - id: TIMER-005
+    title: A tick can see its vector is enabled
+    statement: >-
+      A tick shall report whether its update vector is enabled at one
+      priority.
+    rationale: >-
+      The caller binds vectors, so a missing one should show at start, not
+      as silence.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: PWM-001
+    title: A channel's duty is as set
+    statement: >-
+      A PWM channel shall output its duty as set, to one sixteenth of the
+      period.
+    rationale: >-
+      Servos and other outputs depend on it.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: PWM-002
+    title: A lane sends its values one period apart
+    statement: >-
+      A compare lane shall put out each of its values for one period, in
+      order.
+    rationale: >-
+      This is what a DShot frame is on the wire.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: PWM-003
+    title: Lanes and sampler keep up at the rate
+    statement: >-
+      Two lanes and a sampler shall all finish, at the rate a DShot600 frame
+      needs, with no sample lost.
+    rationale: >-
+      Bidirectional DShot sends and samples at once.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: PWM-004
+    title: A slave timer waits for its master
+    statement: >-
+      A timer set as a slave shall not count until its master starts it.
+    rationale: >-
+      Lanes on two timers have to begin together.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: PWM-005
+    title: Linked timers begin together
+    statement: >-
+      A master's start shall start its slave in the same timer clock, on
+      every start.
+    rationale: >-
+      Motor outputs on two timers would otherwise be skewed.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: PWM-006
+    title: A rounded rate is reported
+    statement: >-
+      A PWM rate that must round shall use the nearest and report what it
+      got.
+    rationale: >-
+      PWM rates are rarely exact, and a caller needs to know the real one.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer::pwm::tests::nearest_rounds_and_reports

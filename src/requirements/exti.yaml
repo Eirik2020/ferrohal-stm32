@@ -1,0 +1,76 @@
+schema_version: 2
+requirements:
+  - id: EXTI-001
+    title: A line reports its pin's edges
+    statement: >-
+      An enabled line shall raise its interrupt on the edges it is set to,
+      on the pin it routes to.
+    rationale: >-
+      Sensors signal data ready this way.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: EXTI-002
+    title: A masked line stays quiet
+    statement: >-
+      A masked line shall ignore edges, and count them again once unmasked.
+    rationale: >-
+      Firmware has to be able to hold off an interrupt without losing the
+      line.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: EXTI-003
+    title: Software can trigger a line
+    statement: >-
+      A software trigger shall raise the line's interrupt.
+    rationale: >-
+      Firmware and tests can then start a handler without a pin edge.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: EXTI-004
+    title: A line reads its pin without taking it
+    statement: >-
+      A line shall watch its pin's level while the pin stays configured as
+      its owner set it.
+    rationale: >-
+      A peripheral's pin can then have its edges counted by a line.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI

@@ -43,7 +43,7 @@ fn main() -> ! {
     defmt::info!("unique ID: {=[u8]:02x}", uid);
     report.check(
         "unique ID",
-        "isn't blank",
+        "isn't blank [SIG-001]",
         if uid != [0; 12] && uid != [0xFF; 12] {
             Ok(())
         } else {

@@ -62,7 +62,7 @@ pub fn rails<A: adc::Instance>(
     expect(
         report,
         name,
-        "a driven low reads near 0",
+        "a driven low reads near 0 [ADC-001 ADC-002]",
         matches!(low, Ok(sample) if is_low(sample, max)),
         low.unwrap_or(u16::MAX).into(),
         0,
@@ -73,7 +73,7 @@ pub fn rails<A: adc::Instance>(
     expect(
         report,
         name,
-        "a driven high reads near full scale",
+        "a driven high reads near full scale [ADC-002]",
         matches!(high, Ok(sample) if is_high(sample, max)),
         high.unwrap_or(0).into(),
         max.into(),
@@ -85,7 +85,7 @@ pub fn rails<A: adc::Instance>(
     expect(
         report,
         name,
-        "it follows the pin back down",
+        "it follows the pin back down [ADC-002]",
         matches!(back, Ok(sample) if is_low(sample, max)),
         back.unwrap_or(u16::MAX).into(),
         0,
@@ -98,7 +98,7 @@ pub fn internal<A: InternalChannels>(report: &mut Report, name: &str, adc: &mut 
     expect(
         report,
         name,
-        "VDDA from the internal reference is about 3.3 V",
+        "VDDA from the internal reference is about 3.3 V [ADC-003]",
         (3000..=3600).contains(&mv),
         mv,
         3300,
@@ -110,7 +110,7 @@ pub fn internal<A: InternalChannels>(report: &mut Report, name: &str, adc: &mut 
     expect(
         report,
         name,
-        "the reference holds still, within 1 percent of scale",
+        "the reference holds still, within 1 percent of scale [ADC-003]",
         spread * 100 <= u32::from(adc.max_sample()),
         spread,
         0,
@@ -119,7 +119,7 @@ pub fn internal<A: InternalChannels>(report: &mut Report, name: &str, adc: &mut 
     expect(
         report,
         name,
-        "the reference reads about 1.2 V",
+        "the reference reads about 1.2 V [ADC-003]",
         (1150..=1280).contains(&reference),
         reference,
         1210,
@@ -129,7 +129,7 @@ pub fn internal<A: InternalChannels>(report: &mut Report, name: &str, adc: &mut 
     expect(
         report,
         name,
-        "the die is between 10 and 70 C",
+        "the die is between 10 and 70 C [ADC-003]",
         (100..=700).contains(&tenths),
         tenths.unsigned_abs(),
         300,
@@ -185,7 +185,7 @@ pub fn scan<A: adc::Instance>(
             _ => failures += 1,
         }
     }
-    expect(report, name, "64 sequences over DMA follow the pin", failures == 0, finished, 64);
-    expect(report, name, "a second start while running is refused", refused, 0, 1);
+    expect(report, name, "64 sequences over DMA follow the pin [ADC-004]", failures == 0, finished, 64);
+    expect(report, name, "a second start while running is refused [ADC-005]", refused, 0, 1);
     drive(false);
 }

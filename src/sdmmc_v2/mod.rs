@@ -16,6 +16,8 @@
 //!
 //! Not offered: SDSC and pre-v2 cards (byte addressing), 1.8 V signalling and
 //! the faster modes it needs, the internal DMA, eMMC, SDMMC2.
+//!
+//! Requirements: SDMMC-001, SDMMC-002, SDMMC-003, SDMMC-004
 
 use stm32_metapac::sdmmc::{
     Sdmmc as Regs,

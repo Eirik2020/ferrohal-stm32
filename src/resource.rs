@@ -1,5 +1,7 @@
 //! What a driver's wiring uses, as data, and the check that its interrupt
 //! vectors are bound as it needs. Shared by every peripheral driver.
+//!
+//! Requirements: RES-001
 
 /// One resource a wiring uses, as data: for checking a board's manifest
 /// against the types that wire it (`Wiring::RESOURCES` and the like).

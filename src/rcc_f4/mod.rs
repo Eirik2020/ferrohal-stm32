@@ -15,6 +15,8 @@
 //! The limits and the flash wait-state rule are ported from embassy-stm32
 //! 0.6.0's `rcc/f247.rs` (MIT OR Apache-2.0, Embassy project contributors).
 //! See `THIRD-PARTY.md`.
+//!
+//! Requirements: RCC-001, RCC-002
 
 use stm32_metapac::{
     FLASH, RCC as RCC_REGS,

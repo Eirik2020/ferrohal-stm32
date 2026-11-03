@@ -10,7 +10,7 @@
 //! The TBS Lucid H7 flight controller carries this chip. Its die is the
 //! H753's without the crypto block, so the H753ZI Nucleo stands in for it.
 //!
-//! Requirements: GLUE-001, GLUE-002
+//! Requirements: GLUE-001, GLUE-002, GLUE-005, GLUE-006
 
 use stm32_metapac as pac;
 

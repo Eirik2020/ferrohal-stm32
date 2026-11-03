@@ -1,0 +1,58 @@
+schema_version: 2
+requirements:
+  - id: SDMMC-001
+    title: The bus clock stays under its target
+    statement: >-
+      The SD bus divider shall stay at or below the target rate.
+    rationale: >-
+      A card in default speed may not be clocked faster.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::sdmmc::tests::divider_stays_at_or_below_the_target
+
+  - id: SDMMC-002
+    title: A card's size comes from its CSD
+    statement: >-
+      The driver shall work out a card's size from its CSD register.
+    rationale: >-
+      Writes past a card's end must be refused from the real size.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::sdmmc::tests::csd_gives_the_size
+
+  - id: SDMMC-003
+    title: An empty slot is reported as such
+    statement: >-
+      An empty slot shall be reported as no card, with every wait bounded.
+    rationale: >-
+      A missing card is a normal state, and it cannot hang a boot.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The TBS Lucid H7 board bench
+
+  - id: SDMMC-004
+    title: Blocks read back as written
+    statement: >-
+      Blocks written to a card shall read back the same, singly and in
+      multiples.
+    rationale: >-
+      Flight logs go here.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The TBS Lucid H7 board bench

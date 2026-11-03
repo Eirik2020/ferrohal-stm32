@@ -109,7 +109,7 @@ mod app {
             if let Err(error) = rates {
                 report.check(
                     name,
-                    "timer and sampler at the rate",
+                    "timer and sampler at the rate [PWM-003]",
                     Err(Fail::Timer(error)),
                 );
                 continue;

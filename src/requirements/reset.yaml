@@ -1,0 +1,100 @@
+schema_version: 2
+requirements:
+  - id: RESET-001
+    title: The reset cause is reported
+    statement: >-
+      The driver shall report whether the last reset came from software or
+      the watchdog, and a fresh start as neither.
+    rationale: >-
+      Firmware decides what to do from why it restarted.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Bootloader request on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Bootloader request on the Nucleo-H753ZI
+
+  - id: RESET-002
+    title: A bootloader request survives the reset
+    statement: >-
+      A bootloader request shall survive the reset it causes, including with
+      the data cache on.
+    rationale: >-
+      A lost request leaves the board running instead of ready to flash.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Bootloader request on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Bootloader request on the Nucleo-H753ZI
+
+  - id: RESET-003
+    title: A bootloader request answers once
+    statement: >-
+      A bootloader request shall read as set once, and a fresh boot as not
+      set.
+    rationale: >-
+      A stuck request would send the board to its ROM on every boot.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Bootloader request on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Bootloader request on the Nucleo-H753ZI
+
+  - id: RESET-004
+    title: The ROM bootloader is reached
+    statement: >-
+      A firmware asking for the ROM bootloader shall arrive in it, able to
+      flash.
+    rationale: >-
+      A firmware with no way back to the ROM can strand a board with no
+      probe.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
+
+  - id: SIG-001
+    title: The unique ID is readable
+    statement: >-
+      The driver shall read the chip's factory unique ID.
+    rationale: >-
+      Boards identify themselves by it.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI

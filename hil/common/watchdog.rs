@@ -61,7 +61,7 @@ pub fn after_reset(
     cortex_m::asm::delay(200_000_000);
     report.check(
         name,
-        "fed every 10 ms for 300 ms: no reset",
+        "fed every 10 ms for 300 ms: no reset [IWDG-001]",
         if read(1) == 1 {
             Ok(())
         } else {
@@ -73,7 +73,7 @@ pub fn after_reset(
     );
     report.check(
         name,
-        "starved: the reset cause is the watchdog",
+        "starved: the reset cause is the watchdog [RESET-001]",
         if cause.independent_watchdog {
             Ok(())
         } else {
@@ -91,7 +91,7 @@ pub fn after_reset(
     );
     report.check(
         name,
-        "starved: reset within the LSI's spread of 50 ms",
+        "starved: reset within the LSI's spread of 50 ms [IWDG-002]",
         if (min..=max).contains(&starved) {
             Ok(())
         } else {
@@ -116,7 +116,7 @@ pub fn feed_then_starve(
 ) {
     report.check(
         name,
-        "a fresh start isn't a watchdog reset",
+        "a fresh start isn't a watchdog reset [RESET-001]",
         if cause.independent_watchdog {
             Err(Fail::Level {
                 expected_high: false,
@@ -145,7 +145,7 @@ pub fn feed_then_starve(
     write(0, 0);
     report.check(
         name,
-        "starved: the watchdog resets the chip",
+        "starved: the watchdog resets the chip [IWDG-002]",
         Err(Fail::Count {
             expected: 1,
             got: 0,

@@ -4,6 +4,8 @@
 //!
 //! Names in the expansions (`Pin`, `Alternate`, `Interrupt`) resolve in the
 //! chip file that invokes them, so each chip brings its own IP versions.
+//!
+//! Requirements: GLUE-001, GLUE-002
 
 /// Zero-sized tokens for peripherals with no driver yet.
 macro_rules! tokens {

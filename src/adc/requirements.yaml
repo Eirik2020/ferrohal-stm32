@@ -1,0 +1,97 @@
+schema_version: 2
+requirements:
+  - id: ADC-001
+    title: The ADC has one API on every chip
+    statement: >-
+      Firmware shall reach the same ADC driver API, by the same name,
+      whatever ADC version its chip has.
+    rationale: >-
+      A single unified HAL: code above the driver must not change when the
+      chip does.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
+
+  - id: ADC-002
+    title: A reading follows the pin
+    statement: >-
+      A single reading shall read near zero with the pin driven low and near
+      full scale with it driven high.
+    rationale: >-
+      Battery and current readings depend on it.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
+
+  - id: ADC-003
+    title: Internal channels read correctly
+    statement: >-
+      The internal reference and temperature channels shall read within
+      their expected ranges.
+    rationale: >-
+      These check the converter and rail with nothing connected to the
+      board.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
+
+  - id: ADC-004
+    title: A sequence runs over DMA
+    statement: >-
+      A DMA sequence shall convert its channels into the buffer, and report
+      its end by interrupt or polling.
+    rationale: >-
+      A scheduler decides how to wait, so reading must not hold the CPU.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
+
+  - id: ADC-005
+    title: A second start is refused
+    statement: >-
+      A sequence start while one runs shall be refused.
+    rationale: >-
+      Starting anyway would corrupt the running sequence.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI

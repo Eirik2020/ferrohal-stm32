@@ -10,6 +10,8 @@
 //! timeout is nominal: from the 32 kHz the datasheets give as typical.
 //! Choose a timeout with that margin in mind. `rcc`'s `reset_cause` tells
 //! a firmware, after the fact, that the watchdog reset it.
+//!
+//! Requirements: IWDG-001, IWDG-002, IWDG-003
 
 use stm32_metapac::iwdg::vals::{Key, Pr};
 

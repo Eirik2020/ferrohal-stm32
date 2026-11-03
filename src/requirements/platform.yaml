@@ -1,0 +1,113 @@
+schema_version: 2
+requirements:
+  - id: RCC-001
+    title: A clock tree is checked before it is used
+    statement: >-
+      A clock configuration shall be checked against the chip's limits
+      before it is applied.
+    rationale: >-
+      A clock past its limit can run unreliably with no visible failure.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::tests::foxeer_clocks_validate
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::tests::spi123_needs_pll1q
+
+  - id: RCC-002
+    title: The clocks are what they report
+    statement: >-
+      The clocks the driver reports shall be the clocks the chip runs at.
+    rationale: >-
+      Every baud rate, timer and SPI clock is computed from them.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: GPIO-001
+    title: Pins carry what they are set to
+    statement: >-
+      A pin shall carry the signal its mode and alternate function select.
+    rationale: >-
+      Every driver reaches the outside through this.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: DMA-001
+    title: Streams move what they are set to
+    statement: >-
+      A DMA stream shall move data for the peripheral request it is set to.
+    rationale: >-
+      Every DMA driver depends on it.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: WAIT-001
+    title: A counted bound is never short
+    statement: >-
+      A wait counted in loop passes shall never end sooner than the bound
+      asked for.
+    rationale: >-
+      A wait that ends early reports a failure that did not happen.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: RES-001
+    title: A driver can see its vectors are enabled
+    statement: >-
+      A driver shall report whether the vectors it needs are enabled at one
+      priority.
+    rationale: >-
+      The caller binds vectors, so a missing one should show at start, not
+      as silence.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI

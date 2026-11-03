@@ -172,7 +172,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 {
     sck.unlisten(ctrl);
     let cap = bus.lock(|b| b.spi.as_ref().map_or(0, Spi::capacity));
-    report.check(name, "receive-stream vector enabled", {
+    report.check(name, "receive-stream vector enabled [RES-001]", {
         bus.lock(|b| b.spi.as_ref().map(|s| s.interrupts().verify()))
             .unwrap_or(Ok(()))
             .map_err(|error| Fail::Irq(Some(error)))
@@ -180,7 +180,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "1, 15 and 256 bytes by interrupt",
+        "1, 15 and 256 bytes by interrupt [SPI-001 SPI-002 GPIO-001]",
         (|| {
             let sent: [u8; 256] = pattern(1);
             for len in [1, 15, cap.min(256)] {
@@ -192,7 +192,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "SpiBus: in place, read, write, uneven transfer",
+        "SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001]",
         (|| {
             // 600 bytes: three transfers through the 256-byte buffers.
             let sent: [u8; 600] = pattern(2);
@@ -232,7 +232,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "busy, empty and oversized starts refused",
+        "busy, empty and oversized starts refused [SPI-003]",
         (|| {
             let sent: [u8; 256] = pattern(3);
             let busy = bus.lock(|b| {
@@ -266,7 +266,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "every mode: SCK idles at CPOL, bytes loop",
+        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPIV2-001 SPIV4-001]",
         (|| {
             let sent: [u8; 15] = pattern(4);
             for mode in [MODE_0, MODE_1, MODE_2, MODE_3] {
@@ -293,7 +293,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "SCK: 8 rising edges per byte, modes 0 and 3",
+        "SCK: 8 rising edges per byte, modes 0 and 3 [SPI-004 EXTI-001 EXTI-004]",
         (|| {
             let slow = slowest(bus)?;
             for mode in [MODE_0, MODE_3] {
@@ -327,7 +327,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "SCK as reported: 64 bytes take 512 periods",
+        "SCK as reported: 64 bytes take 512 periods [SPI-005]",
         (|| {
             for setting in [slowest(bus)?, *config] {
                 set_config(bus, &setting)?;
@@ -349,7 +349,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "abort mid-transfer, then a clean transfer",
+        "abort mid-transfer, then a clean transfer [SPI-006]",
         (|| {
             let slow = slowest(bus)?;
             set_config(bus, &slow)?;
@@ -383,7 +383,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "polling with the vector masked",
+        "polling with the vector masked [SPI-002]",
         (|| {
             let sent: [u8; 15] = pattern(8);
             NVIC::mask(rx_vector);
@@ -407,7 +407,7 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 
     report.check(
         name,
-        "a polling pass takes no less than the driver's floor",
+        "a polling pass takes no less than the driver's floor [SPI-008]",
         (|| {
             // Polls a slow transfer with the vector masked, as a blocking wait
             // does, and times the passes: none may beat `PASS_CYCLES`.
@@ -510,7 +510,7 @@ pub fn exti_suite<B: Mutex<T = Bus>, const OP: char, const ON: u8, const P: char
 
     report.check(
         name,
-        "masked: edges ignored, then counted again",
+        "masked: edges ignored, then counted again [EXTI-002]",
         (|| {
             exti.set_edge(ctrl, Edge::Rising);
             exti.unlisten(ctrl);
@@ -552,7 +552,7 @@ pub fn exti_suite<B: Mutex<T = Bus>, const OP: char, const ON: u8, const P: char
 
     report.check(
         name,
-        "software trigger raises the interrupt",
+        "software trigger raises the interrupt [EXTI-003]",
         (|| {
             let before = bus.lock(|b| b.edges);
             exti.trigger();
@@ -571,7 +571,7 @@ pub fn exti_suite<B: Mutex<T = Bus>, const OP: char, const ON: u8, const P: char
 
     report.check(
         name,
-        "level reads follow the pin",
+        "level reads follow the pin [EXTI-004 GPIO-001]",
         (|| {
             out.set_high();
             spin(SETTLE);
@@ -608,7 +608,7 @@ pub fn blocking_suite<const P: char, const N: u8>(
     sck.unlisten(ctrl);
     report.check(
         name,
-        "SpiBus: in place, read, write, uneven transfer",
+        "SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001]",
         (|| {
             let sent: [u8; 600] = pattern(10);
             let mut buf = sent;
@@ -625,7 +625,7 @@ pub fn blocking_suite<const P: char, const N: u8>(
     );
     report.check(
         name,
-        "every mode: SCK idles at CPOL, bytes loop",
+        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPIV2-001 SPIV4-001]",
         (|| {
             let sent: [u8; 15] = pattern(11);
             for mode in [MODE_0, MODE_1, MODE_2, MODE_3] {
@@ -647,7 +647,7 @@ pub fn blocking_suite<const P: char, const N: u8>(
     );
     report.check(
         name,
-        "64 bytes take at least their time on the wire",
+        "64 bytes take at least their time on the wire [SPIPOLL-002]",
         (|| {
             let sent: [u8; 64] = pattern(12);
             let mut buf = sent;

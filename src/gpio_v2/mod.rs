@@ -10,6 +10,8 @@
 //!
 //! Which pins a package bonds out is not checked yet: the split hands out
 //! all sixteen on every port.
+//!
+//! Requirements: GPIO-001
 
 use core::{convert::Infallible, marker::PhantomData};
 

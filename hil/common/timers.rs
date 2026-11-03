@@ -73,7 +73,7 @@ pub fn tick_check<B: Mutex<T = TickBench>>(
     let period = cpu.0 / rate;
     report.check(
         name,
-        "update vector enabled",
+        "update vector enabled [TIMER-005]",
         tick.verify().map_err(|error| Fail::Irq(Some(error))),
     );
     bench.lock(|b| {
@@ -87,7 +87,7 @@ pub fn tick_check<B: Mutex<T = TickBench>>(
     let (count, first, last) = bench.lock(|b| (b.count, b.first, b.last));
     report.check(
         name,
-        "ticks at its rate, to 0.05 % of the DWT",
+        "ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002]",
         (|| {
             if !arrived {
                 return Err(Fail::Count {
@@ -113,7 +113,7 @@ pub fn tick_check<B: Mutex<T = TickBench>>(
     );
     report.check(
         name,
-        "pause stops the ticks",
+        "pause stops the ticks [TIMER-002]",
         (|| {
             bench.lock(|b| {
                 if let Some(t) = b.tick.as_mut() {
@@ -143,7 +143,7 @@ pub fn timebase_check(report: &mut Report, name: &str, base: &Timebase, cpu: Her
     let reader = base.reader();
     report.check(
         name,
-        "counts at its frequency, to 0.01 % of the DWT",
+        "counts at its frequency, to 0.01 % of the DWT [TIMER-003 RCC-002]",
         (|| {
             let window = cpu.0 / 50;
             let (start_count, start_cycles) = (reader.now(), DWT::cycle_count());

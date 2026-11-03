@@ -13,6 +13,8 @@
 //! The `fugit` feature adds `From` conversions to and from fugit 0.6's
 //! `HertzU32`. It pulls in fugit and its one dependency, `gcd`, and nothing
 //! from RTIC or embassy.
+//!
+//! Requirements: RCC-002
 
 /// A frequency in hertz.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]

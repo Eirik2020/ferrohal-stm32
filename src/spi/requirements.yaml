@@ -1,0 +1,243 @@
+schema_version: 2
+requirements:
+  - id: SPI-001
+    title: The SPI has one API on every chip
+    statement: >-
+      Firmware shall reach the same SPI driver API, by the same name,
+      whatever SPI version its chip has.
+    rationale: >-
+      A single unified HAL: code above the driver must not change when the
+      chip does.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPI-002
+    title: A transfer returns at once and reports its end
+    statement: >-
+      A DMA transfer shall return from its start at once, and report its end
+      through the interrupt handler or by polling.
+    rationale: >-
+      A scheduler decides how to wait, so the driver cannot wait for it.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPI-003
+    title: A start that cannot run is refused
+    statement: >-
+      A start while a transfer runs, or with an empty or oversized buffer,
+      shall be refused.
+    rationale: >-
+      Starting anyway would corrupt the running transfer or read past a
+      buffer.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPI-004
+    title: All four clock modes work
+    statement: >-
+      The driver shall carry bytes in all four clock modes, with SCK idling
+      at the mode's polarity.
+    rationale: >-
+      Devices differ in the mode they need, and a wrong idle level loses
+      their first bit.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPI-005
+    title: The reported SCK rate is the real one
+    statement: >-
+      The SCK rate the driver reports shall be the rate on the wire.
+    rationale: >-
+      Devices have a maximum clock, and firmware checks against what the
+      driver reports.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPI-006
+    title: An abort recovers a stuck transfer
+    statement: >-
+      An abort shall end a running transfer and leave the driver able to run
+      another.
+    rationale: >-
+      A transfer that never finishes must not take the bus with it.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPI-007
+    title: The driver offers the standard bus operations
+    statement: >-
+      The driver shall offer the embedded-hal bus operations: in place,
+      read, write and uneven transfers.
+    rationale: >-
+      Device drivers written against the standard traits then work
+      unchanged.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPI-008
+    title: A polling pass is never faster than its floor
+    statement: >-
+      A polling pass shall take no less than the floor the driver counts its
+      bound with.
+    rationale: >-
+      A counted bound is only as long as promised while no pass is faster
+      than that floor.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPI-009
+    title: The divider never exceeds the asked rate
+    statement: >-
+      The SCK divider shall pick the fastest rate at or below the rate asked
+      for.
+    rationale: >-
+      Exceeding the asked rate could break a device; undershooting by more
+      than needed wastes bandwidth.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::spi::tests::divider_picks_the_fastest_sck_at_or_below
+
+  - id: SPIPOLL-001
+    title: Polled SPI carries the bus operations
+    statement: >-
+      The polled driver shall carry the embedded-hal bus operations in every
+      clock mode, with no DMA.
+    rationale: >-
+      Some buses have no DMA stream free, such as a flash chip whose routes
+      others use.
+    derived_from: [SPI-007]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPIPOLL-002
+    title: Polled SPI takes its real time on the wire
+    statement: >-
+      A polled transfer shall take at least its time on the wire before it
+      reports done.
+    rationale: >-
+      Finishing sooner would mean bytes were dropped or a bound was misread.
+    derived_from: [SPI-005]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
+  - id: SPIV2-001
+    title: SPI v2 holds SCK between transfers
+    statement: >-
+      SPI v2 shall hold SCK at its idle level between transfers.
+    rationale: >-
+      A device sees a stray edge as a clock otherwise.
+    derived_from: [SPI-004]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+
+  - id: SPIV4-001
+    title: SPI v4 holds SCK between transfers
+    statement: >-
+      SPI v4 shall hold SCK at its idle level between transfers, while the
+      SPI is disabled.
+    rationale: >-
+      This version disables after each transfer, and a device sees a stray
+      edge as a clock.
+    derived_from: [SPI-004]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI

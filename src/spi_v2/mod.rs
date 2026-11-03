@@ -8,6 +8,8 @@
 //! off. That also keeps clear of ES0299 2.11.1 / ES0182 2.12.1 (BSY can
 //! stay high if the SPI is disabled mid-frame): SPE only drops in
 //! `configure`, with the bus idle.
+//!
+//! Requirements: SPIV2-001
 
 use stm32_metapac::spi::vals::{Br, Cpha, Cpol, Dff, Lsbfirst, Mstr};
 

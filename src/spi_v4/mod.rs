@@ -11,6 +11,8 @@
 //! at its reset value, 7 (ES0392 2.22.5). The driver holds one SCK period
 //! between EOT and disabling (ES0392 2.22.6). FIFO and DMA requests are
 //! one byte each.
+//!
+//! Requirements: SPIV4-001
 
 use stm32_metapac::spi::vals::{Comm, Cpha, Cpol, Fthlv, Lsbfirst, Master, Mbr, Sp};
 

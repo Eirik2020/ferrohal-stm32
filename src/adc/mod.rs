@@ -18,6 +18,8 @@
 //!   the internal reference is available, [`Adc::vdda_millivolts`] measures it
 //!   against the factory calibration; elsewhere a board states its nominal
 //!   supply.
+//!
+//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005
 
 use core::marker::PhantomData;
 

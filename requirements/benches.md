@@ -28,3 +28,51 @@ the same checks in `hil/common/tests.rs`.
 `python3 -I tools/check_glue.py`, which compares each chip's routing rows with
 stm32-metapac's metadata. Pass: it exits zero. It reads the rows as text, so their
 layout must stay as it is.
+
+## SPI and EXTI on the Nucleo-F401RE
+
+`hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
+
+## SPI and EXTI on the Nucleo-H753ZI
+
+`hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
+
+## Timers on the Nucleo-F401RE
+
+`hil/run-f401.sh h i n`. Measures each timer against the cycle counter. Pass: every check in every run passes and the script exits zero.
+
+## Timers on the Nucleo-H753ZI
+
+`hil/run-h753.sh i j p`. Measures each timer against the cycle counter. Pass: every check in every run passes and the script exits zero.
+
+## Watchdog on the Nucleo-F401RE
+
+`hil/run-f401.sh j`. Resets the chip on purpose. Pass: every check in every run passes and the script exits zero.
+
+## Watchdog on the Nucleo-H753ZI
+
+`hil/run-h753.sh k`. Resets the chip on purpose. Pass: every check in every run passes and the script exits zero.
+
+## Bootloader request on the Nucleo-F401RE
+
+`hil/run-f401.sh l`. Resets the chip on purpose. Pass: every check in every run passes and the script exits zero.
+
+## Bootloader request on the Nucleo-H753ZI
+
+`hil/run-h753.sh n`. Resets the chip on purpose. Pass: every check in every run passes and the script exits zero.
+
+## ADC on the Nucleo-F401RE
+
+`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. Pass: every check in every run passes and the script exits zero.
+
+## ADC on the Nucleo-H753ZI
+
+`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. Pass: every check in every run passes and the script exits zero.
+
+## The Foxeer F405 V2 board bench
+
+`hil/run-foxeer.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Pass: every check in every run passes and the script exits zero.
+
+## The TBS Lucid H7 board bench
+
+`hil/run-lucid.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its SD checks need a card in the slot. Pass: every check in every run passes and the script exits zero.

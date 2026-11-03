@@ -20,6 +20,8 @@
 //! latches each first duty; every compare match after that has the stream
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
+//!
+//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006
 
 use core::{
     marker::PhantomData,
