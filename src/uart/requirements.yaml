@@ -86,20 +86,13 @@ requirements:
           setup: none
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
-          method:
-            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
   - id: UART-005
-    title: Line faults reach the reader
+    title: A framing fault reaches the reader
     statement: >-
-      A framing, parity, noise or overrun fault on the line shall reach the
-      reader as an error.
+      A framing fault on the line shall reach the reader as an error.
     rationale: >-
-      A fault that passes silently leaves corrupt or missing bytes looking
-      good.
+      A fault that passes silently leaves corrupt bytes looking good.
     derived_from: [G2]
     verification:
       entries:
@@ -287,6 +280,33 @@ requirements:
           setup: none
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-014
+    title: A parity fault reaches the reader
+    statement: >-
+      A parity fault on the line shall reach the reader as an error.
+    rationale: >-
+      A fault that passes silently leaves corrupt bytes looking good.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+
+  - id: UART-015
+    title: Noise and receiver overrun reach the reader
+    statement: >-
+      A noise fault or a receiver overrun shall reach the reader as an
+      error.
+    rationale: >-
+      A fault that passes silently leaves corrupt or missing bytes looking
+      good.
+    derived_from: [G2]
+    verification:
+      entries: []
 
   - id: UARTDMA-001
     title: The receive position stays continuous
@@ -522,10 +542,9 @@ requirements:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
   - id: USART-002
-    title: Line events are reported and cleared
+    title: Framing and idle events are reported and cleared
     statement: >-
-      Taking a line's events shall report overrun, framing, parity, noise
-      and idle, and clear them.
+      Taking a line's events shall report framing and idle, and clear them.
     rationale: >-
       The driver turns these into errors and chunk boundaries, and an
       uncleared one would repeat.
@@ -563,6 +582,17 @@ requirements:
           setup: none
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: USART-004
+    title: Other line faults are reported and cleared
+    statement: >-
+      Taking a line's events shall report parity, noise and overrun, and
+      clear them.
+    rationale: >-
+      The driver turns these into errors, and an uncleared one would repeat.
+    derived_from: [UART-014, UART-015]
+    verification:
+      entries: []
 
   - id: USARTV2-001
     title: USART v2 refuses inversion
@@ -644,3 +674,8 @@ requirements:
           setup: none
           method:
             test: ferrohal_stm32::chip::tests::ccm_ram_is_refused
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI

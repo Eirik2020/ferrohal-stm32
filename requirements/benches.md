@@ -4,6 +4,10 @@ What each requirement's bench entry runs. A run proves the files that declare th
 requirement it covers, so after the first pass, a change to one file owes only that
 file's requirements a new run.
 
+Every UART check prints the requirements it verifies in square brackets after its
+name, so a log shows which layer each line speaks for. A record's image hash is the
+hash of the manifest beside its logs, which lists every binary of the run by SHA-256.
+
 ## UART on the Nucleo-F401RE
 
 `hil/run-f401.sh a b c d`, with the links in

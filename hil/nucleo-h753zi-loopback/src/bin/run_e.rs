@@ -123,25 +123,29 @@ mod app {
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
-        report.check(
+        report.check_for(
             "USART1",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors1),
         );
-        report.check(
+        report.check_for(
             "UART7",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors7),
         );
         // The feed sends what the Lucid's receiver would: inverted frames.
         let sbus_feed = board::SBUS.with_inverted_tx(true);
-        report.check(
+        report.check_for(
             "USART1 receive-only PB7, SBUS 100000 8E2 inverted",
+            "UART-007",
             "25-byte frames, one chunk each",
             tests::receive_only(cx.local.usart1, cx.local.feed1, &sbus_feed, 25),
         );
-        report.check(
+        report.check_for(
             "UART7 receive-only PB3, 115200",
+            "UART-007",
             "40-byte frames, one chunk each",
             tests::receive_only(cx.local.uart7, cx.local.feed7, &board::MSP, 40),
         );

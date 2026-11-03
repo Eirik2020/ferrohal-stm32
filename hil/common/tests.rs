@@ -245,6 +245,24 @@ impl Report {
             }
         }
     }
+
+    /// As [`check`](Self::check), naming the requirements the check verifies,
+    /// so a bench line says which layer it speaks for.
+    pub fn check_for(&mut self, link: &str, verifies: &str, name: &str, result: Result<(), Fail>) {
+        match result {
+            Ok(()) => defmt::info!("PASS {=str}: {=str} [{=str}]", link, name, verifies),
+            Err(fail) => {
+                self.failed += 1;
+                defmt::error!(
+                    "FAIL {=str}: {=str} [{=str}]: {}",
+                    link,
+                    name,
+                    verifies,
+                    fail
+                );
+            }
+        }
+    }
 }
 
 /// Byte `index` of a test stream: a hash, so a dropped, repeated or
@@ -865,16 +883,28 @@ pub fn full_suite(
             errors
         );
     }
-    report.check(name, "echo", echo(link, b"hello ferrohal\n"));
-    report.check(
+    report.check_for(
         name,
+        "UART-001 UART-002 USART-001",
+        "echo",
+        echo(link, b"hello ferrohal\n"),
+    );
+    report.check_for(
+        name,
+        "UART-002",
         "echo, buffer-sized",
         echo(link, &[0xa5; 64][..tx_len.min(64)]),
     );
-    report.check(name, "stream 8 KiB", stream(link, 8 * 1024));
-    report.check(name, "ring overrun reported", ring_overrun(link, ring_len));
-    report.check(
+    report.check_for(name, "UART-002", "stream 8 KiB", stream(link, 8 * 1024));
+    report.check_for(
         name,
+        "UART-009",
+        "ring overrun reported",
+        ring_overrun(link, ring_len),
+    );
+    report.check_for(
+        name,
+        "UART-006",
         "counted and clocked waits within their bounds",
         wait_bounds(
             link,
@@ -882,54 +912,73 @@ pub fn full_suite(
             config.baudrate,
         ),
     );
-    report.check(
+    report.check_for(
         name,
+        "UARTDMA-002",
         "receive interrupt late by most of a lap",
         late_interrupt(link, ring_len, mask_rx_irq),
     );
-    report.check(name, "break reported", line_break(link));
-    report.check(
+    report.check_for(
         name,
+        "UART-005 UART-013 USART-002 USART-003",
+        "break reported",
+        line_break(link),
+    );
+    report.check_for(
+        name,
+        "UART-007 USART-002",
         "chunks end where the line goes idle",
         chunks_end_at_idle(link),
     );
-    report.check(
+    report.check_for(
         name,
+        "UART-007",
         "a full buffer ends a chunk",
         chunk_fills_the_buffer(link),
     );
-    report.check(
+    report.check_for(
         name,
+        "UART-008",
         "a break ends its chunk with a gap",
         break_is_a_gap(link),
     );
-    report.check(
+    report.check_for(
         name,
+        "UART-009",
         "a ring overrun is a gap",
         overrun_is_a_gap(link, ring_len),
     );
-    report.check(
+    report.check_for(
         name,
+        "UART-010",
         "queued frames arrive whole and in order",
         frames_in_order(link, tx_len),
     );
-    report.check(
+    report.check_for(
         name,
+        "UART-003 UARTDMA-008",
         "the interrupt chains queued frames",
         frames_chain_from_the_interrupt(link, tx_len),
     );
-    report.check(
+    report.check_for(
         name,
+        "UARTDMA-008",
         "frames go out by polling with the vectors masked",
         frames_go_out_by_polling(link, tx_len, mask_all_irqs),
     );
-    report.check(
+    report.check_for(
         name,
+        "UART-011",
         "an oversized frame is refused",
         oversized_frame_refused(link, tx_len),
     );
-    report.check(
+    report.check_for(
         name,
+        if inversion_supported {
+            "USARTV4-001"
+        } else {
+            "UART-004 USARTV2-001"
+        },
         if inversion_supported {
             "RX and TX inversion"
         } else {
@@ -937,9 +986,24 @@ pub fn full_suite(
         },
         inversion(link, config, inversion_supported),
     );
-    report.check(name, "1 Mbaud", reconfigured(link, &ONE_MBAUD));
-    report.check(name, "57600 8E2", reconfigured(link, &EVEN_PARITY_TWO_STOP));
-    report.check(name, "back to its own frame", reconfigured(link, config));
+    report.check_for(
+        name,
+        "UART-012 USART-001",
+        "1 Mbaud",
+        reconfigured(link, &ONE_MBAUD),
+    );
+    report.check_for(
+        name,
+        "UART-012 USART-001",
+        "57600 8E2",
+        reconfigured(link, &EVEN_PARITY_TWO_STOP),
+    );
+    report.check_for(
+        name,
+        "UART-012 USART-001",
+        "back to its own frame",
+        reconfigured(link, config),
+    );
     defmt::info!(
         "{=str}: health {}, transmit {}",
         name,

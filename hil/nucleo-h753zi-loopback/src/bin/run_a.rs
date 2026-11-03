@@ -226,26 +226,30 @@ mod app {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         let usart6 = cx.local.usart6;
-        report.check(
+        report.check_for(
             "USART6 PC6->PC7, CRSF 420000",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart6),
         );
         let usart1 = cx.local.usart1;
-        report.check(
+        report.check_for(
             "USART1 PB6->PB7, SBUS 100000 8E2",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart1),
         );
         let usart3 = cx.local.usart3;
-        report.check(
+        report.check_for(
             "USART3 PB10->PB11, MSP 115200",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart3),
         );
         let usart2 = cx.local.usart2;
-        report.check(
+        report.check_for(
             "USART2 PD5->PD6, control",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart2),
         );
@@ -319,8 +323,9 @@ mod app {
             true,
         );
 
-        report.check(
+        report.check_for(
             "USART6 + USART1 + USART3 + USART2",
+            "UART-002",
             "8 KiB each, all at once",
             tests::streams(
                 &mut [
@@ -354,20 +359,23 @@ mod app {
         );
         // The stack is ordinary, cached AXI SRAM.
         let cached = core::hint::black_box([0u8; 32]);
-        report.check(
+        report.check_for(
             "D-cache on",
+            "GLUE-003",
             "buffer in cached RAM refused",
             tests::expect_refusal(check_dma_buffer(&cached), ConfigError::BufferCacheable),
         );
         // SAFETY: never read; only its address is checked.
         let dtcm = unsafe { core::slice::from_raw_parts(0x2000_0000 as *const u8, 32) };
-        report.check(
+        report.check_for(
             "D-cache on",
+            "GLUE-003",
             "buffer in DTCM refused",
             tests::expect_refusal(check_dma_buffer(dtcm), ConfigError::BufferUnreachable),
         );
-        report.check(
+        report.check_for(
             "USART6 + USART1 + USART3 + USART2",
+            "UART-002",
             "8 KiB each, all at once, caches on",
             tests::streams(
                 &mut [
@@ -391,8 +399,9 @@ mod app {
                 8 * 1024,
             ),
         );
-        report.check(
+        report.check_for(
             "USART6 PC6->PC7, CRSF 420000",
+            "UART-006",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {
@@ -403,8 +412,9 @@ mod app {
                 CRSF.baudrate,
             ),
         );
-        report.check(
+        report.check_for(
             "USART1 PB6->PB7, SBUS 100000 8E2",
+            "UART-006",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {
@@ -415,8 +425,9 @@ mod app {
                 SBUS.baudrate,
             ),
         );
-        report.check(
+        report.check_for(
             "USART3 PB10->PB11, MSP 115200",
+            "UART-006",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {
@@ -427,8 +438,9 @@ mod app {
                 MSP.baudrate,
             ),
         );
-        report.check(
+        report.check_for(
             "USART2 PD5->PD6, control",
+            "UART-006",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {

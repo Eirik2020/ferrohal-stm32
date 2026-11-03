@@ -145,14 +145,16 @@ mod app {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         let uart4 = cx.local.uart4;
-        report.check(
+        report.check_for(
             "UART4 PD1->PD0",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_uart4),
         );
         let uart7 = cx.local.uart7;
-        report.check(
+        report.check_for(
             "UART7 PE8->PE7",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_uart7),
         );
@@ -192,8 +194,9 @@ mod app {
             true,
         );
 
-        report.check(
+        report.check_for(
             "UART4 + UART7",
+            "UART-002",
             "8 KiB each, all at once",
             tests::streams(
                 &mut [

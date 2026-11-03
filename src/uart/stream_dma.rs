@@ -47,7 +47,7 @@
 //! marks non-cacheable: this driver does no cache maintenance. `Uart::new`
 //! checks both with `chip::check_dma_buffer`.
 //!
-//! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UARTDMA-002, UARTDMA-008, UARTDMA-009
+//! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UART-014, UART-015, UARTDMA-002, UARTDMA-008, UARTDMA-009
 
 use core::{
     ptr,

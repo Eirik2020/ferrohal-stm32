@@ -193,18 +193,21 @@ mod app {
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
-        report.check(
+        report.check_for(
             "USART1",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors1),
         );
-        report.check(
+        report.check_for(
             "USART6",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );
-        report.check(
+        report.check_for(
             "USART2",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors2),
         );
@@ -254,16 +257,28 @@ mod app {
         };
         let name = host.name;
         tests::drain(&mut host);
-        report.check(name, "echo", tests::echo(&mut host, b"hello host\n"));
-        report.check(name, "stream 8 KiB", tests::stream(&mut host, 8 * 1024));
-        report.check(
+        report.check_for(
             name,
+            "UART-001 UART-002 USART-001",
+            "echo",
+            tests::echo(&mut host, b"hello host\n"),
+        );
+        report.check_for(
+            name,
+            "UART-002",
+            "stream 8 KiB",
+            tests::stream(&mut host, 8 * 1024),
+        );
+        report.check_for(
+            name,
+            "UART-009",
             "ring overrun reported",
             tests::ring_overrun(&mut host, RX_RING),
         );
 
-        report.check(
+        report.check_for(
             "USART1 + USART6 + USART2",
+            "UART-002",
             "8 KiB each, all at once",
             tests::streams(&mut [&mut loop1, &mut loop6, &mut host], 8 * 1024),
         );

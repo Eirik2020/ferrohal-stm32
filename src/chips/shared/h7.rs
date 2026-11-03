@@ -1,6 +1,8 @@
 //! What the RM0433 chips (STM32H742, H743, H753, H750) share beyond their
 //! IP versions: clock limits and the DMA's view of memory. Each H7 chip file
 //! re-exports these.
+//!
+//! Requirements: GLUE-003
 
 use crate::{rcc_h7rm0433::Limits, time::Hertz, uart::ConfigError};
 

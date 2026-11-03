@@ -104,8 +104,9 @@ mod app {
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
-        report.check(
+        report.check_for(
             "USART6",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );

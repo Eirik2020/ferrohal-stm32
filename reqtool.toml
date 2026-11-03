@@ -2,11 +2,10 @@
 # them, and the benches under hil/ are the boards evidence is recorded against.
 name = "ferrohal-stm32"
 requirements = "src"
-gates = "requirements/gates.yaml"
 roots = "requirements/goals.md"
 root_prefix = "G"
 evidence = "requirements/evidence/runs"
-artifacts = "hil/logs"
+artifacts = "requirements/evidence/logs"
 boards = "hil"
 craft_conditions = false
 test_features = [["stm32f401re"], ["stm32f405rg"], ["stm32h743vi"], ["stm32h753zi"]]

@@ -146,13 +146,15 @@ mod app {
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
-        report.check(
+        report.check_for(
             "USART1",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors1),
         );
-        report.check(
+        report.check_for(
             "USART6",
+            "UART-003",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );
@@ -174,16 +176,33 @@ mod app {
             };
             let name = cross.name;
             tests::drain(&mut cross);
-            report.check(name, "echo", tests::echo(&mut cross, b"hello across\n"));
-            report.check(name, "stream 8 KiB", tests::stream(&mut cross, 8 * 1024));
-            report.check(name, "break reported", tests::line_break(&mut cross));
-            report.check(
+            report.check_for(
                 name,
+                "UART-001 UART-002 USART-001",
+                "echo",
+                tests::echo(&mut cross, b"hello across\n"),
+            );
+            report.check_for(
+                name,
+                "UART-002",
+                "stream 8 KiB",
+                tests::stream(&mut cross, 8 * 1024),
+            );
+            report.check_for(
+                name,
+                "UART-005 UART-013 USART-002 USART-003",
+                "break reported",
+                tests::line_break(&mut cross),
+            );
+            report.check_for(
+                name,
+                "UART-005 USART-002",
                 "half baud rate reported as framing error",
                 tests::framing_mismatch(&mut cross),
             );
-            report.check(
+            report.check_for(
                 name,
+                "UART-014",
                 "even into odd reported as parity error",
                 tests::parity_mismatch(&mut cross),
             );
@@ -191,8 +210,9 @@ mod app {
 
         let (tx1, rx1) = usart1.halves();
         let (tx6, rx6) = usart6.halves();
-        report.check(
+        report.check_for(
             "USART1 <-> USART6",
+            "UART-002",
             "8 KiB each way, both at once",
             tests::streams(
                 &mut [

@@ -7,7 +7,7 @@
 //! clearing one never reads the data register. The receive and transmit
 //! FIFOs stay off: DMA serves one byte per request.
 //!
-//! Requirements: USART-001, USART-002, USART-003, USARTV4-001
+//! Requirements: USART-001, USART-002, USART-003, USART-004, USARTV4-001
 
 use stm32_metapac::usart::{
     regs::Icr,

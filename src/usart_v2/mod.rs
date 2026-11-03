@@ -2,7 +2,7 @@
 //! register operations the [`crate::uart`] driver needs. The driver itself,
 //! and the routing traits the glue implements, are re-exported here.
 //!
-//! Requirements: USART-001, USART-002, USART-003, USARTV2-001
+//! Requirements: USART-001, USART-002, USART-003, USART-004, USARTV2-001
 
 use stm32_metapac::usart::{
     regs::Sr,
