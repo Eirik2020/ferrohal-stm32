@@ -6,7 +6,7 @@
 //! 2^32; the ring length is even, so they stay continuous when the half-lap
 //! count wraps.
 //!
-//! Requirements: UARTDMA-001, UARTDMA-002, UARTDMA-003, UARTDMA-004, UARTDMA-005
+//! Requirements: UARTDMA-001, UARTDMA-003, UARTDMA-004, UARTDMA-005
 
 use core::sync::atomic::{AtomicU32, Ordering};
 

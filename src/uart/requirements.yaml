@@ -223,11 +223,6 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
-        - level: unit
-          target: host
-          setup: none
-          method:
-            test: ferrohal_stm32::uart::tx_ring::tests::refuses_empty_and_oversized_frames
         - level: mcu
           target: devboard
           setup: none
@@ -328,6 +323,11 @@ requirements:
           setup: none
           method:
             test: ferrohal_stm32::uart::ring::tests::written_stays_continuous_when_the_count_wraps
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::ring::tests::written_accounts_for_a_crossing_not_yet_counted
 
   - id: UARTDMA-002
     title: A late interrupt loses nothing
@@ -340,11 +340,6 @@ requirements:
     derived_from: [UART-002, UART-003]
     verification:
       entries:
-        - level: unit
-          target: host
-          setup: none
-          method:
-            test: ferrohal_stm32::uart::ring::tests::written_accounts_for_a_crossing_not_yet_counted
         - level: mcu
           target: devboard
           setup: none
@@ -520,6 +515,23 @@ requirements:
     verification:
       entries: []
 
+  - id: UARTDMA-010
+    title: The ring refuses a frame it can never hold
+    statement: >-
+      The transmit ring shall refuse an empty frame and one larger than the
+      ring.
+    rationale: >-
+      The driver relies on this to refuse a frame whole, before anything is
+      sent.
+    derived_from: [UART-011]
+    verification:
+      entries:
+        - level: unit
+          target: host
+          setup: none
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::refuses_empty_and_oversized_frames
+
   - id: USART-001
     title: Frame settings leave the line ready
     statement: >-
@@ -659,10 +671,27 @@ requirements:
             test: ferrohal_stm32::chip::tests::wiring_describes_itself
 
   - id: GLUE-003
-    title: A buffer DMA cannot reach is refused
+    title: An H7 DMA buffer it cannot use is refused
     statement: >-
-      A chip with memory its DMA cannot reach shall refuse a DMA buffer in
-      that memory.
+      An H7 shall refuse a DMA buffer in tightly coupled memory, or in cached
+      memory while the data cache is on.
+    rationale: >-
+      DMA to such an address fails without a useful report, so the check has
+      to come first.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: mcu
+          target: devboard
+          setup: none
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: GLUE-004
+    title: An F405 DMA buffer in CCM RAM is refused
+    statement: >-
+      An F405 shall refuse a DMA buffer that reaches outside the memory its
+      DMA can use.
     rationale: >-
       DMA to such an address fails without a useful report, so the check has
       to come first.
@@ -674,8 +703,3 @@ requirements:
           setup: none
           method:
             test: ferrohal_stm32::chip::tests::ccm_ram_is_refused
-        - level: mcu
-          target: devboard
-          setup: none
-          method:
-            procedure: requirements/benches.md#UART on the Nucleo-H753ZI

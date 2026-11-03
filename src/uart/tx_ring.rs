@@ -6,7 +6,7 @@
 //! transfer. A frame that does not fit before the ring's end goes to its
 //! start, leaving the tail unused until the frames before it are gone.
 //!
-//! Requirements: UART-011, UARTDMA-006, UARTDMA-007
+//! Requirements: UARTDMA-006, UARTDMA-007, UARTDMA-010
 
 use core::sync::atomic::{AtomicU32, Ordering};
 
