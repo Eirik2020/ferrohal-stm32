@@ -1,0 +1,12 @@
+   Compiling nucleo-h753zi-loopback v0.1.0 (hil/nucleo-h753zi-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.12s
+     Running `probe-rs run --no-catch-reset --chip STM32H753ZI --probe '0483:374e' target/thumbv7em-none-eabihf/release/run-n`
+     [38;5;10m[1mFinished[0m in 2.07s
+[33m WARN[0m [2mprobe_rs::probe::stlink[0m[2m:[0m send_jtag_command 242 failed: SwdApFault
+[INFO ] PASS bootloader request: a fresh boot finds no request [RESET-003] (run_n ../common/tests.rs:241)
+[INFO ] PASS bootloader request: the request survives the reset [RESET-002] (run_n ../common/tests.rs:241)
+[INFO ] PASS bootloader request: it answers yes only once [RESET-003] (run_n ../common/tests.rs:241)
+[INFO ] PASS bootloader request: it survives with the data cache on [RESET-002] (run_n ../common/tests.rs:241)
+[INFO ] PASS bootloader request: the reset cause is software [RESET-001] (run_n ../common/tests.rs:241)
+[INFO ] all checks passed (run_n ../common/tests.rs:1265)
+Firmware exited successfully

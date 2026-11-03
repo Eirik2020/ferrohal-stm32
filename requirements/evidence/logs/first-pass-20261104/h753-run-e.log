@@ -1,0 +1,13 @@
+   Compiling nucleo-h753zi-loopback v0.1.0 (hil/nucleo-h753zi-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 2.10s
+     Running `probe-rs run --chip STM32H753ZI --probe '0483:374e' target/thumbv7em-none-eabihf/release/run-e`
+     [38;5;10m[1mFinished[0m in 2.32s
+[INFO ] run E, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_e src/bin/run_e.rs:69)
+[INFO ] PASS USART1: vectors enabled at one priority [UART-003] (run_e ../common/tests.rs:253)
+[INFO ] PASS UART7: vectors enabled at one priority [UART-003] (run_e ../common/tests.rs:253)
+[INFO ] PASS USART1 receive-only PB7, SBUS 100000 8E2 inverted: 25-byte frames, one chunk each [UART-007] (run_e ../common/tests.rs:253)
+[INFO ] PASS UART7 receive-only PB3, 115200: 40-byte frames, one chunk each [UART-007] (run_e ../common/tests.rs:253)
+[INFO ] USART1: health Health { overrun: 0, framing: 0, parity: 0, noise: 0, dma_transfer: 0, dma_overrun: 0, buffer_overrun: 0, restarts: 0, marks_lost: 0 } (run_e src/bin/run_e.rs:152)
+[INFO ] UART7: health Health { overrun: 0, framing: 0, parity: 0, noise: 0, dma_transfer: 0, dma_overrun: 0, buffer_overrun: 0, restarts: 0, marks_lost: 0 } (run_e src/bin/run_e.rs:153)
+[INFO ] all checks passed (run_e ../common/tests.rs:1265)
+Firmware exited successfully

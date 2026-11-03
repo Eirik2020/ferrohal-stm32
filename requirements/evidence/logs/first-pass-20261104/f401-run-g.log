@@ -1,0 +1,19 @@
+   Compiling nucleo-f401re-loopback v0.1.0 (hil/nucleo-f401re-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.16s
+     Running `probe-rs run --chip STM32F401RE --probe '0483:374b' target/thumbv7em-none-eabihf/release/run-g`
+     [38;5;10m[1mFinished[0m in 1.48s
+[INFO ] run G, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2 } (run_g src/bin/run_g.rs:68)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: receive-stream vector enabled [RES-001] (run_g ../common/tests.rs:241)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: 1, 15 and 256 bytes by interrupt [SPI-001 SPI-002 GPIO-001] (run_g ../common/tests.rs:241)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (run_g ../common/tests.rs:241)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: busy, empty and oversized starts refused [SPI-003] (run_g ../common/tests.rs:241)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPIV2-001 SPIV4-001] (run_g ../common/tests.rs:241)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: SCK: 8 rising edges per byte, modes 0 and 3 [SPI-004 EXTI-001 EXTI-004] (run_g ../common/tests.rs:241)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: SCK as reported: 64 bytes take 512 periods [SPI-005] (run_g ../common/tests.rs:241)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: abort mid-transfer, then a clean transfer [SPI-006] (run_g ../common/tests.rs:241)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: polling with the vector masked [SPI-002] (run_g ../common/tests.rs:241)
+[INFO ] SPI3 PB3/PB4/PB5, DMA1 S5/S0: fastest polling pass 321 cycles over 787 passes (run_g ../common/spi_exti.rs:435)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: a polling pass takes no less than the driver's floor [SPI-008] (run_g ../common/tests.rs:241)
+[INFO ] SPI3 PB3/PB4/PB5, DMA1 S5/S0: SCK Some(Hertz(5250000)), health Health { transfers: 22, dma_errors: 0, overruns: 0, mode_faults: 0, timeouts: 0, aborts: 1 } (run_g ../common/spi_exti.rs:452)
+[INFO ] all checks passed (run_g ../common/tests.rs:1265)
+Firmware exited successfully

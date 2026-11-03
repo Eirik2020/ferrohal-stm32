@@ -12,7 +12,7 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::sdmmc::tests::divider_stays_at_or_below_the_target
+            test: ferrohal_stm32::sdmmc_v2::tests::divider_stays_at_or_below_the_target
 
   - id: SDMMC-002
     title: A card's size comes from its CSD
@@ -26,7 +26,7 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::sdmmc::tests::csd_gives_the_size
+            test: ferrohal_stm32::sdmmc_v2::tests::csd_gives_the_size
 
   - id: SDMMC-003
     title: An empty slot is reported as such

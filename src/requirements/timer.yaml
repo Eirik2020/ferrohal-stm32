@@ -69,7 +69,7 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer::tests::divider_is_exact_or_refuses
+            test: ferrohal_stm32::timer_v1::tests::divider_is_exact_or_refuses
 
   - id: TIMER-005
     title: A tick can see its vector is enabled
@@ -194,4 +194,4 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer::pwm::tests::nearest_rounds_and_reports
+            test: ferrohal_stm32::timer_v1::pwm::tests::nearest_rounds_and_reports

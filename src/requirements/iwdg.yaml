@@ -49,4 +49,4 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::iwdg::tests::divider_picks_the_finest_prescaler
+            test: ferrohal_stm32::iwdg_v1::tests::divider_picks_the_finest_prescaler

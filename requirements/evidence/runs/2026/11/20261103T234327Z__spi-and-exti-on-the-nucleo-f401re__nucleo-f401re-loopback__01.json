@@ -1,0 +1,343 @@
+{
+  "schema_version": 5,
+  "run_id": "20261103T234327Z__spi-and-exti-on-the-nucleo-f401re__nucleo-f401re-loopback__01",
+  "recorded_at_utc": "2026-11-03T23:43:27Z",
+  "board": "nucleo-f401re-loopback",
+  "revision": "97f15a933c6ace63f3c93f3580acbb159441b124",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "nucleo-f401re-loopback",
+    "features": [],
+    "files": {
+      "hil/nucleo-f401re-loopback/.cargo/config.toml": "8c464677eba822b1e17921fb4b9ec5cc075939ba5563a36c628f7d8e1e33f8d1",
+      "hil/nucleo-f401re-loopback/Cargo.toml": "0936f01b82d62b0f15432ccd51638250fb68eefe6f7939104dfe608124fe8837",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/adc.rs": "ac29ba40c75d111fdd3d71857e8467342970eb63208f1b486482e928aad9dfdd",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/bootloader.rs": "1b7fa43270e52e8eafb171a8c826a3d8eb7d0511dca22a0bf2cf98989e98dfb0",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/pwm.rs": "c362d3e2a1db3427fbea17fdb54db84dc262eaf92e977263356e572968898f30",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/spi_exti.rs": "9386ed5fcdb5894a9fb57b1009877031c9e8a4d8f8a6d434f94af8d3c9e6252a",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/tests.rs": "9bf29421933fa3c1e657832066e4e23f688a68e538562a5d5bf211a190bfd01b",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/timers.rs": "3941c10238e7c4f6a969c57c5f6f5a3096299a724e44588c35469850fb1da718",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/watchdog.rs": "a53e4af994935ab10f05719fcd06de8f2407d78f58b3fb185cd879172556fefe",
+      "hil/nucleo-f401re-loopback/src/bin/../board.rs": "be6dda0b4f3361f70580241899e315d0216fc6a1cbe3a260d79cd17fcd6bb7ab",
+      "hil/nucleo-f401re-loopback/src/bin/run_a.rs": "1c3d6dd32ddc768288a58c05cd625a64e4364bbfce41281832d0db7fe9a925e4",
+      "hil/nucleo-f401re-loopback/src/bin/run_b.rs": "2e05a1332b1a2205a97265379c87b5f27ce9dda58a854bae15c3ec32c223a4f0",
+      "hil/nucleo-f401re-loopback/src/bin/run_c.rs": "114135e9945e440cbadaf251b33a1042510bd8d06089a1c44cacade4953c6279",
+      "hil/nucleo-f401re-loopback/src/bin/run_d.rs": "569316b19d177caf0965873b9828a9b50faf110116252c7bee8171a19709b00e",
+      "hil/nucleo-f401re-loopback/src/bin/run_e.rs": "7613712756da932c674e41a63e9690764df681043787485b75a0dd1babe896e3",
+      "hil/nucleo-f401re-loopback/src/bin/run_f.rs": "a90d6d91044778384ab45a1dd15d01ee1cf3c2dc790fedb7c631096743f11ac0",
+      "hil/nucleo-f401re-loopback/src/bin/run_g.rs": "9a9b4afe88caf81757a6bbfc01008b98e5f71ee89bb47d315cb178c29d5fca9b",
+      "hil/nucleo-f401re-loopback/src/bin/run_h.rs": "b394c5938b33310a7709fa18e0f82e9e8b07f65d3416839ae66125331bad864d",
+      "hil/nucleo-f401re-loopback/src/bin/run_i.rs": "c8c4d7278e80b45142771f7fc6b4c3d0412b317f6d10fc510b90bc78a8a56046",
+      "hil/nucleo-f401re-loopback/src/bin/run_j.rs": "09997644f8afb6a9cd0f8177c5078befb19bf14f1e65bedc23d902e3bff60f2c",
+      "hil/nucleo-f401re-loopback/src/bin/run_k.rs": "7c493064889effb30c71dfead4beda6d297f35c9765b3d2559264190c845dda6",
+      "hil/nucleo-f401re-loopback/src/bin/run_l.rs": "8fd4b6e685c15cf8fe6fcbee1a3cfc122f93087ecbc5f447876ea5f5825c111f",
+      "hil/nucleo-f401re-loopback/src/bin/run_m.rs": "50c2748114e7e9720f342fc2974097b2839a50afb116369c75b8919043f3aa77",
+      "hil/nucleo-f401re-loopback/src/bin/run_n.rs": "d7ce90224bd833de7dadac1cb969eac6027cae8ebcd6030736b9feafc4f3bb00",
+      "src/adc/mod.rs": "112bfdaa0696be5ab0fc6db9338616fe01dc2d59da8f0622feb1005729403251",
+      "src/adc_v2/mod.rs": "63d8da380a40883c1fa08ace773570005dd5a66332ff39a15534a6cfa0c5bf06",
+      "src/chips/shared/macros.rs": "61a93392253151462f5717ab53cf17bcab1a5de4e7c1559f52363637df5b630f",
+      "src/chips/stm32f401re.rs": "825c32b5978c913a7a3f62d1740d64c9b63cdd2ae075a830e88933af51678493",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma_stream.rs": "3e35e8f1a2022b515a4e63e51e5878ebafc0a96508a34eddd9e723314c9f0cb8",
+      "src/exti.rs": "297dc3e5fa898c94dece4413df6612fe872a911f337941c50c33c079092564d9",
+      "src/gpio_v2/mod.rs": "26749974a5d0626a2ab72d9b31781c58f9f6662043ee936a07e8af7774add8f0",
+      "src/iwdg.rs": "1b6e6062efb376915b1cf10a5dc9ec570df085fc7d11b3635882d9a323b72286",
+      "src/lib.rs": "76d4075f76817a01599ddf93f4a107b683dfc1271628bfb0fc86949022974afe",
+      "src/rcc_f4/mod.rs": "fb88291da883794c470da6f21c1feb951556080a1bd8a844b481e7e755555524",
+      "src/reset.rs": "6f6cb95d75513e0e29e55863faa3d30ec3d0d4b1037f9e1fc4d421e1c50774f8",
+      "src/resource.rs": "720671dab873c8d39f5bd3b522978be67937379798c3c6d5ccef3ddfbabea375",
+      "src/signature.rs": "ab0cb1c4ed7f4209a4e85185040e9e296de20ad39360b747db47793a1c227dd6",
+      "src/spi/mod.rs": "1452d4be9e5c03426ad0ede10f85705ff67abebb5a51aa490f25db1a489da961",
+      "src/spi/polled.rs": "3703da6749563c6edc11ae0c4c7fe0a35c2de1dc983a2146c70b2e6f663305bd",
+      "src/spi/stream_dma.rs": "151b667d0a81ec3a1d8e014a8be7911f79a8cf278359732a6a0a0a47ea14263e",
+      "src/spi_v2/mod.rs": "69cb31fbbecd51547b3b1982a3543cc4999bf045355b742242e9029b31bbfafd",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer.rs": "5e22c6f4a4606cdd8a3f52dca0ab8a95debec20349e0b0ee125103e44fb71bf0",
+      "src/timer_pwm.rs": "3a79be2276669f668ca9e6565fc52d49c4342d8e7bb9508883e3b56ec38e15dc",
+      "src/uart/mod.rs": "1cc227b7b692d0f9e96bf9e2e5d1715d0893740ef2023ca831351ab74cb42a67",
+      "src/uart/ring.rs": "ba8a554d40c7669ea29fc55648f0ba38561108f2e0aaf73ca0bb4674178f1b17",
+      "src/uart/stream_dma.rs": "5412269e1e501e603651907de7636ace6452fdd54b8bc5e31f6fa924f7cc0625",
+      "src/uart/tx_ring.rs": "e33970366ee886b969596f95e1b20b9c992a22b3a98be6fdf1e40980d264774a",
+      "src/usart_v2/mod.rs": "723c18dc092d43aac1e7d720de16e01e2cdc0254ec0ea795f1ea2316b03f3630",
+      "src/wait.rs": "4698809e5b671e6860cc3d68b64a7cfd4febb4d0ad7c9e4fde87905efcc99714"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "bitflags": "1.3.2",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "cortex-m-semihosting": "0.5.0",
+      "critical-section": "1.2.0",
+      "defmt": "0.3.101, 1.2.0",
+      "defmt-macros": "1.2.0",
+      "defmt-parser": "1.1.0",
+      "defmt-rtt": "1.3.1",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.7.1",
+      "equivalent": "1.0.3",
+      "hashbrown": "0.17.1",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "panic-probe": "1.0.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.9",
+      "thiserror": "2.0.21",
+      "thiserror-impl": "2.0.21",
+      "unicode-ident": "1.0.27",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "DEFMT_LOG": "info"
+    }
+  },
+  "results": [
+    {
+      "requirement": "EXTI-001",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "0258db45dc03a1657529c2f1d335c18eccfe6f8ca76a35a553010f182c481e2a",
+      "result": "pass"
+    },
+    {
+      "requirement": "EXTI-002",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "c6b3d5769cace0ac2ecc6080e03c8bf729c7e5a4d44aeadddba4f571268b5bb6",
+      "result": "pass"
+    },
+    {
+      "requirement": "EXTI-003",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "bd40d1623615d96ca411b3306277b5a9afd852c02ab16c9e147298e4f351fee2",
+      "result": "pass"
+    },
+    {
+      "requirement": "EXTI-004",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "a97b7e379376da7900ccf4415e7ae07a34fb3eaeb6618445557714345d98aa4f",
+      "result": "pass"
+    },
+    {
+      "requirement": "GPIO-001",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "e9346e72bf1593325c802d991716527d9fa40ebc602e22ccd98b8d2b933ad03e",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPI-001",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "e5616c1a97006e4959ec063fa6f7e95a34031dbc8e82e9b0d07f9698fcdf8b57",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPI-002",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "0085d5141677285dc77a0bb7fcbbb15499816bd69ee07eb44df6452f1289e836",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPI-003",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "3fa31e42d4c0a949130fab6e13640178746306634ca6e08b44e0441d085d2ddc",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPI-004",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "c456a5f5a8a7ddb92ed697dbdaa7e075126abc846d1ecfaa0f99ee77f24b7490",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPI-005",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "488fd1ee56871992d21390a4d77a71077f20eb9f2b05540ccd70d080e98597e6",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPI-006",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "3a342e2756aaf564d9feb764d7b1068eb784a77d54c48a7a63badf9d0b5c162b",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPI-007",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "1031451b6dcce1551ff17761f578d083a7f784657c11ae60a8c1561d7231a8a8",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPI-008",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "8c26548f666cd7ebd9d625b5c12552248960b25be9a790863396fd1fe3845ccd",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPIPOLL-001",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "3cae3a2dd79135a21302f465b407c5205fbb14378d47f7559d81169ba580e9e7",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPIPOLL-002",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "69aaa94db868c761ee9ab7718ef47f7701e08ae4d057a732ff8edc43b06b1a0c",
+      "result": "pass"
+    },
+    {
+      "requirement": "SPIV2-001",
+      "method": {
+        "procedure": "requirements/benches.md#SPI and EXTI on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "1bb58a7244f601f40e5f28a8103d30f5a49ad6111af21341ab63d931e8a139c1",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "00c39686309327b6636000ec01b7226789355c2b6c6960118b861b29a8a1be28",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-f401.sh e f g k",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "f401-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/first-pass-20261104/f401-images.sha256",
+        "bytes": 1008,
+        "sha256": "00c39686309327b6636000ec01b7226789355c2b6c6960118b861b29a8a1be28"
+      },
+      {
+        "id": "f401-run-e",
+        "kind": "log",
+        "path": "requirements/evidence/logs/first-pass-20261104/f401-run-e.log",
+        "bytes": 6285,
+        "sha256": "82f210979d04c74a68aeb3e4b3ab2d9d65f283c0c40e9cd5afdb6449983ea158"
+      },
+      {
+        "id": "f401-run-f",
+        "kind": "log",
+        "path": "requirements/evidence/logs/first-pass-20261104/f401-run-f.log",
+        "bytes": 3965,
+        "sha256": "c527dff68831449256d71092f971a7ff4311dc3138c0e705ba48ef1119b4e58c"
+      },
+      {
+        "id": "f401-run-g",
+        "kind": "log",
+        "path": "requirements/evidence/logs/first-pass-20261104/f401-run-g.log",
+        "bytes": 2310,
+        "sha256": "8f99d10a1973957391fdb902fa18222a5f3436a75da8191bf08c26d025979d04"
+      },
+      {
+        "id": "f401-run-k",
+        "kind": "log",
+        "path": "requirements/evidence/logs/first-pass-20261104/f401-run-k.log",
+        "bytes": 1815,
+        "sha256": "2e60425a9bcc7280dc1347e0a935ad468aa1279fbfbc7b7be4de86e59866c7da"
+      }
+    ]
+  }
+}
