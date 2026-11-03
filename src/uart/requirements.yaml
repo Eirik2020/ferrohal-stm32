@@ -11,14 +11,12 @@ requirements:
     derived_from: [G3]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -32,14 +30,12 @@ requirements:
     derived_from: [G3]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -54,14 +50,12 @@ requirements:
     derived_from: [G1]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -77,13 +71,11 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::chip::tests::uart4_and_uart5_refuse_fractional_stop_bits
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
 
@@ -96,14 +88,12 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -118,14 +108,12 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -139,14 +127,12 @@ requirements:
     derived_from: [G3]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -159,14 +145,12 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -180,14 +164,12 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -202,14 +184,12 @@ requirements:
     derived_from: [G3]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -223,14 +203,12 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -245,14 +223,12 @@ requirements:
     derived_from: [G3]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -265,14 +241,12 @@ requirements:
     derived_from: [G3]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -285,9 +259,8 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
 
@@ -314,18 +287,15 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::written_follows_the_dma_across_laps
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::written_stays_continuous_when_the_count_wraps
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::written_accounts_for_a_crossing_not_yet_counted
 
@@ -340,14 +310,12 @@ requirements:
     derived_from: [UART-002, UART-003]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -362,23 +330,19 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::plan_waits_for_an_open_chunk
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::plan_takes_up_to_the_mark
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::plan_fills_the_buffer_before_a_distant_mark
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::plan_works_across_the_count_wrapping
 
@@ -393,13 +357,11 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::plan_drops_stale_and_passed_marks
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::plan_keeps_a_mark_recorded_after_the_write_count_was_read
 
@@ -414,13 +376,11 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::queue_is_first_in_first_out_and_bounded
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::ring::tests::queue_keeps_kind_and_epoch
 
@@ -435,28 +395,23 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::an_empty_ring_takes_a_frame_at_its_start
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::frames_follow_each_other
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::a_frame_too_long_for_the_tail_wraps_to_the_start
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::a_wrapped_ring_fills_up_to_the_oldest_frame
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::largest_agrees_with_place
 
@@ -472,13 +427,11 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::queue_is_first_in_first_out_and_bounded
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::queue_keeps_offset_and_length
 
@@ -492,14 +445,12 @@ requirements:
     derived_from: [UART-003, UART-010]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -527,8 +478,7 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::refuses_empty_and_oversized_frames
 
@@ -542,14 +492,12 @@ requirements:
     derived_from: [UART-002, UART-012]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -563,14 +511,12 @@ requirements:
     derived_from: [UART-005, UART-007]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -584,14 +530,12 @@ requirements:
     derived_from: [UART-013]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -616,9 +560,8 @@ requirements:
     derived_from: [UART-004]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
 
@@ -631,9 +574,8 @@ requirements:
     derived_from: [UART-001]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -649,8 +591,7 @@ requirements:
     verification:
       entries:
         - level: analysis
-          target: host
-          setup: none
+          environment: host
           method:
             procedure: requirements/benches.md#Chip glue against metapac
 
@@ -665,8 +606,7 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::chip::tests::wiring_describes_itself
 
@@ -681,9 +621,8 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
-        - level: mcu
-          target: devboard
-          setup: none
+        - level: target
+          environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -699,7 +638,6 @@ requirements:
     verification:
       entries:
         - level: unit
-          target: host
-          setup: none
+          environment: host
           method:
             test: ferrohal_stm32::chip::tests::ccm_ram_is_refused
