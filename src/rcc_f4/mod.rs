@@ -8,19 +8,30 @@
 //! applies the configuration and returns [`Rcc`], the owner drivers borrow
 //! to enable and reset their peripherals.
 //!
-//! The regulator scale (PWR VOS) is not written. The chips enabled so far
-//! reach their maximum clock in the scale they reset to; a chip that needs
-//! another scale must add it here, checked against its reference manual.
+//! `freeze` also owns PWR, which `Peripherals` therefore leaves out. When the
+//! configuration uses the PLL it writes the regulator voltage scale (PWR_CR
+//! VOS) that the chip's limits assume, rather than trust the reset value: a
+//! bootloader may have left a lower scale, under which the chip's maximum
+//! clock is out of specification. The scale is a chip fact, from the chip
+//! file, because its encoding differs: RM0090 gives the F405 one bit (14),
+//! RM0368 the F401 two (15:14) with reserved values. It is written with the
+//! PLL off, which RM0368 requires, and the switch to the PLL waits for
+//! VOSRDY. Without the PLL nothing is written: the F401's regulator then
+//! runs at scale 3 whatever the register holds (RM0368), and the F405's
+//! clocks without it (HSE, at most 50 MHz) are under the 144 MHz that its
+//! scale 2 allows (DS8626).
 //!
 //! The limits and the flash wait-state rule are ported from embassy-stm32
 //! 0.6.0's `rcc/f247.rs` (MIT OR Apache-2.0, Embassy project contributors).
-//! See `THIRD-PARTY.md`.
+//! See `THIRD-PARTY.md`. The voltage scale is not: embassy writes scale 1 on
+//! every F4, which is reserved on the F401.
 //!
-//! Requirements: RCC-001, RCC-002
+//! Requirements: RCC-001, RCC-002, RCC-003
 
 use stm32_metapac::{
-    FLASH, RCC as RCC_REGS,
+    FLASH, PWR, RCC as RCC_REGS,
     flash::vals::Latency,
+    pwr::vals::Vos,
     rcc::vals::{Hpre, Pllm, Plln, Pllp, Pllq, Pllsrc, Ppre, Sw},
 };
 
@@ -32,9 +43,11 @@ pub const HSI: Hertz = Hertz(16_000_000);
 /// Spins allowed for each wait below. One spin takes at least one cycle,
 /// and these run at no more than 16 MHz (HSI) until the switch, so each
 /// count is a floor on the time allowed: HSE gets at least 100 ms to start,
-/// the PLL at least 6 ms to lock.
+/// the PLL at least 6 ms to lock, the regulator at least 6 ms to reach its
+/// scale.
 const HSE_SPINS: u32 = 1_600_000;
 const PLL_SPINS: u32 = 100_000;
+const VOS_SPINS: u32 = 100_000;
 const SWITCH_SPINS: u32 = 10_000;
 const LATENCY_SPINS: u32 = 1_000;
 
@@ -540,6 +553,9 @@ pub enum ClockError {
     SwitchTimeout,
     /// The USB port needs 48 MHz from PLLQ, and `Config` doesn't give it.
     Usb,
+    /// PWR did not report the voltage scale ready (VOSRDY) within its
+    /// bound. The PLL is running, and the system is still on HSI.
+    SupplyTimeout,
 }
 
 /// A chip's clock limits, from its datasheet. Supplied by the glue layer.
@@ -555,6 +571,10 @@ pub(crate) struct Limits {
     /// HCLK per flash wait state at 2.7 V to 3.6 V.
     pub flash_step_2v7: Hertz,
     pub max_wait_states: u8,
+    /// The regulator voltage scale these limits hold in, as PWR_CR's VOS
+    /// field: `freeze` writes it before the PLL starts. It must be a value
+    /// the chip's reference manual defines, never a reserved one.
+    pub vos: Vos,
 }
 
 /// Spins until `done` or `spins` run out.
@@ -598,6 +618,12 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         return Err(ClockError::PllTimeout);
     }
     if let Some(pll) = config.pll {
+        // PWR answers only with its clock on; the read back is the delay
+        // before its registers are touched, as in `Rcc::enable`. VOS may
+        // change only while the PLL is off (RM0368), as it is here.
+        RCC_REGS.apb1enr().modify(|w| w.set_pwren(true));
+        let _ = RCC_REGS.apb1enr().read();
+        PWR.cr1().modify(|w| w.set_vos(CLOCK_LIMITS.vos));
         RCC_REGS.pllcfgr().modify(|w| {
             w.set_pllsrc(match pll.source {
                 PllSource::Hsi => Pllsrc::HSI,
@@ -611,6 +637,11 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         RCC_REGS.cr().modify(|w| w.set_pllon(true));
         if !wait(PLL_SPINS, || RCC_REGS.cr().read().pllrdy()) {
             return Err(ClockError::PllTimeout);
+        }
+        // The F401's scale takes effect only once the PLL runs (RM0368), so
+        // ready is asked only now, before anything is switched to the PLL.
+        if !wait(VOS_SPINS, || PWR.csr1().read().vosrdy()) {
+            return Err(ClockError::SupplyTimeout);
         }
     }
 

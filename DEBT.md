@@ -26,13 +26,14 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 ### Correctness
 
 - **Medium: the v2 error clear can take a good byte** ([usart_v2](src/usart_v2/mod.rs), `Line::take_errors`).
-  - Clearing errors needs an SR read then a DR read; if DMA hasn't taken the byte in DR yet, the DR read consumes it. Inherent to v2 (v4 clears through ICR). Document "one byte may be lost per reported line error".
+  - Clearing errors needs an SR read then a DR read; if DMA hasn't taken the byte in DR yet, the DR read consumes it. Inherent to v2 (v4 clears through ICR). A limit: "one byte may be lost per reported line error" is documented on `Uart`.
 - **Medium: the v2 parity-error clear sequence isn't followed.**
   - RM0368 and RM0090 say to wait for RXNE before clearing PE; the driver clears at once. Follow the sequence, or confirm on hardware that it's harmless.
+  - Awaiting bench: the F401's run B measures it (`UART-014`), each way: RXNE's state and whether the receive DMA had taken the bad byte when a vector first sees PE, a good frame straight after the bad byte arriving whole and in order with the error reported right after the bad byte, and PE seen, counted and reported once. `take_events` stays as it is until then. Waiting for RXNE there isn't obviously right: DMA may already have taken the byte, so RXNE wouldn't set until the next one, and it runs in an interrupt.
 - **Medium: parity errors can be lost while transmitting** (`usart_v2`; ES0299 2.10.2, ES0182 2.11.2).
-  - In full duplex, an SR read followed by a DR write clears PE, and the TX DMA writes DR. No hardware fix; document that v2 parity detection is reliable only while the receiving USART isn't transmitting.
+  - In full duplex, an SR read followed by a DR write clears PE, and the TX DMA writes DR. No hardware fix. A limit: that v2 parity detection is reliable only while the receiving USART isn't transmitting is documented on `Uart`.
 - **Medium: IDLE can be missed** (`usart_v2`; ES0299 2.10.1, ES0182 2.11.1).
-  - IDLE isn't detected when the sender's clock runs faster than the receiver's. No workaround; idle-ended `read_chunk` on v2 needs a timeout fallback (timer), not IDLE alone.
+  - IDLE isn't detected when the sender's clock runs faster than the receiver's. No workaround. A limit: that idle-ended `read_chunk` on v2 needs a timeout fallback (timer), not IDLE alone, is documented on `Uart`.
 - **Low: transmit DMA errors are reported after the frame was queued.** A DMA error shows in `TxHealth` and as an error from the next `write` or `flush`.
 - **Low: NDTR and the half-lap count can fall out of step** in a theoretical corner case: if interrupts keep landing between the reads, `write_count` gives up after `COUNT_TRIES` and uses the last sample.
 - **Low: limits of the receive ring**, documented on `Buffers::rx`: the interrupt must be served within one ring's worth of bytes, and the reading code must never preempt `UartIrq`.
@@ -100,7 +101,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ## 2. STM32F401RE (Nucleo-F401RE)
 
-- **Low: VOS isn't written.** 84 MHz is reached in the reset scale (scale 2).
+- **Low: VOS written, awaiting bench.** `freeze` writes scale 2 (VOS 0b10, RM0368) with the PLL off and waits for VOSRDY, rather than relying on the reset value. Run H reads both back (`RCC-003`); close this once it has passed on the board.
 - **Low: only one supply range** (2.7–3.6 V) in `Supply`.
 - **Low: HSE with a crystal is untested;** only bypass (the ST-LINK MCO) has run.
 - **Low: phantom pins:** LQFP64 bonds only PD2, PH0, PH1 outside ports A to C, and no port E.
@@ -113,7 +114,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: the bench's NOR commands are its own copy.** They follow FerroWasp's `spi_nor` driver, which compiled unchanged over `BlockingSpi` in a scratch crate but hasn't itself run over FerroHAL. The bench can't depend on it from a public repo. The IMU setup is copied the same way.
 - **Low: FerroWasp's F405 image is exposed to the VTOR trap until the swap.** It doesn't set VTOR, so after a DFU `leave` its USB should fail as the bench's did, until a power cycle. FerroHAL's `rt` feature fixes it for the swap. Seen on the bench's firmware only, not tried on FerroWasp's.
 - **Low: a Foxeer firmware that fails before USB can't say why.** It restarts into DFU, which shows only that something failed.
-- **Medium: VOS relies on its reset value.** 168 MHz needs scale 1, the reset value (RM0090 PWR_CR bit 14), so `freeze` doesn't write it; a bootloader that left scale 2 would put 168 MHz out of spec (DS8626: 144 MHz in scale 2). Fix: write the scale in `freeze`, the value from the chip file (one bit here, two on the F401).
+- **Medium: VOS written, awaiting bench.** 168 MHz needs scale 1 (RM0090 PWR_CR bit 14); a bootloader that left scale 2 would put it out of spec (DS8626: 144 MHz in scale 2). `freeze` writes scale 1 from the chip file, with the PLL off, and waits for VOSRDY. metapac 21.0.0 gives this chip the F42x's two-bit VOS, so the chip file names the bits (0b01), not metapac's `SCALE1` (0b11). The Foxeer bench reads both back (`RCC-003`); close this once it has passed on the board.
 - **Low: prefetch on revision A.** `freeze` sets PRFTEN; ES0182 2.2.1 says revision A doesn't support the prefetch queue. Later revisions are fixed.
 - **Low: phantom pins:** ports E to I are handed out though LQFP64 bonds only ports A to C, PD2, PH0, PH1.
 - **Medium: reading a pin on DMA2 while DMA2 also serves APB2 meets ES0182 2.2.19.** The waveform generator can now turn a lane round to read its pin, which is what bidirectional DShot needs, and FerroWasp doesn't use it yet. The Foxeer's motor timers are TIM1 and TIM8 on DMA2, and only DMA2 reaches GPIO on the F4, so reading replies shares DMA2 with anything on APB2, such as SPI1's IMU streams. DMA2 serving both at once can corrupt data. Before bidirectional DShot flies on an F4, the two need keeping apart.

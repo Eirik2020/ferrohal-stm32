@@ -23,6 +23,7 @@ mod imu;
 mod motor_lanes;
 
 use core::ptr::{addr_of_mut, read_volatile};
+use core::sync::atomic::{AtomicU8, Ordering};
 
 use cortex_m::peripheral::DWT;
 use cortex_m_rt::entry;
@@ -86,6 +87,9 @@ const RCC_PLLCFGR: *const u32 = 0x4002_3804 as *const u32;
 const RCC_CFGR: *const u32 = 0x4002_3808 as *const u32;
 const OTG_FS_DSTS: *const u32 = 0x5000_0808 as *const u32;
 
+/// PWR_CR bits 15:14 just before `freeze`, for the clock checks.
+static VOS_BEFORE_FREEZE: AtomicU8 = AtomicU8::new(0xff);
+
 static mut ADC_SAMPLES: [u16; 3] = [0; 3];
 static mut LANES: [[u32; 20]; 4] = [[0; 20]; 4];
 static mut LANE_READS: [[u16; 64]; 4] = [[0; 64]; 4];
@@ -124,7 +128,10 @@ where
     (still, stopped, worst)
 }
 
-/// RCC's own view: the crystal really runs the chip.
+/// RCC's own view: the crystal really runs the chip. And PWR's: the
+/// regulator at the scale `freeze` wrote, scale 1, which 168 MHz needs. It is
+/// also the reset value, so `main` sets scale 2 first, as a bootloader might
+/// have left it; without that, the readback couldn't show `freeze` wrote it.
 fn rcc_suite(report: &mut Report, link: &mut Link) {
     // SAFETY: reads of RCC's status registers.
     let (cr, pllcfgr, cfgr) =
@@ -133,6 +140,27 @@ fn rcc_suite(report: &mut Report, link: &mut Link) {
     check!(report, link, cr & (1 << 25) != 0, "clocks: PLL locked");
     check!(report, link, pllcfgr & (1 << 22) != 0, "clocks: PLL fed from HSE");
     check!(report, link, (cfgr >> 2) & 0b11 == 0b10, "clocks: SYSCLK is the PLL");
+    let before = VOS_BEFORE_FREEZE.load(Ordering::Relaxed);
+    check!(
+        report,
+        link,
+        before == 0b00,
+        "clocks: scale 2 set before freeze, for it to replace: bits 15:14 {:#04b} [RCC-003]",
+        before
+    );
+    // PWR_CR bits 15:14 as metapac reads them, so a stray bit 15 shows too:
+    // this chip's VOS is bit 14 alone (RM0090), and scale 1 is 0b01, which
+    // metapac's F42x names call SCALE3. VOSRDY is PWR_CSR bit 14.
+    let vos = stm32_metapac::PWR.cr1().read().vos().to_bits();
+    let ready = stm32_metapac::PWR.csr1().read().vosrdy();
+    check!(
+        report,
+        link,
+        vos == 0b01 && ready,
+        "clocks: PWR_CR bits 15:14 {:#04b} (scale 1 is 0b01), VOSRDY {} [RCC-003]",
+        vos,
+        ready
+    );
 }
 
 const NOR_SECTOR: usize = 4096;
@@ -350,6 +378,16 @@ fn main() -> ! {
     let Some(p) = Peripherals::take() else {
         reboot_to_dfu()
     };
+    // Scale 2, harmless on the reset clock, for `freeze` to replace.
+    stm32_metapac::RCC.apb1enr().modify(|w| w.set_pwren(true));
+    let _ = stm32_metapac::RCC.apb1enr().read();
+    stm32_metapac::PWR
+        .cr1()
+        .modify(|w| w.set_vos(stm32_metapac::pwr::vals::Vos::from_bits(0b00)));
+    VOS_BEFORE_FREEZE.store(
+        stm32_metapac::PWR.cr1().read().vos().to_bits(),
+        Ordering::Relaxed,
+    );
     let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG) else {
         reboot_to_dfu()
     };
