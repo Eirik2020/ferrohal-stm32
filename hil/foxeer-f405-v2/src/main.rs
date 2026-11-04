@@ -84,10 +84,6 @@ type NorWiring = BlockingWiring<
 const RCC_CR: *const u32 = 0x4002_3800 as *const u32;
 const RCC_PLLCFGR: *const u32 = 0x4002_3804 as *const u32;
 const RCC_CFGR: *const u32 = 0x4002_3808 as *const u32;
-/// PWR_CR and PWR_CSR (RM0090): the voltage scale, VOS (bit 14), and its
-/// ready flag, VOSRDY (bit 14).
-const PWR_CR: *const u32 = 0x4000_7000 as *const u32;
-const PWR_CSR: *const u32 = 0x4000_7004 as *const u32;
 const OTG_FS_DSTS: *const u32 = 0x5000_0808 as *const u32;
 
 static mut ADC_SAMPLES: [u16; 3] = [0; 3];
@@ -131,23 +127,18 @@ where
 /// RCC's own view: the crystal really runs the chip. And PWR's: the
 /// regulator at the scale `freeze` wrote, scale 1, which 168 MHz needs.
 fn rcc_suite(report: &mut Report, link: &mut Link) {
-    // SAFETY: reads of RCC's and PWR's control and status registers.
-    let (cr, pllcfgr, cfgr, pwr_cr, pwr_csr) = unsafe {
-        (
-            read_volatile(RCC_CR),
-            read_volatile(RCC_PLLCFGR),
-            read_volatile(RCC_CFGR),
-            read_volatile(PWR_CR),
-            read_volatile(PWR_CSR),
-        )
-    };
+    // SAFETY: reads of RCC's status registers.
+    let (cr, pllcfgr, cfgr) =
+        unsafe { (read_volatile(RCC_CR), read_volatile(RCC_PLLCFGR), read_volatile(RCC_CFGR)) };
     check!(report, link, cr & (1 << 17) != 0, "clocks: HSE ready");
     check!(report, link, cr & (1 << 25) != 0, "clocks: PLL locked");
     check!(report, link, pllcfgr & (1 << 22) != 0, "clocks: PLL fed from HSE");
     check!(report, link, (cfgr >> 2) & 0b11 == 0b10, "clocks: SYSCLK is the PLL");
-    // Bits 15:14, so a stray bit 15 shows too: scale 1 is 0b01 here.
-    let vos = (pwr_cr >> 14) & 0b11;
-    let ready = pwr_csr & (1 << 14) != 0;
+    // PWR_CR bits 15:14 as metapac reads them, so a stray bit 15 shows too:
+    // this chip's VOS is bit 14 alone (RM0090), and scale 1 is 0b01, which
+    // metapac's F42x names call SCALE3. VOSRDY is PWR_CSR bit 14.
+    let vos = stm32_metapac::PWR.cr1().read().vos().to_bits();
+    let ready = stm32_metapac::PWR.csr1().read().vosrdy();
     check!(
         report,
         link,

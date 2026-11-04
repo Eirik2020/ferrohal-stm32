@@ -25,15 +25,8 @@ mod timers;
 use defmt_rtt as _;
 use panic_probe as _;
 
-/// PWR_CR and PWR_CSR (RM0368): the voltage scale, VOS (bits 15:14), and
-/// its ready flag, VOSRDY (bit 14).
-const PWR_CR: *const u32 = 0x4000_7000 as *const u32;
-const PWR_CSR: *const u32 = 0x4000_7004 as *const u32;
-
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
-    use core::ptr::read_volatile;
-
     use ferrohal_stm32::{
         time::Hertz,
         timer::{Tick, Timebase},
@@ -119,11 +112,9 @@ mod app {
         let bench = &mut cx.shared.bench;
         let khz = Hertz::khz(1);
 
-        // SAFETY: reads of PWR's control and status registers.
-        let (pwr_cr, pwr_csr) =
-            unsafe { (read_volatile(crate::PWR_CR), read_volatile(crate::PWR_CSR)) };
-        let vos = (pwr_cr >> 14) & 0b11;
-        let ready = pwr_csr & (1 << 14) != 0;
+        // RM0368: PWR_CR VOS is bits 15:14, PWR_CSR VOSRDY bit 14.
+        let vos = u32::from(stm32_metapac::PWR.cr1().read().vos().to_bits());
+        let ready = stm32_metapac::PWR.csr1().read().vosrdy();
         defmt::info!("PWR_CR VOS {=u32:#04b}, PWR_CSR VOSRDY {=bool}", vos, ready);
         report.check_for(
             "PWR",

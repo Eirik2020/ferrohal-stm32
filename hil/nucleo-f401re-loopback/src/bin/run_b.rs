@@ -14,9 +14,9 @@
 //!   stop bit the receiver's parity bit, so a byte with an odd count of
 //!   ones is a parity error and one with an even count is good, with no
 //!   change of frame between them: one bad byte, then a good frame straight
-//!   after it. The line vector reads SR first and notes RXNE whenever PE is
-//!   set; the good frame must arrive whole and in order; PE must be seen
-//!   and reported once.
+//!   after it. The line vector reads SR first, through stm32-metapac, and
+//!   notes RXNE whenever PE is set; the good frame must arrive whole and in
+//!   order; PE must be seen and reported once.
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
@@ -38,10 +38,8 @@ use panic_probe as _;
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use embedded_io::Write;
-use ferrohal_stm32::{
-    uart::{Config, Error, Parity, StopBits},
-    usart_v2::Regs,
-};
+use ferrohal_stm32::uart::{Config, Error, Parity, StopBits};
+use stm32_metapac::usart::Usart;
 
 use tests::{Configurable, Cross, Fail, Link, Report};
 
@@ -70,8 +68,18 @@ const _: () = {
 
 /// Called by a line vector before the driver's `on_interrupt`: notes PE,
 /// and RXNE with it, as SR holds them before the driver's SR and DR reads
-/// clear PE. An SR read clears nothing by itself.
-fn watch(regs: Regs) {
+/// clear PE.
+///
+/// This extra read cannot change the clear being measured. An SR read
+/// clears nothing by itself; a flag clears only when a DR access follows
+/// an SR read made while it was set. The driver makes its own SR read
+/// straight after this one and its DR read straight after that, so the
+/// same SR-then-DR sequence clears PE either way. The one access that
+/// could slip between this read and the driver's is the receive DMA
+/// taking a new byte from DR; the next byte is a whole frame away (about
+/// 95 us at 115200), while the two reads are a few cycles apart. And this
+/// runs only while `WATCH` is on, so no other check sees it.
+fn watch(regs: Usart) {
     if !WATCH.load(Ordering::Relaxed) {
         return;
     }
@@ -226,10 +234,7 @@ fn pe_clear(report: &mut Report, cross: &mut Cross) {
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::{
-        uart::{Buffers, Config, Uart, UartInterrupts, UartIrq},
-        usart_v2::Regs,
-    };
+    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
 
     use crate::{
         board,
@@ -254,8 +259,6 @@ mod app {
         vectors1: UartInterrupts,
         vectors6: UartInterrupts,
         led: board::Led,
-        regs1: Regs,
-        regs6: Regs,
     }
 
     #[init(local = [
@@ -302,11 +305,6 @@ mod app {
 
         let vectors6 = irq6.interrupts();
 
-        // SAFETY: the line vectors only read SR from these, and only while
-        // the PE clear check runs; the driver's own SR and DR reads follow
-        // at once, so it still sees and clears every flag.
-        let (regs1, regs6) = unsafe { (usart1.regs(), usart6.regs()) };
-
         checks::spawn().ok();
         (
             Shared { irq1, irq6 },
@@ -316,15 +314,13 @@ mod app {
                 vectors1,
                 vectors6,
                 led: run.led,
-                regs1,
-                regs6,
             },
         )
     }
 
-    #[task(binds = USART1, priority = 2, shared = [irq1], local = [regs1])]
+    #[task(binds = USART1, priority = 2, shared = [irq1])]
     fn usart1_line(cx: usart1_line::Context) {
-        crate::watch(*cx.local.regs1);
+        crate::watch(stm32_metapac::USART1);
         cx.shared.irq1.on_interrupt();
     }
 
@@ -338,9 +334,9 @@ mod app {
         cx.shared.irq1.on_interrupt();
     }
 
-    #[task(binds = USART6, priority = 2, shared = [irq6], local = [regs6])]
+    #[task(binds = USART6, priority = 2, shared = [irq6])]
     fn usart6_line(cx: usart6_line::Context) {
-        crate::watch(*cx.local.regs6);
+        crate::watch(stm32_metapac::USART6);
         cx.shared.irq6.on_interrupt();
     }
 
