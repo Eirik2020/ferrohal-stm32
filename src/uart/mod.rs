@@ -7,7 +7,8 @@
 //! - **init**: `Uart::new(&mut rcc, wiring, &config, buffers)`. The
 //!   [`Wiring`] comes from the board file and names the instance, pins and
 //!   DMA streams; the IP's routing traits reject a wrong combination at
-//!   compile time.
+//!   compile time. A refusal is a [`Refused`]: the reason, with the wiring
+//!   and buffers handed back.
 //! - **read and write**: `embedded_io::{Read, Write, ReadReady, WriteReady}`
 //!   on the driver and on its two halves.
 //! - **interrupts**: a `UartIrq` handle whose `on_interrupt()` the
@@ -156,7 +157,7 @@ pub struct RxWiring<U, Rx, RxDma> {
     pub rx_dma: RxDma,
 }
 
-pub use crate::resource::{IrqError, Resource, Signal};
+pub use crate::resource::{IrqError, Refused, Resource, Signal};
 
 /// The interrupt vectors a UART needs bound to its `UartIrq`, all at one
 /// priority above every task that uses the UART. From
@@ -275,6 +276,8 @@ pub struct TxHealth {
 
 /// Why `Uart::new` or `set_config` refused a configuration. Apart from
 /// `DmaBusy`, nothing has been written to hardware when this is returned.
+/// `Uart::new` and `UartRx::new` return it in a [`Refused`], with what they
+/// took.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigError {

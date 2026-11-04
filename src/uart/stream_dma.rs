@@ -64,7 +64,7 @@ use crate::{
     rcc::{Bus, Clocks, Rcc, RccBit},
     time::Hertz,
     uart::{
-        Buffers, Chunk, ChunkEnd, Config, ConfigError, Error, Health, Resource, RxWiring,
+        Buffers, Chunk, ChunkEnd, Config, ConfigError, Error, Health, Refused, Resource, RxWiring,
         SendError, Signal, TxHealth, UartInterrupts, Wiring,
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
@@ -382,16 +382,45 @@ impl Uart {
     /// their alternate function, which their types guarantee. Every check
     /// that can fail on the configuration runs before any register is
     /// written.
+    ///
+    /// A refusal hands back `wiring` and `buffers` with the reason, to
+    /// retry or use elsewhere. Every reason but [`ConfigError::DmaBusy`]
+    /// leaves the hardware untouched. `DmaBusy` comes after the USART was
+    /// enabled and reset, and its frame possibly written, with the receiver
+    /// and transmitter off; the stream that did not stop is still running,
+    /// as the earlier owner left it.
+    #[allow(clippy::type_complexity)]
     pub fn new<U, TxP, RxP, TxD, RxD>(
         rcc: &mut Rcc,
         wiring: Wiring<U, TxP, RxP, TxD, RxD>,
         config: &Config,
-        buffers: Buffers,
-    ) -> Result<(Self, UartIrq), ConfigError>
+        mut buffers: Buffers,
+    ) -> Result<(Self, UartIrq), Refused<ConfigError, (Wiring<U, TxP, RxP, TxD, RxD>, Buffers)>>
     where
         U: Instance,
         TxP: TxPin<U>,
         RxP: RxPin<U>,
+        TxD: TxDma<U>,
+        RxD: RxDma<U>,
+    {
+        // `open` only borrows the parts, so a refusal can hand them back. On
+        // success the tokens and the buffers' references end here, and the
+        // driver is the only user of their streams and memory.
+        match Self::open::<U, TxD, RxD>(rcc, &wiring.tx_dma, &wiring.rx_dma, config, &mut buffers) {
+            Ok(opened) => Ok(opened),
+            Err(error) => Err(Refused::new(error, (wiring, buffers))),
+        }
+    }
+
+    fn open<U, TxD, RxD>(
+        rcc: &mut Rcc,
+        tx_dma: &TxD,
+        rx_dma: &RxD,
+        config: &Config,
+        buffers: &mut Buffers,
+    ) -> Result<(Self, UartIrq), ConfigError>
+    where
+        U: Instance,
         TxD: TxDma<U>,
         RxD: RxDma<U>,
     {
@@ -410,7 +439,7 @@ impl Uart {
         reset(rcc, info, rx_len);
         let mut tx = UartTx {
             info,
-            dma: wiring.tx_dma.into_channel(),
+            dma: tx_dma.claim(),
             request: TxD::REQUEST,
             buf: buffers.tx.as_mut_ptr(),
             cap: tx_len,
@@ -419,13 +448,7 @@ impl Uart {
             frame_cycles,
             clock: None,
         };
-        let rx = UartRx::assemble(
-            info,
-            wiring.rx_dma.into_channel(),
-            RxD::REQUEST,
-            buffers.rx,
-            frame_cycles,
-        );
+        let rx = UartRx::assemble(info, rx_dma.claim(), RxD::REQUEST, buffers.rx, frame_cycles);
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
@@ -824,15 +847,36 @@ impl UartRx {
     /// Opens a receive-only UART: no TX pin, no transmit stream, the
     /// transmitter left off. The same receive half a full UART has, and a
     /// `UartIrq` to call from the USART's vector and the receive stream's.
+    ///
+    /// A refusal hands back `wiring` and `ring` with the reason, as
+    /// [`Uart::new`] does, and leaves the hardware as that describes.
+    #[allow(clippy::type_complexity)]
     pub fn new<U, RxP, RxD>(
         rcc: &mut Rcc,
         wiring: RxWiring<U, RxP, RxD>,
         config: &Config,
         ring: &'static mut [u8],
-    ) -> Result<(Self, UartIrq), ConfigError>
+    ) -> Result<(Self, UartIrq), Refused<ConfigError, (RxWiring<U, RxP, RxD>, &'static mut [u8])>>
     where
         U: Instance,
         RxP: RxPin<U>,
+        RxD: RxDma<U>,
+    {
+        // As in `Uart::new`: `open` only borrows the parts.
+        match Self::open::<U, RxD>(rcc, &wiring.rx_dma, config, ring) {
+            Ok(opened) => Ok(opened),
+            Err(error) => Err(Refused::new(error, (wiring, ring))),
+        }
+    }
+
+    fn open<U, RxD>(
+        rcc: &mut Rcc,
+        rx_dma: &RxD,
+        config: &Config,
+        ring: &mut [u8],
+    ) -> Result<(Self, UartIrq), ConfigError>
+    where
+        U: Instance,
         RxD: RxDma<U>,
     {
         let info = U::info();
@@ -841,13 +885,7 @@ impl UartRx {
         let rx_len = ring_len(ring)?;
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
         reset(rcc, info, rx_len);
-        let rx = Self::assemble(
-            info,
-            wiring.rx_dma.into_channel(),
-            RxD::REQUEST,
-            ring,
-            frame_cycles,
-        );
+        let rx = Self::assemble(info, rx_dma.claim(), RxD::REQUEST, ring, frame_cycles);
         let vectors = UartInterrupts {
             line: U::INTERRUPT,
             rx_dma: RxD::INTERRUPT,
@@ -856,11 +894,14 @@ impl UartRx {
         rx.start(config, brr, false, None, vectors)
     }
 
+    /// Keeps the ring's address and length only: the caller's `'static`
+    /// reference ends once the UART is open, leaving the driver the ring's
+    /// only user.
     fn assemble(
         info: &'static Info,
         dma: Channel,
         request: u8,
-        ring: &'static mut [u8],
+        ring: &mut [u8],
         frame_cycles: u32,
     ) -> Self {
         Self {

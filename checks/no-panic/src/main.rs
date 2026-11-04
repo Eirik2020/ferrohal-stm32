@@ -69,8 +69,18 @@ fn main() -> ! {
         rx: black_box(unsafe { &mut *addr_of_mut!(RX) }),
     };
     let config = black_box(uart::Config::new(115_200));
-    let Ok((mut uart, mut irq)) = Uart::new(&mut rcc, wiring, &config, buffers) else {
-        park()
+    // A refusal hands back what `new` took: retry once with it, 8N1.
+    let (mut uart, mut irq) = match Uart::new(&mut rcc, wiring, &config, buffers) {
+        Ok(opened) => opened,
+        Err(refused) => {
+            keep(refused.error());
+            let (wiring, buffers) = refused.into_parts();
+            let Ok(opened) = Uart::new(&mut rcc, wiring, &uart::Config::new(115_200), buffers)
+            else {
+                park()
+            };
+            opened
+        }
     };
     exercise_uart(&mut uart);
 
@@ -84,8 +94,17 @@ fn main() -> ! {
     keep(Uart::check::<chip::RxUart>(&black_box(rcc.clocks()), &sbus));
     // SAFETY: as TX and RX above.
     let ring = black_box(unsafe { &mut *addr_of_mut!(RX2) });
-    let Ok((mut rx_only, mut rx_irq)) = UartRx::new(&mut rcc, rx_wiring, &sbus, ring) else {
-        park()
+    let (mut rx_only, mut rx_irq) = match UartRx::new(&mut rcc, rx_wiring, &sbus, ring) {
+        Ok(opened) => opened,
+        Err(refused) => {
+            keep(refused.error());
+            let (rx_wiring, ring) = refused.into_parts();
+            let Ok(opened) = UartRx::new(&mut rcc, rx_wiring, &uart::Config::new(100_000), ring)
+            else {
+                park()
+            };
+            opened
+        }
     };
     let mut chunk = [0u8; 32];
     keep(rx_only.read_chunk(black_box(&mut chunk)));

@@ -136,8 +136,21 @@ pub trait StreamInterrupt {
 }
 
 /// A stream token, erasable into a [`Channel`].
-pub trait StreamInstance: crate::Sealed {
+pub trait StreamInstance: crate::Sealed + claim::Claim {
     fn into_channel(self) -> Channel;
+}
+
+mod claim {
+    /// Crate-private: a driver's constructor reaching a stream while the
+    /// caller's token stays where it is, so that a refusal can hand the
+    /// token back. Out of reach outside the crate, like `Sealed`.
+    pub trait Claim {
+        /// The stream's [`Channel`](super::Channel), a second owner beside
+        /// the token. The constructor that calls this keeps the pair to
+        /// one: on success it drops the token and keeps the channel, on a
+        /// refusal it drops the channel and returns the token.
+        fn claim(&self) -> super::Channel;
+    }
 }
 
 impl<const D: u8, const N: u8> crate::Sealed for Stream<D, N> {}
@@ -147,6 +160,15 @@ where
     Dma<D>: DmaInstance,
 {
     fn into_channel(self) -> Channel {
+        claim::Claim::claim(&self)
+    }
+}
+
+impl<const D: u8, const N: u8> claim::Claim for Stream<D, N>
+where
+    Dma<D>: DmaInstance,
+{
+    fn claim(&self) -> Channel {
         const { assert!(N < 8, "a controller has streams 0 to 7") };
         Channel {
             regs: <Dma<D> as DmaInstance>::regs(),
