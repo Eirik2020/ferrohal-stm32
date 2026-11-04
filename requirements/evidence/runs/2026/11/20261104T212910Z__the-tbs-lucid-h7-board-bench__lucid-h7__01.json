@@ -1,0 +1,176 @@
+{
+  "schema_version": 5,
+  "run_id": "20261104T212910Z__the-tbs-lucid-h7-board-bench__lucid-h7__01",
+  "recorded_at_utc": "2026-11-04T21:29:10Z",
+  "board": "lucid-h7",
+  "revision": "96220339d3a11c32b16c31e340c3dc00a5165d8d",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "lucid-h7",
+    "features": [],
+    "files": {
+      "hil/lucid-h7/.cargo/config.toml": "9bebb21e98b5eac85cbdc6b27b6ae3966b18fbeae0eadb3a9591140baaa602d7",
+      "hil/lucid-h7/Cargo.toml": "288652680f2298a5b08e4bbc21e94bca04f64e22f5a02ad34bb1aa25c650af11",
+      "hil/lucid-h7/src/../../common/board_adc.rs": "b1922f59d18d24269333979c57d03c150f608ba1bc11ed4b93e4c214f9bc5b7d",
+      "hil/lucid-h7/src/../../common/imu.rs": "b3387ed9f1ebcccf51d9bc254a357ecebf02d8ac0e54bf06cd9dede8dcb05a61",
+      "hil/lucid-h7/src/../../common/motor_lanes.rs": "1ed024711ffc54072208434548e8074b5ffc358132b6dc75b5fde782c89d70bb",
+      "hil/lucid-h7/src/../../common/usb_bench.rs": "f27f508635d1516d0d38d874171199cb5cca90fdf19cc9083cb3b6aee4f4a258",
+      "hil/lucid-h7/src/bin/../../../common/usb_bench.rs": "f27f508635d1516d0d38d874171199cb5cca90fdf19cc9083cb3b6aee4f4a258",
+      "hil/lucid-h7/src/bin/../clocks.rs": "88fc3dc3a72b06f6fc889700968d5f0453c5fac113bf404129f67a734470742e",
+      "hil/lucid-h7/src/bin/usb_irq.rs": "eb17247a99b06373ea54de70d71a1526cd5b44656b3712215a949e52043ca5aa",
+      "hil/lucid-h7/src/clocks.rs": "88fc3dc3a72b06f6fc889700968d5f0453c5fac113bf404129f67a734470742e",
+      "hil/lucid-h7/src/main.rs": "57af8c87a306581ba392b4c3ec784a8b9c6ed49e99289b6ec276ffd30f4e2362",
+      "src/adc/mod.rs": "112bfdaa0696be5ab0fc6db9338616fe01dc2d59da8f0622feb1005729403251",
+      "src/adc_v4/mod.rs": "183430c9c611cf88cad32ebcf1a139468a565eb6c6c4e68b6c2d9ee2a4df5c0c",
+      "src/chips/shared/h7.rs": "c5ffb0a500562a7f4b7631fa03e81e6a8f0b380bf7486c1ca8b2d51bde97c92a",
+      "src/chips/shared/macros.rs": "61a93392253151462f5717ab53cf17bcab1a5de4e7c1559f52363637df5b630f",
+      "src/chips/stm32h743vi.rs": "48df77d761de9fe23628ac6f3643c3ef730f2329ce31c26907f93ec04fbe6bcf",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma_stream.rs": "3e35e8f1a2022b515a4e63e51e5878ebafc0a96508a34eddd9e723314c9f0cb8",
+      "src/exti.rs": "297dc3e5fa898c94dece4413df6612fe872a911f337941c50c33c079092564d9",
+      "src/gpio_v2/mod.rs": "26749974a5d0626a2ab72d9b31781c58f9f6662043ee936a07e8af7774add8f0",
+      "src/iwdg.rs": "1b6e6062efb376915b1cf10a5dc9ec570df085fc7d11b3635882d9a323b72286",
+      "src/lib.rs": "f4036f0b7d649d2b9d8cd639d77f297ed671ee9dcb3e1cbef43ce0c087549d11",
+      "src/rcc_h7rm0433/mod.rs": "bbfca02d172c011a39e4f66ea13e293f94dfb595571359dd84691d408d7c708b",
+      "src/reset.rs": "5dc889fe9f3ac7adab8dd2aa8d72451b6ac6cc37a3eb7d30629df56ad0011dce",
+      "src/resource.rs": "720671dab873c8d39f5bd3b522978be67937379798c3c6d5ccef3ddfbabea375",
+      "src/sdmmc_v2/mod.rs": "44d2668afa1b841d7a388423b48aeae35e8001cf5c3e31c31c776bbbc2d69be0",
+      "src/signature.rs": "ab0cb1c4ed7f4209a4e85185040e9e296de20ad39360b747db47793a1c227dd6",
+      "src/spi/mod.rs": "1452d4be9e5c03426ad0ede10f85705ff67abebb5a51aa490f25db1a489da961",
+      "src/spi/polled.rs": "ff18c71fc0ce129653551e92dedadcf1eef2d371184799f28dd8ecc6f2e18c4f",
+      "src/spi/stream_dma.rs": "8d4cf1728ffb1b314e5901a299219fe1dfe31e5564be941c722af3a7f9aec4e0",
+      "src/spi_v4/mod.rs": "abdbf4b6362905e51318c371aa0aa7d8a865e569373a48fabe09fa6859360edd",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer.rs": "76d6d430c94226d483792432049242383d6a9e701d7a0f5839af8a81ee06d3c4",
+      "src/timer_awg.rs": "4ebca5a0b2e9f57e6d15da60da99767626f5567b307e836d080f61b826559efd",
+      "src/timer_pwm.rs": "d7e1a63a6c03370f7b9c3e339f83a61844937afb8616e0bb3f576da2c9ba95bc",
+      "src/uart/mod.rs": "1cc227b7b692d0f9e96bf9e2e5d1715d0893740ef2023ca831351ab74cb42a67",
+      "src/uart/ring.rs": "6e93c664a105cc570e3893309c131294e5975244b044401f1cc85402433328bc",
+      "src/uart/stream_dma.rs": "67e265bca0008ee9d15c4654230273b66a5437dc8ae1ae854c8891913d7afc7d",
+      "src/uart/tx_ring.rs": "8e75e58d60f7da72902bebca74f88ee9b974ea0acfe22e825f97c56308ae8b05",
+      "src/usart_v4/mod.rs": "2ef688b25ab933287effc3b5f880fd11dcab1068e560c75ffbefbe474b67d1ae",
+      "src/usb.rs": "af0a26676ca2aebb7ee7ce4206d0b091e35a51259427c1506a07d6cc34a40ca5",
+      "src/wait.rs": "9f62d55f6c02ccb3e72ad35b181e8f5add4efb3bbf2a56d1c80cb0959e07a76b"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "critical-section": "1.2.0",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.6.1, 0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.9",
+      "synopsys-usb-otg": "0.4.0",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "usbd-serial": "0.2.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    }
+  },
+  "results": [
+    {
+      "requirement": "AWG-005",
+      "method": {
+        "procedure": "requirements/benches.md#The TBS Lucid H7 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "bfa82941e6ffd9754f3e1f694173c938cd000ab6cbcc4b272a95104118e22ceb",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-012",
+      "method": {
+        "procedure": "requirements/benches.md#The TBS Lucid H7 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "916e093bd3ba0c4e439f416ba21ddcc09381cf797fd89cf9e28e130dfffb1043",
+      "result": "pass"
+    },
+    {
+      "requirement": "SDMMC-004",
+      "method": {
+        "procedure": "requirements/benches.md#The TBS Lucid H7 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "5594a89b102525cb006b003f4b782f049b4933bef7d2c9f59025d77c5c3f5fc6",
+      "result": "pass"
+    },
+    {
+      "requirement": "USB-001",
+      "method": {
+        "procedure": "requirements/benches.md#The TBS Lucid H7 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "a0fecc19904ae61c998912145d8c7c99a6df073a3b29bb7b15098b3553465933",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "072892b82b553fc89400899ca4739020b46f2cb067ba10f94694cbf3b3a9b344",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-lucid.sh",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "lucid-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/flight-boards-20261104/lucid-images.sha256",
+        "bytes": 149,
+        "sha256": "072892b82b553fc89400899ca4739020b46f2cb067ba10f94694cbf3b3a9b344"
+      },
+      {
+        "id": "lucid",
+        "kind": "log",
+        "path": "requirements/evidence/logs/flight-boards-20261104/lucid.log",
+        "bytes": 2695,
+        "sha256": "0a5095fcde8c70bc74dfeb31b3dcec78437c99017e3fcf554fce0a9d91110795"
+      }
+    ]
+  }
+}
