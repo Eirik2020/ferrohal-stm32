@@ -26,14 +26,14 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 ### Correctness
 
 - **Medium: the v2 error clear can take a good byte** ([usart_v2](src/usart_v2/mod.rs), `Line::take_errors`).
-  - Clearing errors needs an SR read then a DR read; if DMA hasn't taken the byte in DR yet, the DR read consumes it. Inherent to v2 (v4 clears through ICR). Document "one byte may be lost per reported line error".
+  - Clearing errors needs an SR read then a DR read; if DMA hasn't taken the byte in DR yet, the DR read consumes it. Inherent to v2 (v4 clears through ICR). A limit: "one byte may be lost per reported line error" is documented on `Uart`.
 - **Medium: the v2 parity-error clear sequence isn't followed.**
   - RM0368 and RM0090 say to wait for RXNE before clearing PE; the driver clears at once. Follow the sequence, or confirm on hardware that it's harmless.
   - Awaiting bench: the F401's run B measures it (`UART-014`), each way: RXNE's state when the USART vector sees PE, a good frame straight after the bad byte arriving whole and in order, and PE seen and reported once. `take_events` stays as it is until then. Waiting for RXNE there isn't obviously right: DMA may already have taken the byte, so RXNE wouldn't set until the next one, and it runs in an interrupt.
 - **Medium: parity errors can be lost while transmitting** (`usart_v2`; ES0299 2.10.2, ES0182 2.11.2).
-  - In full duplex, an SR read followed by a DR write clears PE, and the TX DMA writes DR. No hardware fix; document that v2 parity detection is reliable only while the receiving USART isn't transmitting.
+  - In full duplex, an SR read followed by a DR write clears PE, and the TX DMA writes DR. No hardware fix. A limit: that v2 parity detection is reliable only while the receiving USART isn't transmitting is documented on `Uart`.
 - **Medium: IDLE can be missed** (`usart_v2`; ES0299 2.10.1, ES0182 2.11.1).
-  - IDLE isn't detected when the sender's clock runs faster than the receiver's. No workaround; idle-ended `read_chunk` on v2 needs a timeout fallback (timer), not IDLE alone.
+  - IDLE isn't detected when the sender's clock runs faster than the receiver's. No workaround. A limit: that idle-ended `read_chunk` on v2 needs a timeout fallback (timer), not IDLE alone, is documented on `Uart`.
 - **Low: transmit DMA errors are reported after the frame was queued.** A DMA error shows in `TxHealth` and as an error from the next `write` or `flush`.
 - **Low: NDTR and the half-lap count can fall out of step** in a theoretical corner case: if interrupts keep landing between the reads, `write_count` gives up after `COUNT_TRIES` and uses the last sample.
 - **Low: limits of the receive ring**, documented on `Buffers::rx`: the interrupt must be served within one ring's worth of bytes, and the reading code must never preempt `UartIrq`.
