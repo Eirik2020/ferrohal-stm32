@@ -1,0 +1,13 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.05s
+     Running `probe-rs run --no-catch-reset --chip STM32F401RE --probe '0483:374b' target/thumbv7em-none-eabihf/release/run-j`
+     [38;5;10m[1mFinished[0m in 0.82s
+[INFO ] run J, reset cause: ResetCause { power_on: false, pin: true, brownout: false, software: true, independent_watchdog: false, window_watchdog: false, low_power: false } (run_j src/bin/run_j.rs:36)
+[INFO ] PASS IWDG 50 ms: a fresh start isn't a watchdog reset [RESET-001] (run_j ../common/tests.rs:241)
+[33m WARN[0m [2mprobe_rs::util::rtt::client[0m[2m:[0m RTT read pointer changed, re-attaching
+[INFO ] run J, reset cause: ResetCause { power_on: false, pin: true, brownout: false, software: false, independent_watchdog: true, window_watchdog: false, low_power: false } (run_j src/bin/run_j.rs:36)
+[INFO ] PASS IWDG 50 ms: fed every 10 ms for 300 ms: no reset [IWDG-001] (run_j ../common/tests.rs:241)
+[INFO ] PASS IWDG 50 ms: starved: the reset cause is the watchdog [RESET-001] (run_j ../common/tests.rs:241)
+[INFO ] PASS IWDG 50 ms: starved: reset within the LSI's spread of 50 ms [IWDG-002] (run_j ../common/tests.rs:241)
+[INFO ] IWDG 50 ms: reset 53332 us after the last feed (run_j ../common/watchdog.rs:105)
+[INFO ] all checks passed (run_j ../common/tests.rs:1265)
+Firmware exited successfully
