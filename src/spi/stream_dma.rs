@@ -215,8 +215,8 @@ impl Spi {
 
         rcc.enable(info.enable);
         rcc.reset(info.enable);
-        let mut tx = tx_dma.claim();
-        let mut rx = rx_dma.claim();
+        let mut tx = crate::dma::claim_channel(tx_dma);
+        let mut rx = crate::dma::claim_channel(rx_dma);
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
         tx.stop(STOP_SPINS).map_err(|_| ConfigError::DmaBusy)?;

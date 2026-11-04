@@ -439,7 +439,7 @@ impl Uart {
         reset(rcc, info, rx_len);
         let mut tx = UartTx {
             info,
-            dma: tx_dma.claim(),
+            dma: crate::dma::claim_channel(tx_dma),
             request: TxD::REQUEST,
             buf: buffers.tx.as_mut_ptr(),
             cap: tx_len,
@@ -448,7 +448,7 @@ impl Uart {
             frame_cycles,
             clock: None,
         };
-        let rx = UartRx::assemble(info, rx_dma.claim(), RxD::REQUEST, buffers.rx, frame_cycles);
+        let rx = UartRx::assemble(info, crate::dma::claim_channel(rx_dma), RxD::REQUEST, buffers.rx, frame_cycles);
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
@@ -885,7 +885,7 @@ impl UartRx {
         let rx_len = ring_len(ring)?;
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
         reset(rcc, info, rx_len);
-        let rx = Self::assemble(info, rx_dma.claim(), RxD::REQUEST, ring, frame_cycles);
+        let rx = Self::assemble(info, crate::dma::claim_channel(rx_dma), RxD::REQUEST, ring, frame_cycles);
         let vectors = UartInterrupts {
             line: U::INTERRUPT,
             rx_dma: RxD::INTERRUPT,

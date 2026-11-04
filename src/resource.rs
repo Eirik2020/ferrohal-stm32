@@ -69,19 +69,26 @@ pub struct Refused<E, P> {
     parts: P,
 }
 
-impl<E: Copy, P> Refused<E, P> {
+impl<E, P> Refused<E, P> {
     pub(crate) const fn new(error: E, parts: P) -> Self {
         Self { error, parts }
-    }
-
-    /// Why the constructor refused.
-    pub fn error(&self) -> E {
-        self.error
     }
 
     /// Everything the constructor took by value, to retry or use elsewhere.
     pub fn into_parts(self) -> P {
         self.parts
+    }
+
+    /// The reason and the parts together.
+    pub fn into_inner(self) -> (E, P) {
+        (self.error, self.parts)
+    }
+}
+
+impl<E: Copy, P> Refused<E, P> {
+    /// Why the constructor refused.
+    pub fn error(&self) -> E {
+        self.error
     }
 }
 
@@ -141,6 +148,13 @@ mod tests {
         assert_eq!((first, second), (Token(1), Token(2)));
         assert_eq!(buffer.as_ptr(), address);
         assert_eq!(buffer.len(), 4);
+    }
+
+    #[test]
+    fn a_refusal_comes_apart_whole() {
+        // A reason that is not `Copy` either, so only `into_inner` reaches it.
+        let (error, part) = Refused::new(Token(9), Token(3)).into_inner();
+        assert_eq!((error, part), (Token(9), Token(3)));
     }
 
     #[test]
