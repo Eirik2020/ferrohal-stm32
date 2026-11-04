@@ -76,3 +76,7 @@ layout must stay as it is.
 ## The TBS Lucid H7 board bench
 
 `hil/run-lucid.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its SD checks need a card in the slot. Pass: every check in every run passes and the script exits zero.
+
+## The TBS Lucid H7 with its slot empty
+
+`hil/run-lucid.sh`, with no card in the slot. Pass: the bench reports the empty slot and every other check passes, and the script exits zero.

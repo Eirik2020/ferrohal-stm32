@@ -40,7 +40,7 @@ requirements:
         - level: target
           environment: product
           method:
-            procedure: requirements/benches.md#The TBS Lucid H7 board bench
+            procedure: requirements/benches.md#The TBS Lucid H7 with its slot empty
 
   - id: SDMMC-004
     title: Blocks read back as written
