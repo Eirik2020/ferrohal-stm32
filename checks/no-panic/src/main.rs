@@ -402,6 +402,7 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     keep(ferrohal_stm32::signature::device_uid());
     keep(reset::peek_cause());
     keep(reset::bootloader_requested());
+    reset::enter_bootloader_if_requested();
     if black_box(false) {
         reset::reboot_to_bootloader();
     }

@@ -61,7 +61,8 @@ static mut BUS: Option<UsbBusAllocator<UsbBus>> = None;
 /// Enters the ROM bootloader if the last reset asked for it or was the
 /// watchdog's. First thing in `main`.
 pub fn enter_bootloader_if_requested() {
-    if reset::bootloader_requested() || reset::peek_cause().independent_watchdog {
+    reset::enter_bootloader_if_requested();
+    if reset::peek_cause().independent_watchdog {
         // SAFETY: nothing is set up yet.
         unsafe { reset::enter_bootloader() }
     }

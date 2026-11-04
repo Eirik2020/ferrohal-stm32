@@ -83,6 +83,22 @@ pub fn peek_cause() -> ResetCause {
     crate::rcc::read_reset_cause()
 }
 
+/// Goes to the ROM bootloader if the last reset was [`reboot_to_bootloader`]'s, and
+/// otherwise returns. Call it first in `main` or in `init`, before any clock, cache
+/// or peripheral is set up: the ROM expects the chip as reset left it, and may not
+/// enumerate otherwise.
+///
+/// Safe because it never returns once it goes, so nothing can observe what it
+/// abandons, and a request exists only just after that reset.
+pub fn enter_bootloader_if_requested() {
+    if bootloader_requested() {
+        // SAFETY: the jump abandons everything in RAM and never comes back, and
+        // the request says the last reset was the one that asked for this. Being
+        // called late would make the ROM misbehave, not memory unsound.
+        unsafe { enter_bootloader() }
+    }
+}
+
 /// Jumps to the ROM bootloader, clearing the reset flags so a stale one can't
 /// bring a later boot back here.
 ///
