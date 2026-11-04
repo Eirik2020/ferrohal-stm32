@@ -43,7 +43,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### API gaps
 
-- **Medium: `Uart::new` drops its tokens on error.** Mitigated by checking frames while compiling (`Uart::check::<U>` in a `const` assert); buffers and a running stream remain run-time errors. Fix: return the tokens with the error.
+- **Medium: most constructors still drop their tokens on error.** `Uart::new`, `UartRx::new` and `Spi::new` return a `Refused` holding the reason and everything they took; these don't yet, and lose their token when they refuse: `BlockingSpi::new` (its wiring; it refuses before writing anything, and its bench callers would need changing, which re-owes every requirement on both Nucleos), `Tick::new`, `Timebase::new`, `Pwm::new`, `PwmChannel::into_lane` and `into_two_way_lane` (the channel, its stream and buffers), `Sampler::new`, `Awg::linked` and `Awg::independent` (which take two `Pwm`s and their lanes), `Adc::new`, `Sdmmc::new`, `UsbFs::new` and `Watchdog::start`. Fix: return a `Refused` the same way. No bench makes a constructor refuse, so the hand-back is shown by host tests and the no-panic check's retry, not on hardware.
 - **Medium: there's no `release()`/`free()`;** the driver can't be torn down.
 - **Medium: the blocking `embedded_io::Read::read` has no bound.** Document `read_within` as the form for FerroForge tasks.
 - **Medium: USB sits outside the no-panic proof.** `synopsys-usb-otg` has about 30 panic and unwrap sites and spins unbounded on registers (it hung forever in core reset before the H7's `hs` mode was set). It's behind the `usb` feature; the check covers only FerroHAL's clock and constructor. A flight firmware should keep USB from taking down anything critical.
