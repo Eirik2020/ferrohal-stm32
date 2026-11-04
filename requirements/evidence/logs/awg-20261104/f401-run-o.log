@@ -1,0 +1,6 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32F401RE --probe '0483:374b' target/thumbv7em-none-eabihf/release/run-o`
+     [38;5;10m[1mFinished[0m in 0.91s
+[INFO ] PASS TIM4 CH1 PB6 -> J3 -> PC7: AWG out over the wire: samples read back at the far end [AWG-008] (run_o ../common/tests.rs:241)
+[INFO ] all checks passed (run_o ../common/tests.rs:1265)
+Firmware exited successfully

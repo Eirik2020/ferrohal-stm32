@@ -1,0 +1,13 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --no-catch-reset --chip STM32H753ZI --probe '0483:374e' target/thumbv7em-none-eabihf/release/run-k`
+     [38;5;10m[1mFinished[0m in 2.12s
+[INFO ] run K, reset cause: ResetCause { power_on: false, pin: true, brownout: false, software: true, independent_watchdog: false, window_watchdog: false, low_power: false } (run_k src/bin/run_k.rs:38)
+[INFO ] PASS IWDG1 50 ms: a fresh start isn't a watchdog reset [RESET-001] (run_k ../common/tests.rs:241)
+[33m WARN[0m [2mprobe_rs::util::rtt::client[0m[2m:[0m RTT read pointer changed, re-attaching
+[INFO ] run K, reset cause: ResetCause { power_on: false, pin: true, brownout: false, software: false, independent_watchdog: true, window_watchdog: false, low_power: false } (run_k src/bin/run_k.rs:38)
+[INFO ] PASS IWDG1 50 ms: fed every 10 ms for 300 ms: no reset [IWDG-001] (run_k ../common/tests.rs:241)
+[INFO ] PASS IWDG1 50 ms: starved: the reset cause is the watchdog [RESET-001] (run_k ../common/tests.rs:241)
+[INFO ] PASS IWDG1 50 ms: starved: reset within the LSI's spread of 50 ms [IWDG-002] (run_k ../common/tests.rs:241)
+[INFO ] IWDG1 50 ms: reset 50483 us after the last feed (run_k ../common/watchdog.rs:105)
+[INFO ] all checks passed (run_k ../common/tests.rs:1265)
+Firmware exited successfully

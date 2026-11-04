@@ -1,0 +1,19 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32F401RE --probe '0483:374b' target/thumbv7em-none-eabihf/release/run-m`
+     [38;5;10m[1mFinished[0m in 0.90s
+[INFO ] run M, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2 } (run_m src/bin/run_m.rs:39)
+[INFO ] unique ID: [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35] (run_m src/bin/run_m.rs:43)
+[INFO ] PASS unique ID: isn't blank [SIG-001] (run_m ../common/tests.rs:241)
+[INFO ] PASS ADC1 PA6: a driven low reads near 0 [ADC-001 ADC-002] (run_m ../common/tests.rs:241)
+[INFO ] PASS ADC1 PA6: a driven high reads near full scale [ADC-002] (run_m ../common/tests.rs:241)
+[INFO ] ADC1 PA6: low 24, high 4083 of 4095 (run_m ../common/adc.rs:81)
+[INFO ] PASS ADC1 PA6: it follows the pin back down [ADC-002] (run_m ../common/tests.rs:241)
+[INFO ] PASS ADC1 internal: VDDA from the internal reference is about 3.3 V [ADC-003] (run_m ../common/tests.rs:241)
+[INFO ] PASS ADC1 internal: the reference holds still, within 1 percent of scale [ADC-003] (run_m ../common/tests.rs:241)
+[INFO ] PASS ADC1 internal: the reference reads about 1.2 V [ADC-003] (run_m ../common/tests.rs:241)
+[INFO ] PASS ADC1 internal: the die is between 10 and 70 C [ADC-003] (run_m ../common/tests.rs:241)
+[INFO ] ADC1 internal: VDDA 3306 mV, reference 1203 mV, die 267 tenths of a degree (run_m ../common/adc.rs:137)
+[INFO ] PASS ADC1 scan: 64 sequences over DMA follow the pin [ADC-004] (run_m ../common/tests.rs:241)
+[INFO ] PASS ADC1 scan: a second start while running is refused [ADC-005] (run_m ../common/tests.rs:241)
+[INFO ] all checks passed (run_m ../common/tests.rs:1265)
+Firmware exited successfully
