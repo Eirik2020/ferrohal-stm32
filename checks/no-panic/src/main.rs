@@ -138,7 +138,15 @@ fn main() -> ! {
         tx: black_box(unsafe { &mut *addr_of_mut!(SPI_TX) }),
         rx: black_box(unsafe { &mut *addr_of_mut!(SPI_RX) }),
     };
-    if let Ok(mut bus) = Spi::new(&mut rcc, spi_wiring, &spi_config, spi_buffers) {
+    let spi = match Spi::new(&mut rcc, spi_wiring, &spi_config, spi_buffers) {
+        Ok(bus) => Ok(bus),
+        Err(refused) => {
+            keep(refused.error());
+            let (spi_wiring, spi_buffers) = refused.into_parts();
+            Spi::new(&mut rcc, spi_wiring, &spi::Config::new(Hertz::mhz(1)), spi_buffers)
+        }
+    };
+    if let Ok(mut bus) = spi {
         exercise_spi(&mut bus);
     }
 

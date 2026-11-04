@@ -41,7 +41,7 @@ use crate::{
     },
     gpio::AltPin,
     rcc::{Rcc, RccBit},
-    resource::{Resource, Signal},
+    resource::{Refused, Resource, Signal},
     spi::{Buffers, Config, ConfigError, Error, Health, Kernel, SpiInterrupts, Wiring},
     spi_ip::Unit,
     time::{CycleClock, Hertz},
@@ -155,17 +155,44 @@ impl Spi {
     /// both streams and configures the bus as a master. Chip select is the
     /// firmware's GPIO. Returns the SCK in use through
     /// [`frequency`](Self::frequency).
+    ///
+    /// A refusal hands back `wiring` and `buffers` with the reason, to
+    /// retry or use elsewhere. Every reason but [`ConfigError::DmaBusy`]
+    /// leaves the hardware untouched. `DmaBusy` comes after the SPI was
+    /// enabled and reset; the stream that did not stop is still running, as
+    /// the earlier owner left it.
+    #[allow(clippy::type_complexity)]
     pub fn new<U, Sck, Miso, Mosi, TxD, RxD>(
         rcc: &mut Rcc,
         wiring: Wiring<U, Sck, Miso, Mosi, TxD, RxD>,
         config: &Config,
-        buffers: Buffers,
-    ) -> Result<Self, ConfigError>
+        mut buffers: Buffers,
+    ) -> Result<Self, Refused<ConfigError, (Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers)>>
     where
         U: Instance,
         Sck: SckPin<U>,
         Miso: MisoPin<U>,
         Mosi: MosiPin<U>,
+        TxD: SpiTxDma<U>,
+        RxD: SpiRxDma<U>,
+    {
+        // `open` only borrows the parts, so a refusal can hand them back. On
+        // success it has taken the buffers, and the tokens end here.
+        match Self::open::<U, TxD, RxD>(rcc, &wiring.tx_dma, &wiring.rx_dma, config, &mut buffers) {
+            Ok(spi) => Ok(spi),
+            Err(error) => Err(Refused::new(error, (wiring, buffers))),
+        }
+    }
+
+    fn open<U, TxD, RxD>(
+        rcc: &mut Rcc,
+        tx_dma: &TxD,
+        rx_dma: &RxD,
+        config: &Config,
+        buffers: &mut Buffers,
+    ) -> Result<Self, ConfigError>
+    where
+        U: Instance,
         TxD: SpiTxDma<U>,
         RxD: SpiRxDma<U>,
     {
@@ -188,8 +215,8 @@ impl Spi {
 
         rcc.enable(info.enable);
         rcc.reset(info.enable);
-        let mut tx = wiring.tx_dma.into_channel();
-        let mut rx = wiring.rx_dma.into_channel();
+        let mut tx = tx_dma.claim();
+        let mut rx = rx_dma.claim();
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
         tx.stop(STOP_SPINS).map_err(|_| ConfigError::DmaBusy)?;
@@ -205,8 +232,9 @@ impl Spi {
             rx,
             tx_request: TxD::REQUEST,
             rx_request: RxD::REQUEST,
-            tx_buf: buffers.tx,
-            rx_buf: buffers.rx,
+            // Past the last refusal: the buffers are the driver's now.
+            tx_buf: core::mem::take(&mut buffers.tx),
+            rx_buf: core::mem::take(&mut buffers.rx),
             cap: tx_len.min(rx_len),
             state: State::Idle,
             kernel_clock,
