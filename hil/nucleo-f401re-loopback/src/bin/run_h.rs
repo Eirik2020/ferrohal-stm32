@@ -4,8 +4,11 @@
 //! rate) and must keep that rate to 0.05 %, then stop when paused. TIM2 and
 //! TIM5, the 32-bit timers, also run as 1 MHz timebases.
 //!
-//! First, the voltage scale `freeze` wrote is read back: scale 2, VOS 0b10
-//! in RM0368's two bits, with VOSRDY set.
+//! First, the voltage scale. Before `freeze`, `init` sets scale 3, as a
+//! bootloader might have left it: VOS 0b01 in RM0368's two bits, harmless on
+//! the reset clock. `freeze` must replace it, and the run reads back scale 2,
+//! VOS 0b10, with VOSRDY set. Scale 2 is also the reset value, so without the
+//! lower scale the readback couldn't show `freeze` wrote anything.
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
@@ -46,6 +49,7 @@ mod app {
     #[local]
     struct Local {
         run: board::RunH,
+        vos_before_freeze: u32,
     }
 
     #[init]
@@ -53,6 +57,13 @@ mod app {
         let mut core = cx.core;
         core.DCB.enable_trace();
         core.DWT.enable_cycle_counter();
+        // The PLL is off after reset, as RM0368 needs for a write to VOS.
+        stm32_metapac::RCC.apb1enr().modify(|w| w.set_pwren(true));
+        let _ = stm32_metapac::RCC.apb1enr().read();
+        stm32_metapac::PWR
+            .cr1()
+            .modify(|w| w.set_vos(stm32_metapac::pwr::vals::Vos::SCALE3));
+        let vos_before_freeze = u32::from(stm32_metapac::PWR.cr1().read().vos().to_bits());
         let run = match board::run_h(cx.device) {
             Ok(run) => run,
             Err(error) => defmt::panic!("clocks: {}", error),
@@ -64,7 +75,10 @@ mod app {
             Shared {
                 bench: TickBench::new(),
             },
-            Local { run },
+            Local {
+                run,
+                vos_before_freeze,
+            },
         )
     }
 
@@ -103,7 +117,7 @@ mod app {
         cx.shared.bench.lock(TickBench::on_interrupt);
     }
 
-    #[task(priority = 1, shared = [bench], local = [run])]
+    #[task(priority = 1, shared = [bench], local = [run, vos_before_freeze])]
     async fn checks(mut cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
@@ -112,6 +126,21 @@ mod app {
         let bench = &mut cx.shared.bench;
         let khz = Hertz::khz(1);
 
+        let before = *cx.local.vos_before_freeze;
+        defmt::info!("PWR_CR VOS before freeze {=u32:#04b}", before);
+        report.check_for(
+            "PWR",
+            "RCC-003",
+            "scale 3 (VOS 0b01) set before freeze, for it to replace",
+            if before == 0b01 {
+                Ok(())
+            } else {
+                Err(Fail::Count {
+                    expected: 0b01,
+                    got: before,
+                })
+            },
+        );
         // RM0368: PWR_CR VOS is bits 15:14, PWR_CSR VOSRDY bit 14.
         let vos = u32::from(stm32_metapac::PWR.cr1().read().vos().to_bits());
         let ready = stm32_metapac::PWR.csr1().read().vosrdy();

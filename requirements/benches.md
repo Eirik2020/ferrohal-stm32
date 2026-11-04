@@ -44,7 +44,7 @@ layout must stay as it is.
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n o p`, with J3 and S1 fitted for O and P. Measures each timer against the cycle counter, and sends waveforms over those wires. Run H first reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p`, with J3 and S1 fitted for O and P. Measures each timer against the cycle counter, and sends waveforms over those wires. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 
@@ -76,7 +76,7 @@ layout must stay as it is.
 
 ## The Foxeer F405 V2 board bench
 
-`hil/run-foxeer.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its clock checks read back PWR: the voltage scale `freeze` wrote must be scale 1 (PWR_CR bits 15:14 at 0b01, bit 14 being this chip's VOS) with VOSRDY set. Pass: every check in every run passes and the script exits zero.
+`hil/run-foxeer.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. It sets scale 2 before `freeze`, for it to replace, and its clock checks read back PWR: the voltage scale `freeze` wrote must be scale 1 (PWR_CR bits 15:14 at 0b01, bit 14 being this chip's VOS) with VOSRDY set. Pass: every check in every run passes and the script exits zero.
 
 ## The TBS Lucid H7 board bench
 
