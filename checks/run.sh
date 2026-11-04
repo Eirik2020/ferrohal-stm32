@@ -12,13 +12,17 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 chips=(stm32f401re stm32f405rg stm32h743vi stm32h753zi)
 status=0
 
+# A passing step prints only its pass line. A failing one prints its FAIL line
+# and then, on stderr, everything the step wrote, so the cause is in the log.
 step() {
     local name=$1
     shift
-    if "$@" > /dev/null 2>&1; then
+    local output
+    if output=$("$@" 2>&1); then
         echo "pass  $name"
     else
         echo "FAIL  $name"
+        printf '%s\n' "$output" >&2
         status=1
     fi
 }
@@ -30,9 +34,10 @@ for chip in "${chips[@]}"; do
         cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit" -- -D warnings
     # From its own directory: cargo reads .cargo/config.toml from where it
     # runs, and without that package's link.x the linker can discard
-    # everything, panics included, and pass for nothing.
+    # everything, panics included, and pass for nothing. A linker warning
+    # fails the step, and the build that raised it is kept to be printed.
     step "no reachable panic ($chip)" \
-        bash -c 'cd "$1" && cargo build --release --features "$2" 2>&1 | grep -q "warning: linker stderr" && exit 1; cd "$1" && cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
+        bash -c 'cd "$1" || exit 1; out=$(cargo build --release --features "$2" 2>&1); if grep -q "warning: linker stderr" <<< "$out"; then printf "%s\n" "$out"; exit 1; fi; cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
 done
 step "glue matches stm32-metapac metadata" python3 -I "$root/tools/check_glue.py"
 host=$(rustc -vV | sed -n 's/^host: //p')
