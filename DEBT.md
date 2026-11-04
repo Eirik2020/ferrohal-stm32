@@ -2,12 +2,12 @@
 
 Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is history and needn't be read to work on the crate.
 
-Status as of 2026-11-02:
+Status as of 2026-11-05:
 
-- **F401:** `hil/run-f401.sh` passes all fourteen runs: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K), the bootloader request (L), the ADC (M), one timer starting another (N).
-- **H753ZI:** `hil/run-h753.sh` passes all sixteen runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L), USB CDC with the host checking every byte (M), the bootloader request (N), the ADCs (O), one timer starting another (P). Run M needs a cable from CN13, and last ran before the bootloader work.
-- **F405RG:** `hil/run-foxeer.sh` passes 36 of 36 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement with their outputs off (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it.
-- **H743VI:** `hil/run-lucid.sh` passes 31 of 31 on the TBS Lucid H7, plus the host's USB echo, polled and from its interrupt: its crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, and its motor timers and streams with their outputs off.
+- **F401:** `hil/run-f401.sh` passes all sixteen runs, 229 checks: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K), the bootloader request (L), the ADC (M), one timer starting another (N), the waveform generator out and in over wires (O, P).
+- **H753ZI:** `hil/run-h753.sh` passes all seventeen runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L), USB CDC with the host checking every byte (M), the bootloader request (N), the ADCs (O), one timer starting another (P), the waveform generator both ways (Q). Run M needs a cable from CN13, and passed 11 of 11 on 2026-11-05.
+- **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
+- **H743VI:** `hil/run-lucid.sh` passes 32 of 32 with a card on the TBS Lucid H7, plus the host's USB echo, polled and from its interrupt: its crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, and its motor timers and streams.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
@@ -27,9 +27,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 - **Medium: the v2 error clear can take a good byte** ([usart_v2](src/usart_v2/mod.rs), `Line::take_errors`).
   - Clearing errors needs an SR read then a DR read; if DMA hasn't taken the byte in DR yet, the DR read consumes it. Inherent to v2 (v4 clears through ICR). A limit: "one byte may be lost per reported line error" is documented on `Uart`.
-- **Medium: the v2 parity-error clear sequence isn't followed.**
-  - RM0368 and RM0090 say to wait for RXNE before clearing PE; the driver clears at once. Follow the sequence, or confirm on hardware that it's harmless.
-  - Awaiting bench: the F401's run B measures it (`UART-014`), each way: RXNE's state and whether the receive DMA had taken the bad byte when a vector first sees PE, a good frame straight after the bad byte arriving whole and in order with the error reported right after the bad byte, and PE seen, counted and reported once. `take_events` stays as it is until then. Waiting for RXNE there isn't obviously right: DMA may already have taken the byte, so RXNE wouldn't set until the next one, and it runs in an interrupt.
+- **Low: the v2 parity clear is measured at one speed.** Run B saw the DMA already holding the bad byte with RXNE clear, and the next frame intact, one sample each way at 115200. A faster line leaves less time before the clear's DR read, which is the one-byte loss above; 420000 (CRSF) hasn't been measured.
 - **Medium: parity errors can be lost while transmitting** (`usart_v2`; ES0299 2.10.2, ES0182 2.11.2).
   - In full duplex, an SR read followed by a DR write clears PE, and the TX DMA writes DR. No hardware fix. A limit: that v2 parity detection is reliable only while the receiving USART isn't transmitting is documented on `Uart`.
 - **Medium: IDLE can be missed** (`usart_v2`; ES0299 2.10.1, ES0182 2.11.1).
@@ -94,6 +92,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: some error paths are never exercised:** DMA transfer errors (the spike's `inject-dma-error` wasn't ported), USART-level overrun, noise, stop timeout.
 - **Medium: the H753ZI bench reaches the Zio headers only.** No morpho headers (CN11, CN12) are fitted: UART8 (TX only on PE1), the Lucid's USART1 RX (PA10), and PA8, PA9, PB14, PG9 are unreachable; UART5's PB13 needs SB7. Fit the headers (the 38-of-46 plan) and SB7. PA1, PA2, PA11, PA12 need rework (Ethernet, USB).
 - **Low: USART2 on the F401 goes through the ST-LINK,** so break, baud and parity changes aren't checked on it. SB13/SB14 off and SB62/SB63 on would allow a direct link.
+- **Low: run M's host side has two races.** `usb_cdc_host.py` starts before the build, so a rebuild can use up its 30 s, and on a rerun it can open the port the previous image left, while the board is being flashed. On a failure after either, run `hil/run-h753.sh l` and then `m`.
 - **Low: probes are picked by VID:PID** (`0483:374b`, `0483:374e`); use serial numbers for a shared bench.
 - **Low: clock checks are indirect:** `freeze`'s record matching the `const` one, plus working baud rates (and the F401 host echo). Nothing measures MCO.
 
@@ -101,7 +100,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ## 2. STM32F401RE (Nucleo-F401RE)
 
-- **Low: VOS written, awaiting bench.** `freeze` writes scale 2 (VOS 0b10, RM0368) with the PLL off and waits for VOSRDY, rather than relying on the reset value. Run H reads both back (`RCC-003`); close this once it has passed on the board.
 - **Low: only one supply range** (2.7–3.6 V) in `Supply`.
 - **Low: HSE with a crystal is untested;** only bypass (the ST-LINK MCO) has run.
 - **Low: phantom pins:** LQFP64 bonds only PD2, PH0, PH1 outside ports A to C, and no port E.
@@ -114,7 +112,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: the bench's NOR commands are its own copy.** They follow FerroWasp's `spi_nor` driver, which compiled unchanged over `BlockingSpi` in a scratch crate but hasn't itself run over FerroHAL. The bench can't depend on it from a public repo. The IMU setup is copied the same way.
 - **Low: FerroWasp's F405 image is exposed to the VTOR trap until the swap.** It doesn't set VTOR, so after a DFU `leave` its USB should fail as the bench's did, until a power cycle. FerroHAL's `rt` feature fixes it for the swap. Seen on the bench's firmware only, not tried on FerroWasp's.
 - **Low: a Foxeer firmware that fails before USB can't say why.** It restarts into DFU, which shows only that something failed.
-- **Medium: VOS written, awaiting bench.** 168 MHz needs scale 1 (RM0090 PWR_CR bit 14); a bootloader that left scale 2 would put it out of spec (DS8626: 144 MHz in scale 2). `freeze` writes scale 1 from the chip file, with the PLL off, and waits for VOSRDY. metapac 21.0.0 gives this chip the F42x's two-bit VOS, so the chip file names the bits (0b01), not metapac's `SCALE1` (0b11). The Foxeer bench reads both back (`RCC-003`); close this once it has passed on the board.
 - **Low: prefetch on revision A.** `freeze` sets PRFTEN; ES0182 2.2.1 says revision A doesn't support the prefetch queue. Later revisions are fixed.
 - **Low: phantom pins:** ports E to I are handed out though LQFP64 bonds only ports A to C, PD2, PH0, PH1.
 - **Medium: reading a pin on DMA2 while DMA2 also serves APB2 meets ES0182 2.2.19.** The waveform generator can now turn a lane round to read its pin, which is what bidirectional DShot needs, and FerroWasp doesn't use it yet. The Foxeer's motor timers are TIM1 and TIM8 on DMA2, and only DMA2 reaches GPIO on the F4, so reading replies shares DMA2 with anything on APB2, such as SPI1's IMU streams. DMA2 serving both at once can corrupt data. Before bidirectional DShot flies on an F4, the two need keeping apart.
@@ -173,6 +170,4 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 Code that exists only for the move of FerroWasp onto FerroHAL (§15). Each is marked `TRANSITION:` in its documentation and is removed once FerroWasp uses FerroHAL's native model.
 
-- None yet. The compatibility adapter for FerroWasp's `UartRxDmaTransfer` and `UartTxDmaTransfer` will be the first, built at swap time.
-
-The swap also has to settle versions, since FerroHAL's pins and FerroWasp's safety-critical crates' pins can't resolve together: `defmt` is `=1.2.0` here and `=1.0.1` there, `cortex-m` `=0.7.10` here and `=0.7.7` there. FerroHAL's are the versions its benches ran on.
+- FerroWasp's UART and SPI adapters, in its `ferrowasp-ferrohal-critical`, marked `TRANSITION:` there. They go when its transports move to FerroHAL's native model. FerroHAL itself holds no transition code.
