@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  FIRMWARE_TARGET: thumbv7em-none-eabihf
+  # The toolchain the benches and checks have been running on.
+  RUST_TOOLCHAIN: 1.98.1
+  # reqtool's main at the time this workflow was written. Bump it on purpose.
+  REQTOOL_REV: b28689a283248d90ff5d595c16395c80f6c4deba
+
+jobs:
+  checks:
+    name: Checks without hardware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ env.FIRMWARE_TARGET }}
+          components: clippy,rustfmt
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            checks/no-panic -> target
+
+      # The crate only: the bench and check packages under hil/ and checks/
+      # are their own workspaces, and are not formatted.
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run every check that needs no hardware, for every chip
+        run: checks/run.sh
+
+  benches:
+    name: Bench crate ${{ matrix.crate }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        crate:
+          - foxeer-f405-v2
+          - lucid-h7
+          - nucleo-f401re-loopback
+          - nucleo-h753zi-loopback
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ env.FIRMWARE_TARGET }}
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.crate }}
+          workspaces: hil/${{ matrix.crate }} -> target
+
+      # From the crate's own directory, so its .cargo/config.toml selects the
+      # target and linker scripts, and its manifest's features the chip. The
+      # release profile is the one the bench scripts flash.
+      - name: Build every bench binary for its chip
+        working-directory: hil/${{ matrix.crate }}
+        run: cargo build --release --locked --bins
+
+  requirements:
+    name: Requirements
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      # Also keeps the installed reqtool, which cargo install then reuses
+      # while its revision is unchanged.
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install reqtool at its pinned revision
+        run: >
+          cargo install --git https://github.com/Eirik2020/reqtool
+          --rev "$REQTOOL_REV" --locked
+
+      - name: Validate requirements and evidence
+        run: reqtool validate
+
+  publication-security:
+    name: Publication security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install checksum-verified Gitleaks
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output /tmp/gitleaks.tar.gz
+          printf '%s  %s\n' \
+            551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb \
+            /tmp/gitleaks.tar.gz | sha256sum --check --strict
+          tar --extract --gzip --file /tmp/gitleaks.tar.gz \
+            --directory /tmp gitleaks
+          /tmp/gitleaks version
+
+      - name: Scan complete reachable Git history
+        run: >
+          /tmp/gitleaks git
+          --no-banner
+          --redact
+          --max-archive-depth 1
+          --log-opts=--all
+          .
