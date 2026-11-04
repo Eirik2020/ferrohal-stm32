@@ -69,3 +69,44 @@ where
         slowest_us
     );
 }
+
+/// Every lane reading its pad's port, on the flight routes: all four finish. Their
+/// outputs are released, so nothing is sent, and they end released again.
+pub fn listen_suite<T1, T2, L1, L2>(report: &mut Report, link: &mut Link, awg: &mut Awg<T1, T2, L1, L2>)
+where
+    T1: ChannelTimer,
+    T2: ChannelTimer,
+    L1: Lanes<T1>,
+    L2: Lanes<T2>,
+{
+    const CAPTURES: usize = 64;
+    link.service();
+    let started = awg.listen(ferrohal_stm32::time::Hertz::mhz(1), CAPTURES).is_ok();
+    let began = link.now();
+    let mut finished = [false; 4];
+    let mut failed = !started;
+    while started && finished.iter().any(|seen| !seen) && link.now().wrapping_sub(began) < 2_000 {
+        for (lane, seen) in finished.iter_mut().enumerate() {
+            if !*seen {
+                if let Some(result) = awg.poll(lane) {
+                    *seen = true;
+                    failed |= result.is_err();
+                }
+            }
+        }
+    }
+    let all = finished.iter().all(|seen| *seen);
+    if !all {
+        awg.abort();
+    }
+    let read = (0..4).filter(|lane| awg.samples(*lane).len() == CAPTURES).count();
+    check!(
+        report,
+        link,
+        all && !failed && read == 4,
+        "motors: all four lanes read their pads over DMA, {} of 4 [AWG-012]",
+        read
+    );
+    let _ = awg.speak();
+    awg.set_outputs(false);
+}

@@ -88,6 +88,7 @@ const OTG_FS_DSTS: *const u32 = 0x5000_0808 as *const u32;
 
 static mut ADC_SAMPLES: [u16; 3] = [0; 3];
 static mut LANES: [[u32; 20]; 4] = [[0; 20]; 4];
+static mut LANE_READS: [[u16; 64]; 4] = [[0; 64]; 4];
 static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
 
@@ -444,21 +445,30 @@ fn main() -> ! {
     // The motor pads get their timers with duty 0 and the counters stopped,
     // and lose them again before anything counts: no frame reaches one. The
     // streams and channels are the flight code's.
-    let channel1 = tim1.channel::<1, _>(a.p8.into_alternate::<1>(&mut a.ctrl));
+    let mut pad1 = a.p8.into_alternate::<1>(&mut a.ctrl);
+    pad1.set_pull(&mut a.ctrl, Pull::Up);
+    let channel1 = tim1.channel::<1, _>(pad1);
     tim1.set_output::<1>(false);
-    let channel3n = tim1.complementary::<3, _>(b.p15.into_alternate::<1>(&mut b.ctrl));
+    let mut pad4 = b.p15.into_alternate::<1>(&mut b.ctrl);
+    pad4.set_pull(&mut b.ctrl, Pull::Up);
+    let channel3n = tim1.complementary::<3, _>(pad4);
     tim1.set_output::<3>(false);
-    let channel3 = tim8.channel::<3, _>(c.p8.into_alternate::<3>(&mut c.ctrl));
+    let mut pad3 = c.p8.into_alternate::<3>(&mut c.ctrl);
+    pad3.set_pull(&mut c.ctrl, Pull::Up);
+    let channel3 = tim8.channel::<3, _>(pad3);
     tim8.set_output::<3>(false);
-    let channel4 = tim8.channel::<4, _>(c.p9.into_alternate::<3>(&mut c.ctrl));
+    let mut pad2 = c.p9.into_alternate::<3>(&mut c.ctrl);
+    pad2.set_pull(&mut c.ctrl, Pull::Up);
+    let channel4 = tim8.channel::<4, _>(pad2);
     tim8.set_output::<4>(false);
-    // SAFETY: `main` runs once, and this is the only reference.
+    // SAFETY: `main` runs once, and these are the only references.
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
+    let [read1, read2, read3, read4] = unsafe { &mut *addr_of_mut!(LANE_READS) };
     let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
-        channel1.into_lane(dma2.s1, &mut one[..]),
-        channel3n.into_lane(dma2.s6, &mut two[..]),
-        channel3.into_lane(dma2.s2, &mut three[..]),
-        channel4.into_lane(dma2.s7, &mut four[..]),
+        channel1.into_two_way_lane::<_, 'A'>(dma2.s1, &mut one[..], &mut read1[..]),
+        channel3n.into_two_way_lane::<_, 'B'>(dma2.s6, &mut two[..], &mut read2[..]),
+        channel3.into_two_way_lane::<_, 'C'>(dma2.s2, &mut three[..], &mut read3[..]),
+        channel4.into_two_way_lane::<_, 'C'>(dma2.s7, &mut four[..], &mut read4[..]),
     ) else {
         reboot_to_dfu()
     };
@@ -498,6 +508,7 @@ fn main() -> ! {
             timer_apart
         );
         motor_lanes::suite(report, link, &mut motors);
+        motor_lanes::listen_suite(report, link, &mut motors);
         let vdda = vdda_mv.unwrap_or(0);
         check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
         check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);

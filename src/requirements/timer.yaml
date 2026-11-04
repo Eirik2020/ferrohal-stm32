@@ -327,3 +327,119 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::timer_v1::awg::tests::each_channel_has_its_own_request_bit
+
+  - id: AWG-008
+    title: A waveform crosses a wire intact
+    statement: >-
+      Samples played on one pin shall be recovered from the far end of a
+      wire, each within one sixteenth of full scale.
+    rationale: >-
+      Reading a pin's own register cannot show the signal left the chip.
+    derived_from: [AWG-001]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-009
+    title: A lane reads on the pin it sends on
+    statement: >-
+      A lane that releases its pin shall read a waveform arriving on it,
+      each sample within one sixteenth of full scale, then send again.
+    rationale: >-
+      A bidirectional protocol answers on the wire it was sent on.
+    derived_from: [AWG-008]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-010
+    title: Samples are recovered from captures
+    statement: >-
+      Recovering samples from captures shall give each sample's active share
+      of its period, for either polarity, with a zero between samples
+      reading as zero.
+    rationale: >-
+      This is how a waveform read back is compared with what was sent.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::samples_come_back_as_sent
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::a_zero_between_samples_reads_as_zero
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::active_low_reads_the_low_part_as_the_pulse
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::other_pins_change_nothing
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::a_line_active_at_the_start_waits_for_its_next_edge
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::a_fraction_of_a_capture_per_sample_stays_in_step
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::nothing_to_read_gives_nothing
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::it_stops_at_the_end_of_out
+
+  - id: AWG-011
+    title: An output turned off sends nothing
+    statement: >-
+      With a lane's output off, a waveform played on it shall not reach its
+      pin.
+    rationale: >-
+      Listening depends on a released pin staying released.
+    derived_from: [AWG-009]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-012
+    title: Flight board routes can read
+    statement: >-
+      Every lane on a flight board's motor routes shall read its pad's port
+      over DMA.
+    rationale: >-
+      Each board reaches its pads by different timers, streams and ports.
+    derived_from: [AWG-009]
+    verification:
+      entries:
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The TBS Lucid H7 board bench

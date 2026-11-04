@@ -29,7 +29,7 @@ pub use pwm::{CompareLane, Error, Pwm, PwmChannel, Sampler, nearest};
 
 #[path = "timer_awg.rs"]
 mod awg;
-pub use awg::{Awg, Lanes};
+pub use awg::{Awg, Lanes, recover};
 
 use crate::{
     chip::Interrupt,

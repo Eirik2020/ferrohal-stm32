@@ -523,6 +523,76 @@ pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
     })
 }
 
+// Run O: the waveform generator out over J3, read at the far end.
+
+/// TIM4 channel 1 on PB6, on DMA1 stream 0, plays into J3. TIM1's update request
+/// on DMA2 stream 5 reads port C, where J3 reaches PC7, left an input.
+pub struct RunO {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub tim4: TIM4,
+    pub pb6: Pin<'B', 6, Alternate<2>>,
+    pub lane: Stream<1, 0>,
+    pub tim1: TIM1,
+    pub sampler: Stream<2, 5>,
+}
+
+pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    // PC7, J3's far end, stays an input; the port only needs its clock.
+    let _c = p.GPIOC.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    Ok(RunO {
+        led,
+        tim4: p.TIM4,
+        pb6: sck(b.p6, &mut b.ctrl),
+        lane: dma1.s0,
+        tim1: p.TIM1,
+        sampler: dma2.s5,
+        rcc,
+    })
+}
+
+// Run P: the waveform generator in over S1, read by a lane on its own pin.
+
+/// TIM1's channel 1, complementary output on PA7, listens on DMA2 stream 1, the
+/// only DMA here that reaches GPIO. TIM3 channel 1 on PA6, on DMA1 stream 4, plays
+/// into the other end of S1. A pull-up holds the line while neither drives it.
+pub struct RunP {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub tim1: TIM1,
+    pub pa7: Pin<'A', 7, Alternate<1>>,
+    pub near_lane: Stream<2, 1>,
+    pub tim3: TIM3,
+    pub pa6: Pin<'A', 6, Alternate<2>>,
+    pub far_lane: Stream<1, 4>,
+}
+
+pub fn run_p(p: Peripherals) -> Result<RunP, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    let mut pa7: Pin<'A', 7, Alternate<1>> = sck(a.p7, &mut a.ctrl);
+    pa7.set_pull(&mut a.ctrl, ferrohal_stm32::gpio::Pull::Up);
+    Ok(RunP {
+        led,
+        tim1: p.TIM1,
+        pa7,
+        near_lane: dma2.s1,
+        tim3: p.TIM3,
+        pa6: sck(a.p6, &mut a.ctrl),
+        far_lane: dma1.s4,
+        rcc,
+    })
+}
+
 // Run J: the independent watchdog, across the reset it causes. No links.
 
 pub struct RunJ {

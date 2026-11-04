@@ -39,11 +39,11 @@ layout must stay as it is.
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n`. Measures each timer against the cycle counter. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p`, with J3 and S1 fitted for O and P. Measures each timer against the cycle counter, and sends waveforms over those wires. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 
-`hil/run-h753.sh i j p`. Measures each timer against the cycle counter. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Pass: every check in every run passes and the script exits zero.
 
 ## Watchdog on the Nucleo-F401RE
 

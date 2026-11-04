@@ -82,6 +82,7 @@ const OTG_FS_DSTS: *const u32 = 0x4008_0808 as *const u32;
 
 static mut ADC_SAMPLES: [u16; 2] = [0; 2];
 static mut LANES: [[u32; 20]; 4] = [[0; 20]; 4];
+static mut LANE_READS: [[u16; 64]; 4] = [[0; 64]; 4];
 /// Blocks in the multi-block check, and the saved, written and read copies.
 const SD_BLOCKS: usize = 16;
 static mut SD_SAVED: [[u8; BLOCK_SIZE]; SD_BLOCKS + 1] = [[0; BLOCK_SIZE]; SD_BLOCKS + 1];
@@ -305,22 +306,31 @@ fn main() -> ! {
     ) else {
         reboot_to_dfu()
     };
-    let channel3 = tim3.channel::<3, _>(b.p0.into_alternate::<2>(&mut b.ctrl));
+    let mut pad1 = b.p0.into_alternate::<2>(&mut b.ctrl);
+    pad1.set_pull(&mut b.ctrl, Pull::Up);
+    let channel3 = tim3.channel::<3, _>(pad1);
     tim3.set_output::<3>(false);
-    let channel4 = tim3.channel::<4, _>(b.p1.into_alternate::<2>(&mut b.ctrl));
+    let mut pad2 = b.p1.into_alternate::<2>(&mut b.ctrl);
+    pad2.set_pull(&mut b.ctrl, Pull::Up);
+    let channel4 = tim3.channel::<4, _>(pad2);
     tim3.set_output::<4>(false);
-    let channel1 = tim5.channel::<1, _>(a.p0.into_alternate::<2>(&mut a.ctrl));
+    let mut pad3 = a.p0.into_alternate::<2>(&mut a.ctrl);
+    pad3.set_pull(&mut a.ctrl, Pull::Up);
+    let channel1 = tim5.channel::<1, _>(pad3);
     tim5.set_output::<1>(false);
-    let channel2 = tim5.channel::<2, _>(a.p1.into_alternate::<2>(&mut a.ctrl));
+    let mut pad4 = a.p1.into_alternate::<2>(&mut a.ctrl);
+    pad4.set_pull(&mut a.ctrl, Pull::Up);
+    let channel2 = tim5.channel::<2, _>(pad4);
     tim5.set_output::<2>(false);
-    // SAFETY: `main` runs once, and this is the only reference.
+    // SAFETY: `main` runs once, and these are the only references.
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
+    let [read1, read2, read3, read4] = unsafe { &mut *addr_of_mut!(LANE_READS) };
     let dma2 = p.DMA2.split(&mut rcc);
     let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
-        channel3.into_lane(dma2.s0, &mut one[..]),
-        channel4.into_lane(dma2.s1, &mut two[..]),
-        channel1.into_lane(dma2.s2, &mut three[..]),
-        channel2.into_lane(dma2.s3, &mut four[..]),
+        channel3.into_two_way_lane::<_, 'B'>(dma2.s0, &mut one[..], &mut read1[..]),
+        channel4.into_two_way_lane::<_, 'B'>(dma2.s1, &mut two[..], &mut read2[..]),
+        channel1.into_two_way_lane::<_, 'A'>(dma2.s2, &mut three[..], &mut read3[..]),
+        channel2.into_two_way_lane::<_, 'A'>(dma2.s3, &mut four[..], &mut read4[..]),
     ) else {
         reboot_to_dfu()
     };
@@ -407,5 +417,6 @@ fn main() -> ! {
         board_adc::suite(report, link, &mut scan, &["voltage PC0", "current PC1"], vdda);
         sd_suite(report, link, &mut sd);
         motor_lanes::suite(report, link, &mut motors);
+        motor_lanes::listen_suite(report, link, &mut motors);
     })
 }

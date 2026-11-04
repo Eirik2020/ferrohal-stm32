@@ -34,6 +34,8 @@ static mut RX: [u8; 256] = [0; 256];
 static mut RX2: [u8; 256] = [0; 256];
 static mut SPI_TX: [u8; 32] = [0; 32];
 static mut LANE: [u32; 20] = [0; 20];
+static mut TWO_WAY: [u32; 8] = [0; 8];
+static mut TWO_WAY_READS: [u16; 8] = [0; 8];
 static mut SAMPLES: [u16; 64] = [0; 64];
 static mut SPI_RX: [u8; 32] = [0; 32];
 
@@ -311,6 +313,43 @@ where
         keep(awg.poll(black_box(0)));
         keep(awg.interrupt(black_box(0)));
         awg.abort();
+        awg.set_active_low(black_box(true));
+        keep(awg.listen(black_box(Hertz::mhz(1)), black_box(4)));
+        keep(awg.samples(black_box(0)).len());
+        keep(awg.speak());
+        let mut out = [0u32; 4];
+        keep(ferrohal_stm32::timer::recover(
+            black_box(&[0u16, 4, 4, 0][..]),
+            black_box(2),
+            black_box(false),
+            black_box(32),
+            black_box(100),
+            &mut out,
+        ));
+    }
+}
+
+/// A lane that reads as well, on channel 1.
+pub fn exercise_two_way<T, P, L, const PORT: char>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: T, pin: P, stream: L)
+where
+    T: ferrohal_stm32::timer::ChannelTimer,
+    P: ferrohal_stm32::timer::ChannelPin<T, 1>,
+    L: ferrohal_stm32::timer::CompareDma<T, 1> + ferrohal_stm32::timer::GpioDma,
+    ferrohal_stm32::gpio::Port<PORT>: ferrohal_stm32::gpio::PortInstance,
+{
+    use ferrohal_stm32::timer::Pwm;
+
+    let Ok(mut pwm) = Pwm::new(rcc, timer, black_box(Hertz::khz(600))) else {
+        return;
+    };
+    let channel = pwm.channel::<1, P>(pin);
+    pwm.set_active_low::<1>(black_box(true));
+    // SAFETY: as TX and RX in `main`.
+    let (buffer, reads) = black_box(unsafe { (&mut *addr_of_mut!(TWO_WAY), &mut *addr_of_mut!(TWO_WAY_READS)) });
+    if let Ok(mut lane) = channel.into_two_way_lane::<L, PORT>(stream, buffer, reads) {
+        keep(lane.listen(black_box(4), black_box(10)));
+        keep(lane.samples().len());
+        lane.abort();
     }
 }
 
@@ -574,6 +613,12 @@ mod chip {
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM3::steal() },
         );
+        super::exercise_two_way::<_, _, _, 'A'>(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            a.p8.into_alternate::<1>(&mut a.ctrl),
+            unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
+        );
         // PA12 is USART6's here, so the constructor is left to the F405,
         // which shares this code; the F4's clock check runs on its own.
         super::keep_usb_clock(&mut rcc);
@@ -715,6 +760,12 @@ mod chip {
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM3::steal() },
+        );
+        super::exercise_two_way::<_, _, _, 'A'>(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            a.p8.into_alternate::<1>(&mut a.ctrl),
+            unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
         );
         super::exercise_usb(
             &mut rcc,
@@ -874,6 +925,12 @@ mod chip {
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM8::steal() },
+        );
+        super::exercise_two_way::<_, _, _, 'A'>(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            a.p8.into_alternate::<1>(&mut a.ctrl),
+            unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
         );
         super::exercise_usb(
             &mut rcc,

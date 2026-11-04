@@ -514,6 +514,40 @@ pub fn run_j(p: Peripherals) -> Result<RunJ, ClockError> {
     })
 }
 
+// Run Q: the waveform generator both ways over one wire, Z2.
+
+/// TIM3 channel 1 on PC6 and TIM8 channel 2 on PC7, the two ends of Z2, each on its
+/// own DMA2 stream, both reading port C. Pull-ups hold the line while neither
+/// drives it.
+pub struct RunQ {
+    pub rcc: Rcc,
+    pub tim3: TIM3,
+    pub pc6: Pin<'C', 6, Alternate<2>>,
+    pub near_lane: Stream<2, 4>,
+    pub tim8: TIM8,
+    pub pc7: Pin<'C', 7, Alternate<3>>,
+    pub far_lane: Stream<2, 5>,
+}
+
+pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut c = p.GPIOC.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let mut pc6: Pin<'C', 6, Alternate<2>> = sck(c.p6, &mut c.ctrl);
+    pc6.set_pull(&mut c.ctrl, ferrohal_stm32::gpio::Pull::Up);
+    let mut pc7: Pin<'C', 7, Alternate<3>> = sck(c.p7, &mut c.ctrl);
+    pc7.set_pull(&mut c.ctrl, ferrohal_stm32::gpio::Pull::Up);
+    Ok(RunQ {
+        tim3: p.TIM3,
+        pc6,
+        near_lane: dma2.s4,
+        tim8: p.TIM8,
+        pc7,
+        far_lane: dma2.s5,
+        rcc,
+    })
+}
+
 // Run K: the independent watchdog, across the reset it causes. No links.
 
 pub struct RunK {

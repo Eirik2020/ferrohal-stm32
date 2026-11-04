@@ -71,6 +71,10 @@ pub enum Error {
     TooLarge,
     /// The stream reported a transfer or direct-mode error; it was stopped.
     Dma,
+    /// A lane built with no input was asked to listen.
+    NoInput,
+    /// The timer can't reach the asked rate.
+    Rate,
 }
 
 /// The prescaler and reload nearest `rate` from `clock`: (PSC + 1,
@@ -228,6 +232,16 @@ impl<T: ChannelTimer> Pwm<T> {
         });
     }
 
+    /// Makes channel `C`'s output active low: duty 0 then holds it high, and a
+    /// pulse pulls it low. Its complementary output too, on a timer with one.
+    pub fn set_active_low<const C: u8>(&mut self, low: bool) {
+        let index = usize::from((C - 1) & 3);
+        self.gp.ccer().modify(|w| w.set_ccp(index, low));
+        if T::BREAK && index < 3 {
+            Self::adv().ccer().modify(|w| w.set_ccnp(index, low));
+        }
+    }
+
     /// Turns channel `C`'s outputs (CHx and CHxN) off or back on. Off, the
     /// pin falls to its inactive level.
     pub fn set_output<const C: u8>(&mut self, on: bool) {
@@ -372,8 +386,40 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
             vector: S::INTERRUPT,
             buffer,
             running: false,
+            input: None,
         })
     }
+
+    /// As [`into_lane`](Self::into_lane), for a lane that can also read its pin:
+    /// port `P` is the one its pin is on, and `samples` takes what it reads. The
+    /// stream has to reach GPIO, which on F4 only DMA2's does.
+    pub fn into_two_way_lane<S, const P: char>(
+        self,
+        stream: S,
+        buffer: &'static mut [u32],
+        samples: &'static mut [u16],
+    ) -> Result<CompareLane<T, C>, crate::uart::ConfigError>
+    where
+        S: CompareDma<T, C> + GpioDma,
+        Port<P>: PortInstance,
+    {
+        crate::chip::check_dma_buffer(u16_bytes(samples))?;
+        let mut lane = self.into_lane(stream, buffer)?;
+        lane.input = Some(LaneInput {
+            port: <Port<P> as PortInstance>::regs().idr().as_ptr() as u32,
+            samples,
+            len: 0,
+        });
+        Ok(lane)
+    }
+}
+
+/// What a two-way lane reads: a port's input register, into memory.
+struct LaneInput {
+    port: u32,
+    samples: &'static mut [u16],
+    /// How many samples the last listen asked for.
+    len: u16,
 }
 
 /// New PSC and ARR, loaded at once through an update event that sets no
@@ -400,6 +446,7 @@ pub struct CompareLane<T, const C: u8> {
     vector: Interrupt,
     buffer: &'static mut [u32],
     running: bool,
+    input: Option<LaneInput>,
 }
 
 impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
@@ -446,6 +493,65 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
         unsafe { self.dma.start(&transfer) }.map_err(|_| Error::Dma)?;
         self.running = true;
         Ok(())
+    }
+
+    /// Turns the stream to read `count` whole port samples into the lane's input,
+    /// one per compare request of the channel, at `duty` in the timer's period.
+    /// Nothing runs until the requests open. The caller releases the pin first.
+    pub fn listen(&mut self, count: usize, duty: u32) -> Result<(), Error> {
+        if self.running {
+            return Err(Error::Busy);
+        }
+        if count == 0 {
+            return Err(Error::Empty);
+        }
+        let Some(input) = self.input.as_mut() else {
+            return Err(Error::NoInput);
+        };
+        if count > input.samples.len() {
+            return Err(Error::TooLarge);
+        }
+        let len = u16::try_from(count).map_err(|_| Error::TooLarge)?;
+        let transfer = Transfer {
+            request: self.request,
+            #[cfg(feature = "dma_v1")]
+            bufferable: false,
+            direction: Direction::PeripheralToMemory,
+            peripheral: input.port,
+            memory: input.samples.as_mut_ptr() as u32,
+            double_buffer: None,
+            len,
+            size: WordSize::HalfWord,
+            memory_increment: true,
+            circular: false,
+            priority: Priority::VeryHigh,
+            fifo: FifoMode::Direct,
+            interrupts: Interrupts {
+                complete: true,
+                error: true,
+                ..Interrupts::default()
+            },
+        };
+        self.channel.set_duty(duty);
+        // SAFETY: the samples are the lane's own for its life and hold `len`
+        // words; the address is a GPIO port's input register, read-only and
+        // without side effects, which this channel's compare request paces.
+        unsafe { self.dma.start(&transfer) }.map_err(|_| Error::Dma)?;
+        input.len = len;
+        self.running = true;
+        Ok(())
+    }
+
+    /// What the last listen read, as whole port samples. Empty on a lane with no
+    /// input, or while it reads.
+    pub fn samples(&self) -> &[u16] {
+        match self.input.as_ref() {
+            Some(input) if !self.running => {
+                fence(Ordering::SeqCst);
+                input.samples.get(..usize::from(input.len)).unwrap_or(&[])
+            }
+            _ => &[],
+        }
     }
 
     /// Serves the stream's interrupt: `Some` once the transfer has ended.

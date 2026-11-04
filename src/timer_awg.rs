@@ -7,6 +7,13 @@
 //! ends at duty 0: the lane appends it, so the output falls and stays low. What
 //! the samples mean is the caller's. A protocol encodes its frames as samples.
 //!
+//! Lanes built two-way read as well. [`Awg::listen`] releases the outputs, runs
+//! the timers at the capture rate and has each lane's stream copy its port's input
+//! register into memory, paced by its own channel's compare request, so a lane can
+//! answer on the pin it sends on. [`Awg::speak`] turns them back. [`recover`] turns
+//! what was read back into samples. Outputs can be active low, for a line that
+//! idles high.
+//!
 //! With two timers, either the first starts the second through its trigger
 //! output, on one edge ([`Awg::linked`]), or both start in software, one after
 //! the other, for timers with no trigger route between them
@@ -17,7 +24,7 @@
 //! second's. The firmware binds each lane's stream vector, or polls, and calls
 //! [`Awg::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
 //!
-//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007
+//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, AWG-012
 
 use super::pwm::{CompareLane, Error, Pwm};
 use super::{ChannelTimer, ConfigError, TriggeredBy};
@@ -39,6 +46,14 @@ pub trait Lanes<T: ChannelTimer> {
     fn vector(&self, index: usize) -> Option<Interrupt>;
     /// Turns every lane's output on or off.
     fn set_outputs(pwm: &mut Pwm<T>, on: bool);
+    /// Makes every lane's output active low, or active high.
+    fn set_active_low(pwm: &mut Pwm<T>, low: bool);
+    /// Turns every lane's stream to read; see [`CompareLane::listen`].
+    fn listen(&mut self, count: usize, duty: u32) -> Result<(), Error>;
+    /// What lane `index` last read.
+    fn samples(&self, index: usize) -> &[u16];
+    /// Sets every lane's duty to 0, its inactive level.
+    fn park(&mut self);
 }
 
 impl<T: ChannelTimer> Lanes<T> for () {
@@ -57,6 +72,14 @@ impl<T: ChannelTimer> Lanes<T> for () {
         None
     }
     fn set_outputs(_pwm: &mut Pwm<T>, _on: bool) {}
+    fn set_active_low(_pwm: &mut Pwm<T>, _low: bool) {}
+    fn listen(&mut self, _count: usize, _duty: u32) -> Result<(), Error> {
+        Ok(())
+    }
+    fn samples(&self, _index: usize) -> &[u16] {
+        &[]
+    }
+    fn park(&mut self) {}
 }
 
 macro_rules! lanes {
@@ -93,6 +116,22 @@ macro_rules! lanes {
             fn set_outputs(pwm: &mut Pwm<T>, on: bool) {
                 $(pwm.set_output::<$C>(on);)+
             }
+            fn set_active_low(pwm: &mut Pwm<T>, low: bool) {
+                $(pwm.set_active_low::<$C>(low);)+
+            }
+            fn listen(&mut self, count: usize, duty: u32) -> Result<(), Error> {
+                $(self.$index.listen(count, duty)?;)+
+                Ok(())
+            }
+            fn samples(&self, index: usize) -> &[u16] {
+                match index {
+                    $($index => self.$index.samples(),)+
+                    _ => &[],
+                }
+            }
+            fn park(&mut self) {
+                $(self.$index.channel().set_duty(0);)+
+            }
         }
     };
 }
@@ -119,6 +158,9 @@ struct Playing {
     active: u8,
     /// The timers are running.
     started: bool,
+    /// Turned to read: the outputs are released and the timers at the capture
+    /// rate, until `speak`.
+    listening: bool,
 }
 
 /// How a two-timer generator starts its second timer.
@@ -140,11 +182,14 @@ pub struct Awg<A: ChannelTimer, B: ChannelTimer, LA, LB> {
     second_lanes: LB,
     start: Start,
     state: Playing,
+    /// The sample rate to go back to after listening.
+    sample_rate: Hertz,
 }
 
 impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
     /// A generator on one timer.
     pub fn single(first: Pwm<A>, lanes: LA) -> Self {
+        let rate = first.frequency();
         Self {
             first,
             second: None,
@@ -152,6 +197,7 @@ impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
             second_lanes: (),
             start: Start::Single,
             state: Playing::default(),
+            sample_rate: rate,
         }
     }
 }
@@ -174,6 +220,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
         first.lead();
         second.follow(&first);
+        let rate = first.frequency();
         Ok(Self {
             first,
             second: Some(second),
@@ -181,6 +228,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             second_lanes,
             start: Start::Linked,
             state: Playing::default(),
+            sample_rate: rate,
         })
     }
 
@@ -197,6 +245,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         if first.period() != second.period() {
             return Err(ConfigError::PeriodMismatch);
         }
+        let rate = first.frequency();
         Ok(Self {
             first,
             second: Some(second),
@@ -204,6 +253,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             second_lanes,
             start: Start::Independent,
             state: Playing::default(),
+            sample_rate: rate,
         })
     }
 
@@ -231,6 +281,15 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
     }
 
+    /// Makes every lane's output active low, or active high. Active low, a line
+    /// idles high: duty 0 holds it high, and a sample's pulse pulls it low.
+    pub fn set_active_low(&mut self, low: bool) {
+        LA::set_active_low(&mut self.first, low);
+        if let Some(second) = self.second.as_mut() {
+            LB::set_active_low(second, low);
+        }
+    }
+
     /// Whether a waveform is loaded or playing.
     pub const fn is_busy(&self) -> bool {
         self.state.active != 0
@@ -239,7 +298,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// Loads `samples` on `lane`, for the next [`play`](Self::play). The lane's
     /// first sample is its duty from the first period on.
     pub fn load(&mut self, lane: usize, samples: &[u32]) -> Result<(), Error> {
-        if self.state.started {
+        if self.state.started || self.state.listening {
             return Err(Error::Busy);
         }
         let bit = match u32::try_from(lane) {
@@ -258,12 +317,18 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// Plays every loaded lane, from one start. Refused while one plays, or with
     /// nothing loaded.
     pub fn play(&mut self) -> Result<(), Error> {
-        if self.state.started {
+        if self.state.started || self.state.listening {
             return Err(Error::Busy);
         }
         if self.state.active == 0 {
             return Err(Error::Empty);
         }
+        self.begin();
+        Ok(())
+    }
+
+    /// Opens the active lanes' requests and starts the timers, all from one start.
+    fn begin(&mut self) {
         let (first, second) = self.masks();
         self.first.stage(first);
         if let Some(timer) = self.second.as_mut() {
@@ -276,6 +341,74 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         {
             timer.start();
         }
+    }
+
+    /// Releases every output and reads every lane's port `count` times at `rate`,
+    /// or as near as the clock allows, which it returns. Every lane has to be
+    /// two-way. Refused while a waveform is loaded or plays. Serve it through
+    /// [`on_interrupt`](Self::on_interrupt), read it through
+    /// [`samples`](Self::samples), and [`speak`](Self::speak) to send again.
+    pub fn listen(&mut self, rate: Hertz, count: usize) -> Result<Hertz, Error> {
+        if self.state.started || self.state.active != 0 || self.state.listening {
+            return Err(Error::Busy);
+        }
+        self.sample_rate = self.first.frequency();
+        self.set_outputs(false);
+        self.state.listening = true;
+        let got = match self.retime(rate) {
+            Ok(got) => got,
+            Err(error) => {
+                self.abort();
+                return Err(error);
+            }
+        };
+        // A compare event once a period, wherever in the period it falls.
+        let first = self.first_lanes.listen(count, self.first.period() / 2);
+        let second_duty = self.second.as_ref().map_or(0, |timer| timer.period() / 2);
+        let listening = first.and_then(|()| self.second_lanes.listen(count, second_duty));
+        if let Err(error) = listening {
+            self.abort();
+            return Err(error);
+        }
+        let all = self.lanes();
+        let mut lane = 0;
+        while lane < all {
+            self.state.active |= 1 << (lane & 7);
+            lane += 1;
+        }
+        self.begin();
+        Ok(got)
+    }
+
+    fn retime(&mut self, rate: Hertz) -> Result<Hertz, Error> {
+        let got = self.first.set_frequency(rate).map_err(|_| Error::Rate)?;
+        if let Some(second) = self.second.as_mut() {
+            second.set_frequency(rate).map_err(|_| Error::Rate)?;
+        }
+        Ok(got)
+    }
+
+    /// What `lane` last read, as whole port samples; see [`recover`].
+    pub fn samples(&self, lane: usize) -> &[u16] {
+        if lane < LA::COUNT {
+            self.first_lanes.samples(lane)
+        } else {
+            self.second_lanes.samples(lane.wrapping_sub(LA::COUNT))
+        }
+    }
+
+    /// Turns back from listening: the sample rate again, every output on at its
+    /// inactive level. Refused while still reading.
+    pub fn speak(&mut self) -> Result<(), Error> {
+        if self.state.started {
+            return Err(Error::Busy);
+        }
+        self.state.listening = false;
+        let rate = self.sample_rate;
+        self.first_lanes.park();
+        self.second_lanes.park();
+        self.retime(rate)?;
+        self.set_outputs(true);
         Ok(())
     }
 
@@ -327,6 +460,11 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         self.second_lanes.abort_all();
         self.halt();
         self.state.active = 0;
+        if self.state.listening {
+            self.state.listening = false;
+            let rate = self.sample_rate;
+            let _ = self.retime(rate);
+        }
     }
 
     fn halt(&mut self) {
@@ -349,9 +487,61 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     }
 }
 
+/// Recovers samples from what a lane or sampler read: bit `pin` of each of
+/// `captured`, taken `captures_per_sample16` / 16 times per sample of the waveform,
+/// with `full_scale` a sample's full scale. Fills `out` and returns how many
+/// samples it found, up to the last with any pulse.
+///
+/// Time runs from the first active edge, so a waveform has to start with a pulse.
+/// Each sample is how much of its period was active, and a sample of 0 between
+/// others reads as 0. Accuracy is one capture in each period.
+pub fn recover(
+    captured: &[u16],
+    pin: u8,
+    active_low: bool,
+    captures_per_sample16: u32,
+    full_scale: u32,
+    out: &mut [u32],
+) -> usize {
+    let Some(mask) = 1u16.checked_shl(u32::from(pin)) else {
+        return 0;
+    };
+    if captures_per_sample16 == 0 {
+        return 0;
+    }
+    let active = |sample: &u16| (sample & mask != 0) != active_low;
+    // The line may already be active as the capture starts: skip to an inactive
+    // capture, then to the first active one, so time starts on an edge.
+    let quiet = captured
+        .iter()
+        .position(|sample| !active(sample))
+        .unwrap_or(captured.len());
+    let rest = captured.get(quiet..).unwrap_or(&[]);
+    let Some(rise) = rest.iter().position(active) else {
+        return 0;
+    };
+    let waveform = rest.get(rise..).unwrap_or(&[]);
+    let per_sample = u64::from(captures_per_sample16);
+    let mut found = 0;
+    for (index, slot) in out.iter_mut().enumerate() {
+        let begin = ((index as u64) * per_sample / 16) as usize;
+        let end = ((index as u64 + 1) * per_sample / 16) as usize;
+        let Some(window) = waveform.get(begin..end) else {
+            break;
+        };
+        let high = window.iter().filter(|sample| active(sample)).count() as u64;
+        let duty = (high * 16 * u64::from(full_scale) + per_sample / 2) / per_sample;
+        *slot = u32::try_from(duty).unwrap_or(u32::MAX);
+        if high != 0 {
+            found = index + 1;
+        }
+    }
+    found
+}
+
 #[cfg(test)]
 mod tests {
-    use super::channel_bit;
+    use super::{channel_bit, recover};
 
     #[test]
     fn each_channel_has_its_own_request_bit() {
@@ -360,5 +550,96 @@ mod tests {
         assert_eq!(channel_bit(2), 0b0010);
         assert_eq!(channel_bit(3), 0b0100);
         assert_eq!(channel_bit(4), 0b1000);
+    }
+
+    /// `captured` for a waveform of `duties` out of 8 on bit 2, 8 captures a sample.
+    fn captures(duties: &[u8], active_high: bool) -> ([u16; 96], usize) {
+        let mut captured = [0u16; 96];
+        let (on, off) = if active_high {
+            (0b0100, 0)
+        } else {
+            (0, 0b0100)
+        };
+        captured.fill(off);
+        let mut at = 4;
+        for duty in duties {
+            for capture in 0..8 {
+                captured[at] = if capture < *duty { on } else { off };
+                at += 1;
+            }
+        }
+        (captured, at)
+    }
+
+    #[test]
+    fn samples_come_back_as_sent() {
+        let (captured, _) = captures(&[4, 2, 6, 7], true);
+        let mut out = [0; 8];
+        assert_eq!(recover(&captured, 2, false, 8 * 16, 800, &mut out), 4);
+        assert_eq!(out[..4], [400, 200, 600, 700]);
+    }
+
+    #[test]
+    fn a_zero_between_samples_reads_as_zero() {
+        let (captured, _) = captures(&[4, 0, 6], true);
+        let mut out = [9; 8];
+        assert_eq!(recover(&captured, 2, false, 8 * 16, 800, &mut out), 3);
+        assert_eq!(out[..3], [400, 0, 600]);
+    }
+
+    #[test]
+    fn active_low_reads_the_low_part_as_the_pulse() {
+        let (captured, _) = captures(&[4, 2, 6], false);
+        let mut out = [0; 8];
+        assert_eq!(recover(&captured, 2, true, 8 * 16, 800, &mut out), 3);
+        assert_eq!(out[..3], [400, 200, 600]);
+    }
+
+    #[test]
+    fn other_pins_change_nothing() {
+        let (mut captured, _) = captures(&[4, 2], true);
+        for (index, sample) in captured.iter_mut().enumerate() {
+            *sample |= if index % 2 == 0 { 0b1011 } else { 0 };
+        }
+        let mut out = [0; 8];
+        assert_eq!(recover(&captured, 2, false, 8 * 16, 800, &mut out), 2);
+        assert_eq!(out[..2], [400, 200]);
+    }
+
+    #[test]
+    fn a_line_active_at_the_start_waits_for_its_next_edge() {
+        let mut captured = [0u16; 32];
+        captured[..3].fill(0b0100);
+        captured[8..12].fill(0b0100);
+        let mut out = [0; 4];
+        assert_eq!(recover(&captured, 2, false, 8 * 16, 800, &mut out), 1);
+        assert_eq!(out[0], 400);
+    }
+
+    #[test]
+    fn a_fraction_of_a_capture_per_sample_stays_in_step() {
+        // 2.5 captures a sample: windows of 2, 3, 2, 3 captures.
+        let captured = [0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0];
+        let mut out = [0; 4];
+        assert_eq!(recover(&captured, 2, false, 40, 100, &mut out), 4);
+        assert_eq!(out, [80, 120, 80, 120]);
+    }
+
+    #[test]
+    fn nothing_to_read_gives_nothing() {
+        let mut out = [0; 4];
+        assert_eq!(recover(&[0; 16], 2, false, 8 * 16, 800, &mut out), 0);
+        assert_eq!(recover(&[], 2, false, 8 * 16, 800, &mut out), 0);
+        let (captured, _) = captures(&[4], true);
+        assert_eq!(recover(&captured, 16, false, 8 * 16, 800, &mut out), 0);
+        assert_eq!(recover(&captured, 2, false, 0, 800, &mut out), 0);
+    }
+
+    #[test]
+    fn it_stops_at_the_end_of_out() {
+        let (captured, _) = captures(&[4, 2, 6, 7], true);
+        let mut out = [0; 2];
+        assert_eq!(recover(&captured, 2, false, 8 * 16, 800, &mut out), 2);
+        assert_eq!(out, [400, 200]);
     }
 }

@@ -315,6 +315,202 @@ pub fn awg_check<T: ChannelTimer, const A: u8, const B: u8>(
         });
 }
 
+/// The waveform the loopback checks send: duties in sixteenths of full scale, with
+/// a 0 in the middle. It has to start with a pulse, since time runs from there.
+const WAVE: [u32; 8] = [8, 4, 12, 0, 14, 2, 10, 6];
+/// A different one, for the other direction on one wire.
+const REPLY: [u32; 8] = [4, 12, 2, 14, 0, 10, 6, 8];
+/// How fast a loopback check reads, and how many captures it takes: the waveform
+/// and a few samples' worth either side.
+const CAPTURE_RATE: Hertz = Hertz::mhz(6);
+const CAPTURES: usize = 800;
+
+fn scaled(wave: &[u32; 8], period: u32) -> [u32; 8] {
+    core::array::from_fn(|i| period * wave[i] / 16)
+}
+
+/// Compares what was read with what was sent, each sample within a sixteenth of
+/// full scale.
+fn recovered(
+    captured: &[u16],
+    pin: u8,
+    active_low: bool,
+    capture_rate: Hertz,
+    sample_rate: Hertz,
+    period: u32,
+    sent: &[u32; 8],
+) -> Result<(), Fail> {
+    let per_sample16 = (u64::from(capture_rate.0) * 16 / u64::from(sample_rate.0)) as u32;
+    let mut out = [0; 8];
+    let found = ferrohal_stm32::timer::recover(captured, pin, active_low, per_sample16, period, &mut out);
+    if found != sent.len() {
+        return Err(Fail::Count {
+            expected: sent.len() as u32,
+            got: found as u32,
+        });
+    }
+    for (index, (got, want)) in out.iter().zip(sent).enumerate() {
+        if got.abs_diff(*want) > period / 16 {
+            defmt::info!("sample {}: sent {}, read {}, of {}", index, want, got, period);
+            return Err(Fail::Count {
+                expected: *want,
+                got: *got,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Plays `wave` on one lane of `awg`, waiting for it to end.
+fn play_one<T: ChannelTimer, const C: u8>(
+    awg: &mut Awg<T, T, (CompareLane<T, C>,), ()>,
+    samples: &[u32; 8],
+    budget: u32,
+) -> Result<(), Fail> {
+    let failed = Fail::Count { expected: 1, got: 0 };
+    if awg.load(0, samples).is_err() || awg.play().is_err() {
+        awg.abort();
+        return Err(failed);
+    }
+    if matches!(wait(budget, || awg.poll(0)), Some(Ok(()))) {
+        Ok(())
+    } else {
+        awg.abort();
+        Err(failed)
+    }
+}
+
+/// Out over a wire: `awg`'s lane plays, and `sampler` reads the far end of the
+/// wire, on bit `far_pin` of its port.
+pub fn awg_wire_out_check<T: ChannelTimer, const C: u8>(
+    report: &mut Report,
+    name: &str,
+    awg: &mut Awg<T, T, (CompareLane<T, C>,), ()>,
+    sampler: &mut Sampler,
+    far_pin: u8,
+    cpu: Hertz,
+) {
+    let sent = scaled(&WAVE, awg.period());
+    let budget = cpu.0 / 100;
+    let result = (|| {
+        sampler.start(CAPTURES).map_err(|_| Fail::Count {
+            expected: CAPTURES as u32,
+            got: 0,
+        })?;
+        play_one(awg, &sent, budget)?;
+        if !matches!(wait(budget, || sampler.poll()), Some(Ok(_))) {
+            sampler.stop();
+            return Err(Fail::Count {
+                expected: CAPTURES as u32,
+                got: 0,
+            });
+        }
+        recovered(sampler.samples(), far_pin, false, sampler.rate(), awg.sample_rate(), awg.period(), &sent)
+    })();
+    report.check(name, "AWG out over the wire: samples read back at the far end [AWG-008]", result);
+}
+
+/// In over a wire: `far` plays active low, and `near` listens on its own lane's
+/// pin, at bit `near_pin` of its port.
+pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8>(
+    report: &mut Report,
+    name: &str,
+    near: &mut Awg<N, N, (CompareLane<N, NC>,), ()>,
+    near_pin: u8,
+    far: &mut Awg<F, F, (CompareLane<F, FC>,), ()>,
+    cpu: Hertz,
+) {
+    near.set_active_low(true);
+    far.set_active_low(true);
+    let sent = scaled(&REPLY, far.period());
+    let budget = cpu.0 / 100;
+    let result = (|| {
+        let rate = near.listen(CAPTURE_RATE, CAPTURES).map_err(|_| Fail::Count {
+            expected: CAPTURES as u32,
+            got: 0,
+        })?;
+        play_one(far, &sent, budget)?;
+        if !matches!(wait(budget, || near.poll(0)), Some(Ok(()))) {
+            near.abort();
+            return Err(Fail::Count {
+                expected: CAPTURES as u32,
+                got: 0,
+            });
+        }
+        recovered(near.samples(0), near_pin, true, rate, far.sample_rate(), far.period(), &sent)
+    })();
+    report.check(name, "AWG in over the wire: a lane reads the samples on its own pin [AWG-009]", result);
+    report.check(
+        name,
+        "AWG: a lane turns back to sending after listening [AWG-009]",
+        near.speak().map_err(|_| Fail::Count { expected: 1, got: 0 }),
+    );
+}
+
+/// One wire, both ways, both ends two-way and active low, as a bidirectional
+/// protocol runs: `near` sends and `far` listens, then they swap. And with `near`'s
+/// output off, nothing crosses.
+pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8>(
+    report: &mut Report,
+    name: &str,
+    near: &mut Awg<N, N, (CompareLane<N, NC>,), ()>,
+    near_pin: u8,
+    far: &mut Awg<F, F, (CompareLane<F, FC>,), ()>,
+    far_pin: u8,
+    cpu: Hertz,
+) {
+    near.set_active_low(true);
+    far.set_active_low(true);
+    let budget = cpu.0 / 100;
+    let short = |expected: usize| Fail::Count { expected: expected as u32, got: 0 };
+
+    let sent = scaled(&WAVE, near.period());
+    let result = (|| {
+        let rate = far.listen(CAPTURE_RATE, CAPTURES).map_err(|_| short(CAPTURES))?;
+        play_one(near, &sent, budget)?;
+        if !matches!(wait(budget, || far.poll(0)), Some(Ok(()))) {
+            far.abort();
+            return Err(short(CAPTURES));
+        }
+        recovered(far.samples(0), far_pin, true, rate, near.sample_rate(), near.period(), &sent)
+    })();
+    report.check(name, "AWG out over the wire: the far lane reads the samples [AWG-008 AWG-009]", result);
+    let spoke = far.speak().map_err(|_| short(1));
+
+    let answer = scaled(&REPLY, far.period());
+    let result = spoke.and_then(|()| {
+        let rate = near.listen(CAPTURE_RATE, CAPTURES).map_err(|_| short(CAPTURES))?;
+        play_one(far, &answer, budget)?;
+        if !matches!(wait(budget, || near.poll(0)), Some(Ok(()))) {
+            near.abort();
+            return Err(short(CAPTURES));
+        }
+        recovered(near.samples(0), near_pin, true, rate, far.sample_rate(), far.period(), &answer)
+    });
+    report.check(name, "AWG in over the wire: the near lane reads the reply on its own pin [AWG-009]", result);
+    let spoke = near.speak().map_err(|_| short(1));
+
+    // With the sender's output off, the far end reads only the pull-up.
+    near.set_outputs(false);
+    let result = spoke.and_then(|()| {
+        far.listen(CAPTURE_RATE, CAPTURES).map_err(|_| short(CAPTURES))?;
+        play_one(near, &sent, budget)?;
+        if !matches!(wait(budget, || far.poll(0)), Some(Ok(()))) {
+            far.abort();
+            return Err(short(CAPTURES));
+        }
+        let pulled_low = far.samples(0).iter().filter(|sample| *sample & (1 << far_pin) == 0).count();
+        if pulled_low == 0 {
+            Ok(())
+        } else {
+            Err(Fail::Count { expected: 0, got: pulled_low as u32 })
+        }
+    });
+    report.check(name, "AWG: with the output off, nothing crosses the wire [AWG-011]", result);
+    near.set_outputs(true);
+    let _ = far.speak();
+}
+
 /// A running PWM output's duty, read from `samples` of its pin: high for
 /// `sixteenths`/16 of the time, to within 1/16.
 pub fn duty_check(
