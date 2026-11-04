@@ -175,7 +175,9 @@ pub struct UartInterrupts {
 impl UartInterrupts {
     /// Every vector, in order: line, receive, transmit.
     pub fn iter(&self) -> impl Iterator<Item = crate::chip::Interrupt> {
-        [Some(self.line), Some(self.rx_dma), self.tx_dma].into_iter().flatten()
+        [Some(self.line), Some(self.rx_dma), self.tx_dma]
+            .into_iter()
+            .flatten()
     }
 
     /// Checks the NVIC, reading only: every vector enabled, all at one

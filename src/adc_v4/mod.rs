@@ -170,7 +170,10 @@ impl Unit {
                 0..=3 => self.regs.sqr1().modify(|w| w.set_sq(position, channel)),
                 4..=8 => self.regs.sqr2().modify(|w| w.set_sq(position - 4, channel)),
                 9..=13 => self.regs.sqr3().modify(|w| w.set_sq(position - 9, channel)),
-                14..=15 => self.regs.sqr4().modify(|w| w.set_sq(position - 14, channel)),
+                14..=15 => self
+                    .regs
+                    .sqr4()
+                    .modify(|w| w.set_sq(position - 14, channel)),
                 _ => {}
             }
             if channel < 20 {

@@ -47,8 +47,8 @@ compile_error!("enable only one chip feature");
 
 pub mod adc;
 pub mod reset;
-pub mod signature;
 pub mod resource;
+pub mod signature;
 pub mod spi;
 pub mod time;
 pub mod uart;
@@ -81,6 +81,10 @@ pub mod timer_v1;
 pub mod timer_v3;
 
 // The stream DMA: one source, two IP versions (see the module).
+#[cfg(feature = "adc_v2")]
+pub mod adc_v2;
+#[cfg(feature = "adc_v4")]
+pub mod adc_v4;
 #[cfg(feature = "dma_v1")]
 #[path = "dma_stream.rs"]
 pub mod dma_v1;
@@ -93,10 +97,6 @@ pub mod gpio_v2;
 pub mod rcc_f4;
 #[cfg(feature = "rcc_h7rm0433")]
 pub mod rcc_h7rm0433;
-#[cfg(feature = "adc_v2")]
-pub mod adc_v2;
-#[cfg(feature = "adc_v4")]
-pub mod adc_v4;
 #[cfg(feature = "sdmmc_v2")]
 pub mod sdmmc_v2;
 #[cfg(feature = "spi_v2")]
@@ -108,6 +108,10 @@ pub mod usart_v2;
 #[cfg(feature = "usart_v4")]
 pub mod usart_v4;
 
+#[cfg(feature = "adc_v2")]
+use adc_v2 as adc_ip;
+#[cfg(feature = "adc_v4")]
+use adc_v4 as adc_ip;
 #[cfg(feature = "dma_v1")]
 pub use dma_v1 as dma;
 #[cfg(feature = "dma_v2")]
@@ -118,24 +122,20 @@ pub use exti_h7 as exti;
 pub use exti_v1 as exti;
 #[cfg(feature = "gpio_v2")]
 pub use gpio_v2 as gpio;
+#[cfg(feature = "iwdg_v1")]
+pub use iwdg_v1 as iwdg;
+#[cfg(feature = "iwdg_v2")]
+pub use iwdg_v2 as iwdg;
 #[cfg(feature = "rcc_f4")]
 pub use rcc_f4 as rcc;
 #[cfg(feature = "rcc_h7rm0433")]
 pub use rcc_h7rm0433 as rcc;
-#[cfg(feature = "adc_v2")]
-use adc_v2 as adc_ip;
-#[cfg(feature = "adc_v4")]
-use adc_v4 as adc_ip;
 #[cfg(feature = "sdmmc_v2")]
 pub use sdmmc_v2 as sdmmc;
 #[cfg(feature = "spi_v2")]
 use spi_v2 as spi_ip;
 #[cfg(feature = "spi_v4")]
 use spi_v4 as spi_ip;
-#[cfg(feature = "iwdg_v1")]
-pub use iwdg_v1 as iwdg;
-#[cfg(feature = "iwdg_v2")]
-pub use iwdg_v2 as iwdg;
 #[cfg(feature = "timer_v1")]
 pub use timer_v1 as timer;
 #[cfg(feature = "timer_v3")]

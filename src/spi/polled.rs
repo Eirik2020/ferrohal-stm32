@@ -55,7 +55,9 @@ impl BlockingSpi {
     {
         let info = U::info();
         let clocks = rcc.clocks();
-        let kernel_clock = U::KERNEL.frequency(&clocks).ok_or(ConfigError::KernelClock)?;
+        let kernel_clock = U::KERNEL
+            .frequency(&clocks)
+            .ok_or(ConfigError::KernelClock)?;
         let code = config.divider(kernel_clock)?;
         rcc.enable(info.enable());
         rcc.reset(info.enable());
@@ -98,7 +100,12 @@ impl BlockingSpi {
 
     /// One transfer of `len` bytes, at most `CHUNK`: `out(i)` gives byte `i`
     /// to send, `into(i, byte)` takes byte `i` received.
-    fn exchange(&mut self, len: usize, out: impl Fn(usize) -> u8, mut into: impl FnMut(usize, u8)) -> Result<(), Error> {
+    fn exchange(
+        &mut self,
+        len: usize,
+        out: impl Fn(usize) -> u8,
+        mut into: impl FnMut(usize, u8),
+    ) -> Result<(), Error> {
         let Ok(count) = u16::try_from(len) else {
             return Err(Error::TooLarge);
         };
@@ -107,7 +114,10 @@ impl BlockingSpi {
         }
         let unit = self.info.unit();
         let bits = u32::from(count).saturating_mul(8);
-        let cycles = bits.saturating_mul(self.sck_cycles).saturating_mul(2).saturating_add(MARGIN_CYCLES);
+        let cycles = bits
+            .saturating_mul(self.sck_cycles)
+            .saturating_mul(2)
+            .saturating_add(MARGIN_CYCLES);
         let mut deadline = Deadline::new(self.clock, cycles, 1);
         unit.start_polled(count);
         for i in 0..len {
@@ -145,7 +155,9 @@ impl BlockingSpi {
     }
 
     fn fail(&mut self, error: Error) -> Result<(), Error> {
-        self.info.unit().reset_state(self.sck_cycles.saturating_mul(32));
+        self.info
+            .unit()
+            .reset_state(self.sck_cycles.saturating_mul(32));
         Err(error)
     }
 }
@@ -158,11 +170,15 @@ impl embedded_hal::spi::ErrorType for BlockingSpi {
 impl embedded_hal::spi::SpiBus<u8> for BlockingSpi {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Error> {
         for part in words.chunks_mut(CHUNK) {
-            self.exchange(part.len(), |_| 0, |i, byte| {
-                if let Some(slot) = part.get_mut(i) {
-                    *slot = byte;
-                }
-            })?;
+            self.exchange(
+                part.len(),
+                |_| 0,
+                |i, byte| {
+                    if let Some(slot) = part.get_mut(i) {
+                        *slot = byte;
+                    }
+                },
+            )?;
         }
         Ok(())
     }
@@ -181,11 +197,15 @@ impl embedded_hal::spi::SpiBus<u8> for BlockingSpi {
             let len = CHUNK.min(total - at);
             let out = write.get(at..).unwrap_or(&[]);
             let into = read.get_mut(at..).unwrap_or(&mut []);
-            self.exchange(len, |i| out.get(i).copied().unwrap_or(0), |i, byte| {
-                if let Some(slot) = into.get_mut(i) {
-                    *slot = byte;
-                }
-            })?;
+            self.exchange(
+                len,
+                |i| out.get(i).copied().unwrap_or(0),
+                |i, byte| {
+                    if let Some(slot) = into.get_mut(i) {
+                        *slot = byte;
+                    }
+                },
+            )?;
             at += len;
         }
         Ok(())
@@ -196,11 +216,15 @@ impl embedded_hal::spi::SpiBus<u8> for BlockingSpi {
             // Byte `i` goes out before byte `i` comes back, so each slot is
             // read before it is written.
             let cells = core::cell::Cell::from_mut(part).as_slice_of_cells();
-            self.exchange(cells.len(), |i| cells.get(i).map_or(0, core::cell::Cell::get), |i, byte| {
-                if let Some(cell) = cells.get(i) {
-                    cell.set(byte);
-                }
-            })?;
+            self.exchange(
+                cells.len(),
+                |i| cells.get(i).map_or(0, core::cell::Cell::get),
+                |i, byte| {
+                    if let Some(cell) = cells.get(i) {
+                        cell.set(byte);
+                    }
+                },
+            )?;
         }
         Ok(())
     }
@@ -222,8 +246,23 @@ where
     /// with their alternate functions. No streams, no vectors.
     pub const RESOURCES: [Resource; 4] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin { signal: Signal::Sck, port: Sck::PORT, pin: Sck::PIN, af: Sck::AF },
-        Resource::Pin { signal: Signal::Miso, port: Miso::PORT, pin: Miso::PIN, af: Miso::AF },
-        Resource::Pin { signal: Signal::Mosi, port: Mosi::PORT, pin: Mosi::PIN, af: Mosi::AF },
+        Resource::Pin {
+            signal: Signal::Sck,
+            port: Sck::PORT,
+            pin: Sck::PIN,
+            af: Sck::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Miso,
+            port: Miso::PORT,
+            pin: Miso::PIN,
+            af: Miso::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Mosi,
+            port: Mosi::PORT,
+            pin: Mosi::PIN,
+            af: Mosi::AF,
+        },
     ];
 }

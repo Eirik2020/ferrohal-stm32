@@ -284,13 +284,34 @@ mod tests {
     #[test]
     fn divider_picks_the_fastest_sck_at_or_below() {
         let kernel = Hertz::mhz(84);
-        assert_eq!(Config::new(Hertz::mhz(42)).check(kernel), Ok(Hertz::mhz(42)));
-        assert_eq!(Config::new(Hertz::mhz(30)).check(kernel), Ok(Hertz::mhz(21)));
-        assert_eq!(Config::new(Hertz::mhz(100)).check(kernel), Ok(Hertz::mhz(42)));
-        assert_eq!(Config::new(Hertz::khz(400)).check(kernel), Ok(Hertz(328_125)));
-        assert_eq!(Config::new(Hertz::khz(300)).check(kernel), Err(ConfigError::Frequency));
-        assert_eq!(Config::new(Hertz(0)).check(kernel), Err(ConfigError::Frequency));
+        assert_eq!(
+            Config::new(Hertz::mhz(42)).check(kernel),
+            Ok(Hertz::mhz(42))
+        );
+        assert_eq!(
+            Config::new(Hertz::mhz(30)).check(kernel),
+            Ok(Hertz::mhz(21))
+        );
+        assert_eq!(
+            Config::new(Hertz::mhz(100)).check(kernel),
+            Ok(Hertz::mhz(42))
+        );
+        assert_eq!(
+            Config::new(Hertz::khz(400)).check(kernel),
+            Ok(Hertz(328_125))
+        );
+        assert_eq!(
+            Config::new(Hertz::khz(300)).check(kernel),
+            Err(ConfigError::Frequency)
+        );
+        assert_eq!(
+            Config::new(Hertz(0)).check(kernel),
+            Err(ConfigError::Frequency)
+        );
         // The Lucid's IMU: at most 24 MHz from PLL1Q at 100 MHz.
-        assert_eq!(Config::new(Hertz::mhz(24)).check(Hertz::mhz(100)), Ok(Hertz(12_500_000)));
+        assert_eq!(
+            Config::new(Hertz::mhz(24)).check(Hertz::mhz(100)),
+            Ok(Hertz(12_500_000))
+        );
     }
 }

@@ -182,13 +182,27 @@ macro_rules! timer_pins {
 }
 
 macro_rules! timer_pin {
-    (CH1, $tim:ident, $pin:ty) => { impl crate::timer::ChannelPin<$tim, 1> for $pin {} };
-    (CH2, $tim:ident, $pin:ty) => { impl crate::timer::ChannelPin<$tim, 2> for $pin {} };
-    (CH3, $tim:ident, $pin:ty) => { impl crate::timer::ChannelPin<$tim, 3> for $pin {} };
-    (CH4, $tim:ident, $pin:ty) => { impl crate::timer::ChannelPin<$tim, 4> for $pin {} };
-    (CH1N, $tim:ident, $pin:ty) => { impl crate::timer::ComplementaryPin<$tim, 1> for $pin {} };
-    (CH2N, $tim:ident, $pin:ty) => { impl crate::timer::ComplementaryPin<$tim, 2> for $pin {} };
-    (CH3N, $tim:ident, $pin:ty) => { impl crate::timer::ComplementaryPin<$tim, 3> for $pin {} };
+    (CH1, $tim:ident, $pin:ty) => {
+        impl crate::timer::ChannelPin<$tim, 1> for $pin {}
+    };
+    (CH2, $tim:ident, $pin:ty) => {
+        impl crate::timer::ChannelPin<$tim, 2> for $pin {}
+    };
+    (CH3, $tim:ident, $pin:ty) => {
+        impl crate::timer::ChannelPin<$tim, 3> for $pin {}
+    };
+    (CH4, $tim:ident, $pin:ty) => {
+        impl crate::timer::ChannelPin<$tim, 4> for $pin {}
+    };
+    (CH1N, $tim:ident, $pin:ty) => {
+        impl crate::timer::ComplementaryPin<$tim, 1> for $pin {}
+    };
+    (CH2N, $tim:ident, $pin:ty) => {
+        impl crate::timer::ComplementaryPin<$tim, 2> for $pin {}
+    };
+    (CH3N, $tim:ident, $pin:ty) => {
+        impl crate::timer::ComplementaryPin<$tim, 3> for $pin {}
+    };
 }
 
 /// Timer DMA rows. Fixed routing (F4): `TIM CHx: (controller, stream,
@@ -231,10 +245,18 @@ macro_rules! timer_dma_impl {
 }
 
 macro_rules! timer_channel {
-    (CH1) => { 1 };
-    (CH2) => { 2 };
-    (CH3) => { 3 };
-    (CH4) => { 4 };
+    (CH1) => {
+        1
+    };
+    (CH2) => {
+        2
+    };
+    (CH3) => {
+        3
+    };
+    (CH4) => {
+        4
+    };
 }
 
 /// The DMA streams whose peripheral port reaches GPIO: `controller: [streams];`.

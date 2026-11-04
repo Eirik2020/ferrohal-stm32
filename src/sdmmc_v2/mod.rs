@@ -427,7 +427,9 @@ impl Sdmmc {
     /// transfers keeps them the eight bus clocks apart ES0392 2.8.4 asks for.
     fn start_data(&self, blocks: usize, to_host: bool) -> Result<(), Error> {
         self.wait_idle()?;
-        self.regs.dtimer().write(|w| w.set_datatime(DATA_TIMEOUT_CLOCKS));
+        self.regs
+            .dtimer()
+            .write(|w| w.set_datatime(DATA_TIMEOUT_CLOCKS));
         self.regs
             .dlenr()
             .write(|w| w.set_datalength((blocks * BLOCK_SIZE) as u32));
@@ -467,7 +469,10 @@ impl Sdmmc {
     }
 
     /// Waits for `ready` on the status register, or a data error.
-    fn wait_fifo(&self, ready: impl Fn(stm32_metapac::sdmmc::regs::Star) -> bool) -> Result<(), Error> {
+    fn wait_fifo(
+        &self,
+        ready: impl Fn(stm32_metapac::sdmmc::regs::Star) -> bool,
+    ) -> Result<(), Error> {
         for _ in 0..DATA_SPINS {
             if let Some(error) = self.data_error() {
                 return Err(error);
@@ -535,7 +540,11 @@ impl Sdmmc {
         let many = blocks.len() > 1;
         self.r1(CMD_SET_BLOCKLEN, BLOCK_SIZE as u32)?;
         self.start_data(blocks.len(), true)?;
-        let index = if many { CMD_READ_MULTIPLE } else { CMD_READ_SINGLE };
+        let index = if many {
+            CMD_READ_MULTIPLE
+        } else {
+            CMD_READ_SINGLE
+        };
         let started = self.r1(index, lba);
         let data = started.and_then(|_| self.receive(blocks));
         let stopped = if many {
@@ -556,7 +565,11 @@ impl Sdmmc {
         let many = blocks.len() > 1;
         self.r1(CMD_SET_BLOCKLEN, BLOCK_SIZE as u32)?;
         self.start_data(blocks.len(), false)?;
-        let index = if many { CMD_WRITE_MULTIPLE } else { CMD_WRITE_SINGLE };
+        let index = if many {
+            CMD_WRITE_MULTIPLE
+        } else {
+            CMD_WRITE_SINGLE
+        };
         let started = self.r1(index, lba);
         let data = started.and_then(|_| self.send(blocks));
         let stopped = if many {

@@ -41,7 +41,7 @@ use ferrohal_stm32::{
     sdmmc::{self, BLOCK_SIZE, Sdmmc},
     spi::{self, Buffers, Spi, Wiring},
     time::Hertz,
-    timer::{Pwm, Timebase},
+    timer::{Awg, Pwm, Timebase},
     usb::UsbFs,
 };
 
@@ -316,12 +316,15 @@ fn main() -> ! {
     // SAFETY: `main` runs once, and this is the only reference.
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
     let dma2 = p.DMA2.split(&mut rcc);
-    let (Ok(mut lane1), Ok(mut lane2), Ok(mut lane3), Ok(mut lane4)) = (
+    let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
         channel3.into_lane(dma2.s0, &mut one[..]),
         channel4.into_lane(dma2.s1, &mut two[..]),
         channel1.into_lane(dma2.s2, &mut three[..]),
         channel2.into_lane(dma2.s3, &mut four[..]),
     ) else {
+        reboot_to_dfu()
+    };
+    let Ok(mut motors) = Awg::independent(tim3, tim5, (lane1, lane2), (lane3, lane4)) else {
         reboot_to_dfu()
     };
 
@@ -403,17 +406,6 @@ fn main() -> ! {
         check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);
         board_adc::suite(report, link, &mut scan, &["voltage PC0", "current PC1"], vdda);
         sd_suite(report, link, &mut sd);
-        motor_lanes::suite(
-            report,
-            link,
-            &mut tim3,
-            &mut tim5,
-            (&mut lane1, &mut lane2, &mut lane3, &mut lane4),
-            (0b1100, 0b0011),
-            |tim3, tim5| {
-                tim3.start();
-                tim5.start();
-            },
-        );
+        motor_lanes::suite(report, link, &mut motors);
     })
 }

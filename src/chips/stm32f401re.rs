@@ -17,9 +17,9 @@ use crate::{
     dma_v2::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     rcc_f4::{Bus, Limits, RCC, RccBit},
+    spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
     uart::ConfigError,
-    spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     usart_v2::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
 };
 
@@ -58,9 +58,36 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
 };
 
 tokens!(
-    USART1, USART2, USART6, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10, TIM11, SPI1, SPI2, SPI3,
-    I2C1, I2C2, I2C3, ADC1, ADC1_COMMON, SDIO, SYSCFG, EXTI, PWR, CRC, RTC, IWDG, WWDG,
-    USB_OTG_FS, DBGMCU, UID,
+    USART1,
+    USART2,
+    USART6,
+    TIM1,
+    TIM2,
+    TIM3,
+    TIM4,
+    TIM5,
+    TIM9,
+    TIM10,
+    TIM11,
+    SPI1,
+    SPI2,
+    SPI3,
+    I2C1,
+    I2C2,
+    I2C3,
+    ADC1,
+    ADC1_COMMON,
+    SDIO,
+    SYSCFG,
+    EXTI,
+    PWR,
+    CRC,
+    RTC,
+    IWDG,
+    WWDG,
+    USB_OTG_FS,
+    DBGMCU,
+    UID,
 );
 
 peripherals!(
@@ -396,10 +423,30 @@ mod tests {
             Usart1Bench::RESOURCES,
             [
                 Resource::Peripheral("USART1"),
-                Resource::Pin { signal: Signal::Tx, port: 'A', pin: 9, af: 7 },
-                Resource::Pin { signal: Signal::Rx, port: 'A', pin: 10, af: 7 },
-                Resource::Dma { signal: Signal::Tx, controller: 2, stream: 7, request: 4 },
-                Resource::Dma { signal: Signal::Rx, controller: 2, stream: 2, request: 4 },
+                Resource::Pin {
+                    signal: Signal::Tx,
+                    port: 'A',
+                    pin: 9,
+                    af: 7
+                },
+                Resource::Pin {
+                    signal: Signal::Rx,
+                    port: 'A',
+                    pin: 10,
+                    af: 7
+                },
+                Resource::Dma {
+                    signal: Signal::Tx,
+                    controller: 2,
+                    stream: 7,
+                    request: 4
+                },
+                Resource::Dma {
+                    signal: Signal::Rx,
+                    controller: 2,
+                    stream: 2,
+                    request: 4
+                },
                 Resource::Interrupt("USART1"),
                 Resource::Interrupt("DMA2_STREAM2"),
                 Resource::Interrupt("DMA2_STREAM7"),
@@ -407,7 +454,12 @@ mod tests {
         );
         assert_eq!(
             RxWiring::<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>::RESOURCES[2],
-            Resource::Dma { signal: Signal::Rx, controller: 2, stream: 1, request: 5 }
+            Resource::Dma {
+                signal: Signal::Rx,
+                controller: 2,
+                stream: 1,
+                request: 5
+            }
         );
     }
 }

@@ -21,9 +21,9 @@ use crate::{
     dma_v2::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     rcc_f4::{Bus, Limits, RCC, RccBit},
+    spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
     uart::ConfigError,
-    spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     usart_v2::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
 };
 
@@ -64,10 +64,52 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
 };
 
 tokens!(
-    USART1, USART2, USART3, UART4, UART5, USART6, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7, TIM8,
-    TIM9, TIM10, TIM11, TIM12, TIM13, TIM14, SPI1, SPI2, SPI3, I2C1, I2C2, I2C3, ADC1, ADC2, ADC3,
-    ADC123_COMMON, CAN1, CAN2, DAC1, RNG, SDIO, SYSCFG, EXTI, PWR, CRC, RTC, IWDG, WWDG,
-    USB_OTG_FS, USB_OTG_HS, DBGMCU, UID,
+    USART1,
+    USART2,
+    USART3,
+    UART4,
+    UART5,
+    USART6,
+    TIM1,
+    TIM2,
+    TIM3,
+    TIM4,
+    TIM5,
+    TIM6,
+    TIM7,
+    TIM8,
+    TIM9,
+    TIM10,
+    TIM11,
+    TIM12,
+    TIM13,
+    TIM14,
+    SPI1,
+    SPI2,
+    SPI3,
+    I2C1,
+    I2C2,
+    I2C3,
+    ADC1,
+    ADC2,
+    ADC3,
+    ADC123_COMMON,
+    CAN1,
+    CAN2,
+    DAC1,
+    RNG,
+    SDIO,
+    SYSCFG,
+    EXTI,
+    PWR,
+    CRC,
+    RTC,
+    IWDG,
+    WWDG,
+    USB_OTG_FS,
+    USB_OTG_HS,
+    DBGMCU,
+    UID,
 );
 
 peripherals!(
@@ -484,12 +526,32 @@ mod tests {
             Usart2Foxeer::RESOURCES,
             [
                 Resource::Peripheral("USART2"),
-                Resource::Pin { signal: Signal::Tx, port: 'A', pin: 2, af: 7 },
-                Resource::Pin { signal: Signal::Rx, port: 'A', pin: 3, af: 7 },
+                Resource::Pin {
+                    signal: Signal::Tx,
+                    port: 'A',
+                    pin: 2,
+                    af: 7
+                },
+                Resource::Pin {
+                    signal: Signal::Rx,
+                    port: 'A',
+                    pin: 3,
+                    af: 7
+                },
                 // The manifest names these DMA1_STREAM6_CH4 and
                 // DMA1_STREAM5_CH4.
-                Resource::Dma { signal: Signal::Tx, controller: 1, stream: 6, request: 4 },
-                Resource::Dma { signal: Signal::Rx, controller: 1, stream: 5, request: 4 },
+                Resource::Dma {
+                    signal: Signal::Tx,
+                    controller: 1,
+                    stream: 6,
+                    request: 4
+                },
+                Resource::Dma {
+                    signal: Signal::Rx,
+                    controller: 1,
+                    stream: 5,
+                    request: 4
+                },
                 Resource::Interrupt("USART2"),
                 Resource::Interrupt("DMA1_STREAM5"),
                 Resource::Interrupt("DMA1_STREAM6"),
@@ -517,7 +579,8 @@ mod tests {
         fn lane<T: ChannelTimer, const C: u8, P: ChannelPin<T, C>, D: CompareDma<T, C>>() -> u8 {
             D::REQUEST
         }
-        fn lane_n<T: ChannelTimer, const C: u8, P: ComplementaryPin<T, C>, D: CompareDma<T, C>>() -> u8 {
+        fn lane_n<T: ChannelTimer, const C: u8, P: ComplementaryPin<T, C>, D: CompareDma<T, C>>()
+        -> u8 {
             D::REQUEST
         }
 
@@ -549,12 +612,37 @@ mod tests {
             Spi1Foxeer::RESOURCES,
             [
                 Resource::Peripheral("SPI1"),
-                Resource::Pin { signal: Signal::Sck, port: 'A', pin: 5, af: 5 },
-                Resource::Pin { signal: Signal::Miso, port: 'A', pin: 6, af: 5 },
-                Resource::Pin { signal: Signal::Mosi, port: 'A', pin: 7, af: 5 },
+                Resource::Pin {
+                    signal: Signal::Sck,
+                    port: 'A',
+                    pin: 5,
+                    af: 5
+                },
+                Resource::Pin {
+                    signal: Signal::Miso,
+                    port: 'A',
+                    pin: 6,
+                    af: 5
+                },
+                Resource::Pin {
+                    signal: Signal::Mosi,
+                    port: 'A',
+                    pin: 7,
+                    af: 5
+                },
                 // DMA2_STREAM3_CH3 and DMA2_STREAM0_CH3 in the manifest.
-                Resource::Dma { signal: Signal::Tx, controller: 2, stream: 3, request: 3 },
-                Resource::Dma { signal: Signal::Rx, controller: 2, stream: 0, request: 3 },
+                Resource::Dma {
+                    signal: Signal::Tx,
+                    controller: 2,
+                    stream: 3,
+                    request: 3
+                },
+                Resource::Dma {
+                    signal: Signal::Rx,
+                    controller: 2,
+                    stream: 0,
+                    request: 3
+                },
                 Resource::Interrupt("DMA2_STREAM0"),
             ]
         );
@@ -580,8 +668,14 @@ mod tests {
         let half = uart::Config::new(115_200).with_stop_bits(StopBits::Half);
         let one_and_half = half.with_stop_bits(StopBits::OneAndHalf);
         let two = half.with_stop_bits(StopBits::Two);
-        assert_eq!(Uart::check::<UART4>(&clocks, &half), Err(ConfigError::Unsupported));
-        assert_eq!(Uart::check::<UART5>(&clocks, &one_and_half), Err(ConfigError::Unsupported));
+        assert_eq!(
+            Uart::check::<UART4>(&clocks, &half),
+            Err(ConfigError::Unsupported)
+        );
+        assert_eq!(
+            Uart::check::<UART5>(&clocks, &one_and_half),
+            Err(ConfigError::Unsupported)
+        );
         assert_eq!(Uart::check::<UART4>(&clocks, &two), Ok(()));
         assert_eq!(Uart::check::<USART3>(&clocks, &half), Ok(()));
     }
@@ -589,12 +683,14 @@ mod tests {
     #[test]
     fn foxeer_clocks_validate() {
         use crate::rcc_f4::{
-            AhbPrescaler, ApbPrescaler, Config, Hse, HseMode, Pll, PllP, PllSource, Supply,
-            Sysclk,
+            AhbPrescaler, ApbPrescaler, Config, Hse, HseMode, Pll, PllP, PllSource, Supply, Sysclk,
         };
         // 8 MHz crystal to 168 MHz, with 48 MHz on PLLQ for USB.
         let config = Config {
-            hse: Some(Hse { freq: Hertz::mhz(8), mode: HseMode::Oscillator }),
+            hse: Some(Hse {
+                freq: Hertz::mhz(8),
+                mode: HseMode::Oscillator,
+            }),
             pll: Some(Pll {
                 source: PllSource::Hse,
                 prediv: 8,
@@ -610,12 +706,21 @@ mod tests {
         };
         let clocks = config.validate().unwrap();
         assert_eq!(clocks.sysclk, Hertz::mhz(168));
-        assert_eq!((clocks.pclk1, clocks.pclk2), (Hertz::mhz(42), Hertz::mhz(84)));
-        assert_eq!((clocks.timclk1, clocks.timclk2), (Hertz::mhz(84), Hertz::mhz(168)));
+        assert_eq!(
+            (clocks.pclk1, clocks.pclk2),
+            (Hertz::mhz(42), Hertz::mhz(84))
+        );
+        assert_eq!(
+            (clocks.timclk1, clocks.timclk2),
+            (Hertz::mhz(84), Hertz::mhz(168))
+        );
         assert_eq!(clocks.pll_q, Some(Hertz::mhz(48)));
         assert_eq!(clocks.flash_wait_states, 5);
         // APB1 at 84 MHz is over its limit.
-        let fast_apb1 = Config { apb1_pre: ApbPrescaler::Div2, ..config };
+        let fast_apb1 = Config {
+            apb1_pre: ApbPrescaler::Div2,
+            ..config
+        };
         assert!(fast_apb1.validate().is_err());
     }
 }

@@ -197,8 +197,12 @@ where
     /// Masks the line, deselects its edges and gives the line back.
     pub fn release(self, _ctrl: &mut Ctrl) -> Line<N> {
         set_mask(N, false);
-        EXTI_REGS.rtsr(0).modify(|w| w.set_line(usize::from(N & 15), false));
-        EXTI_REGS.ftsr(0).modify(|w| w.set_line(usize::from(N & 15), false));
+        EXTI_REGS
+            .rtsr(0)
+            .modify(|w| w.set_line(usize::from(N & 15), false));
+        EXTI_REGS
+            .ftsr(0)
+            .modify(|w| w.set_line(usize::from(N & 15), false));
         self.clear();
         Line { _private: () }
     }

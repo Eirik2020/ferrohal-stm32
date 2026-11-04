@@ -195,3 +195,135 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::timer_v1::pwm::tests::nearest_rounds_and_reports
+
+  - id: AWG-001
+    title: Each lane plays its own samples
+    statement: >-
+      Each lane of a waveform generator shall play its own samples in order,
+      one for each timer period.
+    rationale: >-
+      A protocol or a signal is whatever its samples say, so the samples
+      must reach the pin as given.
+    derived_from: [PWM-002]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-002
+    title: One start plays every loaded lane
+    statement: >-
+      One start shall play every loaded lane, and leave a lane with nothing
+      loaded low.
+    rationale: >-
+      Outputs that belong together must begin together, and an unused one
+      must stay quiet.
+    derived_from: [PWM-005]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-003
+    title: A waveform ends low
+    statement: >-
+      A waveform shall end with its output low until the next one.
+    rationale: >-
+      A line left high after a waveform would read as signal.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-004
+    title: The generator refuses what it cannot do
+    statement: >-
+      The generator shall refuse a lane it does not have, a load or play
+      while playing, and a play with nothing loaded.
+    rationale: >-
+      Overlapping a running waveform would corrupt it, so it cannot be left
+      to the caller.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+
+  - id: AWG-007
+    title: An abort leaves the generator ready
+    statement: >-
+      An abort shall stop every lane at duty 0 and leave the generator ready
+      to load again.
+    rationale: >-
+      A fault must not leave an output driven, or the generator stuck.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-005
+    title: Two timers play together
+    statement: >-
+      A generator on two timers shall finish every lane's waveform, started
+      by trigger or in software.
+    rationale: >-
+      Boards spread their outputs over timers, and not every pair has a
+      trigger route.
+    derived_from: [AWG-002]
+    verification:
+      entries:
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The TBS Lucid H7 board bench
+
+  - id: AWG-006
+    title: Each channel opens its own request
+    statement: >-
+      Each lane shall open only its own channel's compare request.
+    rationale: >-
+      A request opened with no waveform behind it would disturb its channel.
+    derived_from: [AWG-002]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::timer_v1::awg::tests::each_channel_has_its_own_request_bit

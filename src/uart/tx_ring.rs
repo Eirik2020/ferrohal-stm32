@@ -138,7 +138,11 @@ mod tests {
     #[test]
     fn an_empty_ring_takes_a_frame_at_its_start() {
         assert_eq!(place(40, None, CAP, 10), Some(0));
-        assert_eq!(place(0, None, CAP, CAP), Some(0), "a frame may fill the ring");
+        assert_eq!(
+            place(0, None, CAP, CAP),
+            Some(0),
+            "a frame may fill the ring"
+        );
     }
 
     #[test]
@@ -173,12 +177,25 @@ mod tests {
 
     #[test]
     fn largest_agrees_with_place() {
-        for (write, oldest) in [(0, None), (20, Some(0)), (60, Some(30)), (10, Some(30)), (64, Some(1))] {
+        for (write, oldest) in [
+            (0, None),
+            (20, Some(0)),
+            (60, Some(30)),
+            (10, Some(30)),
+            (64, Some(1)),
+        ] {
             let most = largest(write, oldest, CAP);
             if most > 0 {
-                assert!(place(write, oldest, CAP, most).is_some(), "{write} {oldest:?}: {most} fits");
+                assert!(
+                    place(write, oldest, CAP, most).is_some(),
+                    "{write} {oldest:?}: {most} fits"
+                );
             }
-            assert!(place(write, oldest, CAP, most + 1).is_none(), "{write} {oldest:?}: {} does not", most + 1);
+            assert!(
+                place(write, oldest, CAP, most + 1).is_none(),
+                "{write} {oldest:?}: {} does not",
+                most + 1
+            );
         }
     }
 
@@ -187,12 +204,21 @@ mod tests {
         let queue = FrameQueue::new();
         assert_eq!(queue.peek(), None);
         for i in 0..FRAMES as u16 {
-            assert!(queue.push(Frame { offset: i * 8, len: 8 }));
+            assert!(queue.push(Frame {
+                offset: i * 8,
+                len: 8
+            }));
         }
         assert!(!queue.push(Frame { offset: 0, len: 1 }));
         assert_eq!(queue.len(), FRAMES);
         for i in 0..FRAMES as u16 {
-            assert_eq!(queue.peek(), Some(Frame { offset: i * 8, len: 8 }));
+            assert_eq!(
+                queue.peek(),
+                Some(Frame {
+                    offset: i * 8,
+                    len: 8
+                })
+            );
             queue.pop();
         }
         assert_eq!(queue.len(), 0);
@@ -203,7 +229,10 @@ mod tests {
     #[test]
     fn queue_keeps_offset_and_length() {
         let queue = FrameQueue::new();
-        let frame = Frame { offset: 0xfffe, len: 0xabcd };
+        let frame = Frame {
+            offset: 0xfffe,
+            len: 0xabcd,
+        };
         assert!(queue.push(frame));
         assert_eq!(queue.peek(), Some(frame));
         queue.clear();

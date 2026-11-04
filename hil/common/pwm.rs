@@ -12,7 +12,7 @@
 use cortex_m::peripheral::DWT;
 use ferrohal_stm32::{
     time::Hertz,
-    timer::{ChannelTimer, CompareLane, Pwm, Sampler},
+    timer::{Awg, ChannelTimer, CompareLane, Pwm, Sampler},
 };
 
 use crate::tests::{Fail, Report};
@@ -202,6 +202,117 @@ pub fn lane_pair_check<T: ChannelTimer, const A: u8, const B: u8>(
         "second lane: its 16 bits, one period apart [PWM-002]",
         decode(sampler.samples(), pins.1, patterns.1, per_bit16),
     );
+}
+
+/// The waveform generator on two lanes of one timer, read back by `sampler`:
+/// each lane's own samples, a ramp, one lane alone, and what it refuses.
+pub fn awg_check<T: ChannelTimer, const A: u8, const B: u8>(
+    report: &mut Report,
+    name: &str,
+    awg: &mut Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>,
+    pins: (u8, u8),
+    sampler: &mut Sampler,
+    cpu: Hertz,
+) {
+    let period = awg.period();
+    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(awg.sample_rate().0)) as u32;
+    let count = (per_bit16 as usize * (BITS + 8)) / 16;
+    let patterns = (0x3c96u16, 0xe14du16);
+    let budget = cpu.0 / 100;
+
+    // Plays what's loaded, sampling it; `Err` if anything didn't finish.
+    let play = |awg: &mut Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>,
+                    sampler: &mut Sampler,
+                    lanes: u8|
+     -> Result<(), Fail> {
+        let unfinished = Fail::Count {
+            expected: u32::from(lanes.count_ones()),
+            got: 0,
+        };
+        sampler.start(count).map_err(|_| Fail::Count {
+            expected: count as u32,
+            got: 0,
+        })?;
+        if awg.play().is_err() {
+            sampler.stop();
+            awg.abort();
+            return Err(unfinished);
+        }
+        for lane in 0..2 {
+            if lanes & (1 << lane) != 0 && !matches!(wait(budget, || awg.poll(lane)), Some(Ok(()))) {
+                sampler.stop();
+                awg.abort();
+                return Err(unfinished);
+            }
+        }
+        match wait(budget, || sampler.poll()) {
+            Some(Ok(_)) => Ok(()),
+            _ => Err(unfinished),
+        }
+    };
+
+    // Each lane its own waveform, from one start.
+    let loaded = awg.load(0, &duties(patterns.0, period)).is_ok()
+        && awg.load(1, &duties(patterns.1, period)).is_ok();
+    let played = if loaded {
+        play(awg, sampler, 0b11)
+    } else {
+        Err(Fail::Count { expected: 2, got: 0 })
+    };
+    report.check(name, "AWG: each lane plays its own samples [AWG-001 AWG-002]", played.and_then(|()| {
+        decode(sampler.samples(), pins.0, patterns.0, per_bit16)?;
+        decode(sampler.samples(), pins.1, patterns.1, per_bit16)
+    }));
+
+    // Samples hold their duty for one period each: a ramp reads back rising.
+    let ramp: [u32; 7] = core::array::from_fn(|i| period * (2 + 2 * i as u32) / 16);
+    let played = match awg.load(0, &ramp) {
+        Ok(()) => play(awg, sampler, 0b01),
+        Err(_) => Err(Fail::Count { expected: 1, got: 0 }),
+    };
+    report.check(name, "AWG: a ramp reads back in order, and ends low [AWG-001 AWG-003]", played.and_then(|()| {
+        let mut found = [(0, 0); 32];
+        let pulses = pulses(sampler.samples(), pins.0, &mut found);
+        if pulses != ramp.len() {
+            return Err(Fail::Count { expected: ramp.len() as u32, got: pulses as u32 });
+        }
+        let rising = found[..pulses].windows(2).all(|pair| pair[1].1 >= pair[0].1);
+        let wider = found[pulses - 1].1 > found[0].1;
+        let low = sampler.samples().last().is_some_and(|sample| sample & (1 << pins.0) == 0);
+        if rising && wider && low {
+            Ok(())
+        } else {
+            Err(Fail::Count { expected: 1, got: 0 })
+        }
+    }));
+
+    // One lane alone leaves the other low.
+    let played = match awg.load(1, &duties(patterns.1, period)) {
+        Ok(()) => play(awg, sampler, 0b10),
+        Err(_) => Err(Fail::Count { expected: 1, got: 0 }),
+    };
+    report.check(name, "AWG: an unloaded lane stays low [AWG-002]", played.and_then(|()| {
+        let high = sampler.samples().iter().filter(|s| *s & (1 << pins.0) != 0).count();
+        if high != 0 {
+            return Err(Fail::Count { expected: 0, got: high as u32 });
+        }
+        decode(sampler.samples(), pins.1, patterns.1, per_bit16)
+    }));
+
+    // Refusals, and a clean run after an abort.
+    let nothing = awg.play().is_err();
+    let past_end = awg.load(2, &[1, 2]).is_err();
+    let _ = awg.load(0, &duties(patterns.0, period));
+    let started = awg.play().is_ok();
+    let while_playing = awg.load(1, &[1, 2]).is_err() && awg.play().is_err();
+    awg.abort();
+    let idle = !awg.is_busy();
+    report.check(name, "AWG: refuses what it can't do, and an abort leaves it ready [AWG-004 AWG-007]",
+        if nothing && past_end && started && while_playing && idle {
+            Ok(())
+        } else {
+            Err(Fail::Count { expected: 5, got: u32::from(nothing) + u32::from(past_end) + u32::from(started) + u32::from(while_playing) + u32::from(idle) })
+        });
 }
 
 /// A running PWM output's duty, read from `samples` of its pin: high for

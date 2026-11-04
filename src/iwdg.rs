@@ -106,7 +106,9 @@ impl Watchdog {
 
     /// Reloads the counter: the next reset is a full timeout away.
     pub fn feed(&self) {
-        crate::chip::iwdg_regs().kr().write(|w| w.set_key(Key::RESET));
+        crate::chip::iwdg_regs()
+            .kr()
+            .write(|w| w.set_key(Key::RESET));
     }
 
     /// The timeout asked for, nominal.

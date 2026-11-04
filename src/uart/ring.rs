@@ -229,7 +229,10 @@ mod tests {
         for i in 0..MARKS as u32 {
             assert!(queue.push(mark(i, MarkKind::Idle)));
         }
-        assert!(!queue.push(mark(99, MarkKind::Framing)), "full queue takes no more");
+        assert!(
+            !queue.push(mark(99, MarkKind::Framing)),
+            "full queue takes no more"
+        );
         for i in 0..MARKS as u32 {
             assert_eq!(queue.peek(), Some(mark(i, MarkKind::Idle)));
             queue.pop();
@@ -262,12 +265,30 @@ mod tests {
     #[test]
     fn plan_takes_up_to_the_mark() {
         let m = mark(25, MarkKind::Idle);
-        assert_eq!(plan(0, 30, 64, Some(m), 1), Take::ToMark { len: 25, kind: MarkKind::Idle });
+        assert_eq!(
+            plan(0, 30, 64, Some(m), 1),
+            Take::ToMark {
+                len: 25,
+                kind: MarkKind::Idle
+            }
+        );
         // An error mark ends the chunk the same way.
         let e = mark(5, MarkKind::Framing);
-        assert_eq!(plan(0, 30, 64, Some(e), 1), Take::ToMark { len: 5, kind: MarkKind::Framing });
+        assert_eq!(
+            plan(0, 30, 64, Some(e), 1),
+            Take::ToMark {
+                len: 5,
+                kind: MarkKind::Framing
+            }
+        );
         // An empty chunk: the mark sits at the read position.
-        assert_eq!(plan(25, 30, 64, Some(m), 1), Take::ToMark { len: 0, kind: MarkKind::Idle });
+        assert_eq!(
+            plan(25, 30, 64, Some(m), 1),
+            Take::ToMark {
+                len: 0,
+                kind: MarkKind::Idle
+            }
+        );
     }
 
     #[test]
@@ -280,7 +301,11 @@ mod tests {
 
     #[test]
     fn plan_drops_stale_and_passed_marks() {
-        let stale = Mark { at: 10, kind: MarkKind::Idle, epoch: 0 };
+        let stale = Mark {
+            at: 10,
+            kind: MarkKind::Idle,
+            epoch: 0,
+        };
         assert_eq!(plan(0, 30, 64, Some(stale), 1), Take::Drop);
         // Behind the read position (after a resync).
         let behind = mark(5, MarkKind::Idle);
@@ -302,7 +327,10 @@ mod tests {
         let m = mark(read.wrapping_add(20), MarkKind::Idle);
         assert_eq!(
             plan(read, read.wrapping_add(30), 64, Some(m), 1),
-            Take::ToMark { len: 20, kind: MarkKind::Idle }
+            Take::ToMark {
+                len: 20,
+                kind: MarkKind::Idle
+            }
         );
     }
 }

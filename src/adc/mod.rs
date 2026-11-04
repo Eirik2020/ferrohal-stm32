@@ -204,7 +204,8 @@ impl<A: Instance> Adc<A> {
         let mut dma = stream.into_channel();
         dma.stop(STOP_SPINS).map_err(|_| Error::Dma)?;
         dma.clear_flags(Flags::ALL);
-        self.unit.set_sequence(numbers.get(..channels.len()).unwrap_or(&[]));
+        self.unit
+            .set_sequence(numbers.get(..channels.len()).unwrap_or(&[]));
         Ok(AdcScan {
             adc: self,
             dma,

@@ -69,8 +69,8 @@ pub fn bootloader_requested() -> bool {
     // SAFETY: inside REQUEST, volatile. Read as integers: after a power-on
     // the words hold whatever RAM held, which two matching words rule out.
     unsafe {
-        let requested = words.read_volatile() == REQUESTED
-            && words.add(1).read_volatile() == !REQUESTED;
+        let requested =
+            words.read_volatile() == REQUESTED && words.add(1).read_volatile() == !REQUESTED;
         words.write_volatile(0);
         words.add(1).write_volatile(0);
         requested

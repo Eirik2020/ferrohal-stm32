@@ -36,7 +36,7 @@ use ferrohal_stm32::{
     iwdg::Watchdog,
     spi::{self, BlockingSpi, BlockingWiring, Buffers, Spi, Wiring},
     time::Hertz,
-    timer::{Pwm, Timebase},
+    timer::{Awg, Pwm, Timebase},
     usb::UsbFs,
 };
 
@@ -92,19 +92,18 @@ static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
 
 /// TIM1 starting TIM8 from its trigger, as the flight code starts them. Their
-/// outputs are off, so nothing reaches a motor pin.
-fn motor_timer_suite<M, S>(report: &mut Report, link: &mut Link, master: &mut Pwm<M>, slave: &mut Pwm<S>)
+/// outputs are off, so nothing reaches a motor pin. Whether TIM8 waited, how many
+/// starts it missed, and how many counts apart they ran at worst.
+fn measure_motor_timers<M, S>(master: &mut Pwm<M>, slave: &mut Pwm<S>) -> (bool, u32, u32)
 where
     M: ferrohal_stm32::timer::ChannelTimer,
     S: ferrohal_stm32::timer::TriggeredBy<M>,
 {
     master.lead();
     slave.follow(master);
-    // Not at any one value: an earlier report leaves it where it stopped.
     let before = slave.counter();
-    link.settle(100);
+    cortex_m::asm::delay(CLOCKS.cpu.0 / 10);
     let still = !slave.is_running() && slave.counter() == before;
-    check!(report, link, still, "timers: TIM8 waits for TIM1");
     let mut worst = 0;
     let mut stopped = 0;
     for _ in 0..100 {
@@ -117,18 +116,11 @@ where
         stopped += u32::from(!slave.is_running());
         let apart = lead.abs_diff(follower);
         worst = worst.max(apart.min(master.period().saturating_sub(apart)));
-        link.settle(10);
+        cortex_m::asm::delay(CLOCKS.cpu.0 / 100);
     }
     master.stop();
     slave.stop();
-    check!(
-        report,
-        link,
-        stopped == 0 && worst <= 64,
-        "timers: 100 starts of TIM8 from TIM1, {} missed, at most {} counts apart",
-        stopped,
-        worst
-    );
+    (still, stopped, worst)
 }
 
 /// RCC's own view: the crystal really runs the chip.
@@ -462,12 +454,16 @@ fn main() -> ! {
     tim8.set_output::<4>(false);
     // SAFETY: `main` runs once, and this is the only reference.
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
-    let (Ok(mut lane1), Ok(mut lane2), Ok(mut lane3), Ok(mut lane4)) = (
+    let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
         channel1.into_lane(dma2.s1, &mut one[..]),
         channel3n.into_lane(dma2.s6, &mut two[..]),
         channel3.into_lane(dma2.s2, &mut three[..]),
         channel4.into_lane(dma2.s7, &mut four[..]),
     ) else {
+        reboot_to_dfu()
+    };
+    let (timer_still, timer_missed, timer_apart) = measure_motor_timers(&mut tim1, &mut tim8);
+    let Ok(mut motors) = Awg::linked(tim1, tim8, (lane1, lane2), (lane3, lane4)) else {
         reboot_to_dfu()
     };
 
@@ -492,16 +488,16 @@ fn main() -> ! {
         usb_bench::uid_suite(report, link);
         imu.suite(report, link);
         nor_suite(report, link, &mut nor);
-        motor_timer_suite(report, link, &mut tim1, &mut tim8);
-        motor_lanes::suite(
+        check!(report, link, timer_still, "timers: TIM8 waits for TIM1");
+        check!(
             report,
             link,
-            &mut tim1,
-            &mut tim8,
-            (&mut lane1, &mut lane2, &mut lane3, &mut lane4),
-            (0b0101, 0b1100),
-            |tim1, _| tim1.start(),
+            timer_missed == 0 && timer_apart <= 64,
+            "timers: 100 starts of TIM8 from TIM1, {} missed, at most {} counts apart",
+            timer_missed,
+            timer_apart
         );
+        motor_lanes::suite(report, link, &mut motors);
         let vdda = vdda_mv.unwrap_or(0);
         check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
         check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);

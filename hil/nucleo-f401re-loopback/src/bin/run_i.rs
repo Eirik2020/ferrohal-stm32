@@ -25,7 +25,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         time::Hertz,
-        timer::{Pwm, Sampler},
+        timer::{Awg, Pwm, Sampler},
     };
 
     use crate::{
@@ -131,6 +131,16 @@ mod app {
                 cpu,
             );
         }
+        // The last rate above is still set: DShot600's, with the sampler at 12 times.
+        let mut awg = Awg::single(pwm, (lane3, lane4));
+        pwm::awg_check(
+            &mut report,
+            "TIM3 CH3/CH4 PB0/PB1",
+            &mut awg,
+            (0, 1),
+            &mut sampler,
+            cpu,
+        );
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

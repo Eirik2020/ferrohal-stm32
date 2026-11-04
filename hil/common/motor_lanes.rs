@@ -1,9 +1,9 @@
 //! A flight controller's motor DMA routes, in the flight code's arrangement,
-//! with every output disabled: the timers count and the streams feed their
-//! compare registers, and nothing reaches a motor pad. Whether a real frame is
+//! through the waveform generator with every output disabled: the timers count
+//! and the streams feed their compare registers, and nothing reaches a motor pad. Whether a real frame is
 //! right on the wire is the Nucleo benches' check, whose samplers read it.
 
-use ferrohal_stm32::timer::{ChannelTimer, CompareLane, Pwm};
+use ferrohal_stm32::timer::{Awg, ChannelTimer, Lanes};
 
 use crate::usb_bench::{Link, Report};
 
@@ -18,72 +18,43 @@ fn frame(pattern: u16, period: u32) -> [u32; 16] {
     })
 }
 
-/// Four lanes on two timers. `start` sets the timers going however the board
-/// does; `masks` are the channels of each, for `stage`.
-#[allow(clippy::too_many_arguments)]
-pub fn suite<T1, T2, const A: u8, const B: u8, const C: u8, const D: u8>(
-    report: &mut Report,
-    link: &mut Link,
-    first: &mut Pwm<T1>,
-    second: &mut Pwm<T2>,
-    lanes: (
-        &mut CompareLane<T1, A>,
-        &mut CompareLane<T1, B>,
-        &mut CompareLane<T2, C>,
-        &mut CompareLane<T2, D>,
-    ),
-    masks: (u8, u8),
-    mut start: impl FnMut(&mut Pwm<T1>, &mut Pwm<T2>),
-) where
+/// The waveform generator over four lanes on two timers, however the board
+/// starts them, with its outputs as the board set them.
+pub fn suite<T1, T2, L1, L2>(report: &mut Report, link: &mut Link, awg: &mut Awg<T1, T2, L1, L2>)
+where
     T1: ChannelTimer,
     T2: ChannelTimer,
+    L1: Lanes<T1>,
+    L2: Lanes<T2>,
 {
-    let (a, b, c, d) = lanes;
     let mut done = 0u32;
     let mut slowest_us = 0u32;
     for round in 0..FRAMES {
         link.service();
-        let duties = frame(0x8421u16.rotate_left(round), first.period());
-        let others = frame(0x5AA5u16.rotate_left(round), second.period());
-        let armed = a.arm(&duties).is_ok()
-            && b.arm(&duties).is_ok()
-            && c.arm(&others).is_ok()
-            && d.arm(&others).is_ok();
-        if !armed {
+        let first = frame(0x8421u16.rotate_left(round), awg.period());
+        let second = frame(0x5AA5u16.rotate_left(round), awg.period());
+        let loaded = (0..awg.lanes())
+            .all(|lane| awg.load(lane, if lane < 2 { &first } else { &second }).is_ok());
+        if !loaded || awg.play().is_err() {
+            awg.abort();
             continue;
         }
-        first.stage(masks.0);
-        second.stage(masks.1);
         let began = link.now();
-        start(first, second);
-        let mut left = 4u32;
-        let mut failed = false;
         let mut finished = [false; 4];
-        while left > 0 && link.now().wrapping_sub(began) < 2_000 {
-            let results = [
-                if finished[0] { None } else { a.poll() },
-                if finished[1] { None } else { b.poll() },
-                if finished[2] { None } else { c.poll() },
-                if finished[3] { None } else { d.poll() },
-            ];
-            for (seen, result) in finished.iter_mut().zip(results) {
-                if let Some(result) = result {
-                    *seen = true;
-                    left -= 1;
-                    failed |= result.is_err();
+        let mut failed = false;
+        while finished.iter().any(|seen| !seen) && link.now().wrapping_sub(began) < 2_000 {
+            for (lane, seen) in finished.iter_mut().enumerate() {
+                if !*seen {
+                    if let Some(result) = awg.poll(lane) {
+                        *seen = true;
+                        failed |= result.is_err();
+                    }
                 }
             }
         }
         slowest_us = slowest_us.max(link.now().wrapping_sub(began));
-        first.stop();
-        second.stop();
-        first.close_requests();
-        second.close_requests();
-        if left > 0 {
-            a.abort();
-            b.abort();
-            c.abort();
-            d.abort();
+        if finished.iter().any(|seen| !seen) {
+            awg.abort();
         } else if !failed {
             done += 1;
         }
@@ -92,7 +63,7 @@ pub fn suite<T1, T2, const A: u8, const B: u8, const C: u8, const D: u8>(
         report,
         link,
         done == FRAMES,
-        "motors: {} of {} frames on all four streams, outputs off, slowest {} us",
+        "motors: {} of {} frames on all four streams through the AWG, slowest {} us [AWG-005]",
         done,
         FRAMES,
         slowest_us

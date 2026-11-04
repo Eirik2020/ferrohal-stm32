@@ -17,7 +17,11 @@ pub(crate) struct Deadline {
 }
 
 impl Deadline {
-    pub(crate) fn new(clock: Option<&'static dyn CycleClock>, cycles: u32, pass_cycles: u32) -> Self {
+    pub(crate) fn new(
+        clock: Option<&'static dyn CycleClock>,
+        cycles: u32,
+        pass_cycles: u32,
+    ) -> Self {
         // Under half the clock's range, so a wrap is never mistaken for an
         // elapsed bound.
         let cycles = cycles.min(i32::MAX as u32);

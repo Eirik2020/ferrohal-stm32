@@ -27,6 +27,10 @@ use stm32_metapac::timer::{
 mod pwm;
 pub use pwm::{CompareLane, Error, Pwm, PwmChannel, Sampler, nearest};
 
+#[path = "timer_awg.rs"]
+mod awg;
+pub use awg::{Awg, Lanes};
+
 use crate::{
     chip::Interrupt,
     rcc::{Bus, Clocks, Rcc, RccBit},
@@ -116,6 +120,8 @@ pub enum ConfigError {
     /// The rate is too slow for the prescaler and reload together, or too
     /// fast for the clock.
     OutOfRange,
+    /// A waveform generator's two timers run at different periods.
+    PeriodMismatch,
 }
 
 /// The prescaler and reload that divide `clock` down to `rate` exactly:
@@ -261,7 +267,11 @@ unsafe impl Sync for TimebaseReader {}
 impl Timebase {
     /// Enables and resets the timer and starts it counting at `frequency`
     /// exactly, over its whole 32-bit range.
-    pub fn new<T: Instance32>(rcc: &mut Rcc, _timer: T, frequency: Hertz) -> Result<Self, ConfigError> {
+    pub fn new<T: Instance32>(
+        rcc: &mut Rcc,
+        _timer: T,
+        frequency: Hertz,
+    ) -> Result<Self, ConfigError> {
         let clock = rcc.clocks().timer(T::BUS);
         let prescaler = Self::prescaler(clock, frequency)?;
         rcc.enable(T::ENABLE);
@@ -278,7 +288,10 @@ impl Timebase {
     }
 
     /// Whether `T` can count at `frequency` under `clocks`.
-    pub const fn check<T: Instance32>(clocks: &Clocks, frequency: Hertz) -> Result<(), ConfigError> {
+    pub const fn check<T: Instance32>(
+        clocks: &Clocks,
+        frequency: Hertz,
+    ) -> Result<(), ConfigError> {
         match Self::prescaler(clocks.timer(T::BUS), frequency) {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
@@ -332,8 +345,17 @@ mod tests {
         let (p, r) = divider(Hertz::mhz(84), Hertz(1), 16).unwrap();
         assert_eq!(u64::from(p) * r, 84_000_000);
         assert!(r <= 65_536 && p <= 65_536);
-        assert_eq!(divider(Hertz::mhz(84), Hertz(7_000_001), 16), Err(ConfigError::Inexact));
-        assert_eq!(divider(Hertz::mhz(84), Hertz(0), 16), Err(ConfigError::Inexact));
-        assert_eq!(divider(Hertz::mhz(84), Hertz::mhz(84), 16), Err(ConfigError::OutOfRange));
+        assert_eq!(
+            divider(Hertz::mhz(84), Hertz(7_000_001), 16),
+            Err(ConfigError::Inexact)
+        );
+        assert_eq!(
+            divider(Hertz::mhz(84), Hertz(0), 16),
+            Err(ConfigError::Inexact)
+        );
+        assert_eq!(
+            divider(Hertz::mhz(84), Hertz::mhz(84), 16),
+            Err(ConfigError::OutOfRange)
+        );
     }
 }

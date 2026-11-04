@@ -41,13 +41,15 @@ const PWM_MODE1: stm32_metapac::timer::vals::Ocm = stm32_metapac::timer::vals::O
 const PWM_MODE1: stm32_metapac::timer::vals::OcmGp = stm32_metapac::timer::vals::OcmGp::PWM_MODE1;
 
 use super::{
-    TriggeredBy,
     ChannelPin, ChannelTimer, CompareDma, ComplementaryPin, ConfigError, GpioDma, Instance,
-    UpdateDma,
+    TriggeredBy, UpdateDma,
 };
 use crate::{
     chip::Interrupt,
-    dma::{Channel, Direction, FifoMode, Flags, Interrupts, Priority, StreamInterrupt, Transfer, WordSize},
+    dma::{
+        Channel, Direction, FifoMode, Flags, Interrupts, Priority, StreamInterrupt, Transfer,
+        WordSize,
+    },
     gpio::{Port, PortInstance},
     rcc::Rcc,
     resource::IrqError,
@@ -75,7 +77,11 @@ pub enum Error {
 /// ARR + 1, the rate they give). The smallest prescaler that fits, for the
 /// finest duty steps. For PWM, where the rate needs only be near (DShot
 /// at 600 kHz from the H7's 200 MHz timer clock is 333.33 counts).
-pub const fn nearest(clock: Hertz, rate: Hertz, bits: u8) -> Result<(u32, u64, Hertz), ConfigError> {
+pub const fn nearest(
+    clock: Hertz,
+    rate: Hertz,
+    bits: u8,
+) -> Result<(u32, u64, Hertz), ConfigError> {
     if rate.0 == 0 {
         return Err(ConfigError::Inexact);
     }
@@ -185,22 +191,37 @@ impl<T: ChannelTimer> Pwm<T> {
     /// its output enabled. `pin` proves the channel reaches a pin.
     pub fn channel<const C: u8, P: ChannelPin<T, C>>(&mut self, _pin: P) -> PwmChannel<T, C> {
         self.setup::<C>();
-        self.gp.ccer().modify(|w| w.set_cce(usize::from((C - 1) & 3), true));
-        PwmChannel { gp: self.gp, _timer: PhantomData }
+        self.gp
+            .ccer()
+            .modify(|w| w.set_cce(usize::from((C - 1) & 3), true));
+        PwmChannel {
+            gp: self.gp,
+            _timer: PhantomData,
+        }
     }
 
     /// Channel `C` driving its complementary output (CHxN) instead, at duty
     /// 0. Only timers with a break unit have one.
-    pub fn complementary<const C: u8, P: ComplementaryPin<T, C>>(&mut self, _pin: P) -> PwmChannel<T, C> {
+    pub fn complementary<const C: u8, P: ComplementaryPin<T, C>>(
+        &mut self,
+        _pin: P,
+    ) -> PwmChannel<T, C> {
         self.setup::<C>();
-        Self::adv().ccer().modify(|w| w.set_ccne(usize::from((C - 1) % 3), true));
-        PwmChannel { gp: self.gp, _timer: PhantomData }
+        Self::adv()
+            .ccer()
+            .modify(|w| w.set_ccne(usize::from((C - 1) % 3), true));
+        PwmChannel {
+            gp: self.gp,
+            _timer: PhantomData,
+        }
     }
 
     fn setup<const C: u8>(&mut self) {
         const { assert!(C >= 1 && C <= 4, "channels are 1 to 4") };
         let index = usize::from((C - 1) & 3);
-        self.gp.ccr(index).write_value(stm32_metapac::timer::regs::Ccr1ch(0));
+        self.gp
+            .ccr(index)
+            .write_value(stm32_metapac::timer::regs::Ccr1ch(0));
         self.gp.ccmr_output(index / 2).modify(|w| {
             w.set_ocm(index % 2, PWM_MODE1);
             w.set_ocpe(index % 2, true);
@@ -276,7 +297,9 @@ impl<T: ChannelTimer> Pwm<T> {
             }
         }
         // Stale compare flags would raise a request at once.
-        self.gp.sr().write_value(stm32_metapac::timer::regs::SrGp16(0));
+        self.gp
+            .sr()
+            .write_value(stm32_metapac::timer::regs::SrGp16(0));
         self.gp.dier().modify(|w| {
             for index in 0..4 {
                 if channels & (1 << index) != 0 {
@@ -314,13 +337,17 @@ pub struct PwmChannel<T, const C: u8> {
 unsafe impl<T, const C: u8> Send for PwmChannel<T, C> {}
 
 impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
-    fn ccr(&self) -> stm32_metapac::common::Reg<stm32_metapac::timer::regs::Ccr1ch, stm32_metapac::common::RW> {
+    fn ccr(
+        &self,
+    ) -> stm32_metapac::common::Reg<stm32_metapac::timer::regs::Ccr1ch, stm32_metapac::common::RW>
+    {
         self.gp.ccr(usize::from((C - 1) & 3))
     }
 
     /// The duty from the next period on (the compare is preloaded).
     pub fn set_duty(&mut self, duty: u32) {
-        self.ccr().write_value(stm32_metapac::timer::regs::Ccr1ch(duty));
+        self.ccr()
+            .write_value(stm32_metapac::timer::regs::Ccr1ch(duty));
     }
 
     pub fn duty(&self) -> u32 {
@@ -335,7 +362,8 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
     ) -> Result<CompareLane<T, C>, crate::uart::ConfigError> {
         crate::chip::check_dma_buffer(as_bytes(buffer))?;
         let mut dma = stream.into_channel();
-        dma.stop(STOP_SPINS).map_err(|_| crate::uart::ConfigError::DmaBusy)?;
+        dma.stop(STOP_SPINS)
+            .map_err(|_| crate::uart::ConfigError::DmaBusy)?;
         dma.clear_flags(Flags::ALL);
         Ok(CompareLane {
             channel: self,
@@ -352,7 +380,8 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
 /// flag (URS is counter-only), the counter left at 0.
 fn reload_counter(gp: TimGp16, prescaler: u32, reload: u64) {
     gp.psc().write_value((prescaler - 1) as u16);
-    gp.arr().write_value(stm32_metapac::timer::regs::ArrCore((reload - 1) as u32));
+    gp.arr()
+        .write_value(stm32_metapac::timer::regs::ArrCore((reload - 1) as u32));
     gp.egr().write(|w| w.set_ug(true));
     gp.cnt().write(|w| w.set_cnt(0));
 }
@@ -525,7 +554,8 @@ impl Sampler {
         rcc.reset(T::ENABLE);
         super::load(T::core(), prescaler, reload);
         let mut dma = stream.into_channel();
-        dma.stop(STOP_SPINS).map_err(|_| crate::uart::ConfigError::DmaBusy)?;
+        dma.stop(STOP_SPINS)
+            .map_err(|_| crate::uart::ConfigError::DmaBusy)?;
         dma.clear_flags(Flags::ALL);
         Ok(Self {
             // SAFETY: the timer's base address; CR1, DIER, SR and CNT sit
@@ -592,7 +622,9 @@ impl Sampler {
         let timer = self.timer;
         timer.cr1().modify(|w| w.set_cen(false));
         timer.cnt().write(|w| w.set_cnt(0));
-        timer.sr().write_value(stm32_metapac::timer::regs::SrGp16(0));
+        timer
+            .sr()
+            .write_value(stm32_metapac::timer::regs::SrGp16(0));
         // SAFETY: the buffer is the sampler's own and holds `len` samples;
         // the address is a GPIO port's input register, read-only and
         // without side effects, which the update request paces.
@@ -668,10 +700,22 @@ mod tests {
     #[test]
     fn nearest_rounds_and_reports() {
         // DShot600 from the F401's 84 MHz APB1 timer clock: exact.
-        assert_eq!(nearest(Hertz::mhz(84), Hertz::khz(600), 16), Ok((1, 140, Hertz::khz(600))));
+        assert_eq!(
+            nearest(Hertz::mhz(84), Hertz::khz(600), 16),
+            Ok((1, 140, Hertz::khz(600)))
+        );
         // From the H7's 200 MHz: 333 counts, 600.6 kHz.
-        assert_eq!(nearest(Hertz::mhz(200), Hertz::khz(600), 16), Ok((1, 333, Hertz(600_600))));
-        assert_eq!(nearest(Hertz::mhz(84), Hertz(0), 16), Err(ConfigError::Inexact));
-        assert_eq!(nearest(Hertz::mhz(84), Hertz::mhz(84), 16), Err(ConfigError::OutOfRange));
+        assert_eq!(
+            nearest(Hertz::mhz(200), Hertz::khz(600), 16),
+            Ok((1, 333, Hertz(600_600)))
+        );
+        assert_eq!(
+            nearest(Hertz::mhz(84), Hertz(0), 16),
+            Err(ConfigError::Inexact)
+        );
+        assert_eq!(
+            nearest(Hertz::mhz(84), Hertz::mhz(84), 16),
+            Err(ConfigError::OutOfRange)
+        );
     }
 }

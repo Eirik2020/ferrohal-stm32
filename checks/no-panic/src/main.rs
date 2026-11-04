@@ -298,6 +298,19 @@ where
         lane.abort();
         pwm.close_requests();
         pwm.stop();
+        // The generator over the same lane.
+        let mut awg = ferrohal_stm32::timer::Awg::single(pwm, (lane,));
+        keep(awg.lanes());
+        keep(awg.period());
+        keep(awg.sample_rate());
+        awg.set_outputs(black_box(true));
+        keep(awg.load(black_box(0), black_box(&[1, 2, 3][..])));
+        keep(awg.is_busy());
+        keep(awg.play());
+        keep(awg.on_interrupt(black_box(0)));
+        keep(awg.poll(black_box(0)));
+        keep(awg.interrupt(black_box(0)));
+        awg.abort();
     }
 }
 

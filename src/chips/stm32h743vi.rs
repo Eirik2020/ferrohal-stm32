@@ -39,13 +39,95 @@ pub(crate) use h7::{
 };
 
 tokens!(
-    USART1, USART2, USART3, UART4, UART5, USART6, UART7, UART8, LPUART1, TIM1, TIM2, TIM3, TIM4,
-    TIM5, TIM6, TIM7, TIM8, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, LPTIM1, LPTIM2, LPTIM3,
-    LPTIM4, LPTIM5, HRTIM1, SPI1, SPI2, SPI3, SPI4, SPI6, I2C1, I2C2, I2C3, I2C4, SAI1, SAI2, SAI3,
-    SAI4, SPDIFRX1, SWPMI1, DFSDM1, CEC, DAC1, CRS, OPAMP1, OPAMP2, MDIOS, FDCAN1, FDCAN2, FDCANRAM,
-    ADC1, ADC2, ADC3, ADC12_COMMON, ADC3_COMMON, ETH, USB_OTG_HS, USB_OTG_FS, DCMI, RNG, SDMMC1,
-    SDMMC2, DLYB_SDMMC1, DLYB_SDMMC2, LTDC, WWDG1, IWDG1, MDMA, DMA2D, JPEG, FMC, QUADSPI,
-    DLYB_QUADSPI, EXTI, SYSCFG, COMP1, COMP2, VREFBUF, RTC, CRC, BDMA, DMAMUX2, HSEM, DBGMCU, UID,
+    USART1,
+    USART2,
+    USART3,
+    UART4,
+    UART5,
+    USART6,
+    UART7,
+    UART8,
+    LPUART1,
+    TIM1,
+    TIM2,
+    TIM3,
+    TIM4,
+    TIM5,
+    TIM6,
+    TIM7,
+    TIM8,
+    TIM12,
+    TIM13,
+    TIM14,
+    TIM15,
+    TIM16,
+    TIM17,
+    LPTIM1,
+    LPTIM2,
+    LPTIM3,
+    LPTIM4,
+    LPTIM5,
+    HRTIM1,
+    SPI1,
+    SPI2,
+    SPI3,
+    SPI4,
+    SPI6,
+    I2C1,
+    I2C2,
+    I2C3,
+    I2C4,
+    SAI1,
+    SAI2,
+    SAI3,
+    SAI4,
+    SPDIFRX1,
+    SWPMI1,
+    DFSDM1,
+    CEC,
+    DAC1,
+    CRS,
+    OPAMP1,
+    OPAMP2,
+    MDIOS,
+    FDCAN1,
+    FDCAN2,
+    FDCANRAM,
+    ADC1,
+    ADC2,
+    ADC3,
+    ADC12_COMMON,
+    ADC3_COMMON,
+    ETH,
+    USB_OTG_HS,
+    USB_OTG_FS,
+    DCMI,
+    RNG,
+    SDMMC1,
+    SDMMC2,
+    DLYB_SDMMC1,
+    DLYB_SDMMC2,
+    LTDC,
+    WWDG1,
+    IWDG1,
+    MDMA,
+    DMA2D,
+    JPEG,
+    FMC,
+    QUADSPI,
+    DLYB_QUADSPI,
+    EXTI,
+    SYSCFG,
+    COMP1,
+    COMP2,
+    VREFBUF,
+    RTC,
+    CRC,
+    BDMA,
+    DMAMUX2,
+    HSEM,
+    DBGMCU,
+    UID,
 );
 
 peripherals!(
@@ -544,12 +626,37 @@ mod tests {
             Spi1Lucid::RESOURCES,
             [
                 Resource::Peripheral("SPI1"),
-                Resource::Pin { signal: Signal::Sck, port: 'A', pin: 5, af: 5 },
-                Resource::Pin { signal: Signal::Miso, port: 'A', pin: 6, af: 5 },
-                Resource::Pin { signal: Signal::Mosi, port: 'D', pin: 7, af: 5 },
+                Resource::Pin {
+                    signal: Signal::Sck,
+                    port: 'A',
+                    pin: 5,
+                    af: 5
+                },
+                Resource::Pin {
+                    signal: Signal::Miso,
+                    port: 'A',
+                    pin: 6,
+                    af: 5
+                },
+                Resource::Pin {
+                    signal: Signal::Mosi,
+                    port: 'D',
+                    pin: 7,
+                    af: 5
+                },
                 // DMA1_STREAM5_CH38 and DMA1_STREAM4_CH37 in the manifest.
-                Resource::Dma { signal: Signal::Tx, controller: 1, stream: 5, request: 38 },
-                Resource::Dma { signal: Signal::Rx, controller: 1, stream: 4, request: 37 },
+                Resource::Dma {
+                    signal: Signal::Tx,
+                    controller: 1,
+                    stream: 5,
+                    request: 38
+                },
+                Resource::Dma {
+                    signal: Signal::Rx,
+                    controller: 1,
+                    stream: 4,
+                    request: 37
+                },
                 Resource::Interrupt("DMA1_STREAM4"),
             ]
         );
@@ -581,7 +688,10 @@ mod tests {
         .validate()
         .unwrap();
         assert_eq!(reset.pll1_q, None);
-        assert_eq!(Spi::check::<SPI1>(&reset, &imu), Err(spi::ConfigError::KernelClock));
+        assert_eq!(
+            Spi::check::<SPI1>(&reset, &imu),
+            Err(spi::ConfigError::KernelClock)
+        );
         // SPI4 runs from PCLK2: 64 MHz at reset, so 16 MHz.
         assert_eq!(Spi::check::<SPI4>(&reset, &imu), Ok(Hertz::mhz(16)));
     }
@@ -592,12 +702,32 @@ mod tests {
             Usart6Lucid::RESOURCES,
             [
                 Resource::Peripheral("USART6"),
-                Resource::Pin { signal: Signal::Tx, port: 'C', pin: 6, af: 7 },
-                Resource::Pin { signal: Signal::Rx, port: 'C', pin: 7, af: 7 },
+                Resource::Pin {
+                    signal: Signal::Tx,
+                    port: 'C',
+                    pin: 6,
+                    af: 7
+                },
+                Resource::Pin {
+                    signal: Signal::Rx,
+                    port: 'C',
+                    pin: 7,
+                    af: 7
+                },
                 // The Lucid's manifest names these DMA1_STREAM6_CH72 and
                 // DMA1_STREAM0_CH71.
-                Resource::Dma { signal: Signal::Tx, controller: 1, stream: 6, request: 72 },
-                Resource::Dma { signal: Signal::Rx, controller: 1, stream: 0, request: 71 },
+                Resource::Dma {
+                    signal: Signal::Tx,
+                    controller: 1,
+                    stream: 6,
+                    request: 72
+                },
+                Resource::Dma {
+                    signal: Signal::Rx,
+                    controller: 1,
+                    stream: 0,
+                    request: 71
+                },
                 Resource::Interrupt("USART6"),
                 Resource::Interrupt("DMA1_STREAM0"),
                 Resource::Interrupt("DMA1_STREAM6"),

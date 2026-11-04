@@ -127,7 +127,10 @@ impl Unit {
             match position {
                 0..=5 => self.regs.sqr3().modify(|w| w.set_sq(position, channel)),
                 6..=11 => self.regs.sqr2().modify(|w| w.set_sq(position - 6, channel)),
-                12..=15 => self.regs.sqr1().modify(|w| w.set_sq(position - 12, channel)),
+                12..=15 => self
+                    .regs
+                    .sqr1()
+                    .modify(|w| w.set_sq(position - 12, channel)),
                 _ => {}
             }
         }

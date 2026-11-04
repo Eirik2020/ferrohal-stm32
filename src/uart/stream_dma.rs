@@ -64,8 +64,8 @@ use crate::{
     rcc::{Bus, Clocks, Rcc, RccBit},
     time::Hertz,
     uart::{
-        Buffers, Chunk, ChunkEnd, Config, ConfigError, Error, Health, Resource,
-        RxWiring, SendError, Signal, TxHealth, UartInterrupts, Wiring,
+        Buffers, Chunk, ChunkEnd, Config, ConfigError, Error, Health, Resource, RxWiring,
+        SendError, Signal, TxHealth, UartInterrupts, Wiring,
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
@@ -419,7 +419,13 @@ impl Uart {
             frame_cycles,
             clock: None,
         };
-        let rx = UartRx::assemble(info, wiring.rx_dma.into_channel(), RxD::REQUEST, buffers.rx, frame_cycles);
+        let rx = UartRx::assemble(
+            info,
+            wiring.rx_dma.into_channel(),
+            RxD::REQUEST,
+            buffers.rx,
+            frame_cycles,
+        );
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
@@ -543,7 +549,11 @@ impl UartTx {
         // outside every queued frame, so neither DMA nor the service reads
         // it until the frame is pushed below.
         unsafe {
-            ptr::copy_nonoverlapping(frame.as_ptr(), self.buf.add(usize::from(offset)), frame.len())
+            ptr::copy_nonoverlapping(
+                frame.as_ptr(),
+                self.buf.add(usize::from(offset)),
+                frame.len(),
+            )
         };
         // The bytes land before the frame is visible to the service.
         fence(Ordering::SeqCst);
@@ -831,7 +841,13 @@ impl UartRx {
         let rx_len = ring_len(ring)?;
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
         reset(rcc, info, rx_len);
-        let rx = Self::assemble(info, wiring.rx_dma.into_channel(), RxD::REQUEST, ring, frame_cycles);
+        let rx = Self::assemble(
+            info,
+            wiring.rx_dma.into_channel(),
+            RxD::REQUEST,
+            ring,
+            frame_cycles,
+        );
         let vectors = UartInterrupts {
             line: U::INTERRUPT,
             rx_dma: RxD::INTERRUPT,
@@ -1368,7 +1384,9 @@ fn reset(rcc: &mut Rcc, info: &Info, rx_len: u16) {
 
 /// CPU cycles per frame, the unit of every counted wait.
 fn frame_cycles(cpu: Hertz, baudrate: u32) -> u32 {
-    (cpu.0 / baudrate.max(1)).saturating_mul(MAX_FRAME_BITS).max(1)
+    (cpu.0 / baudrate.max(1))
+        .saturating_mul(MAX_FRAME_BITS)
+        .max(1)
 }
 
 impl<U, TxP, RxP, const TD: u8, const TN: u8, const RD: u8, const RN: u8>

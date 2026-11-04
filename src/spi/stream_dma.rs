@@ -171,7 +171,9 @@ impl Spi {
     {
         let info = U::info();
         let clocks = rcc.clocks();
-        let kernel_clock = U::KERNEL.frequency(&clocks).ok_or(ConfigError::KernelClock)?;
+        let kernel_clock = U::KERNEL
+            .frequency(&clocks)
+            .ok_or(ConfigError::KernelClock)?;
         let code = config.divider(kernel_clock)?;
         let tx_len = u16::try_from(buffers.tx.len())
             .ok()
@@ -258,7 +260,9 @@ impl Spi {
 
     /// The vector to bind to [`on_interrupt`](Self::on_interrupt).
     pub fn interrupts(&self) -> SpiInterrupts {
-        SpiInterrupts { rx_dma: self.vector }
+        SpiInterrupts {
+            rx_dma: self.vector,
+        }
     }
 
     pub fn health(&self) -> Health {
@@ -348,8 +352,7 @@ impl Spi {
         let rx = self.rx.flags();
         let tx = self.tx.flags();
         // A FIFO error in direct mode is advisory; the others stop a stream.
-        if rx.transfer_error || rx.direct_mode_error || tx.transfer_error || tx.direct_mode_error
-        {
+        if rx.transfer_error || rx.direct_mode_error || tx.transfer_error || tx.direct_mode_error {
             self.fail();
             self.health.dma_errors = self.health.dma_errors.saturating_add(1);
             return Some(Err(Error::Dma));
@@ -463,7 +466,9 @@ impl Spi {
         let _ = self.rx.stop(STOP_SPINS);
         // Two frames in flight at most; a register read per spin, at least
         // a cycle each, so this bound covers them twice over.
-        self.info.unit.reset_state(self.sck_cycles.saturating_mul(32));
+        self.info
+            .unit
+            .reset_state(self.sck_cycles.saturating_mul(32));
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
@@ -561,7 +566,11 @@ impl embedded_hal::spi::SpiBus<u8> for Spi {
     fn flush(&mut self) -> Result<(), Error> {
         // Every blocking operation has finished by the time it returns; a
         // transfer started with `start` is the interrupt's to end.
-        if self.is_busy() { Err(Error::Busy) } else { Ok(()) }
+        if self.is_busy() {
+            Err(Error::Busy)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -580,9 +589,24 @@ where
     /// and the receive stream's vector.
     pub const RESOURCES: [Resource; 7] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin { signal: Signal::Sck, port: Sck::PORT, pin: Sck::PIN, af: Sck::AF },
-        Resource::Pin { signal: Signal::Miso, port: Miso::PORT, pin: Miso::PIN, af: Miso::AF },
-        Resource::Pin { signal: Signal::Mosi, port: Mosi::PORT, pin: Mosi::PIN, af: Mosi::AF },
+        Resource::Pin {
+            signal: Signal::Sck,
+            port: Sck::PORT,
+            pin: Sck::PIN,
+            af: Sck::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Miso,
+            port: Miso::PORT,
+            pin: Miso::PIN,
+            af: Miso::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Mosi,
+            port: Mosi::PORT,
+            pin: Mosi::PIN,
+            af: Mosi::AF,
+        },
         Resource::Dma {
             signal: Signal::Tx,
             controller: TD,
