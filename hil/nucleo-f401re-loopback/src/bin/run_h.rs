@@ -4,6 +4,9 @@
 //! rate) and must keep that rate to 0.05 %, then stop when paused. TIM2 and
 //! TIM5, the 32-bit timers, also run as 1 MHz timebases.
 //!
+//! First, the voltage scale `freeze` wrote is read back: scale 2, VOS 0b10
+//! in RM0368's two bits, with VOSRDY set.
+//!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
 //! | `TIM1_UP_TIM10`, `TIM2`, `TIM3`, `TIM4`, `TIM5`, `TIM1_BRK_TIM9`, `TIM1_TRG_COM_TIM11` | the running `Tick` | 2 |
@@ -22,8 +25,15 @@ mod timers;
 use defmt_rtt as _;
 use panic_probe as _;
 
+/// PWR_CR and PWR_CSR (RM0368): the voltage scale, VOS (bits 15:14), and
+/// its ready flag, VOSRDY (bit 14).
+const PWR_CR: *const u32 = 0x4000_7000 as *const u32;
+const PWR_CSR: *const u32 = 0x4000_7004 as *const u32;
+
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
+    use core::ptr::read_volatile;
+
     use ferrohal_stm32::{
         time::Hertz,
         timer::{Tick, Timebase},
@@ -108,6 +118,30 @@ mod app {
         let run = cx.local.run;
         let bench = &mut cx.shared.bench;
         let khz = Hertz::khz(1);
+
+        // SAFETY: reads of PWR's control and status registers.
+        let (pwr_cr, pwr_csr) =
+            unsafe { (read_volatile(crate::PWR_CR), read_volatile(crate::PWR_CSR)) };
+        let vos = (pwr_cr >> 14) & 0b11;
+        let ready = pwr_csr & (1 << 14) != 0;
+        defmt::info!("PWR_CR VOS {=u32:#04b}, PWR_CSR VOSRDY {=bool}", vos, ready);
+        report.check_for(
+            "PWR",
+            "RCC-003",
+            "voltage scale 2 (VOS 0b10) and VOSRDY set",
+            if vos != 0b10 {
+                Err(Fail::Count {
+                    expected: 0b10,
+                    got: vos,
+                })
+            } else if !ready {
+                Err(Fail::Level {
+                    expected_high: true,
+                })
+            } else {
+                Ok(())
+            },
+        );
 
         macro_rules! tick {
             ($name:literal, $timer:expr, $rate:expr, $ticks:expr) => {

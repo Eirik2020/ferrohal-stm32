@@ -37,6 +37,28 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
+  - id: RCC-003
+    title: The regulator scale suits the clocks
+    statement: >-
+      When a clock configuration uses the PLL, the driver shall set the
+      regulator voltage scale that the chip's clock limits assume, never a
+      reserved value, and see the regulator report ready before the system
+      runs from the PLL.
+    rationale: >-
+      A bootloader can leave a lower scale, under which the chip's highest
+      clocks run out of specification with no visible failure.
+    derived_from: [RCC-001]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: product
+          method:
+            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
+
   - id: GPIO-001
     title: Pins carry what they are set to
     statement: >-

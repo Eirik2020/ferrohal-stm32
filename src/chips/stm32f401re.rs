@@ -42,8 +42,11 @@ pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), ConfigError> {
     }
 }
 
-/// DS10086 and RM0368, at 2.7 V to 3.6 V. VOS keeps its reset value
-/// (scale 2), which covers 84 MHz on this chip.
+/// DS10086 and RM0368, at 2.7 V to 3.6 V, in voltage scale 2, which covers
+/// 84 MHz on this chip and is VOS's reset value. `freeze` writes it rather
+/// than trust that. RM0368's VOS is two bits (15:14): 01 is scale 3, 10
+/// scale 2, and 00 and 11 are reserved. 11 is metapac's `SCALE1`, which
+/// this chip does not have.
 pub(crate) const CLOCK_LIMITS: Limits = Limits {
     sysclk_max: Hertz::mhz(84),
     hclk_max: Hertz::mhz(84),
@@ -55,6 +58,7 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
     pll_vco: (Hertz::mhz(192), Hertz::mhz(432)),
     flash_step_2v7: Hertz::mhz(30),
     max_wait_states: 2,
+    vos: pac::pwr::vals::Vos::SCALE2,
 };
 
 tokens!(
@@ -80,7 +84,6 @@ tokens!(
     SDIO,
     SYSCFG,
     EXTI,
-    PWR,
     CRC,
     RTC,
     IWDG,
@@ -91,7 +94,7 @@ tokens!(
 );
 
 peripherals!(
-    "FLASH is not here: RCC's `freeze` owns its latency register.";
+    "Not here: FLASH and PWR, which RCC's `freeze` owns for the flash latency and the voltage scale.";
     RCC: RCC,
     GPIOA: Port<'A'>,
     GPIOB: Port<'B'>,
@@ -123,7 +126,6 @@ peripherals!(
     SDIO: SDIO,
     SYSCFG: SYSCFG,
     EXTI: EXTI,
-    PWR: PWR,
     CRC: CRC,
     RTC: RTC,
     IWDG: IWDG,
