@@ -16,9 +16,10 @@ running, which the script starts. Pass: every check in every run passes and the
 script exits zero. Covers `usart_v2` on all three USARTs, all 10 TX and RX pin
 entries and all 9 USART DMA routes, and the checks in `hil/common/tests.rs`. Run B
 also checks the parity error's clear, each way: one byte with a parity error, then
-a good frame straight after it, which must arrive whole and in order, with PE seen
-by the USART vector and reported once. Its log states whether RXNE was set when the
-vector saw PE.
+a good frame straight after it, which must arrive whole and in order, with the one
+parity error reported right after the bad byte, and PE seen by the UART's vectors,
+counted and reported once. Its log states whether RXNE was set when a vector first
+saw PE, and how many bytes the receive DMA had taken by then.
 
 ## UART on the Nucleo-H753ZI
 

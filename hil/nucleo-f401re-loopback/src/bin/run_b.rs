@@ -14,9 +14,11 @@
 //!   stop bit the receiver's parity bit, so a byte with an odd count of
 //!   ones is a parity error and one with an even count is good, with no
 //!   change of frame between them: one bad byte, then a good frame straight
-//!   after it. The line vector reads SR first, through stm32-metapac, and
-//!   notes RXNE whenever PE is set; the good frame must arrive whole and in
-//!   order; PE must be seen and reported once.
+//!   after it. Every vector of the receiving `UartIrq` reads SR first,
+//!   through stm32-metapac, and notes RXNE, and the receive stream's NDTR,
+//!   whenever PE is set; the good frame must arrive whole and in order,
+//!   with the one parity error right after the bad byte; PE must be seen,
+//!   counted and reported once.
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
@@ -38,18 +40,22 @@ use panic_probe as _;
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use embedded_io::Write;
-use ferrohal_stm32::uart::{Config, Error, Parity, StopBits};
-use stm32_metapac::usart::Usart;
+use ferrohal_stm32::uart::{Config, Error, Parity, StopBits, UartIrq};
+use stm32_metapac::{dma::St, usart::Usart};
 
 use tests::{Configurable, Cross, Fail, Link, Report};
 
-/// On while the PE clear check runs: only then do the line vectors read SR
+/// On while the PE clear check runs: only then do the vectors read SR
 /// ahead of the driver.
 static WATCH: AtomicBool = AtomicBool::new(false);
-/// While watching, how often a line vector found PE set, and in how many of
+/// While watching, how often a vector found PE set, and in how many of
 /// those RXNE was set too.
 static PE_SEEN: AtomicU32 = AtomicU32::new(0);
 static PE_WITH_RXNE: AtomicU32 = AtomicU32::new(0);
+/// The receive stream's NDTR just before SR was first found with PE set,
+/// or `NONE`.
+static PE_NDTR: AtomicU32 = AtomicU32::new(NONE);
+const NONE: u32 = u32::MAX;
 
 /// The byte the receiver refuses: an odd count of ones.
 const BAD: u8 = 0x01;
@@ -66,26 +72,55 @@ const _: () = {
     }
 };
 
-/// Called by a line vector before the driver's `on_interrupt`: notes PE,
-/// and RXNE with it, as SR holds them before the driver's SR and DR reads
-/// clear PE.
+/// What every vector bound to a UART's `UartIrq` runs: `on_interrupt`'s
+/// own three steps, in its order, with [`watch`] between the receive
+/// stream's and the USART's. Any of the three vectors can be the one that
+/// finds PE, since each runs `on_uart`, so all three watch.
+fn serve(irq: &mut UartIrq, usart: Usart, rx: St) {
+    irq.on_rx_dma();
+    watch(usart, rx);
+    irq.on_uart();
+    irq.on_tx_dma();
+}
+
+/// USART1's vectors: its receive stream is DMA2 stream 5 (`board::run_b`).
+fn serve_usart1(irq: &mut UartIrq) {
+    serve(irq, stm32_metapac::USART1, stm32_metapac::DMA2.st(5));
+}
+
+/// USART6's vectors: its receive stream is DMA2 stream 2.
+fn serve_usart6(irq: &mut UartIrq) {
+    serve(irq, stm32_metapac::USART6, stm32_metapac::DMA2.st(2));
+}
+
+/// Notes PE, with RXNE and the receive stream's NDTR, as they stand just
+/// before the driver's `on_uart` reads SR and then DR, which clears PE.
 ///
-/// This extra read cannot change the clear being measured. An SR read
-/// clears nothing by itself; a flag clears only when a DR access follows
-/// an SR read made while it was set. The driver makes its own SR read
-/// straight after this one and its DR read straight after that, so the
-/// same SR-then-DR sequence clears PE either way. The one access that
-/// could slip between this read and the driver's is the receive DMA
-/// taking a new byte from DR; the next byte is a whole frame away (about
-/// 95 us at 115200), while the two reads are a few cycles apart. And this
-/// runs only while `WATCH` is on, so no other check sees it.
-fn watch(regs: Usart) {
+/// The extra SR read leaves the clear being measured as it was. An SR read
+/// clears nothing by itself; a flag clears when a DR access follows an SR
+/// read made while it was set. `on_uart`'s own SR read comes a few cycles
+/// after this one, with nothing of the driver's between them, and its DR
+/// read follows, so the driver's SR-then-DR sequence clears PE as it does
+/// unwatched. What remains is a window of those few cycles: if the receive
+/// DMA reads DR inside it, which RM0368's case allows when PE is raised
+/// before RXNE (the faulty byte reaches DR up to a bit later, about 8.7 us
+/// at 115200), this read and the DMA's would clear PE before `on_uart`
+/// sees it. The check would then show PE seen but not counted: a FAIL,
+/// never a false PASS. This runs only while `WATCH` is on, so no other
+/// check sees it.
+///
+/// NDTR is read first, so the SR reads stay adjacent: a byte the DMA took
+/// in the cycle between the NDTR and SR reads would show as not yet taken.
+fn watch(usart: Usart, rx: St) {
     if !WATCH.load(Ordering::Relaxed) {
         return;
     }
-    let sr = regs.sr().read();
+    let ndtr = u32::from(rx.ndtr().read().ndt());
+    let sr = usart.sr().read();
     if sr.pe() {
-        PE_SEEN.fetch_add(1, Ordering::Relaxed);
+        if PE_SEEN.fetch_add(1, Ordering::Relaxed) == 0 {
+            PE_NDTR.store(ndtr, Ordering::Relaxed);
+        }
         if sr.rxne() {
             PE_WITH_RXNE.fetch_add(1, Ordering::Relaxed);
         }
@@ -93,10 +128,13 @@ fn watch(regs: Usart) {
 }
 
 /// One bad byte, then `GOOD` straight after it, 8N2 into 8O1; then both
-/// ends back to 8N1. Three checks: the line vector saw PE (and what RXNE
-/// was then), the good frame arrived whole and in order, and PE was seen
-/// and reported once.
-fn pe_clear(report: &mut Report, cross: &mut Cross) {
+/// ends back to 8N1. Three checks name UART-014: a vector saw PE (what
+/// RXNE was then, and whether the DMA had taken the bad byte, go to the
+/// log), the good frame arrived whole and in order after the one parity
+/// error, and PE was seen, counted and reported once. A fourth, naming no
+/// requirement, restores 8N1. `rx` is the receiver's stream, a circular
+/// ring of `ring` bytes.
+fn pe_clear(report: &mut Report, cross: &mut Cross, rx: St, ring: u32) {
     let name = cross.name;
     let frames = cross
         .from
@@ -117,8 +155,11 @@ fn pe_clear(report: &mut Report, cross: &mut Cross) {
     }
     tests::drain(cross);
     let counted_before = cross.to.rx().health().parity;
+    // The line is quiet, so the stream stands still until the bad byte.
+    let ndtr_before = u32::from(rx.ndtr().read().ndt());
     PE_SEEN.store(0, Ordering::Relaxed);
     PE_WITH_RXNE.store(0, Ordering::Relaxed);
+    PE_NDTR.store(NONE, Ordering::Relaxed);
     WATCH.store(true, Ordering::Relaxed);
 
     let mut frame = [0; 1 + GOOD.len()];
@@ -157,12 +198,21 @@ fn pe_clear(report: &mut Report, cross: &mut Cross) {
     WATCH.store(false, Ordering::Relaxed);
     let seen = PE_SEEN.load(Ordering::Relaxed);
     let with_rxne = PE_WITH_RXNE.load(Ordering::Relaxed);
+    // Bytes the DMA had taken since the bad byte was sent, when a vector
+    // first saw PE: 1 means it already held the bad byte, 0 that the bad
+    // byte was still in DR (RXNE set) or not there yet (RXNE clear: PE
+    // raised before RXNE).
+    let taken = match PE_NDTR.load(Ordering::Relaxed) {
+        NONE => None,
+        at => Some((ndtr_before + ring - at) % ring),
+    };
     let counted = cross.to.rx().health().parity.wrapping_sub(counted_before);
     defmt::info!(
-        "{=str}: PE seen by the line vector {=u32} time(s), RXNE set in {=u32}; reader: {=usize} bytes, {=u32} parity error(s), first after byte {}; driver counted {=u32}",
+        "{=str}: PE seen by a vector {=u32} time(s), RXNE set in {=u32}; bytes the DMA had taken when PE was first seen: {}; reader: {=usize} bytes, {=u32} parity error(s), first after byte {}; driver counted {=u32}",
         name,
         seen,
         with_rxne,
+        taken,
         len,
         parity,
         parity_at,
@@ -172,7 +222,7 @@ fn pe_clear(report: &mut Report, cross: &mut Cross) {
     report.check_for(
         name,
         "UART-014",
-        "PE clear: line vector saw PE, RXNE state above",
+        "PE clear: a vector saw PE, RXNE and DMA state above",
         match sent {
             Err(error) => Err(error.into()),
             Ok(()) if seen == 0 => Err(Fail::NotReported(Error::Parity)),
@@ -181,17 +231,25 @@ fn pe_clear(report: &mut Report, cross: &mut Cross) {
     );
 
     // The bad byte itself may be there or not: DMA takes it, unless the
-    // clear's DR read got to it first.
+    // clear's DR read got to it first. The one parity error must fall
+    // right after it, or where it would have been.
     let received = &got[..len.min(got.len())];
-    let good = match received {
-        [BAD, rest @ ..] => rest,
-        rest => rest,
+    let (good, error_at) = match received {
+        [BAD, rest @ ..] => (rest, 1),
+        rest => (rest, 0),
     };
     report.check_for(
         name,
         "UART-014",
         "PE clear: next good frame after a parity error intact and in order",
-        if let Some(at) = GOOD.iter().zip(good).position(|(sent, got)| sent != got) {
+        if parity != 1 {
+            Err(Fail::NotReported(Error::Parity))
+        } else if parity_at != Some(error_at) {
+            Err(Fail::Count {
+                expected: error_at as u32,
+                got: parity_at.unwrap_or(0) as u32,
+            })
+        } else if let Some(at) = GOOD.iter().zip(good).position(|(sent, got)| sent != got) {
             Err(Fail::Mismatch {
                 at,
                 sent: GOOD[at],
@@ -211,13 +269,6 @@ fn pe_clear(report: &mut Report, cross: &mut Cross) {
         },
     );
 
-    let restored = cross
-        .set_config(&Config::new(115_200))
-        .map_err(Fail::from)
-        .and_then(|()| {
-            tests::drain(cross);
-            tests::echo(cross, b"restored")
-        });
     report.check_for(
         name,
         "UART-014",
@@ -227,8 +278,20 @@ fn pe_clear(report: &mut Report, cross: &mut Cross) {
         } else if let Some(got) = [parity, counted, seen].into_iter().find(|&n| n != 1) {
             Err(Fail::Count { expected: 1, got })
         } else {
-            restored
+            Ok(())
         },
+    );
+
+    report.check(
+        name,
+        "back to 8N1 after the PE clear check",
+        cross
+            .set_config(&Config::new(115_200))
+            .map_err(Fail::from)
+            .and_then(|()| {
+                tests::drain(cross);
+                tests::echo(cross, b"restored")
+            }),
     );
 }
 
@@ -320,34 +383,32 @@ mod app {
 
     #[task(binds = USART1, priority = 2, shared = [irq1])]
     fn usart1_line(cx: usart1_line::Context) {
-        crate::watch(stm32_metapac::USART1);
-        cx.shared.irq1.on_interrupt();
+        crate::serve_usart1(cx.shared.irq1);
     }
 
     #[task(binds = DMA2_STREAM5, priority = 2, shared = [irq1])]
     fn usart1_rx(cx: usart1_rx::Context) {
-        cx.shared.irq1.on_interrupt();
+        crate::serve_usart1(cx.shared.irq1);
     }
 
     #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq1])]
     fn usart1_tx(cx: usart1_tx::Context) {
-        cx.shared.irq1.on_interrupt();
+        crate::serve_usart1(cx.shared.irq1);
     }
 
     #[task(binds = USART6, priority = 2, shared = [irq6])]
     fn usart6_line(cx: usart6_line::Context) {
-        crate::watch(stm32_metapac::USART6);
-        cx.shared.irq6.on_interrupt();
+        crate::serve_usart6(cx.shared.irq6);
     }
 
     #[task(binds = DMA2_STREAM2, priority = 2, shared = [irq6])]
     fn usart6_rx(cx: usart6_rx::Context) {
-        cx.shared.irq6.on_interrupt();
+        crate::serve_usart6(cx.shared.irq6);
     }
 
     #[task(binds = DMA2_STREAM6, priority = 2, shared = [irq6])]
     fn usart6_tx(cx: usart6_tx::Context) {
-        cx.shared.irq6.on_interrupt();
+        crate::serve_usart6(cx.shared.irq6);
     }
 
     #[task(priority = 1, local = [usart1, usart6, vectors1, vectors6, led])]
@@ -383,6 +444,8 @@ mod app {
                 }
             };
             let name = cross.name;
+            // The receiving USART's stream, as `board::run_b` wires it.
+            let receiver = stm32_metapac::DMA2.st(if forward { 2 } else { 5 });
             tests::drain(&mut cross);
             report.check_for(
                 name,
@@ -414,7 +477,7 @@ mod app {
                 "even into odd reported as parity error",
                 tests::parity_mismatch(&mut cross),
             );
-            crate::pe_clear(&mut report, &mut cross);
+            crate::pe_clear(&mut report, &mut cross, receiver, RX_RING as u32);
         }
 
         let (tx1, rx1) = usart1.halves();
