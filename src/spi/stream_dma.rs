@@ -158,9 +158,13 @@ impl Spi {
     ///
     /// A refusal hands back `wiring` and `buffers` with the reason, to
     /// retry or use elsewhere. Every reason but [`ConfigError::DmaBusy`]
-    /// leaves the hardware untouched. `DmaBusy` comes after the SPI was
-    /// enabled and reset; the stream that did not stop is still running, as
-    /// the earlier owner left it.
+    /// leaves the hardware untouched. `DmaBusy` means a stream an earlier
+    /// owner left running did not report itself stopped in time. Its EN is
+    /// cleared, so it may still stop later. Neither stream was pointed at
+    /// `buffers`, so they are safe to reuse. By then the SPI has been
+    /// enabled and reset in RCC, with its registers at their reset values.
+    /// If the receive stream is the one, the transmit stream has stopped; if
+    /// the transmit stream is, the receive stream is as it was left.
     #[allow(clippy::type_complexity)]
     pub fn new<U, Sck, Miso, Mosi, TxD, RxD>(
         rcc: &mut Rcc,

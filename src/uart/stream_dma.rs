@@ -400,10 +400,19 @@ impl Uart {
     ///
     /// A refusal hands back `wiring` and `buffers` with the reason, to
     /// retry or use elsewhere. Every reason but [`ConfigError::DmaBusy`]
-    /// leaves the hardware untouched. `DmaBusy` comes after the USART was
-    /// enabled and reset, and its frame possibly written, with the receiver
-    /// and transmitter off; the stream that did not stop is still running,
-    /// as the earlier owner left it.
+    /// leaves the hardware untouched.
+    ///
+    /// `DmaBusy` means a stream an earlier owner left running did not
+    /// report itself stopped in time. Its EN is cleared, so it may still
+    /// stop later. Neither stream was ever pointed at `buffers`, so they
+    /// are safe to reuse. By then the USART has been enabled and reset in
+    /// RCC, and:
+    /// - if the transmit stream is the one, nothing else was touched: the
+    ///   USART's registers are at their reset values, and the receive
+    ///   stream is as the earlier owner left it;
+    /// - if the receive stream is the one, the transmit stream has
+    ///   stopped, and the frame is written: UE, DMAT, DMAR and EIE set, PCE
+    ///   and PEIE too with parity, and RE and TE off.
     #[allow(clippy::type_complexity)]
     pub fn new<U, TxP, RxP, TxD, RxD>(
         rcc: &mut Rcc,
@@ -420,7 +429,9 @@ impl Uart {
     {
         // `open` only borrows the parts, so a refusal can hand them back. On
         // success the tokens and the buffers' references end here, and the
-        // driver is the only user of their streams and memory.
+        // driver is the only user of their streams and memory. The driver
+        // keeps raw pointers into `buffers`, so after `Ok` nothing here may
+        // touch `buffers` again: that would alias memory DMA now owns.
         match Self::open::<U, TxD, RxD>(rcc, &wiring.tx_dma, &wiring.rx_dma, config, &mut buffers) {
             Ok(opened) => Ok(opened),
             Err(error) => Err(Refused::new(error, (wiring, buffers))),
@@ -463,7 +474,13 @@ impl Uart {
             frame_cycles,
             clock: None,
         };
-        let rx = UartRx::assemble(info, crate::dma::claim_channel(rx_dma), RxD::REQUEST, buffers.rx, frame_cycles);
+        let rx = UartRx::assemble(
+            info,
+            crate::dma::claim_channel(rx_dma),
+            RxD::REQUEST,
+            buffers.rx,
+            frame_cycles,
+        );
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
@@ -864,7 +881,8 @@ impl UartRx {
     /// `UartIrq` to call from the USART's vector and the receive stream's.
     ///
     /// A refusal hands back `wiring` and `ring` with the reason, as
-    /// [`Uart::new`] does, and leaves the hardware as that describes.
+    /// [`Uart::new`] does. A `DmaBusy` leaves the hardware as that
+    /// describes for the receive stream, with no transmit stream.
     #[allow(clippy::type_complexity)]
     pub fn new<U, RxP, RxD>(
         rcc: &mut Rcc,
@@ -877,7 +895,8 @@ impl UartRx {
         RxP: RxPin<U>,
         RxD: RxDma<U>,
     {
-        // As in `Uart::new`: `open` only borrows the parts.
+        // As in `Uart::new`: `open` only borrows the parts, and after `Ok`
+        // nothing here may touch `ring` again.
         match Self::open::<U, RxD>(rcc, &wiring.rx_dma, config, ring) {
             Ok(opened) => Ok(opened),
             Err(error) => Err(Refused::new(error, (wiring, ring))),
@@ -900,7 +919,13 @@ impl UartRx {
         let rx_len = ring_len(ring)?;
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
         reset(rcc, info, rx_len);
-        let rx = Self::assemble(info, crate::dma::claim_channel(rx_dma), RxD::REQUEST, ring, frame_cycles);
+        let rx = Self::assemble(
+            info,
+            crate::dma::claim_channel(rx_dma),
+            RxD::REQUEST,
+            ring,
+            frame_cycles,
+        );
         let vectors = UartInterrupts {
             line: U::INTERRUPT,
             rx_dma: RxD::INTERRUPT,

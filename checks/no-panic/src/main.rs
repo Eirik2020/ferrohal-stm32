@@ -457,8 +457,17 @@ where
     use embedded_hal::spi::SpiBus;
 
     black_box(&spi::BlockingWiring::<U, K, I, O>::RESOURCES).iter().for_each(keep);
-    let Ok(mut bus) = spi::BlockingSpi::new(rcc, wiring, &black_box(spi::Config::new(Hertz::mhz(10)))) else {
-        return;
+    // A refusal hands back the wiring: retry once with it, at 1 MHz.
+    let mut bus = match spi::BlockingSpi::new(rcc, wiring, &black_box(spi::Config::new(Hertz::mhz(10)))) {
+        Ok(bus) => bus,
+        Err(refused) => {
+            keep(refused.error());
+            let wiring = refused.into_parts();
+            let Ok(bus) = spi::BlockingSpi::new(rcc, wiring, &black_box(spi::Config::new(Hertz::mhz(1)))) else {
+                return;
+            };
+            bus
+        }
     };
     let data = black_box(&[0x5au8; 300][..]);
     let mut buf = [0u8; 300];

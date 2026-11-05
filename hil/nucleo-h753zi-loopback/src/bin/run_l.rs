@@ -53,7 +53,7 @@ fn main() -> ! {
         Err(error) => report.check(
             "SPI2 polled PB10/PC2/PC3",
             "open",
-            Err(Fail::SpiConfig(error)),
+            Err(Fail::SpiConfig(error.error())),
         ),
     }
     match BlockingSpi::new(&mut run.rcc, run.spi4, &board::SPI) {
@@ -69,7 +69,7 @@ fn main() -> ! {
         Err(error) => report.check(
             "SPI4 polled PE12/PE13/PE14",
             "open",
-            Err(Fail::SpiConfig(error)),
+            Err(Fail::SpiConfig(error.error())),
         ),
     }
     let led = &mut run.led;

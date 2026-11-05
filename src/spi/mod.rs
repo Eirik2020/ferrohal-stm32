@@ -9,8 +9,8 @@
 //!   pins and two DMA streams; the routing traits reject a wrong
 //!   combination at compile time. Chip select is not the driver's: it is a
 //!   GPIO output the firmware drives around each transfer. A refusal is a
-//!   [`Refused`]: the reason, with the wiring and buffers handed back.
-//!   `BlockingSpi::new` doesn't hand its wiring back yet.
+//!   [`Refused`]: the reason, with the wiring and buffers handed back
+//!   (`BlockingSpi::new`: the wiring).
 //! - **transfer**: `start(tx)` begins one full-duplex DMA transfer and
 //!   returns; `on_interrupt()` (or `poll()`) reports its completion, after
 //!   which `received()` holds the bytes clocked in. `abort()` recovers a

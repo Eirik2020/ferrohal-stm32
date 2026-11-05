@@ -140,7 +140,19 @@ pub trait StreamInterrupt {
 /// Outside FerroHAL a token's stream is reached only by giving the token
 /// up. The drivers' constructors reach it while the caller keeps the
 /// token, so that a refusal can hand it back, through a method that needs
-/// a key only FerroHAL can make:
+/// a key only FerroHAL can make. Giving the token up works through any
+/// bound:
+///
+/// ```
+/// fn one_owner<S: ferrohal_stm32::dma::StreamInstance>(token: S) -> ferrohal_stm32::dma::Channel {
+///     token.into_channel()
+/// }
+/// ```
+///
+/// Reaching it while keeping the token doesn't, and neither does naming the
+/// key. An argument that never returns, such as `todo!()`, compiles, but
+/// the call never happens. Stable rustdoc doesn't check the error codes
+/// below; they are the ones the compiler gives.
 ///
 /// ```compile_fail,E0061
 /// fn two_owners<S: ferrohal_stm32::dma::StreamInstance>(token: &S) {

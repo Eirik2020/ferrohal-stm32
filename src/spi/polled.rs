@@ -13,7 +13,7 @@
 use crate::{
     gpio::AltPin,
     rcc::Rcc,
-    resource::{Resource, Signal},
+    resource::{Refused, Resource, Signal},
     spi::{
         BlockingWiring, Config, ConfigError, Error,
         stream_dma::{Info, Instance, MisoPin, MosiPin, SckPin},
@@ -42,11 +42,15 @@ pub struct BlockingSpi {
 impl BlockingSpi {
     /// Enables and resets the SPI and configures it as a master. Chip select
     /// is the firmware's GPIO.
+    ///
+    /// A refusal hands back `wiring` with the reason. Every refusal comes
+    /// before anything is written to hardware.
+    #[allow(clippy::type_complexity)]
     pub fn new<U, Sck, Miso, Mosi>(
         rcc: &mut Rcc,
-        _wiring: BlockingWiring<U, Sck, Miso, Mosi>,
+        wiring: BlockingWiring<U, Sck, Miso, Mosi>,
         config: &Config,
-    ) -> Result<Self, ConfigError>
+    ) -> Result<Self, Refused<ConfigError, BlockingWiring<U, Sck, Miso, Mosi>>>
     where
         U: Instance,
         Sck: SckPin<U>,
@@ -55,10 +59,14 @@ impl BlockingSpi {
     {
         let info = U::info();
         let clocks = rcc.clocks();
-        let kernel_clock = U::KERNEL
-            .frequency(&clocks)
-            .ok_or(ConfigError::KernelClock)?;
-        let code = config.divider(kernel_clock)?;
+        let Some(kernel_clock) = U::KERNEL.frequency(&clocks) else {
+            return Err(Refused::new(ConfigError::KernelClock, wiring));
+        };
+        let code = match config.divider(kernel_clock) {
+            Ok(code) => code,
+            Err(error) => return Err(Refused::new(error, wiring)),
+        };
+        // Past the last refusal: the wiring's tokens end when `new` returns.
         rcc.enable(info.enable());
         rcc.reset(info.enable());
         info.unit().configure(code, config);
