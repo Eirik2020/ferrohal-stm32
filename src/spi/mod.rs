@@ -8,7 +8,9 @@
 //!   [`Wiring`] comes from the board file and names the instance, its three
 //!   pins and two DMA streams; the routing traits reject a wrong
 //!   combination at compile time. Chip select is not the driver's: it is a
-//!   GPIO output the firmware drives around each transfer.
+//!   GPIO output the firmware drives around each transfer. A refusal is a
+//!   [`Refused`]: the reason, with the wiring and buffers handed back
+//!   (`BlockingSpi::new`: the wiring).
 //! - **transfer**: `start(tx)` begins one full-duplex DMA transfer and
 //!   returns; `on_interrupt()` (or `poll()`) reports its completion, after
 //!   which `received()` holds the bytes clocked in. `abort()` recovers a
@@ -34,7 +36,7 @@ pub use stream_dma::{Instance, MisoPin, MosiPin, SckPin, Spi, SpiRxDma, SpiTxDma
 
 pub use embedded_hal::spi::{MODE_0, MODE_1, MODE_2, MODE_3, Mode, Phase, Polarity};
 
-pub use crate::resource::{IrqError, Resource, Signal};
+pub use crate::resource::{IrqError, Refused, Resource, Signal};
 pub use crate::time::CycleClock;
 use crate::time::Hertz;
 
@@ -192,7 +194,8 @@ impl SpiInterrupts {
     }
 }
 
-/// Why `Spi::new`, `set_config` or `check` refused.
+/// Why `Spi::new`, `set_config` or `check` refused. `Spi::new` returns it
+/// in a [`Refused`], with what it took.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigError {

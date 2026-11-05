@@ -136,9 +136,61 @@ pub trait StreamInterrupt {
 }
 
 /// A stream token, erasable into a [`Channel`].
-pub trait StreamInstance: crate::Sealed {
+///
+/// Outside FerroHAL a token's stream is reached only by giving the token
+/// up. The drivers' constructors reach it while the caller keeps the
+/// token, so that a refusal can hand it back, through a method that needs
+/// a key only FerroHAL can make. Giving the token up works through any
+/// bound:
+///
+/// ```
+/// fn one_owner<S: ferrohal_stm32::dma::StreamInstance>(token: S) -> ferrohal_stm32::dma::Channel {
+///     token.into_channel()
+/// }
+/// ```
+///
+/// Reaching it while keeping the token doesn't, and neither does naming the
+/// key. An argument that never returns, such as `todo!()`, compiles, but
+/// the call never happens. Stable rustdoc doesn't check the error codes
+/// below; they are the ones the compiler gives.
+///
+/// ```compile_fail,E0061
+/// fn two_owners<S: ferrohal_stm32::dma::StreamInstance>(token: &S) {
+///     let _ = (token.claim(), token.claim());
+/// }
+/// ```
+///
+/// ```compile_fail,E0603
+/// fn a_key() -> ferrohal_stm32::dma::claim::Key {
+///     todo!()
+/// }
+/// ```
+pub trait StreamInstance: crate::Sealed + claim::Claim {
     fn into_channel(self) -> Channel;
 }
+
+mod claim {
+    /// Proof that a call comes from inside FerroHAL: only this module can
+    /// make one, and nothing hands one out.
+    pub struct Key(());
+
+    /// A stream reached while the caller's token stays where it is. Any
+    /// code can see this method through a `StreamInstance` bound, so it
+    /// takes a [`Key`].
+    pub trait Claim {
+        fn claim(&self, key: Key) -> super::Channel;
+    }
+
+    /// The stream's [`Channel`](super::Channel), a second owner beside the
+    /// token. The constructor that calls this keeps the pair to one: on
+    /// success it drops the token and keeps the channel, on a refusal it
+    /// drops the channel and returns the token.
+    pub(crate) fn channel<S: Claim>(token: &S) -> super::Channel {
+        token.claim(Key(()))
+    }
+}
+
+pub(crate) use claim::channel as claim_channel;
 
 impl<const D: u8, const N: u8> crate::Sealed for Stream<D, N> {}
 
@@ -147,6 +199,15 @@ where
     Dma<D>: DmaInstance,
 {
     fn into_channel(self) -> Channel {
+        claim::channel(&self)
+    }
+}
+
+impl<const D: u8, const N: u8> claim::Claim for Stream<D, N>
+where
+    Dma<D>: DmaInstance,
+{
+    fn claim(&self, _key: claim::Key) -> Channel {
         const { assert!(N < 8, "a controller has streams 0 to 7") };
         Channel {
             regs: <Dma<D> as DmaInstance>::regs(),

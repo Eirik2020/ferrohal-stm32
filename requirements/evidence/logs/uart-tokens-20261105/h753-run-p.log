@@ -1,0 +1,9 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32H753ZI --probe '0483:374e' target/thumbv7em-none-eabihf/release/run-p`
+     Finished in 2.12s
+[INFO ] PASS TIM1 starts TIM8: the slave waits for the master [PWM-004] (run_p ../common/tests.rs:241)
+[INFO ] PASS TIM1 starts TIM8: 100 starts: the master's starts the slave [PWM-005] (run_p ../common/tests.rs:241)
+[INFO ] PASS TIM1 starts TIM8: 100 starts: they begin together [PWM-005] (run_p ../common/tests.rs:241)
+[INFO ] TIM1 starts TIM8: at most 4 counts apart, read one after the other (run_p ../common/pwm.rs:614)
+[INFO ] all checks passed (run_p ../common/tests.rs:1265)
+Firmware exited successfully
