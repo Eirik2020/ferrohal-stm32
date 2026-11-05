@@ -1,0 +1,69 @@
+   Compiling ferrohal-stm32 v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32)
+   Compiling foxeer-f405-v2 v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/foxeer-f405-v2)
+    Finished `release` profile [optimized + debuginfo] target(s) in 3.15s
+Submitting leave request...
+Transitioning to dfuMANIFEST state
+PASS host: port usb-FerroHAL_FerroHAL_bench_foxeer-f405-v2-if00
+PASS host: 1 bytes echoed
+PASS host: 63 bytes echoed
+PASS host: 64 bytes echoed
+PASS host: 65 bytes echoed
+PASS host: 128 bytes echoed
+PASS host: 512 bytes echoed
+PASS host: 4096 bytes echoed
+PASS host: 64 KiB echoed at 589 KiB/s
+Submitting leave request...
+Transitioning to dfuMANIFEST state
+PASS host: port usb-FerroHAL_FerroHAL_bench_foxeer-f405-v2-if00
+INFO reset cause: other
+PASS clocks: HSE ready
+PASS clocks: PLL locked
+PASS clocks: PLL fed from HSE
+PASS clocks: SYSCLK is the PLL
+PASS clocks: scale 2 set before freeze, for it to replace: bits 15:14 0b00 [RCC-003]
+PASS clocks: PWR_CR bits 15:14 0b01 (scale 1 is 0b01), VOSRDY true [RCC-003]
+PASS clocks: 167927467 CPU cycles per 1000 host frames, want 168000000 within 0.1%
+PASS clocks: 16800169 CPU cycles per 100 ms of the timebase, want 16800000 within 0.1%
+PASS uid: [2b, 00, 3e, 00, 12, 47, 34, 33, 33, 38, 34, 32]
+PASS imu: WHO_AM_I over DMA is 0x47 at 656250 Hz
+PASS imu: 100 more DMA reads say the same
+PASS imu: the blocking path reads Some(71)
+PASS imu: 100 DMA reads at 10500000 Hz
+PASS imu: soft reset done, status Some(16)
+PASS imu: configured for 2 kHz data ready on INT1
+PASS imu: 405 data-ready edges in 200 ms on EXTI line 4, want 400 within 5%
+PASS imu: 400 bursts of 15 bytes at 10500000 Hz, 0 failed, slowest 24 us
+PASS imu: they took 197671 us, want 200000 within 5%: none missed
+PASS imu: accelerometer reads 992 mg: gravity, if the board isn't being moved
+PASS imu: 30 C inside
+PASS imu: Health { transfers: 613, dma_errors: 0, overruns: 0, mode_faults: 0, timeouts: 0, aborts: 0 }
+PASS nor: JEDEC ID Ok([ef, 40, 18]) at 10500000 Hz, same over 10 reads
+PASS nor: idle, status Ok(0)
+PASS nor: sector erased in Ok(49030) us
+PASS nor: reads blank, first difference Ok(None)
+PASS nor: 16 pages programmed, slowest Ok(379) us
+PASS nor: reads back, first difference Ok(None)
+PASS nor: a read across a page boundary
+PASS nor: erased again in Ok(49689) us
+PASS nor: left blank, first difference Ok(None)
+PASS nor: the sectors either side didn't change
+PASS timers: TIM8 waits for TIM1
+PASS timers: 100 starts of TIM8 from TIM1, 0 missed, at most 4 counts apart
+PASS motors: 100 of 100 frames on all four streams through the AWG, slowest 39 us [AWG-005]
+PASS motors: all four lanes read their pads over DMA, 4 of 4 [AWG-012]
+PASS adc: VDDA is 3353 mV
+PASS adc: die Ok(372) tenths of a degree
+PASS adc: 100 sequences of 3 channels over DMA, 0 failed, slowest 79 us
+PASS adc: 3 samples in scale
+INFO adc: temperature is 785 mV (959)
+INFO adc: voltage PC0 is 2 mV (3)
+INFO adc: current PC1 is 334 mV (409)
+DONE 39 passed, 0 failed
+PASS host: 1 bytes echoed
+PASS host: 63 bytes echoed
+PASS host: 64 bytes echoed
+PASS host: 65 bytes echoed
+PASS host: 128 bytes echoed
+PASS host: 512 bytes echoed
+PASS host: 4096 bytes echoed
+PASS host: 64 KiB echoed at 587 KiB/s

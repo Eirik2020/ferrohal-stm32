@@ -48,8 +48,13 @@ pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), ConfigError> {
     }
 }
 
-/// DS8626 and RM0090, at 2.7 V to 3.6 V. VOS keeps its reset value (scale
-/// 1), which covers 168 MHz on this chip.
+/// DS8626 and RM0090, at 2.7 V to 3.6 V, in voltage scale 1, which covers
+/// 168 MHz on this chip (scale 2 only 144 MHz) and is VOS's reset value.
+/// `freeze` writes it rather than trust that. RM0090 gives this chip one VOS
+/// bit, 14: 1 is scale 1, 0 scale 2. metapac 21.0.0 shares one PWR block
+/// with the F42x, whose VOS is bits 15:14, so it names this chip's scale 1
+/// (01) `SCALE3`, and its `SCALE1` (11) would also set bit 15, which isn't
+/// VOS here. Hence the bits, not the name.
 pub(crate) const CLOCK_LIMITS: Limits = Limits {
     sysclk_max: Hertz::mhz(168),
     hclk_max: Hertz::mhz(168),
@@ -61,6 +66,7 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
     pll_vco: (Hertz::mhz(100), Hertz::mhz(432)),
     flash_step_2v7: Hertz::mhz(30),
     max_wait_states: 5,
+    vos: pac::pwr::vals::Vos::from_bits(0b01),
 };
 
 tokens!(
@@ -101,7 +107,6 @@ tokens!(
     SDIO,
     SYSCFG,
     EXTI,
-    PWR,
     CRC,
     RTC,
     IWDG,
@@ -113,7 +118,7 @@ tokens!(
 );
 
 peripherals!(
-    "FLASH is not here: RCC's `freeze` owns its latency register.";
+    "Not here: FLASH and PWR, which RCC's `freeze` owns for the flash latency and the voltage scale.";
     RCC: RCC,
     GPIOA: Port<'A'>,
     GPIOB: Port<'B'>,
@@ -163,7 +168,6 @@ peripherals!(
     SDIO: SDIO,
     SYSCFG: SYSCFG,
     EXTI: EXTI,
-    PWR: PWR,
     CRC: CRC,
     RTC: RTC,
     IWDG: IWDG,

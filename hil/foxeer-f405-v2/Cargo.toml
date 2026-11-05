@@ -18,6 +18,9 @@ bench = false
 
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32f405rg", "rt", "usb"] }
+# Safe reads of registers the checks inspect (PWR). FerroHAL's pin; FerroHAL
+# already turns this chip on.
+stm32-metapac = { version = "=21.0.0", default-features = false, features = ["stm32f405rg"] }
 usbd-serial = "0.2.2"
 embedded-hal = "1.0.0"
 

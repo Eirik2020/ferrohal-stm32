@@ -1,0 +1,8 @@
+   Compiling nucleo-f401re-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.00s
+     Running `probe-rs run --chip STM32F401RE --probe '0483:374b' target/thumbv7em-none-eabihf/release/run-p`
+     Finished in 0.95s
+[INFO ] PASS TIM3 CH1 PA6 -> S1 -> TIM1 CH1N PA7: AWG in over the wire: a lane reads the samples on its own pin [AWG-009] (run_p ../common/tests.rs:241)
+[INFO ] PASS TIM3 CH1 PA6 -> S1 -> TIM1 CH1N PA7: AWG: a lane turns back to sending after listening [AWG-009] (run_p ../common/tests.rs:241)
+[INFO ] all checks passed (run_p ../common/tests.rs:1265)
+Firmware exited successfully
