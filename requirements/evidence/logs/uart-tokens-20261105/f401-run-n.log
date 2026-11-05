@@ -1,0 +1,9 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32F401RE --probe '0483:374b' target/thumbv7em-none-eabihf/release/run-n`
+     Finished in 0.81s
+[INFO ] PASS TIM1 starts TIM3: the slave waits for the master [PWM-004] (run_n ../common/tests.rs:241)
+[INFO ] PASS TIM1 starts TIM3: 100 starts: the master's starts the slave [PWM-005] (run_n ../common/tests.rs:241)
+[INFO ] PASS TIM1 starts TIM3: 100 starts: they begin together [PWM-005] (run_n ../common/tests.rs:241)
+[INFO ] TIM1 starts TIM3: at most 3 counts apart, read one after the other (run_n ../common/pwm.rs:614)
+[INFO ] all checks passed (run_n ../common/tests.rs:1265)
+Firmware exited successfully

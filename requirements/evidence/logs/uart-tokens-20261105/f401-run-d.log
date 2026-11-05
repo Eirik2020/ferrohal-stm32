@@ -1,0 +1,9 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F401RE --probe '0483:374b' target/thumbv7em-none-eabihf/release/run-d`
+     Finished in 0.98s
+[INFO ] run D, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2 } (run_d src/bin/run_d.rs:61)
+[INFO ] PASS USART6: vectors enabled at one priority [UART-003] (run_d ../common/tests.rs:253)
+[INFO ] PASS USART6 receive-only PA12, 100000 8E2: 25-byte frames, one chunk each [UART-007] (run_d ../common/tests.rs:253)
+[INFO ] USART6: health Health { overrun: 0, framing: 0, parity: 0, noise: 0, dma_transfer: 0, dma_overrun: 0, buffer_overrun: 0, restarts: 0, marks_lost: 0 } (run_d src/bin/run_d.rs:104)
+[INFO ] all checks passed (run_d ../common/tests.rs:1265)
+Firmware exited successfully
