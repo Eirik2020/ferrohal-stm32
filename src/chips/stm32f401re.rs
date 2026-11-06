@@ -430,7 +430,12 @@ mod tests {
     use super::*;
     use crate::adc::AdcWiring;
     use crate::gpio_v2::Analog;
+    use crate::rcc::{
+        AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllP, PllSource,
+        Request, Supply, Sysclk,
+    };
     use crate::timer::{ComplementaryLaneWiring, LaneWiring};
+    use crate::time::Hertz;
     use crate::uart::{Resource, RxWiring, Signal, Wiring};
 
     type Usart1Bench = Wiring<
@@ -540,6 +545,80 @@ mod tests {
                     request: 0
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn solve_matches_the_proven_tree() {
+        // 8 MHz crystal, 84 MHz system, 48 MHz USB: the tree the benches
+        // freeze from (8 / 8 * 336, P 4, Q 7).
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(84),
+                usb: Some(Hertz::mhz(48)),
+            }),
+            Ok(Config {
+                hse: Some(Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                }),
+                pll: Some(Pll {
+                    source: PllSource::Hse,
+                    prediv: 8,
+                    mul: 336,
+                    divp: PllP::Div4,
+                    divq: Some(7),
+                }),
+                sys: Sysclk::PllP,
+                ahb_pre: AhbPrescaler::Div1,
+                apb1_pre: ApbPrescaler::Div2,
+                apb2_pre: ApbPrescaler::Div1,
+                supply: Supply::V2_7To3_6,
+            })
+        );
+        // Without a USB request, Q is left unset.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(84),
+                usb: None,
+            })
+            .unwrap()
+            .pll
+            .unwrap()
+            .divq,
+            None
+        );
+        // A USB clock the PLL cannot give exactly: no solution.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(84),
+                usb: Some(Hertz::mhz(47)),
+            }),
+            Err(ClockError::Unsatisfiable)
+        );
+        // Past the chip's system clock: the request itself is refused.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(120),
+                usb: Some(Hertz::mhz(48)),
+            }),
+            Err(ClockError::Sysclk)
         );
     }
 }

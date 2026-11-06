@@ -374,6 +374,226 @@ const fn timer_clock(pclk: Hertz, pre: ApbPrescaler) -> Hertz {
     }
 }
 
+/// What a board asks the clocks for: its oscillator, the system frequency,
+/// and, when the board has a USB or SDIO port, the frequency that port
+/// needs — 48 MHz on every F4, taken exactly from the PLL's Q output.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct Request {
+    /// The board's oscillator.
+    pub hse: Hse,
+    /// The system frequency.
+    pub sysclk: Hertz,
+    /// What the USB or SDIO port needs, when the board has one.
+    pub usb: Option<Hertz>,
+}
+
+/// What the VCO search settles on: the PLLM, the multiplier, the P and Q
+/// dividers, and the buses' prescalers.
+type SolvedVco = (u32, u32, PllP, Option<u8>, AhbPrescaler, ApbPrescaler, ApbPrescaler);
+
+/// The smallest APB divisor that keeps `hclk / divisor` within `max`, from
+/// the divisors the APB prescalers offer.
+const fn apb_pre(hclk: u32, max: u32) -> Option<ApbPrescaler> {
+    let mut divisor = 1;
+    while divisor <= 16 {
+        if hclk / divisor <= max {
+            return apb_pre_of(divisor);
+        }
+        divisor *= 2;
+    }
+    None
+}
+
+const fn apb_pre_of(divisor: u32) -> Option<ApbPrescaler> {
+    match divisor {
+        1 => Some(ApbPrescaler::Div1),
+        2 => Some(ApbPrescaler::Div2),
+        4 => Some(ApbPrescaler::Div4),
+        8 => Some(ApbPrescaler::Div8),
+        16 => Some(ApbPrescaler::Div16),
+        _ => None,
+    }
+}
+
+/// The smallest AHB divisor that keeps `sysclk / divisor` within `max`.
+const fn ahb_pre(sysclk: u32, max: u32) -> Option<AhbPrescaler> {
+    let mut divisor = 1;
+    while divisor <= 512 {
+        if sysclk / divisor <= max {
+            return ahb_pre_of(divisor);
+        }
+        divisor *= if divisor < 16 { 2 } else { 4 };
+    }
+    None
+}
+
+const fn ahb_pre_of(divisor: u32) -> Option<AhbPrescaler> {
+    match divisor {
+        1 => Some(AhbPrescaler::Div1),
+        2 => Some(AhbPrescaler::Div2),
+        4 => Some(AhbPrescaler::Div4),
+        8 => Some(AhbPrescaler::Div8),
+        16 => Some(AhbPrescaler::Div16),
+        64 => Some(AhbPrescaler::Div64),
+        128 => Some(AhbPrescaler::Div128),
+        256 => Some(AhbPrescaler::Div256),
+        512 => Some(AhbPrescaler::Div512),
+        _ => None,
+    }
+}
+
+impl Config {
+    /// Computes a configuration for `request`: the PLL from the HSE, with
+    /// its input the oscillator's smallest division inside the chip's input
+    /// range, and the VCO the smallest that both the system clock (through
+    /// P) and the USB clock (through Q, exactly) divide down from. The AHB
+    /// and APB prescalers are the smallest divisors that keep every bus
+    /// within its limit, so the timers behind a divided APB run as fast as
+    /// the chip allows. The result is validated before it is returned: what
+    /// `solve` returns always freezes.
+    ///
+    /// This is a convenience over [`Config`]'s stated dividers, not a
+    /// replacement: a board that wants a particular tree states it, and
+    /// [`validate`](Self::validate) checks it as ever.
+    pub const fn solve(request: Request) -> Result<Self, ClockError> {
+        let limits = &CLOCK_LIMITS;
+        let sysclk = request.sysclk.0;
+        if sysclk > limits.sysclk_max.0 || sysclk == 0 {
+            return Err(ClockError::Sysclk);
+        }
+        let hse_freq = request.hse.freq.0;
+        // The PLL input: the largest PLLM that keeps it inside the chip's
+        // range, tried largest first — an oscillator that divides to exactly
+        // the input range's lower bound (1 MHz on a whole-MHz crystal) is
+        // tried first.
+        let mut prediv = hse_freq / limits.pll_input.0.0;
+        if prediv > 63 {
+            prediv = 63;
+        }
+        while prediv >= 2 {
+            let vco_in = hse_freq / prediv;
+            if vco_in > limits.pll_input.1.0 {
+                // A smaller PLLM only raises the input further.
+                break;
+            }
+            if vco_in < limits.pll_input.0.0 {
+                prediv -= 1;
+                continue;
+            }
+            let solved = Self::solve_vco(request, limits, sysclk, prediv, vco_in);
+            match solved {
+                Some((prediv, mul, divp, divq, ahb_pre, apb1_pre, apb2_pre)) => {
+                    let config = Self {
+                        hse: Some(request.hse),
+                        pll: Some(Pll {
+                            source: PllSource::Hse,
+                            prediv: prediv as u8,
+                            mul: mul as u16,
+                            divp,
+                            divq,
+                        }),
+                        sys: Sysclk::PllP,
+                        ahb_pre,
+                        apb1_pre,
+                        apb2_pre,
+                        supply: Supply::V2_7To3_6,
+                    };
+                    // What `solve` returns always freezes.
+                    return match config.validate() {
+                        Ok(_) => Ok(config),
+                        Err(error) => Err(error),
+                    };
+                }
+                None => prediv -= 1,
+            }
+        }
+        Err(ClockError::Unsatisfiable)
+    }
+}
+
+impl Config {
+    /// The smallest VCO on the input `vco_in` that the system clock (through
+    /// P) and the USB clock (through Q) both divide down from, with the
+    /// buses' smallest prescalers alongside. Returns the PLLM it used, so
+    /// the caller can go on to the next input when this one has no solution.
+    const fn solve_vco(
+        request: Request,
+        limits: &Limits,
+        sysclk: u32,
+        prediv: u32,
+        vco_in: u32,
+    ) -> Option<SolvedVco> {
+        let mut mul = 50;
+        while mul <= 432 {
+            let vco = vco_in * mul;
+            if vco > limits.pll_vco.1.0 {
+                break;
+            }
+            if vco < limits.pll_vco.0.0 {
+                mul += 1;
+                continue;
+            }
+            // The smallest P divisor that gives the system clock.
+            let divp = if vco.is_multiple_of(2) && vco / 2 == sysclk {
+                Some(PllP::Div2)
+            } else if vco.is_multiple_of(4) && vco / 4 == sysclk {
+                Some(PllP::Div4)
+            } else if vco.is_multiple_of(6) && vco / 6 == sysclk {
+                Some(PllP::Div6)
+            } else if vco.is_multiple_of(8) && vco / 8 == sysclk {
+                Some(PllP::Div8)
+            } else {
+                None
+            };
+            let divp = match divp {
+                Some(divp) => divp,
+                None => {
+                    mul += 1;
+                    continue;
+                }
+            };
+            // Q: the USB clock, exactly.
+            let divq = match request.usb {
+                None => None,
+                Some(usb) => {
+                    let mut q = 2;
+                    let mut found = None;
+                    while q <= 15 {
+                        if vco.is_multiple_of(q) && vco / q == usb.0 {
+                            found = Some(q as u8);
+                        }
+                        q += 1;
+                    }
+                    match found {
+                        Some(divq) => Some(divq),
+                        None => {
+                            mul += 1;
+                            continue;
+                        }
+                    }
+                }
+            };
+            // The buses: the smallest divisors inside their limits.
+            let ahb_pre = match ahb_pre(sysclk, limits.hclk_max.0) {
+                Some(ahb_pre) => ahb_pre,
+                None => return None,
+            };
+            let hclk = sysclk / ahb_pre.divisor();
+            let apb1_pre = match apb_pre(hclk, limits.pclk1_max.0) {
+                Some(apb1_pre) => apb1_pre,
+                None => return None,
+            };
+            let apb2_pre = match apb_pre(hclk, limits.pclk2_max.0) {
+                Some(apb2_pre) => apb2_pre,
+                None => return None,
+            };
+            return Some((prediv, mul, divp, divq, ahb_pre, apb1_pre, apb2_pre));
+        }
+        None
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Hse {
@@ -553,6 +773,8 @@ pub enum ClockError {
     HseTimeout,
     /// The PLL did not lock within its bound. The system is still on HSI.
     PllTimeout,
+    /// No combination of the dividers meets the request.
+    Unsatisfiable,
     /// A clock switch or the flash latency did not take within its bound.
     SwitchTimeout,
     /// The USB port needs 48 MHz from PLLQ, and `Config` doesn't give it.
