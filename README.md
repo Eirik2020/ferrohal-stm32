@@ -26,7 +26,7 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 - **SPI without DMA:** a polled, bounded `SpiBus`, for a bus whose streams are taken.
 - **I2C master:** a bounded `embedded-hal` bus for the device drivers (the barometer, the GNSS's DDC mode), over both I2C generations: the F4's SR1/SR2 register set and the H7's TIMINGR one, with the timing computed from the kernel clock, a NACK reported with the bus put back, and the wiring handed back on a refusal.
 - **EXTI:** GPIO lines with typed line tokens; a line can watch a pin a peripheral drives.
-- **Timers:** an exact-rate tick, a 32-bit timebase, PWM on CHx and CHxN, compare registers fed by DMA (the DShot transmit primitive), and timer-paced sampling of a GPIO port.
+- **Timers:** an exact-rate tick, a 32-bit timebase, PWM on CHx and CHxN, compare registers fed by DMA (the DShot transmit primitive), timer-paced sampling of a GPIO port, and lane wirings that describe themselves and assemble with their tokens handed back on a refusal.
 - **Watchdog:** the independent watchdog, and the reason for the last reset.
 - **USB:** full-speed device for `usb-device` and `usbd-serial`, behind the `usb` feature.
 - **ADC:** one channel at a time or a sequence over DMA, with the internal reference and temperature sensor against their factory calibration.

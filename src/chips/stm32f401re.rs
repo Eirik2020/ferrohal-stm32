@@ -428,6 +428,7 @@ stream_interrupts!(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::timer::{ComplementaryLaneWiring, LaneWiring};
     use crate::uart::{Resource, RxWiring, Signal, Wiring};
 
     type Usart1Bench = Wiring<
@@ -481,6 +482,44 @@ mod tests {
                 stream: 1,
                 request: 5
             }
+        );
+        // The SpeedyBee's motor lanes: TIM3 CH3 on PB0, and a complementary
+        // lane, TIM1 CH1N on PA7.
+        assert_eq!(
+            LaneWiring::<TIM3, 3, Pin<'B', 0, Alternate<2>>, Stream<1, 7>>::RESOURCES,
+            [
+                Resource::Peripheral("TIM3"),
+                Resource::Pin {
+                    signal: Signal::Channel(3),
+                    port: 'B',
+                    pin: 0,
+                    af: 2
+                },
+                Resource::Dma {
+                    signal: Signal::Channel(3),
+                    controller: 1,
+                    stream: 7,
+                    request: 5
+                },
+            ]
+        );
+        assert_eq!(
+            ComplementaryLaneWiring::<TIM1, 1, Pin<'A', 7, Alternate<1>>, Stream<2, 1>>::RESOURCES,
+            [
+                Resource::Peripheral("TIM1"),
+                Resource::Pin {
+                    signal: Signal::Complementary(1),
+                    port: 'A',
+                    pin: 7,
+                    af: 1
+                },
+                Resource::Dma {
+                    signal: Signal::Complementary(1),
+                    controller: 2,
+                    stream: 1,
+                    request: 6
+                },
+            ]
         );
     }
 }

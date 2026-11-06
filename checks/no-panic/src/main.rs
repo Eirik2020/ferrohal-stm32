@@ -35,6 +35,7 @@ static mut RX: [u8; 256] = [0; 256];
 static mut RX2: [u8; 256] = [0; 256];
 static mut SPI_TX: [u8; 32] = [0; 32];
 static mut LANE: [u32; 20] = [0; 20];
+static mut COMPLEMENT: [u32; 20] = [0; 20];
 static mut TWO_WAY: [u32; 8] = [0; 8];
 static mut TWO_WAY_READS: [u16; 8] = [0; 8];
 static mut SAMPLES: [u16; 64] = [0; 64];
@@ -318,11 +319,16 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
 }
 
 /// PWM with a compare lane on channel 1, through every operation.
-pub fn exercise_lane<T, P, L>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: T, pin: P, stream: L)
+pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: T,
+    pin: P,
+    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+)
 where
     T: ferrohal_stm32::timer::ChannelTimer,
     P: ferrohal_stm32::timer::ChannelPin<T, 1>,
-    L: ferrohal_stm32::timer::CompareDma<T, 1>,
+    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<T, 1>,
 {
     use ferrohal_stm32::timer::{Pwm, nearest};
 
@@ -333,15 +339,30 @@ where
     };
     keep(pwm.period());
     keep(pwm.frequency());
-    let mut channel = pwm.channel::<1, P>(pin);
-    channel.set_duty(black_box(70));
-    keep(channel.duty());
     pwm.set_output::<1>(black_box(false));
     pwm.set_output::<1>(black_box(true));
+    // The wiring's constructor, from the pin and the stream: a refusal hands
+    // both back, and the retry takes them.
+    let wiring =
+        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
+            pin, stream,
+        );
     // SAFETY: as TX and RX in `main`.
     let buffer = black_box(unsafe { &mut *addr_of_mut!(LANE) });
-    if let Ok(mut lane) = channel.into_lane(stream, buffer) {
-        keep(lane.arm(black_box(&[1, 2, 3][..])));
+    let mut lane = match wiring.assemble(&mut pwm, buffer) {
+        Ok(lane) => lane,
+        Err(refused) => {
+            keep(refused.error());
+            let (wiring, buffer) = refused.into_parts();
+            match wiring.assemble(&mut pwm, buffer) {
+                Ok(lane) => lane,
+                Err(_) => park(),
+            }
+        }
+    };
+    lane.channel().set_duty(black_box(70));
+    keep(lane.channel().duty());
+    keep(lane.arm(black_box(&[1, 2, 3][..])));
         pwm.stage(black_box(1));
         pwm.start();
         keep(lane.on_interrupt());
@@ -379,15 +400,20 @@ where
             black_box(100),
             &mut out,
         ));
-    }
 }
 
 /// A lane that reads as well, on channel 1.
-pub fn exercise_two_way<T, P, L, const PORT: char>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: T, pin: P, stream: L)
+pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: T,
+    pin: P,
+    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+)
 where
     T: ferrohal_stm32::timer::ChannelTimer,
     P: ferrohal_stm32::timer::ChannelPin<T, 1>,
-    L: ferrohal_stm32::timer::CompareDma<T, 1> + ferrohal_stm32::timer::GpioDma,
+    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<T, 1>
+        + ferrohal_stm32::timer::GpioDma,
     ferrohal_stm32::gpio::Port<PORT>: ferrohal_stm32::gpio::PortInstance,
 {
     use ferrohal_stm32::timer::Pwm;
@@ -395,26 +421,63 @@ where
     let Ok(mut pwm) = Pwm::new(rcc, timer, black_box(Hertz::khz(600))) else {
         return;
     };
-    let channel = pwm.channel::<1, P>(pin);
     pwm.set_active_low::<1>(black_box(true));
+    let wiring =
+        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
+            pin, stream,
+        );
     // SAFETY: as TX and RX in `main`.
     let (buffer, reads) = black_box(unsafe { (&mut *addr_of_mut!(TWO_WAY), &mut *addr_of_mut!(TWO_WAY_READS)) });
-    if let Ok(mut lane) = channel.into_two_way_lane::<L, PORT>(stream, buffer, reads) {
-        keep(lane.listen(black_box(4), black_box(10)));
-        keep(lane.samples().len());
-        lane.abort();
-    }
+    let mut lane = match wiring.assemble_two_way::<PORT>(&mut pwm, buffer, reads) {
+        Ok(lane) => lane,
+        Err(refused) => {
+            keep(refused.error());
+            let (wiring, (buffer, reads)) = refused.into_parts();
+            match wiring.assemble_two_way::<PORT>(&mut pwm, buffer, reads) {
+                Ok(lane) => lane,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(lane.listen(black_box(4), black_box(10)));
+    keep(lane.samples().len());
+    lane.abort();
 }
 
-/// A complementary output (CH1N) of a timer with a break unit.
-pub fn exercise_complementary<B, N>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: B, pin: N)
+/// A complementary output (CH1N) of a timer with a break unit, assembled
+/// from its wiring.
+pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: B,
+    pin: N,
+    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+)
 where
     B: ferrohal_stm32::timer::ChannelTimer,
     N: ferrohal_stm32::timer::ComplementaryPin<B, 1>,
+    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<B, 1>,
 {
     if let Ok(mut pwm) = ferrohal_stm32::timer::Pwm::new(rcc, timer, black_box(Hertz::khz(1))) {
-        let mut channel = pwm.complementary::<1, N>(pin);
-        channel.set_duty(black_box(10));
+        let wiring = ferrohal_stm32::timer::ComplementaryLaneWiring::<
+            B,
+            1,
+            N,
+            ferrohal_stm32::dma::Stream<CD, SN>,
+        >::new(pin, stream);
+        // SAFETY: as TX and RX in `main`.
+        let buffer = black_box(unsafe { &mut *addr_of_mut!(COMPLEMENT) });
+        let mut lane = match wiring.assemble(&mut pwm, buffer) {
+            Ok(lane) => lane,
+            Err(refused) => {
+                keep(refused.error());
+                let (wiring, buffer) = refused.into_parts();
+                match wiring.assemble(&mut pwm, buffer) {
+                    Ok(lane) => lane,
+                    Err(_) => park(),
+                }
+            }
+        };
+        lane.channel().set_duty(black_box(10));
         pwm.set_output::<1>(black_box(false));
         pwm.set_output::<1>(black_box(true));
         pwm.start();
@@ -714,7 +777,7 @@ mod chip {
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM3::steal() },
         );
-        super::exercise_two_way::<_, _, _, 'A'>(
+        super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             a.p8.into_alternate::<1>(&mut a.ctrl),
@@ -873,7 +936,7 @@ mod chip {
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM3::steal() },
         );
-        super::exercise_two_way::<_, _, _, 'A'>(
+        super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             a.p8.into_alternate::<1>(&mut a.ctrl),
@@ -895,7 +958,7 @@ mod chip {
             },
         );
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
-        super::exercise_complementary(&mut rcc, p.TIM8, a.p7.into_alternate::<3>(&mut a.ctrl));
+        super::exercise_complementary(&mut rcc, p.TIM8, a.p7.into_alternate::<3>(&mut a.ctrl), dma2.s2);
         super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
         let _ = analog;
         Some((
@@ -1049,7 +1112,7 @@ mod chip {
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM8::steal() },
         );
-        super::exercise_two_way::<_, _, _, 'A'>(
+        super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             a.p8.into_alternate::<1>(&mut a.ctrl),
@@ -1071,7 +1134,7 @@ mod chip {
             },
         );
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma2.s0);
-        super::exercise_complementary(&mut rcc, p.TIM1, a.p7.into_alternate::<1>(&mut a.ctrl));
+        super::exercise_complementary(&mut rcc, p.TIM1, a.p7.into_alternate::<1>(&mut a.ctrl), dma1.s3);
         super::exercise_sampler(&mut rcc, p.TIM8, dma2.s1);
         let _ = analog;
         Some((
