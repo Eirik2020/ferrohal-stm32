@@ -751,7 +751,10 @@ pub struct RunQ {
 }
 
 pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
