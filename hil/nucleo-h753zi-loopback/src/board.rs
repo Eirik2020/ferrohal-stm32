@@ -53,13 +53,14 @@ use core::{
 
 use ferrohal_stm32::{
     chip::{
-        Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7, TIM8,
-        TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1, USART2, USART3,
-        USART6,
+        I2C1, Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7,
+        TIM8, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1, USART2,
+        USART3, USART6,
     },
     dma::Stream,
     exti,
     gpio::{Alternate, Ctrl, Output, Pin, Port, PortInstance, Pull, Speed},
+    i2c,
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllSource, Rcc,
         Supply, Sysclk, VoltageScale,
@@ -545,6 +546,40 @@ pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
         pc7,
         far_lane: dma2.s5,
         rcc,
+    })
+}
+
+// Run R: the I2C, I2C1 on PB8 and PB9 (the Zio sockets CN7-2 and CN7-4,
+// which the UART link Z4 also uses), pulled up internally, no slave
+// fitted: Z4 must be taken off. No other links.
+
+pub type I2c1Bus = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+
+pub struct RunR {
+    pub rcc: Rcc,
+    pub led: Pin<'A', 5, Output>,
+    pub i2c: I2c1Bus,
+}
+
+pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    // SCL and SDA pulled up: with no slave fitted the lines idle high,
+    // so a vacant address is answered by the bus itself with a NACK.
+    let mut scl: Pin<'B', 8, Alternate<4>> = b.p8.into_alternate(&mut b.ctrl);
+    scl.set_pull(&mut b.ctrl, Pull::Up);
+    let mut sda: Pin<'B', 9, Alternate<4>> = b.p9.into_alternate(&mut b.ctrl);
+    sda.set_pull(&mut b.ctrl, Pull::Up);
+    Ok(RunR {
+        rcc,
+        led,
+        i2c: i2c::Wiring {
+            i2c: p.I2C1,
+            scl,
+            sda,
+        },
     })
 }
 

@@ -44,8 +44,8 @@ requirements:
     title: Every wait is bounded and a stuck one recovers
     statement: >-
       Every transfer shall finish within a bound of twice its wire time plus
-      a margin, and one that runs past it shall be stopped, the bus put back,
-      and the next transfer able to start.
+      a margin, or be stopped and the bus put back, so the next transfer
+      can start.
     rationale: >-
       An unbounded wait has no place in a control loop, and a stuck bus
       must not take the I2C with it.
@@ -85,8 +85,8 @@ requirements:
     title: The timing registers make the speed asked for
     statement: >-
       The timing registers each IP version computes shall land at or below
-      the speed asked for, never above it, and the rate the driver reports
-      shall be the one those registers make.
+      the speed asked for, never above it, with the rate the driver reports
+      the one those registers make.
     rationale: >-
       Devices have a maximum SCL, and firmware checks against what the
       driver reports.

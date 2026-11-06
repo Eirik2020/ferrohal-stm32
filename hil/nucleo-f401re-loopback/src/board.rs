@@ -33,15 +33,16 @@
 
 use ferrohal_stm32::{
     chip::{
-        Peripherals, SPI1, SPI2, SPI3, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10, TIM11, USART1,
-        USART2, USART6,
+        I2C1, Peripherals, SPI1, SPI2, SPI3, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10, TIM11,
+        USART1, USART2, USART6,
     },
     dma::Stream,
     exti,
     gpio::{Alternate, Ctrl, Output, Parts, Pin, Port, PortInstance, Pull, Speed},
+    i2c,
     rcc::{
-        AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP, PllSource,
-        Rcc, Supply, Sysclk,
+        AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP,
+        PllSource, Rcc, Supply, Sysclk,
     },
     spi::{self, Spi},
     time::Hertz,
@@ -679,6 +680,39 @@ pub fn run_k(p: Peripherals) -> Result<RunK, ClockError> {
             mosi: mosi(c.p12, &mut c.ctrl),
         },
         rcc,
+    })
+}
+
+// Run Q: the I2C, I2C1 on the Arduino connector's SCL and SDA (PB8, PB9),
+// pulled up internally, no slave fitted. No links.
+
+pub type I2c1Bus = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+
+pub struct RunQ {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub i2c: I2c1Bus,
+}
+
+pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    // SCL and SDA pulled up: with no slave fitted the lines idle high,
+    // so a vacant address is answered by the bus itself with a NACK.
+    let mut scl: Pin<'B', 8, Alternate<4>> = b.p8.into_alternate(&mut b.ctrl);
+    scl.set_pull(&mut b.ctrl, Pull::Up);
+    let mut sda: Pin<'B', 9, Alternate<4>> = b.p9.into_alternate(&mut b.ctrl);
+    sda.set_pull(&mut b.ctrl, Pull::Up);
+    Ok(RunQ {
+        rcc,
+        led,
+        i2c: i2c::Wiring {
+            i2c: p.I2C1,
+            scl,
+            sda,
+        },
     })
 }
 
