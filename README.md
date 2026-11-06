@@ -24,6 +24,7 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 - **UART over DMA:** a never-stopping receive ring with idle- and error-ended chunks, queued transmit frames, receive-only UARTs, RX/TX inversion (H7), `embedded-io`.
 - **SPI master over DMA:** one full-duplex transfer at a time, finished by the receive stream's interrupt or by polling, plus a bounded `embedded-hal` `SpiBus`.
 - **SPI without DMA:** a polled, bounded `SpiBus`, for a bus whose streams are taken.
+- **I2C master:** a bounded `embedded-hal` bus for the device drivers (the barometer, the GNSS's DDC mode), over both I2C generations: the F4's SR1/SR2 register set and the H7's TIMINGR one, with the timing computed from the kernel clock, a NACK reported with the bus put back, and the wiring handed back on a refusal.
 - **EXTI:** GPIO lines with typed line tokens; a line can watch a pin a peripheral drives.
 - **Timers:** an exact-rate tick, a 32-bit timebase, PWM on CHx and CHxN, compare registers fed by DMA (the DShot transmit primitive), and timer-paced sampling of a GPIO port.
 - **Watchdog:** the independent watchdog, and the reason for the last reset.
@@ -31,7 +32,7 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 - **ADC:** one channel at a time or a sequence over DMA, with the internal reference and temperature sensor against their factory calibration.
 - **System:** restarting into the ROM bootloader, and the unique device ID.
 
-Not yet: SDMMC, I2C, BDMA, input capture.
+Not yet: SDMMC, BDMA, input capture.
 
 ## Checking it
 
