@@ -167,8 +167,10 @@ pub type LaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
     crate::resource::Refused<crate::uart::ConfigError, (LaneWiring<T, C, Pin, Stream>, Buffers)>;
 
 /// As [`LaneRefusal`], for a complementary lane's assembly.
-pub type ComplementaryLaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
-    crate::resource::Refused<crate::uart::ConfigError, (ComplementaryLaneWiring<T, C, Pin, Stream>, Buffers)>;
+pub type ComplementaryLaneRefusal<T, const C: u8, Pin, Stream, Buffers> = crate::resource::Refused<
+    crate::uart::ConfigError,
+    (ComplementaryLaneWiring<T, C, Pin, Stream>, Buffers),
+>;
 
 /// What a two-way lane's assembly returns: the lane, or the refusal with
 /// everything it took.
@@ -300,7 +302,11 @@ impl Tick {
     /// Enables and resets the timer, sets it to overflow at `rate` exactly,
     /// enables its update interrupt and starts it. Refuses with the timer
     /// token handed back: the rate is checked before the timer is touched.
-    pub fn new<T: Instance>(rcc: &mut Rcc, _timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
+    pub fn new<T: Instance>(
+        rcc: &mut Rcc,
+        _timer: T,
+        rate: Hertz,
+    ) -> Result<Self, Refused<ConfigError, T>> {
         let (prescaler, reload) = match divider(rcc.clocks().timer(T::BUS), rate, T::BITS) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, _timer)),

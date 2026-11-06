@@ -434,8 +434,8 @@ mod tests {
         AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllP, PllSource,
         Request, Supply, Sysclk,
     };
-    use crate::timer::{ComplementaryLaneWiring, LaneWiring};
     use crate::time::Hertz;
+    use crate::timer::{ComplementaryLaneWiring, LaneWiring};
     use crate::uart::{Resource, RxWiring, Signal, Wiring};
 
     type Usart1Bench = Wiring<

@@ -390,7 +390,15 @@ pub struct Request {
 
 /// What the VCO search settles on: the PLLM, the multiplier, the P and Q
 /// dividers, and the buses' prescalers.
-type SolvedVco = (u32, u32, PllP, Option<u8>, AhbPrescaler, ApbPrescaler, ApbPrescaler);
+type SolvedVco = (
+    u32,
+    u32,
+    PllP,
+    Option<u8>,
+    AhbPrescaler,
+    ApbPrescaler,
+    ApbPrescaler,
+);
 
 /// The smallest APB divisor that keeps `hclk / divisor` within `max`, from
 /// the divisors the APB prescalers offer.

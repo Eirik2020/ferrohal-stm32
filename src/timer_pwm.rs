@@ -470,8 +470,10 @@ where
         self,
         pwm: &mut Pwm<T>,
         buffer: &'static mut [u32],
-    ) -> Result<CompareLane<T, C>, super::LaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>>
-    {
+    ) -> Result<
+        CompareLane<T, C>,
+        super::LaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
+    > {
         if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
             return Err(Refused::new(error, (self, buffer)));
         }
@@ -556,8 +558,10 @@ where
         self,
         pwm: &mut Pwm<T>,
         buffer: &'static mut [u32],
-    ) -> Result<CompareLane<T, C>, super::ComplementaryLaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>>
-    {
+    ) -> Result<
+        CompareLane<T, C>,
+        super::ComplementaryLaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
+    > {
         if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
             return Err(Refused::new(error, (self, buffer)));
         }
@@ -827,7 +831,7 @@ impl Sampler {
                 return Err(Refused::new(
                     crate::uart::ConfigError::Unsupported,
                     (_timer, stream, buffer),
-                ))
+                ));
             }
         };
         if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(buffer)) {

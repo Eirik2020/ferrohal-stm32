@@ -789,8 +789,10 @@ mod tests {
 
     #[test]
     fn solve_matches_the_lucid_tree() {
-        use crate::rcc::{AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll,
-            PllSource, Request, Supply, Sysclk, VoltageScale};
+        use crate::rcc::{
+            AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllSource, Request,
+            Supply, Sysclk, VoltageScale,
+        };
         use crate::time::Hertz;
         // 8 MHz crystal, 400 MHz core, 100 MHz on Q for SPI1 to SPI3: the
         // tree the Lucid freezes from (8 / 1 * 100 = 800 wide VCO, P 2, Q 8,

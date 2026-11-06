@@ -36,8 +36,7 @@ use crate::{
 
 /// What [`Adc::into_scan`](Adc::into_scan) hands back when it refuses: the
 /// reason, and the ADC, the stream and the buffer it took.
-pub type ScanRefused<A, S> =
-    crate::resource::Refused<Error, (Adc<A>, S, &'static mut [u16])>;
+pub type ScanRefused<A, S> = crate::resource::Refused<Error, (Adc<A>, S, &'static mut [u16])>;
 
 /// How many register polls to give a stream to stop.
 const STOP_SPINS: u32 = 100_000;

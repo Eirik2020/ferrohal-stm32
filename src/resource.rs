@@ -18,11 +18,7 @@ pub enum Resource {
         af: u8,
     },
     /// An analog pin — an ADC input, with no alternate function.
-    Analog {
-        signal: Signal,
-        port: char,
-        pin: u8,
-    },
+    Analog { signal: Signal, port: char, pin: u8 },
     Dma {
         signal: Signal,
         controller: u8,

@@ -32,8 +32,7 @@ use crate::{chip::Interrupt, resource::Refused, time::Hertz};
 
 /// What the generator's constructors hand back when they refuse: the reason,
 /// and both timers with both lane groups.
-pub type AwgRefused<A, B, LA, LB> =
-    crate::resource::Refused<ConfigError, (Pwm<A>, Pwm<B>, LA, LB)>;
+pub type AwgRefused<A, B, LA, LB> = crate::resource::Refused<ConfigError, (Pwm<A>, Pwm<B>, LA, LB)>;
 
 /// The compare lanes of one timer, as a tuple: none, or one to four.
 pub trait Lanes<T: ChannelTimer> {

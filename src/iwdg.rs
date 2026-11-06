@@ -66,7 +66,10 @@ impl Watchdog {
     /// feed it within the timeout. Refuses with the watchdog token handed
     /// back when the timeout cannot be set; once the watchdog is running
     /// (an `Update` refusal), only a reset stops it.
-    pub fn start(_iwdg: WatchdogPeripheral, timeout_us: u32) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
+    pub fn start(
+        _iwdg: WatchdogPeripheral,
+        timeout_us: u32,
+    ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
         let (code, reload) = match divider(timeout_us) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, _iwdg)),

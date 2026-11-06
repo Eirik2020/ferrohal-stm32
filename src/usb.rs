@@ -35,7 +35,11 @@ pub struct UsbFs {
 /// and the token and both pins it took.
 pub type UsbNewRefused = Refused<
     ClockError,
-    (USB_OTG_FS, Pin<'A', 11, Alternate<10>>, Pin<'A', 12, Alternate<10>>),
+    (
+        USB_OTG_FS,
+        Pin<'A', 11, Alternate<10>>,
+        Pin<'A', 12, Alternate<10>>,
+    ),
 >;
 
 impl UsbFs {
