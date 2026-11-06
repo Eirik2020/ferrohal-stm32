@@ -20,6 +20,7 @@ use crate::{
     },
     gpio::{Alternate, Pin},
     rcc::{ClockError, Rcc},
+    resource::Refused,
 };
 
 /// The port's bus type, for `UsbDeviceBuilder` and the class crates.
@@ -30,16 +31,30 @@ pub struct UsbFs {
     hclk: u32,
 }
 
+/// What [`UsbFs::new`](UsbFs::new) hands back when it refuses: the reason,
+/// and the token and both pins it took.
+pub type UsbNewRefused = Refused<
+    ClockError,
+    (
+        USB_OTG_FS,
+        Pin<'A', 11, Alternate<10>>,
+        Pin<'A', 12, Alternate<10>>,
+    ),
+>;
+
 impl UsbFs {
     /// Starts the port's 48 MHz clock (the F4's PLLQ must already give it;
     /// the H7 turns on HSI48 and the USB supply) and enables the controller.
+    /// Refuses with the token and both pins handed back.
     pub fn new(
         rcc: &mut Rcc,
         _token: USB_OTG_FS,
         _dm: Pin<'A', 11, Alternate<10>>,
         _dp: Pin<'A', 12, Alternate<10>>,
-    ) -> Result<Self, ClockError> {
-        rcc.usb_clock()?;
+    ) -> Result<Self, UsbNewRefused> {
+        if let Err(error) = rcc.usb_clock() {
+            return Err(Refused::new(error, (_token, _dm, _dp)));
+        }
         rcc.enable(USB_FS.enable);
         rcc.reset(USB_FS.enable);
         Ok(Self {

@@ -31,7 +31,12 @@ use crate::{
         StreamInterrupt, Transfer, WordSize,
     },
     rcc::{Bus, Rcc, RccBit},
+    resource::Refused,
 };
+
+/// What [`Adc::into_scan`](Adc::into_scan) hands back when it refuses: the
+/// reason, and the ADC, the stream and the buffer it took.
+pub type ScanRefused<A, S> = crate::resource::Refused<Error, (Adc<A>, S, &'static mut [u16])>;
 
 /// How many register polls to give a stream to stop.
 const STOP_SPINS: u32 = 100_000;
@@ -118,6 +123,61 @@ pub struct Channel<A> {
     _adc: PhantomData<A>,
 }
 
+/// One ADC input's wiring, as the board states it: the pin in analog mode
+/// that `A` reads, and the DMA stream that serves `A`'s conversions. The IP
+/// traits check that they belong together; this carries them and describes
+/// itself as data for the board's manifest (`RESOURCES`), and gives the
+/// channel its pin measures. The scan itself is assembled at runtime from
+/// the wirings' channels (`Adc::into_scan`), whose refusal hands the ADC,
+/// the stream and the buffer back.
+pub struct AdcWiring<A, Pin, Stream> {
+    /// The pin, in analog mode.
+    pub pin: Pin,
+    /// The DMA stream serving `A`.
+    pub stream: Stream,
+    _adc: PhantomData<fn() -> A>,
+}
+
+impl<A, Pin, Stream> AdcWiring<A, Pin, Stream> {
+    /// A wiring for one of `A`'s inputs, from its pin and stream.
+    pub const fn new(pin: Pin, stream: Stream) -> Self {
+        Self {
+            pin,
+            stream,
+            _adc: PhantomData,
+        }
+    }
+}
+
+impl<A, Pin, const CD: u8, const SN: u8> AdcWiring<A, Pin, crate::dma::Stream<CD, SN>>
+where
+    A: Instance,
+    Pin: AdcPin<A> + crate::gpio::AltPin,
+    crate::dma::Stream<CD, SN>: AdcDma<A>,
+{
+    /// Everything this wiring uses, as data: the instance, the analog pin,
+    /// and the stream with its request.
+    pub const RESOURCES: [crate::resource::Resource; 3] = [
+        crate::resource::Resource::Peripheral(A::NAME),
+        crate::resource::Resource::Analog {
+            signal: crate::resource::Signal::Adc(Pin::CHANNEL),
+            port: Pin::PORT,
+            pin: Pin::PIN,
+        },
+        crate::resource::Resource::Dma {
+            signal: crate::resource::Signal::Adc(Pin::CHANNEL),
+            controller: CD,
+            stream: SN,
+            request: <crate::dma::Stream<CD, SN> as AdcDma<A>>::REQUEST,
+        },
+    ];
+
+    /// The channel this wiring's pin measures.
+    pub const fn channel(&self) -> Channel<A> {
+        Channel::new(Pin::CHANNEL)
+    }
+}
+
 impl<A> Clone for Channel<A> {
     fn clone(&self) -> Self {
         *self
@@ -148,13 +208,20 @@ pub struct Adc<A> {
 
 impl<A: Instance> Adc<A> {
     /// Enables and resets the ADC and powers it up: on the H7 that also
-    /// calibrates it, which takes a few milliseconds.
-    pub fn new(rcc: &mut Rcc, _adc: A, config: &Config) -> Result<Self, Error> {
-        crate::adc_ip::start_clock(rcc)?;
+    /// calibrates it, which takes a few milliseconds. Refuses with the ADC
+    /// token handed back; on a power-up refusal the ADC is already enabled
+    /// and reset.
+    pub fn new(rcc: &mut Rcc, _adc: A, config: &Config) -> Result<Self, Refused<Error, A>> {
+        if let Err(error) = crate::adc_ip::start_clock(rcc) {
+            return Err(Refused::new(error, _adc));
+        }
         rcc.enable(A::ENABLE);
         rcc.reset(A::ENABLE);
         let unit = A::unit();
-        unit.power_up(&rcc.clocks(), A::BUS, A::INTERNAL, config.sample_cycles)?;
+        if let Err(error) = unit.power_up(&rcc.clocks(), A::BUS, A::INTERNAL, config.sample_cycles)
+        {
+            return Err(Refused::new(error, _adc));
+        }
         Ok(Self {
             unit,
             _adc: PhantomData,
@@ -182,27 +249,33 @@ impl<A: Instance> Adc<A> {
     }
 
     /// Hands the ADC to a [`AdcScan`] converting `channels` in order over
-    /// `stream` into `buffer`. On an error the ADC and the stream are gone; a
-    /// board checks its sequence once, at startup.
+    /// `stream` into `buffer`. Refuses with the ADC, the stream and the
+    /// buffer handed back: the sequence and the buffer are checked, and the
+    /// stream stopped through a second owner beside its token, before
+    /// anything is consumed.
     pub fn into_scan<S>(
         self,
         stream: S,
         channels: &[Channel<A>],
         buffer: &'static mut [u16],
-    ) -> Result<AdcScan<A>, Error>
+    ) -> Result<AdcScan<A>, ScanRefused<A, S>>
     where
         S: AdcDma<A>,
     {
         if channels.is_empty() || channels.len() > 16 || channels.len() > buffer.len() {
-            return Err(Error::Sequence);
+            return Err(Refused::new(Error::Sequence, (self, stream, buffer)));
         }
-        crate::chip::check_dma_buffer(as_bytes(buffer)).map_err(|_| Error::Buffer)?;
+        if crate::chip::check_dma_buffer(as_bytes(buffer)).is_err() {
+            return Err(Refused::new(Error::Buffer, (self, stream, buffer)));
+        }
         let mut numbers = [0u8; 16];
         for (number, channel) in numbers.iter_mut().zip(channels) {
             *number = channel.number;
         }
-        let mut dma = stream.into_channel();
-        dma.stop(STOP_SPINS).map_err(|_| Error::Dma)?;
+        let mut dma = crate::dma::claim_channel(&stream);
+        if dma.stop(STOP_SPINS).is_err() {
+            return Err(Refused::new(Error::Dma, (self, stream, buffer)));
+        }
         dma.clear_flags(Flags::ALL);
         self.unit
             .set_sequence(numbers.get(..channels.len()).unwrap_or(&[]));

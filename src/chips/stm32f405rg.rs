@@ -323,6 +323,7 @@ pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
 
 timer_trigger!(TIM8: TIM1, 0);
 timer_trigger!(TIM3: TIM1, 0);
+timer_trigger!(TIM2: TIM3, 2);
 
 // The ADC. ADC2 and ADC3 aren't offered. The calibration values are the
 // datasheets' (DS8626 and DS10086), taken at 3.3 V and 12 bits.
@@ -744,5 +745,55 @@ mod tests {
             ..config
         };
         assert!(fast_apb1.validate().is_err());
+    }
+
+    #[test]
+    fn solve_matches_the_foxeer_tree() {
+        use crate::rcc_f4::{
+            AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllP, PllSource,
+            Request, Supply, Sysclk,
+        };
+        // 8 MHz crystal, 168 MHz system, 48 MHz USB: the tree the Foxeer
+        // freezes from (8 / 8 * 336, P 2, Q 7).
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(168),
+                usb: Some(Hertz::mhz(48)),
+            }),
+            Ok(Config {
+                hse: Some(Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                }),
+                pll: Some(Pll {
+                    source: PllSource::Hse,
+                    prediv: 8,
+                    mul: 336,
+                    divp: PllP::Div2,
+                    divq: Some(7),
+                }),
+                sys: Sysclk::PllP,
+                ahb_pre: AhbPrescaler::Div1,
+                apb1_pre: ApbPrescaler::Div4,
+                apb2_pre: ApbPrescaler::Div2,
+                supply: Supply::V2_7To3_6,
+            })
+        );
+        // A USB clock the PLL cannot give exactly: no solution.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(168),
+                usb: Some(Hertz::mhz(47)),
+            }),
+            Err(ClockError::Unsatisfiable)
+        );
     }
 }

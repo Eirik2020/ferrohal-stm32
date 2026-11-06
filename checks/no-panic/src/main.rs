@@ -35,6 +35,8 @@ static mut RX: [u8; 256] = [0; 256];
 static mut RX2: [u8; 256] = [0; 256];
 static mut SPI_TX: [u8; 32] = [0; 32];
 static mut LANE: [u32; 20] = [0; 20];
+static mut LANE2: [u32; 20] = [0; 20];
+static mut COMPLEMENT: [u32; 20] = [0; 20];
 static mut TWO_WAY: [u32; 8] = [0; 8];
 static mut TWO_WAY_READS: [u16; 8] = [0; 8];
 static mut SAMPLES: [u16; 64] = [0; 64];
@@ -301,47 +303,133 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
     keep(divider(black_box(Hertz::mhz(84)), black_box(Hertz::khz(1)), black_box(16)));
     keep(Tick::check::<T>(&black_box(rcc.clocks()), black_box(Hertz::khz(8))));
     keep(Timebase::check::<U>(&black_box(rcc.clocks()), black_box(Hertz::mhz(1))));
-    if let Ok(mut tick) = Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
-        keep(tick.on_interrupt());
-        keep(tick.rate());
-        keep(tick.interrupt());
-        keep(tick.verify());
-        tick.pause();
-        tick.resume();
-    }
-    if let Ok(base) = Timebase::new(rcc, base_timer, black_box(Hertz::mhz(1))) {
-        keep(base.now());
-        let reader = base.reader();
-        keep(reader.now());
-        keep(reader.frequency());
+    let mut tick = match Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
+        Ok(tick) => tick,
+        Err(refused) => {
+            keep(refused.error());
+            let tick_timer = refused.into_parts();
+            match Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
+                Ok(tick) => tick,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(tick.on_interrupt());
+    keep(tick.rate());
+    keep(tick.interrupt());
+    keep(tick.verify());
+    tick.pause();
+    tick.resume();
+    let mut base = match Timebase::new(rcc, base_timer, black_box(Hertz::mhz(1))) {
+        Ok(base) => base,
+        Err(refused) => {
+            keep(refused.error());
+            let base_timer = refused.into_parts();
+            match Timebase::new(rcc, base_timer, black_box(Hertz::mhz(1))) {
+                Ok(base) => base,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(base.now());
+    let reader = base.reader();
+    keep(reader.now());
+    keep(reader.frequency());
+}
+
+/// A PWM at `rate`, retrying once from a refusal's hand-back: the parts come
+/// back exactly as they went in, so the retry type-checks unchanged.
+fn retried_pwm<T: ferrohal_stm32::timer::ChannelTimer>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: T,
+    rate: Hertz,
+) -> ferrohal_stm32::timer::Pwm<T> {
+    match ferrohal_stm32::timer::Pwm::new(rcc, timer, black_box(rate)) {
+        Ok(pwm) => pwm,
+        Err(refused) => {
+            keep(refused.error());
+            let timer = refused.into_parts();
+            match ferrohal_stm32::timer::Pwm::new(rcc, timer, black_box(rate)) {
+                Ok(pwm) => pwm,
+                Err(_) => park(),
+            }
+        }
     }
 }
 
+/// A lane built by the direct conversion, with the hand-back retried.
+pub fn exercise_into_lane<T, P, const CD: u8, const SN: u8>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: T,
+    pin: P,
+    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+) where
+    T: ferrohal_stm32::timer::ChannelTimer,
+    P: ferrohal_stm32::timer::ChannelPin<T, 1>,
+    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<T, 1>,
+{
+    let mut pwm = retried_pwm(rcc, timer, Hertz::khz(600));
+    // SAFETY: as TX and RX in `main`.
+    let buffer = black_box(unsafe { &mut *addr_of_mut!(LANE2) });
+    let channel = pwm.channel::<1, P>(pin);
+    let mut lane = match channel.into_lane(stream, buffer) {
+        Ok(lane) => lane,
+        Err(refused) => {
+            keep(refused.error());
+            let (channel, stream, buffer) = refused.into_parts();
+            match channel.into_lane(stream, buffer) {
+                Ok(lane) => lane,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(lane.arm(black_box(&[1, 2, 3][..])));
+    lane.abort();
+}
+
 /// PWM with a compare lane on channel 1, through every operation.
-pub fn exercise_lane<T, P, L>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: T, pin: P, stream: L)
+pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: T,
+    pin: P,
+    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+)
 where
     T: ferrohal_stm32::timer::ChannelTimer,
     P: ferrohal_stm32::timer::ChannelPin<T, 1>,
-    L: ferrohal_stm32::timer::CompareDma<T, 1>,
+    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<T, 1>,
 {
     use ferrohal_stm32::timer::{Pwm, nearest};
 
     keep(nearest(black_box(Hertz::mhz(200)), black_box(Hertz::khz(600)), black_box(16)));
     keep(Pwm::<T>::check(&black_box(rcc.clocks()), black_box(Hertz::khz(600))));
-    let Ok(mut pwm) = Pwm::new(rcc, timer, black_box(Hertz::khz(600))) else {
-        return;
-    };
+    let mut pwm = retried_pwm(rcc, timer, Hertz::khz(600));
     keep(pwm.period());
     keep(pwm.frequency());
-    let mut channel = pwm.channel::<1, P>(pin);
-    channel.set_duty(black_box(70));
-    keep(channel.duty());
     pwm.set_output::<1>(black_box(false));
     pwm.set_output::<1>(black_box(true));
+    // The wiring's constructor, from the pin and the stream: a refusal hands
+    // both back, and the retry takes them.
+    let wiring =
+        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
+            pin, stream,
+        );
     // SAFETY: as TX and RX in `main`.
     let buffer = black_box(unsafe { &mut *addr_of_mut!(LANE) });
-    if let Ok(mut lane) = channel.into_lane(stream, buffer) {
-        keep(lane.arm(black_box(&[1, 2, 3][..])));
+    let mut lane = match wiring.assemble(&mut pwm, buffer) {
+        Ok(lane) => lane,
+        Err(refused) => {
+            keep(refused.error());
+            let (wiring, buffer) = refused.into_parts();
+            match wiring.assemble(&mut pwm, buffer) {
+                Ok(lane) => lane,
+                Err(_) => park(),
+            }
+        }
+    };
+    lane.channel().set_duty(black_box(70));
+    keep(lane.channel().duty());
+    keep(lane.arm(black_box(&[1, 2, 3][..])));
         pwm.stage(black_box(1));
         pwm.start();
         keep(lane.on_interrupt());
@@ -379,46 +467,85 @@ where
             black_box(100),
             &mut out,
         ));
-    }
 }
 
 /// A lane that reads as well, on channel 1.
-pub fn exercise_two_way<T, P, L, const PORT: char>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: T, pin: P, stream: L)
+pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: T,
+    pin: P,
+    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+)
 where
     T: ferrohal_stm32::timer::ChannelTimer,
     P: ferrohal_stm32::timer::ChannelPin<T, 1>,
-    L: ferrohal_stm32::timer::CompareDma<T, 1> + ferrohal_stm32::timer::GpioDma,
+    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<T, 1>
+        + ferrohal_stm32::timer::GpioDma,
     ferrohal_stm32::gpio::Port<PORT>: ferrohal_stm32::gpio::PortInstance,
 {
     use ferrohal_stm32::timer::Pwm;
 
-    let Ok(mut pwm) = Pwm::new(rcc, timer, black_box(Hertz::khz(600))) else {
-        return;
-    };
-    let channel = pwm.channel::<1, P>(pin);
+    let mut pwm = retried_pwm(rcc, timer, Hertz::khz(600));
     pwm.set_active_low::<1>(black_box(true));
+    let wiring =
+        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
+            pin, stream,
+        );
     // SAFETY: as TX and RX in `main`.
     let (buffer, reads) = black_box(unsafe { (&mut *addr_of_mut!(TWO_WAY), &mut *addr_of_mut!(TWO_WAY_READS)) });
-    if let Ok(mut lane) = channel.into_two_way_lane::<L, PORT>(stream, buffer, reads) {
-        keep(lane.listen(black_box(4), black_box(10)));
-        keep(lane.samples().len());
-        lane.abort();
-    }
+    let mut lane = match wiring.assemble_two_way::<PORT>(&mut pwm, buffer, reads) {
+        Ok(lane) => lane,
+        Err(refused) => {
+            keep(refused.error());
+            let (wiring, (buffer, reads)) = refused.into_parts();
+            match wiring.assemble_two_way::<PORT>(&mut pwm, buffer, reads) {
+                Ok(lane) => lane,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(lane.listen(black_box(4), black_box(10)));
+    keep(lane.samples().len());
+    lane.abort();
 }
 
-/// A complementary output (CH1N) of a timer with a break unit.
-pub fn exercise_complementary<B, N>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: B, pin: N)
+/// A complementary output (CH1N) of a timer with a break unit, assembled
+/// from its wiring.
+pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: B,
+    pin: N,
+    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+)
 where
     B: ferrohal_stm32::timer::ChannelTimer,
     N: ferrohal_stm32::timer::ComplementaryPin<B, 1>,
+    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<B, 1>,
 {
-    if let Ok(mut pwm) = ferrohal_stm32::timer::Pwm::new(rcc, timer, black_box(Hertz::khz(1))) {
-        let mut channel = pwm.complementary::<1, N>(pin);
-        channel.set_duty(black_box(10));
-        pwm.set_output::<1>(black_box(false));
-        pwm.set_output::<1>(black_box(true));
-        pwm.start();
-    }
+    let mut pwm = retried_pwm(rcc, timer, Hertz::khz(1));
+    let wiring = ferrohal_stm32::timer::ComplementaryLaneWiring::<
+        B,
+        1,
+        N,
+        ferrohal_stm32::dma::Stream<CD, SN>,
+    >::new(pin, stream);
+    // SAFETY: as TX and RX in `main`.
+    let buffer = black_box(unsafe { &mut *addr_of_mut!(COMPLEMENT) });
+    let mut lane = match wiring.assemble(&mut pwm, buffer) {
+        Ok(lane) => lane,
+        Err(refused) => {
+            keep(refused.error());
+            let (wiring, buffer) = refused.into_parts();
+            match wiring.assemble(&mut pwm, buffer) {
+                Ok(lane) => lane,
+                Err(_) => park(),
+            }
+        }
+    };
+    lane.channel().set_duty(black_box(10));
+    pwm.set_output::<1>(black_box(false));
+    pwm.set_output::<1>(black_box(true));
+    pwm.start();
 }
 
 /// A sampler of port B through every operation.
@@ -429,10 +556,24 @@ where
 {
     // SAFETY: as TX and RX in `main`.
     let samples = black_box(unsafe { &mut *addr_of_mut!(SAMPLES) });
-    let Ok(mut sampler) =
+    let mut sampler = match
         ferrohal_stm32::timer::Sampler::new::<U, S, 'B'>(rcc, timer, stream, black_box(Hertz::mhz(4)), samples)
-    else {
-        return;
+    {
+        Ok(sampler) => sampler,
+        Err(refused) => {
+            keep(refused.error());
+            let (timer, stream, samples) = refused.into_parts();
+            match ferrohal_stm32::timer::Sampler::new::<U, S, 'B'>(
+                rcc,
+                timer,
+                stream,
+                black_box(Hertz::mhz(4)),
+                samples,
+            ) {
+                Ok(sampler) => sampler,
+                Err(_) => park(),
+            }
+        }
     };
     keep(sampler.rate());
     keep(sampler.start(black_box(32)));
@@ -465,11 +606,20 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     }
     keep(divider(black_box(50_000)));
     keep(Watchdog::check(black_box(50_000)));
-    if let Ok(dog) = Watchdog::start(iwdg, black_box(50_000)) {
-        dog.feed();
-        keep(dog.timeout_us());
-        keep(dog.handle().timeout_us());
-    }
+    let dog = match Watchdog::start(iwdg, black_box(50_000)) {
+        Ok(dog) => dog,
+        Err(refused) => {
+            keep(refused.error());
+            let iwdg = refused.into_parts();
+            match Watchdog::start(iwdg, black_box(50_000)) {
+                Ok(dog) => dog,
+                Err(_) => park(),
+            }
+        }
+    };
+    dog.feed();
+    keep(dog.timeout_us());
+    keep(dog.handle().timeout_us());
 }
 
 /// The polled SPI through every operation.
@@ -557,7 +707,18 @@ pub fn exercise_usb(
 ) {
     keep(ferrohal_stm32::usb::UsbFs::interrupt());
     keep(rcc.usb_clock());
-    keep(ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp));
+    let usb = match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+        Ok(usb) => usb,
+        Err(refused) => {
+            keep(refused.error());
+            let (token, dm, dp) = refused.into_parts();
+            match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+                Ok(usb) => usb,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(usb);
 }
 
 fn exercise_spi(bus: &mut Spi) {
@@ -714,7 +875,7 @@ mod chip {
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM3::steal() },
         );
-        super::exercise_two_way::<_, _, _, 'A'>(
+        super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             a.p8.into_alternate::<1>(&mut a.ctrl),
@@ -732,7 +893,15 @@ mod chip {
                 mosi: b.p5.into_alternate::<6>(&mut b.ctrl),
             },
         );
+        // An open-drain alternate, as I2C.s shared lines are wired.
+        super::keep(b.p7.into_alternate_open_drain::<1>(&mut b.ctrl));
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
+        super::exercise_into_lane(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM2::steal() },
+            a.p15.into_alternate::<1>(&mut a.ctrl),
+            unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
+        );
         // TIM1 is the F401's only break-unit timer and its only update
         // request on DMA2, so it samples here and the F405 covers CHxN.
         super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
@@ -873,7 +1042,7 @@ mod chip {
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM3::steal() },
         );
-        super::exercise_two_way::<_, _, _, 'A'>(
+        super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             a.p8.into_alternate::<1>(&mut a.ctrl),
@@ -894,8 +1063,16 @@ mod chip {
                 mosi: b.p5.into_alternate::<6>(&mut b.ctrl),
             },
         );
+        // An open-drain alternate, as I2C.s shared lines are wired.
+        super::keep(b.p7.into_alternate_open_drain::<1>(&mut b.ctrl));
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
-        super::exercise_complementary(&mut rcc, p.TIM8, a.p7.into_alternate::<3>(&mut a.ctrl));
+        super::exercise_into_lane(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM2::steal() },
+            a.p15.into_alternate::<1>(&mut a.ctrl),
+            unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
+        );
+        super::exercise_complementary(&mut rcc, p.TIM8, a.p7.into_alternate::<3>(&mut a.ctrl), dma2.s2);
         super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
         let _ = analog;
         Some((
@@ -1049,7 +1226,7 @@ mod chip {
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             unsafe { ferrohal_stm32::chip::TIM8::steal() },
         );
-        super::exercise_two_way::<_, _, _, 'A'>(
+        super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
             unsafe { ferrohal_stm32::chip::TIM1::steal() },
             a.p8.into_alternate::<1>(&mut a.ctrl),
@@ -1070,8 +1247,16 @@ mod chip {
                 mosi: b.p5.into_alternate::<7>(&mut b.ctrl),
             },
         );
+        // An open-drain alternate, as I2C's shared lines are wired.
+        super::keep(b.p7.into_alternate_open_drain::<1>(&mut b.ctrl));
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma2.s0);
-        super::exercise_complementary(&mut rcc, p.TIM1, a.p7.into_alternate::<1>(&mut a.ctrl));
+        super::exercise_into_lane(
+            &mut rcc,
+            unsafe { ferrohal_stm32::chip::TIM2::steal() },
+            a.p15.into_alternate::<1>(&mut a.ctrl),
+            unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
+        );
+        super::exercise_complementary(&mut rcc, p.TIM1, a.p7.into_alternate::<1>(&mut a.ctrl), dma1.s3);
         super::exercise_sampler(&mut rcc, p.TIM8, dma2.s1);
         let _ = analog;
         Some((
@@ -1143,16 +1328,32 @@ pub fn exercise_adc<A, P, S>(
 {
     use ferrohal_stm32::adc::{Adc, Config};
 
-    let Ok(mut adc) = Adc::new(rcc, token, &Config::slow_source()) else {
-        return;
+    let mut adc = match Adc::new(rcc, token, &Config::slow_source()) {
+        Ok(adc) => adc,
+        Err(refused) => {
+            keep(refused.error());
+            let token = refused.into_parts();
+            match Adc::new(rcc, token, &Config::slow_source()) {
+                Ok(adc) => adc,
+                Err(_) => park(),
+            }
+        }
     };
     let channel = adc.channel(&pin);
     keep(channel.number());
     keep(adc.read(channel));
     keep(adc.max_sample());
     keep(adc.to_millivolts(black_box(1), black_box(3300)));
-    let Ok(mut scan) = adc.into_scan(stream, &[channel, channel], buffer) else {
-        return;
+    let mut scan = match adc.into_scan(stream, &[channel, channel], buffer) {
+        Ok(scan) => scan,
+        Err(refused) => {
+            keep(refused.error());
+            let (adc, stream, buffer) = refused.into_parts();
+            match adc.into_scan(stream, &[channel, channel], buffer) {
+                Ok(scan) => scan,
+                Err(_) => park(),
+            }
+        }
     };
     keep(scan.start());
     keep(scan.poll().map(|result| result.map(|samples| samples.len())));
@@ -1197,12 +1398,8 @@ where
 {
     use ferrohal_stm32::timer::Pwm;
 
-    let (Ok(mut master), Ok(mut slave)) = (
-        Pwm::new(rcc, master, black_box(Hertz::khz(600))),
-        Pwm::new(rcc, slave, black_box(Hertz::khz(600))),
-    ) else {
-        return;
-    };
+    let mut master = retried_pwm(rcc, master, Hertz::khz(600));
+    let mut slave = retried_pwm(rcc, slave, Hertz::khz(600));
     master.lead();
     slave.follow(&master);
     master.start();
@@ -1228,8 +1425,16 @@ pub fn exercise_sdmmc<U, Ck, Cmd, D0, D1, D2, D3>(
 {
     use ferrohal_stm32::sdmmc::{BLOCK_SIZE, Config, Sdmmc};
 
-    let Ok(mut sd) = Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) else {
-        return;
+    let mut sd = match Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) {
+        Ok(sd) => sd,
+        Err(refused) => {
+            keep(refused.error());
+            let wiring = refused.into_parts();
+            match Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) {
+                Ok(sd) => sd,
+                Err(_) => park(),
+            }
+        }
     };
     keep(sd.init_card());
     keep(sd.block_count());

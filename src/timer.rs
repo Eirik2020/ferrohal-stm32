@@ -35,6 +35,7 @@ use crate::{
     chip::Interrupt,
     rcc::{Bus, Clocks, Rcc, RccBit},
     resource::IrqError,
+    resource::Refused,
     time::Hertz,
 };
 
@@ -112,6 +113,124 @@ pub unsafe trait UpdateDma<T: Instance>:
 /// DMA2's (DMA1's reaches APB1 alone), on H7 every DMA1 and DMA2 stream.
 pub trait GpioDma: crate::dma::StreamInstance {}
 
+/// One compare lane's wiring, as the board states it: channel `C` of timer
+/// `T`, the pin in that channel's alternate function, and the DMA stream
+/// that serves the channel's compare request. The IP traits check that they
+/// belong together; this carries them and describes itself as data for the
+/// board's manifest (`RESOURCES`), and [`assemble`][pwm] builds the lane
+/// from it by type.
+///
+/// [pwm]: crate::timer::Pwm
+pub struct LaneWiring<T, const C: u8, Pin, Stream> {
+    /// The pin, in the channel's alternate function.
+    pub pin: Pin,
+    /// The DMA stream serving the channel's compare request.
+    pub stream: Stream,
+    _timer: core::marker::PhantomData<fn() -> T>,
+}
+
+/// One complementary lane's wiring (`CHxN`): as [`LaneWiring`], with the pin
+/// in the complementary output's alternate function.
+pub struct ComplementaryLaneWiring<T, const C: u8, Pin, Stream> {
+    /// The pin, in the complementary output's alternate function.
+    pub pin: Pin,
+    /// The DMA stream serving the channel's compare request.
+    pub stream: Stream,
+    _timer: core::marker::PhantomData<fn() -> T>,
+}
+
+impl<T, const C: u8, Pin, Stream> LaneWiring<T, C, Pin, Stream> {
+    /// A wiring for channel `C` of timer `T`, from its pin and stream.
+    pub const fn new(pin: Pin, stream: Stream) -> Self {
+        Self {
+            pin,
+            stream,
+            _timer: core::marker::PhantomData,
+        }
+    }
+}
+
+impl<T, const C: u8, Pin, Stream> ComplementaryLaneWiring<T, C, Pin, Stream> {
+    /// A wiring for channel `C`'s complementary output of timer `T`.
+    pub const fn new(pin: Pin, stream: Stream) -> Self {
+        Self {
+            pin,
+            stream,
+            _timer: core::marker::PhantomData,
+        }
+    }
+}
+
+/// What a lane's assembly hands back when it refuses: the reason, the wiring,
+/// and the buffers it took, in a tuple with the wiring first.
+pub type LaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
+    crate::resource::Refused<crate::uart::ConfigError, (LaneWiring<T, C, Pin, Stream>, Buffers)>;
+
+/// As [`LaneRefusal`], for a complementary lane's assembly.
+pub type ComplementaryLaneRefusal<T, const C: u8, Pin, Stream, Buffers> = crate::resource::Refused<
+    crate::uart::ConfigError,
+    (ComplementaryLaneWiring<T, C, Pin, Stream>, Buffers),
+>;
+
+/// What a two-way lane's assembly returns: the lane, or the refusal with
+/// everything it took.
+pub type TwoWayLaneAssembly<T, const C: u8, Pin, Stream> = Result<
+    CompareLane<T, C>,
+    LaneRefusal<T, C, Pin, Stream, (&'static mut [u32], &'static mut [u16])>,
+>;
+
+impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
+    LaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
+where
+    T: ChannelTimer,
+    Pin: ChannelPin<T, C> + crate::gpio::AltPin,
+    crate::dma::Stream<CD, SN>: CompareDma<T, C>,
+{
+    /// Everything this wiring uses, as data: the instance, the pin with its
+    /// alternate function, and the stream with its request.
+    pub const RESOURCES: [crate::resource::Resource; 3] = [
+        crate::resource::Resource::Peripheral(T::NAME),
+        crate::resource::Resource::Pin {
+            signal: crate::resource::Signal::Channel(C),
+            port: Pin::PORT,
+            pin: Pin::PIN,
+            af: Pin::AF,
+        },
+        crate::resource::Resource::Dma {
+            signal: crate::resource::Signal::Channel(C),
+            controller: CD,
+            stream: SN,
+            request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
+        },
+    ];
+}
+
+impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
+    ComplementaryLaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
+where
+    T: ChannelTimer,
+    Pin: ComplementaryPin<T, C> + crate::gpio::AltPin,
+    crate::dma::Stream<CD, SN>: CompareDma<T, C>,
+{
+    /// Everything this wiring uses, as data: the instance, the pin with its
+    /// alternate function, and the stream with its request.
+    pub const RESOURCES: [crate::resource::Resource; 3] = [
+        crate::resource::Resource::Peripheral(T::NAME),
+        crate::resource::Resource::Pin {
+            signal: crate::resource::Signal::Complementary(C),
+            port: Pin::PORT,
+            pin: Pin::PIN,
+            af: Pin::AF,
+        },
+        crate::resource::Resource::Dma {
+            signal: crate::resource::Signal::Complementary(C),
+            controller: CD,
+            stream: SN,
+            request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
+        },
+    ];
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigError {
@@ -181,9 +300,17 @@ pub struct Tick {
 
 impl Tick {
     /// Enables and resets the timer, sets it to overflow at `rate` exactly,
-    /// enables its update interrupt and starts it.
-    pub fn new<T: Instance>(rcc: &mut Rcc, _timer: T, rate: Hertz) -> Result<Self, ConfigError> {
-        let (prescaler, reload) = divider(rcc.clocks().timer(T::BUS), rate, T::BITS)?;
+    /// enables its update interrupt and starts it. Refuses with the timer
+    /// token handed back: the rate is checked before the timer is touched.
+    pub fn new<T: Instance>(
+        rcc: &mut Rcc,
+        _timer: T,
+        rate: Hertz,
+    ) -> Result<Self, Refused<ConfigError, T>> {
+        let (prescaler, reload) = match divider(rcc.clocks().timer(T::BUS), rate, T::BITS) {
+            Ok(parts) => parts,
+            Err(error) => return Err(Refused::new(error, _timer)),
+        };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
         let core = T::core();
@@ -266,14 +393,18 @@ unsafe impl Sync for TimebaseReader {}
 
 impl Timebase {
     /// Enables and resets the timer and starts it counting at `frequency`
-    /// exactly, over its whole 32-bit range.
+    /// exactly, over its whole 32-bit range. Refuses with the timer token
+    /// handed back: the rate is checked before the timer is touched.
     pub fn new<T: Instance32>(
         rcc: &mut Rcc,
         _timer: T,
         frequency: Hertz,
-    ) -> Result<Self, ConfigError> {
+    ) -> Result<Self, Refused<ConfigError, T>> {
         let clock = rcc.clocks().timer(T::BUS);
-        let prescaler = Self::prescaler(clock, frequency)?;
+        let prescaler = match Self::prescaler(clock, frequency) {
+            Ok(prescaler) => prescaler,
+            Err(error) => return Err(Refused::new(error, _timer)),
+        };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
         let core = T::core();

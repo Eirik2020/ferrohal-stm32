@@ -169,7 +169,7 @@ mod app {
                     Some(Ok(tick)) => {
                         timers::tick_check(&mut report, $name, bench, tick, cpu, $ticks)
                     }
-                    Some(Err(error)) => report.check($name, "open", Err(Fail::Timer(error))),
+                    Some(Err(refused)) => report.check($name, "open", Err(Fail::Timer(refused.error()))),
                     None => defmt::unreachable!(),
                 }
             };
@@ -197,11 +197,13 @@ mod app {
         for (name, base) in [
             (
                 "TIM2 timebase 1 MHz",
-                Timebase::new(&mut run.rcc, tim2, Hertz::mhz(1)),
+                Timebase::new(&mut run.rcc, tim2, Hertz::mhz(1))
+                    .map_err(|refused| refused.error()),
             ),
             (
                 "TIM5 timebase 1 MHz",
-                Timebase::new(&mut run.rcc, tim5, Hertz::mhz(1)),
+                Timebase::new(&mut run.rcc, tim5, Hertz::mhz(1))
+                    .map_err(|refused| refused.error()),
             ),
         ] {
             match base {

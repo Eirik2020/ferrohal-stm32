@@ -192,7 +192,7 @@ pub struct RunE {
 }
 
 pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
@@ -295,7 +295,7 @@ pub struct RunH {
 }
 
 pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
@@ -351,7 +351,7 @@ pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
 }
 
 pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
@@ -381,7 +381,7 @@ pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
 }
 
 pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
@@ -441,7 +441,7 @@ pub struct RunI {
 }
 
 pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunI {
@@ -491,7 +491,7 @@ pub struct RunJ {
 }
 
 pub fn run_j(p: Peripherals) -> Result<RunJ, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
@@ -531,7 +531,7 @@ pub struct RunQ {
 }
 
 pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut c = p.GPIOC.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
     let mut pc6: Pin<'C', 6, Alternate<2>> = sck(c.p6, &mut c.ctrl);
@@ -562,7 +562,7 @@ pub struct RunR {
 }
 
 pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
@@ -592,7 +592,7 @@ pub struct RunK {
 }
 
 pub fn run_k(p: Peripherals) -> Result<RunK, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunK {
@@ -613,7 +613,7 @@ pub struct RunL {
 }
 
 pub fn run_l(p: Peripherals) -> Result<RunL, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
@@ -657,7 +657,7 @@ pub struct RunO {
 }
 
 pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
@@ -695,7 +695,7 @@ pub struct RunM {
 }
 
 pub fn run_m(p: Peripherals) -> Result<RunM, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
@@ -839,7 +839,7 @@ where
 }
 
 pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
-    let mut rcc = p.RCC.freeze(&HSE_CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&HSE_CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
@@ -885,7 +885,7 @@ pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
 }
 
 pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
@@ -933,7 +933,7 @@ pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
 }
 
 pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
@@ -963,7 +963,7 @@ pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
 }
 
 pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);

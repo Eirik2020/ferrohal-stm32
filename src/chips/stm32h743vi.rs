@@ -786,4 +786,75 @@ mod tests {
         assert_eq!(lane::<TIM5, 1, Af<'A', 0, 2>, Stream<2, 2>>(), 55);
         assert_eq!(lane::<TIM5, 2, Af<'A', 1, 2>, Stream<2, 3>>(), 56);
     }
+
+    #[test]
+    fn solve_matches_the_lucid_tree() {
+        use crate::rcc::{
+            AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllSource, Request,
+            Supply, Sysclk, VoltageScale,
+        };
+        use crate::time::Hertz;
+        // 8 MHz crystal, 400 MHz core, 100 MHz on Q for SPI1 to SPI3: the
+        // tree the Lucid freezes from (8 / 1 * 100 = 800 wide VCO, P 2, Q 8,
+        // core undivided, everything else at 2).
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(400),
+                q: Some(Hertz::mhz(100)),
+            }),
+            Ok(Config {
+                hse: Some(Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                }),
+                pll1: Some(Pll {
+                    source: PllSource::Hse,
+                    prediv: 1,
+                    mul: 100,
+                    divp: Some(2),
+                    divq: Some(8),
+                    divr: None,
+                }),
+                sys: Sysclk::Pll1P,
+                cpu_pre: AhbPrescaler::Div1,
+                ahb_pre: AhbPrescaler::Div2,
+                apb1_pre: ApbPrescaler::Div2,
+                apb2_pre: ApbPrescaler::Div2,
+                apb3_pre: ApbPrescaler::Div2,
+                apb4_pre: ApbPrescaler::Div2,
+                supply: Supply::Ldo,
+                voltage_scale: VoltageScale::Scale1,
+            })
+        );
+        // A request the lowest voltage supports runs at it.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(200),
+                q: None,
+            })
+            .unwrap()
+            .voltage_scale,
+            VoltageScale::Scale3
+        );
+        // A request past the fastest scale's core clock: refused.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(480),
+                q: None,
+            }),
+            Err(ClockError::Cpu)
+        );
+    }
 }

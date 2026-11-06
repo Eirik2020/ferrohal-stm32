@@ -52,12 +52,29 @@ use crate::{
     },
     gpio::{Port, PortInstance},
     rcc::Rcc,
-    resource::IrqError,
+    resource::{IrqError, Refused},
     time::Hertz,
 };
 
 /// Spins allowed for a DMA stream to report itself stopped.
 const STOP_SPINS: u32 = 10_000;
+
+/// What [`PwmChannel::into_lane`](PwmChannel::into_lane) hands back when it
+/// refuses: the reason, and the channel, stream and buffer it took.
+pub type IntoLaneRefused<T, const C: u8, S> =
+    crate::resource::Refused<crate::uart::ConfigError, (PwmChannel<T, C>, S, &'static mut [u32])>;
+
+/// What [`PwmChannel::into_two_way_lane`](PwmChannel::into_two_way_lane)
+/// hands back: the reason, and the channel, stream and both buffers.
+pub type IntoTwoWayLaneRefused<T, const C: u8, S> = crate::resource::Refused<
+    crate::uart::ConfigError,
+    (PwmChannel<T, C>, S, &'static mut [u32], &'static mut [u16]),
+>;
+
+/// What [`Sampler::new`](Sampler::new) hands back: the reason, and the
+/// timer, stream and buffer it took.
+pub type SamplerNewRefused<T, S> =
+    crate::resource::Refused<crate::uart::ConfigError, (T, S, &'static mut [u16])>;
 
 /// Why a lane or sampler refused or failed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -123,9 +140,14 @@ impl<T: ChannelTimer> Pwm<T> {
     /// Enables and resets the timer and sets it to count at `rate`, as near
     /// as the clock allows ([`frequency`](Self::frequency) says what it
     /// got), with every channel off. Stopped until [`start`](Self::start).
-    pub fn new(rcc: &mut Rcc, _timer: T, rate: Hertz) -> Result<Self, ConfigError> {
+    /// Refuses with the timer token handed back: the rate is checked before
+    /// the timer is touched.
+    pub fn new(rcc: &mut Rcc, _timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
         let clock = rcc.clocks().timer(T::BUS);
-        let (prescaler, reload, frequency) = nearest(clock, rate, T::BITS)?;
+        let (prescaler, reload, frequency) = match nearest(clock, rate, T::BITS) {
+            Ok(parts) => parts,
+            Err(error) => return Err(Refused::new(error, _timer)),
+        };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
         let gp = Self::gp();
@@ -369,15 +391,24 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
     }
 
     /// Feeds this channel's compare register from `stream`, out of `buffer`.
+    /// Refuses with the channel, the stream and the buffer handed back: the
+    /// buffer is checked and the stream stopped through a second owner
+    /// beside its token, so nothing is consumed until it succeeds.
     pub fn into_lane<S: CompareDma<T, C>>(
         self,
         stream: S,
         buffer: &'static mut [u32],
-    ) -> Result<CompareLane<T, C>, crate::uart::ConfigError> {
-        crate::chip::check_dma_buffer(as_bytes(buffer))?;
-        let mut dma = stream.into_channel();
-        dma.stop(STOP_SPINS)
-            .map_err(|_| crate::uart::ConfigError::DmaBusy)?;
+    ) -> Result<CompareLane<T, C>, IntoLaneRefused<T, C, S>> {
+        if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
+            return Err(Refused::new(error, (self, stream, buffer)));
+        }
+        let mut dma = crate::dma::claim_channel(&stream);
+        if dma.stop(STOP_SPINS).is_err() {
+            return Err(Refused::new(
+                crate::uart::ConfigError::DmaBusy,
+                (self, stream, buffer),
+            ));
+        }
         dma.clear_flags(Flags::ALL);
         Ok(CompareLane {
             channel: self,
@@ -392,25 +423,166 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
 
     /// As [`into_lane`](Self::into_lane), for a lane that can also read its pin:
     /// port `P` is the one its pin is on, and `samples` takes what it reads. The
-    /// stream has to reach GPIO, which on F4 only DMA2's does.
+    /// stream has to reach GPIO, which on F4 only DMA2's does. Refuses with
+    /// everything handed back.
     pub fn into_two_way_lane<S, const P: char>(
         self,
         stream: S,
         buffer: &'static mut [u32],
         samples: &'static mut [u16],
-    ) -> Result<CompareLane<T, C>, crate::uart::ConfigError>
+    ) -> Result<CompareLane<T, C>, IntoTwoWayLaneRefused<T, C, S>>
     where
         S: CompareDma<T, C> + GpioDma,
         Port<P>: PortInstance,
     {
-        crate::chip::check_dma_buffer(u16_bytes(samples))?;
-        let mut lane = self.into_lane(stream, buffer)?;
+        if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(samples)) {
+            return Err(Refused::new(error, (self, stream, buffer, samples)));
+        }
+        let mut lane = match self.into_lane(stream, buffer) {
+            Ok(lane) => lane,
+            Err(refused) => {
+                let (error, (channel, stream, buffer)) = refused.into_inner();
+                return Err(Refused::new(error, (channel, stream, buffer, samples)));
+            }
+        };
         lane.input = Some(LaneInput {
             port: <Port<P> as PortInstance>::regs().idr().as_ptr() as u32,
             samples,
             len: 0,
         });
         Ok(lane)
+    }
+}
+
+impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
+    super::LaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
+where
+    T: ChannelTimer,
+    Pin: ChannelPin<T, C>,
+    crate::dma::Stream<CD, SN>: CompareDma<T, C>,
+{
+    /// Assembles one compare lane from this wiring: the pin becomes channel
+    /// `C`'s output and the stream feeds its compare register from `buffer`,
+    /// paced by the channel's compare request. Refuses with the wiring and the
+    /// buffer handed back if the stream is still busy or the buffer lies
+    /// where DMA can't reach; the pin and stream come back untouched.
+    pub fn assemble(
+        self,
+        pwm: &mut Pwm<T>,
+        buffer: &'static mut [u32],
+    ) -> Result<
+        CompareLane<T, C>,
+        super::LaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
+    > {
+        if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
+            return Err(Refused::new(error, (self, buffer)));
+        }
+        // A second owner beside the token, for the checks: the token comes
+        // back on a refusal, the channel goes to the lane on success.
+        let mut dma = crate::dma::claim_channel(&self.stream);
+        if dma.stop(STOP_SPINS).is_err() {
+            return Err(Refused::new(
+                crate::uart::ConfigError::DmaBusy,
+                (self, buffer),
+            ));
+        }
+        dma.clear_flags(Flags::ALL);
+        let channel = pwm.channel::<C, _>(self.pin);
+        Ok(CompareLane {
+            channel,
+            dma,
+            request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
+            vector: <crate::dma::Stream<CD, SN> as StreamInterrupt>::INTERRUPT,
+            buffer,
+            running: false,
+            input: None,
+        })
+    }
+
+    /// As [`assemble`](Self::assemble), for a lane that can also read its own
+    /// pin: the stream has to reach GPIO, which on F4 only DMA2's does, and
+    /// `samples` takes what it reads. Everything comes back in the refusal.
+    pub fn assemble_two_way<const PORT: char>(
+        self,
+        pwm: &mut Pwm<T>,
+        buffer: &'static mut [u32],
+        samples: &'static mut [u16],
+    ) -> super::TwoWayLaneAssembly<T, C, Pin, crate::dma::Stream<CD, SN>>
+    where
+        crate::dma::Stream<CD, SN>: GpioDma,
+        Port<PORT>: PortInstance,
+    {
+        if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
+            return Err(Refused::new(error, (self, (buffer, samples))));
+        }
+        if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(samples)) {
+            return Err(Refused::new(error, (self, (buffer, samples))));
+        }
+        let mut dma = crate::dma::claim_channel(&self.stream);
+        if dma.stop(STOP_SPINS).is_err() {
+            return Err(Refused::new(
+                crate::uart::ConfigError::DmaBusy,
+                (self, (buffer, samples)),
+            ));
+        }
+        dma.clear_flags(Flags::ALL);
+        let channel = pwm.channel::<C, _>(self.pin);
+        let mut lane = CompareLane {
+            channel,
+            dma,
+            request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
+            vector: <crate::dma::Stream<CD, SN> as StreamInterrupt>::INTERRUPT,
+            buffer,
+            running: false,
+            input: None,
+        };
+        lane.input = Some(LaneInput {
+            port: <Port<PORT> as PortInstance>::regs().idr().as_ptr() as u32,
+            samples,
+            len: 0,
+        });
+        Ok(lane)
+    }
+}
+
+impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
+    super::ComplementaryLaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
+where
+    T: ChannelTimer,
+    Pin: ComplementaryPin<T, C>,
+    crate::dma::Stream<CD, SN>: CompareDma<T, C>,
+{
+    /// Assembles one complementary lane (`CHxN`) from this wiring, as
+    /// [`assemble`](super::LaneWiring::assemble) does for a channel lane.
+    pub fn assemble(
+        self,
+        pwm: &mut Pwm<T>,
+        buffer: &'static mut [u32],
+    ) -> Result<
+        CompareLane<T, C>,
+        super::ComplementaryLaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
+    > {
+        if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
+            return Err(Refused::new(error, (self, buffer)));
+        }
+        let mut dma = crate::dma::claim_channel(&self.stream);
+        if dma.stop(STOP_SPINS).is_err() {
+            return Err(Refused::new(
+                crate::uart::ConfigError::DmaBusy,
+                (self, buffer),
+            ));
+        }
+        dma.clear_flags(Flags::ALL);
+        let channel = pwm.complementary::<C, _>(self.pin);
+        Ok(CompareLane {
+            channel,
+            dma,
+            request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
+            vector: <crate::dma::Stream<CD, SN> as StreamInterrupt>::INTERRUPT,
+            buffer,
+            running: false,
+            input: None,
+        })
     }
 }
 
@@ -646,22 +818,35 @@ impl Sampler {
         stream: S,
         rate: Hertz,
         buffer: &'static mut [u16],
-    ) -> Result<Self, crate::uart::ConfigError>
+    ) -> Result<Self, SamplerNewRefused<T, S>>
     where
         T: Instance,
         S: UpdateDma<T> + GpioDma + StreamInterrupt,
         Port<P>: PortInstance,
     {
         let clock = rcc.clocks().timer(T::BUS);
-        let (prescaler, reload, rate) =
-            nearest(clock, rate, T::BITS).map_err(|_| crate::uart::ConfigError::Unsupported)?;
-        crate::chip::check_dma_buffer(u16_bytes(buffer))?;
+        let (prescaler, reload, rate) = match nearest(clock, rate, T::BITS) {
+            Ok(parts) => parts,
+            Err(_) => {
+                return Err(Refused::new(
+                    crate::uart::ConfigError::Unsupported,
+                    (_timer, stream, buffer),
+                ));
+            }
+        };
+        if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(buffer)) {
+            return Err(Refused::new(error, (_timer, stream, buffer)));
+        }
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
         super::load(T::core(), prescaler, reload);
-        let mut dma = stream.into_channel();
-        dma.stop(STOP_SPINS)
-            .map_err(|_| crate::uart::ConfigError::DmaBusy)?;
+        let mut dma = crate::dma::claim_channel(&stream);
+        if dma.stop(STOP_SPINS).is_err() {
+            return Err(Refused::new(
+                crate::uart::ConfigError::DmaBusy,
+                (_timer, stream, buffer),
+            ));
+        }
         dma.clear_flags(Flags::ALL);
         Ok(Self {
             // SAFETY: the timer's base address; CR1, DIER, SR and CNT sit

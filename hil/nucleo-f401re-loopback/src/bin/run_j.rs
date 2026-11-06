@@ -40,12 +40,12 @@ fn main() -> ! {
     if !watchdog::after_reset(&mut report, name, cause, (17, 47)) {
         match Watchdog::start(run.iwdg, watchdog::TIMEOUT_US) {
             Ok(dog) => watchdog::feed_then_starve(&mut report, name, cause, dog, board::CLOCKS.cpu),
-            Err(error) => report.check(
+            Err(refused) => report.check(
                 name,
                 "start",
                 Err(Fail::Count {
                     expected: 1,
-                    got: error as u32,
+                    got: refused.error() as u32,
                 }),
             ),
         }

@@ -245,6 +245,7 @@ pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
 // Timers another timer's trigger output can start.
 
 timer_trigger!(TIM3: TIM1, 0);
+timer_trigger!(TIM2: TIM3, 2);
 
 // The ADC. ADC2 and ADC3 aren't offered. The calibration values are the
 // datasheets' (DS8626 and DS10086), taken at 3.3 V and 12 bits.
@@ -427,6 +428,14 @@ stream_interrupts!(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adc::AdcWiring;
+    use crate::gpio_v2::Analog;
+    use crate::rcc::{
+        AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllP, PllSource,
+        Request, Supply, Sysclk,
+    };
+    use crate::time::Hertz;
+    use crate::timer::{ComplementaryLaneWiring, LaneWiring};
     use crate::uart::{Resource, RxWiring, Signal, Wiring};
 
     type Usart1Bench = Wiring<
@@ -480,6 +489,136 @@ mod tests {
                 stream: 1,
                 request: 5
             }
+        );
+        // The SpeedyBee's motor lanes: TIM3 CH3 on PB0, and a complementary
+        // lane, TIM1 CH1N on PA7.
+        assert_eq!(
+            LaneWiring::<TIM3, 3, Pin<'B', 0, Alternate<2>>, Stream<1, 7>>::RESOURCES,
+            [
+                Resource::Peripheral("TIM3"),
+                Resource::Pin {
+                    signal: Signal::Channel(3),
+                    port: 'B',
+                    pin: 0,
+                    af: 2
+                },
+                Resource::Dma {
+                    signal: Signal::Channel(3),
+                    controller: 1,
+                    stream: 7,
+                    request: 5
+                },
+            ]
+        );
+        assert_eq!(
+            ComplementaryLaneWiring::<TIM1, 1, Pin<'A', 7, Alternate<1>>, Stream<2, 1>>::RESOURCES,
+            [
+                Resource::Peripheral("TIM1"),
+                Resource::Pin {
+                    signal: Signal::Complementary(1),
+                    port: 'A',
+                    pin: 7,
+                    af: 1
+                },
+                Resource::Dma {
+                    signal: Signal::Complementary(1),
+                    controller: 2,
+                    stream: 1,
+                    request: 6
+                },
+            ]
+        );
+        // The bench's own ADC input: ADC1 channel 6 on PA6, over stream 0.
+        assert_eq!(
+            AdcWiring::<ADC1, Pin<'A', 6, Analog>, Stream<2, 0>>::RESOURCES,
+            [
+                Resource::Peripheral("ADC1"),
+                Resource::Analog {
+                    signal: Signal::Adc(6),
+                    port: 'A',
+                    pin: 6,
+                },
+                Resource::Dma {
+                    signal: Signal::Adc(6),
+                    controller: 2,
+                    stream: 0,
+                    request: 0
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn solve_matches_the_proven_tree() {
+        // 8 MHz crystal, 84 MHz system, 48 MHz USB: the tree the benches
+        // freeze from (8 / 8 * 336, P 4, Q 7).
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(84),
+                usb: Some(Hertz::mhz(48)),
+            }),
+            Ok(Config {
+                hse: Some(Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                }),
+                pll: Some(Pll {
+                    source: PllSource::Hse,
+                    prediv: 8,
+                    mul: 336,
+                    divp: PllP::Div4,
+                    divq: Some(7),
+                }),
+                sys: Sysclk::PllP,
+                ahb_pre: AhbPrescaler::Div1,
+                apb1_pre: ApbPrescaler::Div2,
+                apb2_pre: ApbPrescaler::Div1,
+                supply: Supply::V2_7To3_6,
+            })
+        );
+        // Without a USB request, Q is left unset.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(84),
+                usb: None,
+            })
+            .unwrap()
+            .pll
+            .unwrap()
+            .divq,
+            None
+        );
+        // A USB clock the PLL cannot give exactly: no solution.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(84),
+                usb: Some(Hertz::mhz(47)),
+            }),
+            Err(ClockError::Unsatisfiable)
+        );
+        // Past the chip's system clock: the request itself is refused.
+        assert_eq!(
+            Config::solve(Request {
+                hse: Hse {
+                    freq: Hertz::mhz(8),
+                    mode: HseMode::Oscillator,
+                },
+                sysclk: Hertz::mhz(120),
+                usb: Some(Hertz::mhz(48)),
+            }),
+            Err(ClockError::Sysclk)
         );
     }
 }

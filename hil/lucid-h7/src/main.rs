@@ -245,7 +245,7 @@ fn main() -> ! {
     let Some(p) = Peripherals::take() else {
         reboot_to_dfu()
     };
-    let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG) else {
+    let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error()) else {
         reboot_to_dfu()
     };
     let cause = usb_bench::cause_text(rcc.reset_cause());

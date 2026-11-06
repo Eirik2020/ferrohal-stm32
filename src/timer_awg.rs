@@ -28,7 +28,11 @@
 
 use super::pwm::{CompareLane, Error, Pwm};
 use super::{ChannelTimer, ConfigError, TriggeredBy};
-use crate::{chip::Interrupt, time::Hertz};
+use crate::{chip::Interrupt, resource::Refused, time::Hertz};
+
+/// What the generator's constructors hand back when they refuse: the reason,
+/// and both timers with both lane groups.
+pub type AwgRefused<A, B, LA, LB> = crate::resource::Refused<ConfigError, (Pwm<A>, Pwm<B>, LA, LB)>;
 
 /// The compare lanes of one timer, as a tuple: none, or one to four.
 pub trait Lanes<T: ChannelTimer> {
@@ -205,18 +209,22 @@ impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
 impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA, LB> {
     /// A generator on two timers at one period, the first starting the second
     /// through its trigger output, so every lane begins on one edge. Refuses
-    /// timers at different periods.
+    /// timers at different periods, with both timers and both lane groups
+    /// handed back.
     pub fn linked(
         mut first: Pwm<A>,
         mut second: Pwm<B>,
         first_lanes: LA,
         second_lanes: LB,
-    ) -> Result<Self, ConfigError>
+    ) -> Result<Self, AwgRefused<A, B, LA, LB>>
     where
         B: TriggeredBy<A>,
     {
         if first.period() != second.period() {
-            return Err(ConfigError::PeriodMismatch);
+            return Err(Refused::new(
+                ConfigError::PeriodMismatch,
+                (first, second, first_lanes, second_lanes),
+            ));
         }
         first.lead();
         second.follow(&first);
@@ -235,15 +243,18 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// A generator on two timers at one period, started in software one after
     /// the other, for timers with no trigger route between them. The second
     /// begins a few instructions after the first. Refuses timers at different
-    /// periods.
+    /// periods, with both timers and both lane groups handed back.
     pub fn independent(
         first: Pwm<A>,
         second: Pwm<B>,
         first_lanes: LA,
         second_lanes: LB,
-    ) -> Result<Self, ConfigError> {
+    ) -> Result<Self, AwgRefused<A, B, LA, LB>> {
         if first.period() != second.period() {
-            return Err(ConfigError::PeriodMismatch);
+            return Err(Refused::new(
+                ConfigError::PeriodMismatch,
+                (first, second, first_lanes, second_lanes),
+            ));
         }
         let rate = first.frequency();
         Ok(Self {

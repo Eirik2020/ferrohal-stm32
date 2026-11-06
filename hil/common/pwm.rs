@@ -32,11 +32,12 @@ pub fn duties(pattern: u16, period: u32) -> [u32; BITS] {
 }
 
 /// Pulses on bit `pin` of `samples`: (first sample, length), in order.
-fn pulses(samples: &[u16], pin: u8, out: &mut [(usize, usize); 32]) -> usize {
+/// Active low, the low runs carry the pulses.
+fn pulses(samples: &[u16], pin: u8, active_low: bool, out: &mut [(usize, usize); 32]) -> usize {
     let mut count = 0;
     let mut start = None;
     for (i, sample) in samples.iter().enumerate() {
-        let high = sample & (1 << pin) != 0;
+        let high = (sample & (1 << pin) != 0) != active_low;
         match (high, start) {
             (true, None) => start = Some(i),
             (false, Some(s)) => {
@@ -60,10 +61,17 @@ fn pulses(samples: &[u16], pin: u8, out: &mut [(usize, usize); 32]) -> usize {
 
 /// Checks that bit `pin` of `samples` carries `pattern`: 16 pulses one
 /// period apart (`per_bit` samples, in 1/16ths), each 3/4 or 3/8 of it,
-/// then nothing.
-fn decode(samples: &[u16], pin: u8, pattern: u16, per_bit16: u32) -> Result<(), Fail> {
+/// then nothing. Active low, the line idles high and the pulses pull low,
+/// as bidirectional DShot drives it.
+pub fn decode(
+    samples: &[u16],
+    pin: u8,
+    pattern: u16,
+    per_bit16: u32,
+    active_low: bool,
+) -> Result<(), Fail> {
     let mut found = [(0, 0); 32];
-    let count = pulses(samples, pin, &mut found);
+    let count = pulses(samples, pin, active_low, &mut found);
     if count != BITS {
         let last = found[count.saturating_sub(1).min(31)];
         defmt::info!(
@@ -111,7 +119,7 @@ fn decode(samples: &[u16], pin: u8, pattern: u16, per_bit16: u32) -> Result<(), 
 }
 
 /// Polls `poll` until it returns `Some`, for at most `cycles`.
-fn wait<R>(cycles: u32, mut poll: impl FnMut() -> Option<R>) -> Option<R> {
+pub fn wait<R>(cycles: u32, mut poll: impl FnMut() -> Option<R>) -> Option<R> {
     let start = DWT::cycle_count();
     loop {
         if let Some(result) = poll() {
@@ -195,12 +203,12 @@ pub fn lane_pair_check<T: ChannelTimer, const A: u8, const B: u8>(
     report.check(
         name,
         "first lane: its 16 bits, one period apart [PWM-002]",
-        decode(sampler.samples(), pins.0, patterns.0, per_bit16),
+        decode(sampler.samples(), pins.0, patterns.0, per_bit16, false),
     );
     report.check(
         name,
         "second lane: its 16 bits, one period apart [PWM-002]",
-        decode(sampler.samples(), pins.1, patterns.1, per_bit16),
+        decode(sampler.samples(), pins.1, patterns.1, per_bit16, false),
     );
 }
 
@@ -260,8 +268,8 @@ pub fn awg_check<T: ChannelTimer, const A: u8, const B: u8>(
         Err(Fail::Count { expected: 2, got: 0 })
     };
     report.check(name, "AWG: each lane plays its own samples [AWG-001 AWG-002]", played.and_then(|()| {
-        decode(sampler.samples(), pins.0, patterns.0, per_bit16)?;
-        decode(sampler.samples(), pins.1, patterns.1, per_bit16)
+        decode(sampler.samples(), pins.0, patterns.0, per_bit16, false)?;
+        decode(sampler.samples(), pins.1, patterns.1, per_bit16, false)
     }));
 
     // Samples hold their duty for one period each: a ramp reads back rising.
@@ -272,7 +280,7 @@ pub fn awg_check<T: ChannelTimer, const A: u8, const B: u8>(
     };
     report.check(name, "AWG: a ramp reads back in order, and ends low [AWG-001 AWG-003]", played.and_then(|()| {
         let mut found = [(0, 0); 32];
-        let pulses = pulses(sampler.samples(), pins.0, &mut found);
+        let pulses = pulses(sampler.samples(), pins.0, false, &mut found);
         if pulses != ramp.len() {
             return Err(Fail::Count { expected: ramp.len() as u32, got: pulses as u32 });
         }
@@ -296,7 +304,7 @@ pub fn awg_check<T: ChannelTimer, const A: u8, const B: u8>(
         if high != 0 {
             return Err(Fail::Count { expected: 0, got: high as u32 });
         }
-        decode(sampler.samples(), pins.1, patterns.1, per_bit16)
+        decode(sampler.samples(), pins.1, patterns.1, per_bit16, false)
     }));
 
     // Refusals, and a clean run after an abort.
@@ -566,7 +574,9 @@ pub fn trigger_suite<M, S>(
     master.lead();
     slave.follow(master);
     cortex_m::asm::delay(10_000);
-    let still = !slave.is_running() && slave.counter() == 0;
+    // A stopped timer keeps its count, so "not counting" is the running bit,
+    // not a zero counter: the slave may arrive here having run before.
+    let still = !slave.is_running();
     report.check(
         name,
         "the slave waits for the master [PWM-004]",

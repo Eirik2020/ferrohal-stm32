@@ -1608,6 +1608,9 @@ impl embedded_io::WriteReady for Uart {
 }
 
 impl embedded_io::Read for Uart {
+    /// Blocks until at least one byte has arrived, as the trait requires.
+    /// [`UartRx::read_within`], through the [`halves`](Uart::halves), is the
+    /// bounded form.
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         embedded_io::Read::read(&mut self.rx, buf)
     }
