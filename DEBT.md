@@ -2,9 +2,9 @@
 
 Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is history and needn't be read to work on the crate.
 
-Status as of 2026-11-05:
+Status as of 2026-11-06:
 
-- **F401:** `hil/run-f401.sh` passes all sixteen runs, 229 checks: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K), the bootloader request (L), the ADC (M), one timer starting another (N), the waveform generator out and in over wires (O, P).
+- **F401:** `hil/run-f401.sh` passes all seventeen runs, 247 checks: UART (A to D, A from HSE), SPI and EXTI (E to G), timers (H), compare lanes read back by a sampler (I), the watchdog across its reset (J), the polled SPI (K), the bootloader request (L), the ADC (M), one timer starting another (N), the waveform generator out and in over wires (O, P), the SpeedyBee's four motor lanes on two timers from one start, linked and independent and active low (R).
 - **H753ZI:** `hil/run-h753.sh` passes all seventeen runs: UART (A to E, caches off and on, A from HSE), SPI and EXTI (F to H), timers (I), the Lucid's DShot lanes and a complementary output read back by samplers (J), the watchdog across its reset (K), the polled SPI (L), USB CDC with the host checking every byte (M), the bootloader request (N), the ADCs (O), one timer starting another (P), the waveform generator both ways (Q). Run M needs a cable from CN13, and passed 11 of 11 on 2026-11-05.
 - **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
 - **H743VI:** `hil/run-lucid.sh` passes 32 of 32 with a card on the TBS Lucid H7, plus the host's USB echo, polled and from its interrupt: its crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, and its motor timers and streams.
@@ -53,7 +53,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1). `UartIrq` can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover to rtic-monotonics** (§7 hook 5, §8 foot-gun 1). FerroHAL's `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL timer token as its monotonic.
-- **Low: only the trigger routes in use are in the glue:** TIM1 to TIM3 on every chip, TIM1 to TIM8 where TIM8 exists. `check_glue.py` can't check them, since the metadata has no such table; each is exercised on hardware or follows RM0090 table 94, RM0368 table 54 or RM0433 table 336.
+- **Low: only the trigger routes in use are in the glue:** TIM1 to TIM3 on every chip, TIM1 to TIM8 where TIM8 exists, TIM3 to TIM2 on the F4s (the SpeedyBee's motor arrangement, run R on the F401). `check_glue.py` can't check them, since the metadata has no such table; each is exercised on hardware or follows RM0090 table 94, RM0368 table 54 or RM0433 table 336.
 - **Medium: timer features still missing:** input capture, one-pulse mode, dead time, the break input (FerroWasp's reply window).
 - **Medium: the watchdog has no window, and no freeze while debugging.** IWDG1's window register (H7) stays at its reset value (no window), and DBGMCU's watchdog freeze is never set, so a halted core lets a started watchdog reset the chip under the debugger.
 - **Low: the watchdog timeout is nominal.** It's worked out from the LSI's typical 32 kHz; the real LSI spans 17 to 47 kHz on the F4 (DS10086, DS8626) and 29.4 to 33.6 kHz on the H7 (DS12110). The bench measured 53.3 ms on the F401 and 50.5 ms on the H753ZI for a nominal 50 ms. Measuring the LSI against a timer would make it exact.
@@ -105,7 +105,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 - **Low: only one supply range** (2.7–3.6 V) in `Supply`.
 - **Low: HSE with a crystal is untested;** only bypass (the ST-LINK MCO) has run.
-- **Low: phantom pins:** LQFP64 bonds only PD2, PH0, PH1 outside ports A to C, and no port E.
+- **Low: phantom pins:** LQFP64 bonds only PD2, PH0, PH1 outside ports A to C, no port E, and not every pin of port B either — PB11 is missing from the LQFP64 (DS10086's pin table, which bonds it only on the UFBGA100; metapac has no PB11 for this chip), which a hand-written glue row found the hard way.
 - **Low: ES0299 2.2.11 for samplers.** DMA2 can corrupt data serving AHB (GPIO, a `Sampler`) and APB2 at once. The bench's run I keeps its lanes on DMA1 (TIM3) so DMA2 serves only GPIO and memory; firmware that samples while APB2 peripherals (TIM1, SPI1, USART1/6) use DMA2 must avoid the overlap. UARTs alone are unaffected.
 
 ## 3. STM32F405RG (Foxeer F405 V2)

@@ -82,6 +82,7 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 ## One timer starting another
 
 - **`Pwm::lead` and `Pwm::follow`** (2026-11-02): FerroWasp's Foxeer starts TIM8 from TIM1 so all four lanes begin on one edge. Run N on the F401 (TIM1, TIM3), run P on the H753ZI and the Foxeer's own check (TIM1, TIM8): the slave waits, starts every time over 100 starts, and reads within 3 or 4 counts of the master, read one after the other. No output is enabled in any of them.
+- **TIM3 starts TIM2 on the F4s** (2026-11-06): the SpeedyBee F405 V5's motors sit on TIM3 CH3/CH4 (PB0/PB1) and TIM2 CH3/CH4 (PB10/PB11), so its bank needs TIM3 leading TIM2 the way the Foxeer's TIM1 leads TIM8. The glue gained `timer_trigger!(TIM2: TIM3, 2)` on the F401 and the F405 (RM0090 table 94, RM0368 table 54: TIM2's ITR2). Run R on the F401 drives the SpeedyBee's four lanes at the DShot600 rate from one start — TIM2 in software beside TIM3, then from TIM3's trigger, then every lane active low as bidirectional DShot idles the line — all read back by the TIM1/DMA2 port-B sampler, 18 checks. It rides TIM2 CH2 on PB3 for the second TIM2 lane: the board's TIM2 CH4 pin, PB11, is not bonded on the F401's LQFP64 (DS10086's pin table), and the lane's DMA route, stream 6 channel 3, is the same one CH4 uses. `trigger_suite`'s first check now asks only that the slave is not running, not that its counter reads zero — a stopped timer keeps its count, and run R's slave arrives having run. Run N is unchanged and still passes.
 
 ## STM32H753ZI
 
