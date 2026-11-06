@@ -118,6 +118,27 @@ macro_rules! spis {
     };
 }
 
+/// I2C instance rows: `NAME => INFO, bus, enable bit;`. The kernel clock
+/// is the bus clock, which `freeze` writes the H7's muxes to match.
+macro_rules! i2cs {
+    ($($name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
+        $(
+            static $info: crate::i2c::Info = crate::i2c::Info::new(
+                crate::i2c_ip::Unit::new(pac::$name),
+                RccBit::new(Bus::$bus, $bit),
+            );
+
+            impl crate::i2c::Instance for $name {
+                const KERNEL: crate::i2c::Kernel = Bus::$bus;
+                const NAME: &'static str = stringify!($name);
+                fn info() -> &'static crate::i2c::Info {
+                    &$info
+                }
+            }
+        )+
+    };
+}
+
 /// Timer rows: `NAME => bus, enable bit, update vector, counter bits;`.
 macro_rules! timers {
     ($($name:ident => $bus:ident, $bit:literal, $update:ident, $bits:tt;)+) => {

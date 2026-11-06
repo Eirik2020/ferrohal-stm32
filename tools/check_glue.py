@@ -18,7 +18,9 @@ controller's first DMAMUX channel, every timer's enable bit, update
 interrupt vector and counter width, and every channel timer's channel count,
 break unit, channel pins (CHx, CHxN) and compare and update DMA routes, and
 the full-speed USB port's enable bit, vector and DM and DP pins. It also
-checks each SPI's kernel clock, SYSCFG's enable bit, every DMA stream's vector,
+checks each SPI's kernel clock, each I2C's enable bit, kernel clock (the
+bus clock its instance sits on) and SCL and SDA pins, SYSCFG's enable bit,
+every DMA stream's vector,
 the watchdog's peripheral, the EXTI line vectors `src/exti.rs` shares across
 chips, each ADC's enable bit, pins (positive inputs) and DMA routes, and each
 SDMMC's enable bit and pins. On a fixed-request DMA a stream that serves one signal on two
@@ -44,6 +46,11 @@ ROOT = Path(__file__).resolve().parent.parent
 # A SPI's kernel clock in the metadata to the glue's column. The muxes are the
 # choice `freeze` makes on the H7: SPI123SEL stays PLL1Q, SPI45SEL goes to PCLK2.
 SPI_KERNEL = {"PCLK1": "Apb1", "PCLK2": "Apb2", "SPI123SEL": "Pll1Q", "SPI45SEL": "Apb2"}
+
+# An I2C's kernel clock to the glue's bus column, which is the kernel: no
+# column of its own. The muxes are the choice `freeze` makes on the H7:
+# I2C1235SEL goes to PCLK1 (the APB1L bus's clock), I2C4SEL to PCLK4.
+I2C_KERNEL = {"PCLK1": "Apb1", "I2C1235SEL": "Apb1L", "I2C4SEL": "Apb4"}
 
 # RCC enable register names (metadata) to the glue's `Bus` names.
 BUS = {
@@ -214,6 +221,15 @@ class Glue:
                 found[name] = kernel
         return found
 
+    def i2cs(self):
+        found = {}
+        if not re.search(r"^i2cs!\(", self.text, re.M):
+            return found
+        for body in self.rows("i2cs"):
+            for name, bus, bit in re.findall(r"(\w+) => \w+, (\w+), (\d+);", body):
+                found[name] = (bus, int(bit))
+        return found
+
     def syscfg_enable(self):
         m = re.search(r"SYSCFG_ENABLE: RccBit = RccBit::new\(Bus::(\w+), (\d+)\)", self.text)
         if not m:
@@ -314,7 +330,7 @@ class Glue:
     def pins(self):
         found = {}
         for body in self.rows("pins"):
-            m = re.fullmatch(r"(Tx|Rx|Sck|Miso|Mosi|Ck|Cmd|D0|D1|D2|D3)Pin<(\w+)>: (.*)", body.strip(), re.S)
+            m = re.fullmatch(r"(Tx|Rx|Sck|Miso|Mosi|Scl|Sda|Ck|Cmd|D0|D1|D2|D3)Pin<(\w+)>: (.*)", body.strip(), re.S)
             if not m:
                 self.problems.append(f"cannot parse pins!({body})")
                 continue
@@ -457,6 +473,17 @@ def check(chip, glue_path, metapac):
         compare(f"{dma} first DMAMUX channel", base, meta.dmamux_channel(f"{dma}_CH0"))
     for name, kernel in sorted(glue.spi_kernels().items()):
         compare(f"{name} kernel clock", kernel, SPI_KERNEL.get(meta.kernel_clock(name)))
+    i2cs = glue.i2cs()
+    for name, (bus, bit) in sorted(i2cs.items()):
+        if meta.peripheral(name) is None:
+            failures.append(f"{name}: not in the metadata")
+            continue
+        compare(f"{name} RCC enable", (bus, bit), meta.enable(name))
+        # The bus column is also the kernel clock, which `freeze` writes
+        # the H7's muxes to select.
+        compare(f"{name} kernel clock", bus, I2C_KERNEL.get(meta.kernel_clock(name)))
+        theirs = {p for p in meta.pins(name) if p[0] in ("SCL", "SDA")}
+        compare(f"{name} pins", pins.get(name, set()), theirs)
     syscfg = glue.syscfg_enable()
     if syscfg:
         compare("SYSCFG RCC enable", syscfg, meta.enable("SYSCFG"))
@@ -498,6 +525,7 @@ def check(chip, glue_path, metapac):
     left_out = [n for n in meta.names("usart") if n not in usarts]
     left_out += [n for n in meta.names("spi") if n not in spis]
     left_out += [n for n in meta.names("timer") if n not in timers]
+    left_out += [n for n in meta.names("i2c") if n not in i2cs]
     print(f"{chip}: {checked} facts checked against stm32-metapac metadata", end="")
     print(f"; not routed in the glue: {', '.join(left_out)}" if left_out else "")
     for failure in failures:

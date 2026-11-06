@@ -25,8 +25,8 @@ use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,
     pwr::vals::Vos,
     rcc::vals::{
-        Hpre, Hsidiv, Plldiv, Pllm, Plln, Pllrge, Pllsrc, Pllvcosel, Ppre, Saisel, Spi45sel, Sw,
-        Usart16910sel, Usart234578sel, Usbsel,
+        Hpre, Hsidiv, I2c4sel, I2c1235sel, Plldiv, Pllm, Plln, Pllrge, Pllsrc, Pllvcosel, Ppre,
+        Saisel, Spi45sel, Sw, Usart16910sel, Usart234578sel, Usbsel,
     },
 };
 
@@ -842,6 +842,15 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
     RCC_REGS.d2ccip1r().modify(|w| {
         w.set_spi123sel(Saisel::PLL1_Q);
         w.set_spi45sel(Spi45sel::PCLK2);
+    });
+    // I2C kernel clocks from their bus clocks, written the same way:
+    // I2C1 to I2C3 from PCLK1, I2C4 from PCLK4. The chip glue's `Kernel`
+    // for each instance says the same.
+    RCC_REGS.d2ccip2r().modify(|w| {
+        w.set_i2c1235sel(I2c1235sel::PCLK1);
+    });
+    RCC_REGS.d3ccipr().modify(|w| {
+        w.set_i2c4sel(I2c4sel::PCLK4);
     });
     Ok(())
 }

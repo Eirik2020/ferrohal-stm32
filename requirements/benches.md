@@ -85,3 +85,23 @@ layout must stay as it is.
 ## The TBS Lucid H7 with its slot empty
 
 `hil/run-lucid.sh`, with no card in the slot. Pass: the bench reports the empty slot and every other check passes, and the script exits zero.
+
+## I2C on the Nucleo-F401RE
+
+`hil/run-f401.sh q`. With I2C1's SCL and SDA (PB8, PB9) pulled up and no
+slave fitted, every kind of transfer to a vacant address is answered by
+the bus itself with a NACK, which is what the run proves the driver's
+error paths with: each is reported within its bound, the flags are cleared
+and the bus put back, so the next one runs. The run also reads the timing
+registers back (CR2's FREQ, CCR and TRISE) against the rate the driver
+reports, checks the bound with the cycle counter and without it, and the
+refusal of a speed out of range, with the wiring handed back and used.
+Pass: every check in the run passes and the script exits zero.
+
+## I2C on the Nucleo-H753ZI
+
+`hil/run-h753.sh r`. The same checks on the TIMINGR IP version, over the
+same pins (PB8, PB9): a vacant address's NACK reported and recovered
+from, the timing register read back, the bounds with and without a cycle
+clock, and the refusal with the wiring handed back and used. Pass: every
+check in the run passes and the script exits zero.

@@ -24,6 +24,7 @@ use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin};
 use ferrohal_stm32::{
     chip::Peripherals,
     dma::{Direction, FifoMode, Flags, Interrupts, Priority, StreamInstance, Transfer, WordSize},
+    i2c::{self, I2c},
     spi::{self, Spi},
     time::Hertz,
     uart::{self, Buffers, Parity, StopBits, Uart, UartRx},
@@ -44,7 +45,8 @@ fn main() -> ! {
     let Some(p) = Peripherals::take() else {
         park()
     };
-    let Some((mut rcc, wiring, rx_wiring, spi_wiring, mut spare, mut out, mut input)) = chip::wire(p)
+    let Some((mut rcc, wiring, rx_wiring, spi_wiring, i2c_wiring, mut spare, mut out, mut input)) =
+        chip::wire(p)
     else {
         park()
     };
@@ -149,6 +151,30 @@ fn main() -> ! {
     if let Ok(mut bus) = spi {
         exercise_spi(&mut bus);
     }
+
+    // I2C: the timing check, then every operation of the bus trait.
+    black_box(&chip::I2cWiring::RESOURCES).iter().for_each(keep);
+    keep(
+        i2c::Config::new(Hertz::khz(400)).check(
+            black_box(rcc.clocks()).bus(<chip::I2cUnit as i2c::Instance>::KERNEL),
+        ),
+    );
+    // A refusal hands back the wiring: retry once with it, at 100 kHz.
+    let mut i2c =
+        match I2c::new(&mut rcc, i2c_wiring, &black_box(i2c::Config::new(Hertz::khz(400)))) {
+            Ok(bus) => bus,
+            Err(refused) => {
+                keep(refused.error());
+                let i2c_wiring = refused.into_parts();
+                let Ok(bus) =
+                    I2c::new(&mut rcc, i2c_wiring, &black_box(i2c::Config::new(Hertz::khz(100))))
+                else {
+                    park()
+                };
+                bus
+            }
+        };
+    exercise_i2c(&mut i2c);
 
     // The DMA API, on a stream the UART does not use.
     let mut channel = spare.take_channel();
@@ -483,6 +509,37 @@ where
     keep(SpiBus::write(&mut bus, data));
 }
 
+/// The I2C through every operation of the bus trait, and the empty
+/// operation inside a transaction.
+fn exercise_i2c(bus: &mut I2c) {
+    use embedded_hal::i2c::{I2c as HalI2c, Operation};
+
+    let data = black_box(&[0x5au8; 4][..]);
+    let mut buf = [0u8; 4];
+    keep(HalI2c::read(bus, black_box(0x18), black_box(&mut buf)));
+    keep(HalI2c::write(bus, black_box(0x18), data));
+    keep(HalI2c::write_read(bus, black_box(0x18), data, black_box(&mut buf)));
+    keep(HalI2c::transaction(
+        bus,
+        black_box(0x18),
+        black_box(&mut [
+            Operation::Write(data),
+            Operation::Read(&mut buf),
+            Operation::Write(&data[..0]),
+            Operation::Write(&data[..0]),
+            Operation::Write(data),
+        ]),
+    ));
+    keep(bus.frequency());
+    keep(bus.kernel_clock());
+    keep(bus.name());
+    keep(bus.health());
+    bus.set_clock(Some(&CLOCK));
+    keep(HalI2c::write(bus, black_box(0x18), data));
+    bus.set_clock(None);
+    keep(HalI2c::write(bus, black_box(0x18), data));
+}
+
 /// The USB clock check alone.
 #[cfg(feature = "stm32f401re")]
 fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
@@ -569,10 +626,11 @@ impl<C: StreamInstance> Spare<C> {
 #[cfg(feature = "stm32f401re")]
 mod chip {
     use ferrohal_stm32::{
-        chip::{Peripherals, SPI2, USART1, USART6},
+        chip::{I2C1, Peripherals, SPI2, USART1, USART6},
         dma::Stream,
         gpio::{Alternate, Input, Output, Pin, Pull, Speed},
         rcc::{AhbPrescaler, ApbPrescaler, Config, Pll, PllP, PllSource, Rcc, Supply, Sysclk},
+        i2c,
         spi,
         uart::{RxWiring, Wiring},
     };
@@ -582,6 +640,7 @@ mod chip {
     pub type RxUart = USART6;
     pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>;
     pub type SpiUnit = SPI2;
+    pub type I2cUnit = I2C1;
     pub type SpiWiring = spi::Wiring<
         SPI2,
         Pin<'B', 13, Alternate<5>>,
@@ -590,6 +649,10 @@ mod chip {
         Stream<1, 4>,
         Stream<1, 3>,
     >;
+
+    /// I2C1 on PB8 and PB9, the pins the Nucleo bench's Arduino connector
+    /// carries.
+    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -622,6 +685,7 @@ mod chip {
         UartWiring,
         RxOnlyWiring,
         SpiWiring,
+        I2cWiring,
         Spare<Stream<2, 0>>,
         Pin<'A', 5, Output>,
         Pin<'A', 0, Input>,
@@ -695,6 +759,11 @@ mod chip {
                 tx_dma: dma1.s4,
                 rx_dma: dma1.s3,
             },
+            i2c::Wiring {
+                i2c: p.I2C1,
+                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
+            },
             Spare {
                 stream: Some(dma2.s0),
             },
@@ -708,7 +777,7 @@ mod chip {
 #[cfg(feature = "stm32f405rg")]
 mod chip {
     use ferrohal_stm32::{
-        chip::{Peripherals, SPI2, UART4, USART2},
+        chip::{I2C1, Peripherals, SPI2, UART4, USART2},
         dma::Stream,
         gpio::{Alternate, Input, Output, Pin, Pull, Speed},
         rcc::{
@@ -716,6 +785,7 @@ mod chip {
             Sysclk,
         },
         time::Hertz,
+        i2c,
         spi,
         uart::{RxWiring, Wiring},
     };
@@ -725,6 +795,7 @@ mod chip {
     pub type RxUart = UART4;
     pub type RxOnlyWiring = RxWiring<UART4, Pin<'A', 1, Alternate<8>>, Stream<1, 2>>;
     pub type SpiUnit = SPI2;
+    pub type I2cUnit = I2C1;
     /// The Foxeer's flash bus: PB13, PC2, PC3.
     pub type SpiWiring = spi::Wiring<
         SPI2,
@@ -734,6 +805,9 @@ mod chip {
         Stream<1, 4>,
         Stream<1, 3>,
     >;
+
+    /// I2C1 on PB8 and PB9, the bus the Foxeer's barometer sits on.
+    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
 
     const CLOCKS: Config = Config {
         hse: Some(Hse {
@@ -769,6 +843,7 @@ mod chip {
         UartWiring,
         RxOnlyWiring,
         SpiWiring,
+        I2cWiring,
         Spare<Stream<2, 0>>,
         Pin<'B', 0, Output>,
         Pin<'B', 1, Input>,
@@ -845,6 +920,11 @@ mod chip {
                 tx_dma: dma1.s4,
                 rx_dma: dma1.s3,
             },
+            i2c::Wiring {
+                i2c: p.I2C1,
+                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
+            },
             Spare {
                 stream: Some(dma2.s0),
             },
@@ -857,13 +937,14 @@ mod chip {
 #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
 mod chip {
     use ferrohal_stm32::{
-        chip::{Peripherals, SPI1, USART2, USART3},
+        chip::{I2C1, Peripherals, SPI1, USART2, USART3},
         dma::Stream,
         gpio::{Alternate, Input, Output, Pin, Pull, Speed},
         rcc::{
             AhbPrescaler, ApbPrescaler, Config, Pll, PllSource, Rcc, Supply, Sysclk,
             VoltageScale,
         },
+        i2c,
         spi,
         uart::{RxWiring, Wiring},
     };
@@ -873,6 +954,7 @@ mod chip {
     pub type RxUart = USART3;
     pub type RxOnlyWiring = RxWiring<USART3, Pin<'B', 11, Alternate<7>>, Stream<1, 2>>;
     pub type SpiUnit = SPI1;
+    pub type I2cUnit = I2C1;
     /// The Lucid's IMU bus.
     pub type SpiWiring = spi::Wiring<
         SPI1,
@@ -882,6 +964,9 @@ mod chip {
         Stream<1, 5>,
         Stream<1, 4>,
     >;
+
+    /// I2C1 on PB8 and PB9, the pins the Nucleo-H753ZI's bench carries.
+    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -919,6 +1004,7 @@ mod chip {
         UartWiring,
         RxOnlyWiring,
         SpiWiring,
+        I2cWiring,
         Spare<Stream<2, 3>>,
         Pin<'B', 0, Output>,
         Pin<'B', 1, Input>,
@@ -1009,6 +1095,11 @@ mod chip {
                 mosi: d.p7.into_alternate::<5>(&mut d.ctrl),
                 tx_dma: dma1.s5,
                 rx_dma: dma1.s4,
+            },
+            i2c::Wiring {
+                i2c: p.I2C1,
+                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
             },
             Spare {
                 stream: Some(dma2.s3),

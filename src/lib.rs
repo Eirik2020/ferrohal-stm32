@@ -9,14 +9,16 @@
 //! # Layout
 //!
 //! - One module per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`,
-//!   `spi_v4`, `dma_v1`, `dma_v2`, `exti_v1`, `exti_h7`, `timer_v1`,
-//!   `timer_v3`, `iwdg_v1`, `iwdg_v2`, `gpio_v2`, `rcc_f4`, `rcc_h7rm0433`),
-//!   each behind its own feature. They speak registers only.
+//!   `spi_v4`, `i2c_v1`, `i2c_v2`, `dma_v1`, `dma_v2`, `exti_v1`,
+//!   `exti_h7`, `timer_v1`, `timer_v3`, `iwdg_v1`, `iwdg_v2`, `gpio_v2`,
+//!   `rcc_f4`, `rcc_h7rm0433`), each behind its own feature. They speak
+//!   registers only.
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
 //!   map) and the svd2rust-style [`chip::Peripherals`].
-//! - Neutral names: [`uart`], [`spi`] and `usb`, and `exti`, `timer`, `iwdg`,
-//!   `rcc`, `gpio`, `dma` for whichever IP version the chip carries.
+//! - Neutral names: [`uart`], [`spi`], [`i2c`] and `usb`, and `exti`,
+//!   `timer`, `iwdg`, `rcc`, `gpio`, `dma` for whichever IP version the
+//!   chip carries.
 //! - [`device`] (feature `rt`): the module RTIC's `device = ...` names.
 //!
 //! # Ownership
@@ -46,6 +48,7 @@ compile_error!("enable one chip feature, such as `stm32f401re` or `stm32h753zi`"
 compile_error!("enable only one chip feature");
 
 pub mod adc;
+pub mod i2c;
 pub mod reset;
 pub mod resource;
 pub mod signature;
@@ -93,6 +96,10 @@ pub mod dma_v1;
 pub mod dma_v2;
 #[cfg(feature = "gpio_v2")]
 pub mod gpio_v2;
+#[cfg(feature = "i2c_v1")]
+pub mod i2c_v1;
+#[cfg(feature = "i2c_v2")]
+pub mod i2c_v2;
 #[cfg(feature = "rcc_f4")]
 pub mod rcc_f4;
 #[cfg(feature = "rcc_h7rm0433")]
@@ -122,6 +129,10 @@ pub use exti_h7 as exti;
 pub use exti_v1 as exti;
 #[cfg(feature = "gpio_v2")]
 pub use gpio_v2 as gpio;
+#[cfg(feature = "i2c_v1")]
+use i2c_v1 as i2c_ip;
+#[cfg(feature = "i2c_v2")]
+use i2c_v2 as i2c_ip;
 #[cfg(feature = "iwdg_v1")]
 pub use iwdg_v1 as iwdg;
 #[cfg(feature = "iwdg_v2")]
