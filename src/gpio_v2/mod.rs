@@ -77,7 +77,8 @@ parts!(
 );
 
 /// A pin in an alternate function, described as data: for board manifests
-/// and resource lists.
+/// and resource lists. An analog pin implements it too, with `AF` 0 — it has
+/// no alternate function.
 pub trait AltPin {
     /// The port's letter.
     const PORT: char;
@@ -89,6 +90,12 @@ impl<const P: char, const N: u8, const AF: u8> AltPin for Pin<P, N, Alternate<AF
     const PORT: char = P;
     const PIN: u8 = N;
     const AF: u8 = AF;
+}
+
+impl<const P: char, const N: u8> AltPin for Pin<P, N, Analog> {
+    const PORT: char = P;
+    const PIN: u8 = N;
+    const AF: u8 = 0;
 }
 
 /// Reset mode for most pins.
@@ -150,6 +157,23 @@ where
         let regs = Self::regs();
         regs.otyper()
             .modify(|w| w.set_ot(usize::from(N), Ot::PUSH_PULL));
+        regs.afr(usize::from(N / 8))
+            .modify(|w| w.set_afr(usize::from(N % 8), AF));
+        Self::set_mode(Moder::ALTERNATE);
+        Pin::new()
+    }
+
+    /// As [`into_alternate`](Self::into_alternate), with the output open
+    /// drain: the peripheral pulls the line low and lets it float high, for
+    /// shared lines other devices hold or pull — I2C's SCL and SDA.
+    pub fn into_alternate_open_drain<const AF: u8>(
+        self,
+        _ctrl: &mut Ctrl<P>,
+    ) -> Pin<P, N, Alternate<AF>> {
+        const { assert!(AF < 16, "alternate functions are 0 to 15") };
+        let regs = Self::regs();
+        regs.otyper()
+            .modify(|w| w.set_ot(usize::from(N), Ot::OPEN_DRAIN));
         regs.afr(usize::from(N / 8))
             .modify(|w| w.set_afr(usize::from(N % 8), AF));
         Self::set_mode(Moder::ALTERNATE);

@@ -855,6 +855,8 @@ mod chip {
                 mosi: b.p5.into_alternate::<6>(&mut b.ctrl),
             },
         );
+        // An open-drain alternate, as I2C.s shared lines are wired.
+        super::keep(b.p7.into_alternate_open_drain::<1>(&mut b.ctrl));
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
         super::exercise_into_lane(
             &mut rcc,
@@ -1023,6 +1025,8 @@ mod chip {
                 mosi: b.p5.into_alternate::<6>(&mut b.ctrl),
             },
         );
+        // An open-drain alternate, as I2C.s shared lines are wired.
+        super::keep(b.p7.into_alternate_open_drain::<1>(&mut b.ctrl));
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
         super::exercise_into_lane(
             &mut rcc,
@@ -1205,6 +1209,8 @@ mod chip {
                 mosi: b.p5.into_alternate::<7>(&mut b.ctrl),
             },
         );
+        // An open-drain alternate, as I2C's shared lines are wired.
+        super::keep(b.p7.into_alternate_open_drain::<1>(&mut b.ctrl));
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma2.s0);
         super::exercise_into_lane(
             &mut rcc,

@@ -17,6 +17,12 @@ pub enum Resource {
         pin: u8,
         af: u8,
     },
+    /// An analog pin — an ADC input, with no alternate function.
+    Analog {
+        signal: Signal,
+        port: char,
+        pin: u8,
+    },
     Dma {
         signal: Signal,
         controller: u8,
@@ -43,6 +49,8 @@ pub enum Signal {
     Channel(u8),
     /// A timer channel's complementary output (CHxN), by its number.
     Complementary(u8),
+    /// An ADC input, by its channel number.
+    Adc(u8),
 }
 
 /// What a vector check found wrong.

@@ -124,6 +124,61 @@ pub struct Channel<A> {
     _adc: PhantomData<A>,
 }
 
+/// One ADC input's wiring, as the board states it: the pin in analog mode
+/// that `A` reads, and the DMA stream that serves `A`'s conversions. The IP
+/// traits check that they belong together; this carries them and describes
+/// itself as data for the board's manifest (`RESOURCES`), and gives the
+/// channel its pin measures. The scan itself is assembled at runtime from
+/// the wirings' channels (`Adc::into_scan`), whose refusal hands the ADC,
+/// the stream and the buffer back.
+pub struct AdcWiring<A, Pin, Stream> {
+    /// The pin, in analog mode.
+    pub pin: Pin,
+    /// The DMA stream serving `A`.
+    pub stream: Stream,
+    _adc: PhantomData<fn() -> A>,
+}
+
+impl<A, Pin, Stream> AdcWiring<A, Pin, Stream> {
+    /// A wiring for one of `A`'s inputs, from its pin and stream.
+    pub const fn new(pin: Pin, stream: Stream) -> Self {
+        Self {
+            pin,
+            stream,
+            _adc: PhantomData,
+        }
+    }
+}
+
+impl<A, Pin, const CD: u8, const SN: u8> AdcWiring<A, Pin, crate::dma::Stream<CD, SN>>
+where
+    A: Instance,
+    Pin: AdcPin<A> + crate::gpio::AltPin,
+    crate::dma::Stream<CD, SN>: AdcDma<A>,
+{
+    /// Everything this wiring uses, as data: the instance, the analog pin,
+    /// and the stream with its request.
+    pub const RESOURCES: [crate::resource::Resource; 3] = [
+        crate::resource::Resource::Peripheral(A::NAME),
+        crate::resource::Resource::Analog {
+            signal: crate::resource::Signal::Adc(Pin::CHANNEL),
+            port: Pin::PORT,
+            pin: Pin::PIN,
+        },
+        crate::resource::Resource::Dma {
+            signal: crate::resource::Signal::Adc(Pin::CHANNEL),
+            controller: CD,
+            stream: SN,
+            request: <crate::dma::Stream<CD, SN> as AdcDma<A>>::REQUEST,
+        },
+    ];
+
+    /// The channel this wiring's pin measures.
+    pub const fn channel(&self) -> Channel<A> {
+        Channel::new(Pin::CHANNEL)
+    }
+}
+
 impl<A> Clone for Channel<A> {
     fn clone(&self) -> Self {
         *self

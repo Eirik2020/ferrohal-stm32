@@ -428,6 +428,8 @@ stream_interrupts!(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adc::AdcWiring;
+    use crate::gpio_v2::Analog;
     use crate::timer::{ComplementaryLaneWiring, LaneWiring};
     use crate::uart::{Resource, RxWiring, Signal, Wiring};
 
@@ -518,6 +520,24 @@ mod tests {
                     controller: 2,
                     stream: 1,
                     request: 6
+                },
+            ]
+        );
+        // The bench's own ADC input: ADC1 channel 6 on PA6, over stream 0.
+        assert_eq!(
+            AdcWiring::<ADC1, Pin<'A', 6, Analog>, Stream<2, 0>>::RESOURCES,
+            [
+                Resource::Peripheral("ADC1"),
+                Resource::Analog {
+                    signal: Signal::Adc(6),
+                    port: 'A',
+                    pin: 6,
+                },
+                Resource::Dma {
+                    signal: Signal::Adc(6),
+                    controller: 2,
+                    stream: 0,
+                    request: 0
                 },
             ]
         );
