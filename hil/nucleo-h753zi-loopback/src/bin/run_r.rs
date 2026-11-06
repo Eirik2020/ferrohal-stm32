@@ -1,8 +1,8 @@
-//! Run R: the I2C master, I2C1 on PB8 and PB9 (the Zio sockets CN7-2 and
-//! CN7-4, which the UART link Z4 also uses: take Z4 off), pulled up
-//! internally, no slave fitted. The bus itself answers a vacant address
-//! with a NACK, which is what the run proves the driver's error paths
-//! with. No vectors: the I2C needs none.
+//! Run R: the I2C master, I2C3 on PA8 and PC9, pulled up internally, no
+//! slave fitted. The bus itself answers a vacant address with a NACK,
+//! which is what the run proves the driver's error paths with. No links
+//! touch these pins, so the whole bench runs as one script. No vectors:
+//! the I2C needs none.
 
 #![no_std]
 #![no_main]
@@ -41,7 +41,7 @@ fn main() -> ! {
     tests::set_cpu_hz(board::CLOCKS.cpu.0);
     let cpu = board::CLOCKS.cpu;
     let mut report = Report::new();
-    let link = "I2C1 PB8/PB9 (Zio CN7-2/CN7-4, no slave)";
+    let link = "I2C3 PA8/PC9 (no slave)";
 
     // A speed the IP version cannot carry is refused, the wiring handed
     // back, and the handed-back wiring opens the bus.
@@ -83,7 +83,7 @@ fn main() -> ! {
                 {
                     let kernel = bus.kernel_clock();
                     let speed = bus.frequency();
-                    let timingr = pac::I2C1.timingr().read();
+                    let timingr = pac::I2C3.timingr().read();
                     let tick = (1_000_000_000 + kernel.0 - 1) / kernel.0;
                     let tp = tick * (u32::from(timingr.presc()) + 1);
                     let low = tp * (u32::from(timingr.scll()) + 1);

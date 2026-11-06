@@ -100,8 +100,10 @@ Pass: every check in the run passes and the script exits zero.
 
 ## I2C on the Nucleo-H753ZI
 
-`hil/run-h753.sh r`. The same checks on the TIMINGR IP version, over the
-same pins (PB8, PB9): a vacant address's NACK reported and recovered
-from, the timing register read back, the bounds with and without a cycle
-clock, and the refusal with the wiring handed back and used. Pass: every
-check in the run passes and the script exits zero.
+`hil/run-h753.sh r`. The same checks on the TIMINGR IP version, on I2C3
+over PA8 and PC9, the one pair no other run links (PB8 and PB9 are the
+UART link Z4, and a fitted Z4 shorts SCL to SDA): a vacant address's NACK
+reported and recovered from, the timing register read back, the bounds
+with and without a cycle clock, and the refusal with the wiring handed
+back and used. Pass: every check in the run passes and the script exits
+zero.

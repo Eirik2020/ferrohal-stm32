@@ -53,7 +53,7 @@ use core::{
 
 use ferrohal_stm32::{
     chip::{
-        I2C1, Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7,
+        I2C3, Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7,
         TIM8, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1, USART2,
         USART3, USART6,
     },
@@ -549,34 +549,34 @@ pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
     })
 }
 
-// Run R: the I2C, I2C1 on PB8 and PB9 (the Zio sockets CN7-2 and CN7-4,
-// which the UART link Z4 also uses), pulled up internally, no slave
-// fitted: Z4 must be taken off. No other links.
+// Run R: the I2C, I2C3 on PA8 and PC9, pulled up internally, no slave
+// fitted. No links: these pins carry no other run's wiring, so the
+// bench runs as one script.
 
-pub type I2c1Bus = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+pub type I2c3Bus = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4>>, Pin<'C', 9, Alternate<4>>>;
 
 pub struct RunR {
     pub rcc: Rcc,
     pub led: Pin<'A', 5, Output>,
-    pub i2c: I2c1Bus,
+    pub i2c: I2c3Bus,
 }
 
 pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
     let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
     let mut a = p.GPIOA.split(&mut rcc);
-    let mut b = p.GPIOB.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     // SCL and SDA pulled up: with no slave fitted the lines idle high,
     // so a vacant address is answered by the bus itself with a NACK.
-    let mut scl: Pin<'B', 8, Alternate<4>> = b.p8.into_alternate(&mut b.ctrl);
-    scl.set_pull(&mut b.ctrl, Pull::Up);
-    let mut sda: Pin<'B', 9, Alternate<4>> = b.p9.into_alternate(&mut b.ctrl);
-    sda.set_pull(&mut b.ctrl, Pull::Up);
+    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate(&mut a.ctrl);
+    scl.set_pull(&mut a.ctrl, Pull::Up);
+    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate(&mut c.ctrl);
+    sda.set_pull(&mut c.ctrl, Pull::Up);
     Ok(RunR {
         rcc,
         led,
         i2c: i2c::Wiring {
-            i2c: p.I2C1,
+            i2c: p.I2C3,
             scl,
             sda,
         },

@@ -32,6 +32,10 @@ use stm32_metapac::i2c::I2c as Regs;
 pub use crate::i2c::{ConfigError, Error};
 use crate::time::Hertz;
 
+/// Register reads a recovery waits for the stop it armed to reach the
+/// wire, bounded.
+const SPINS: u32 = 10_000;
+
 /// The register block.
 pub type Block = Regs;
 
@@ -312,15 +316,16 @@ impl Unit {
         None
     }
 
-    /// Puts the bus back: PE off releases the lines and resets the state
-    /// machines while the timing registers keep their values, the flags
-    /// clear, and PE returns (RM0368 §27.6.2, §27.6.7).
+    /// Puts the bus back: the stop the refused transfer never got, then
+    /// the flags cleared by writing zero (RM0368 §27.6.7), the bus waited
+    /// back to idle within a bound (BUSY clears only after a stop, RM0368
+    /// §27.6.8), and PE cycled, which releases the lines while the
+    /// timing registers keep their values (RM0368 §27.6.2).
     pub(crate) fn recover(self) {
         let regs = self.0;
         regs.cr1().modify(|w| {
-            w.set_pe(false);
             w.set_start(false);
-            w.set_stop(false);
+            w.set_stop(true);
             w.set_ack(false);
             w.set_pos(stm32_metapac::i2c::vals::Pos::CURRENT);
         });
@@ -330,6 +335,12 @@ impl Unit {
             w.set_arlo(false);
             w.set_ovr(false);
         });
+        for _ in 0..SPINS {
+            if !regs.sr2().read().busy() {
+                break;
+            }
+        }
+        regs.cr1().modify(|w| w.set_pe(false));
         regs.cr1().modify(|w| w.set_pe(true));
     }
 }

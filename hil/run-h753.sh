@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs the Nucleo-H753ZI bench: UART runs A to E, SPI and EXTI runs F to H,
 # timer runs I and J, watchdog run K,
-# polled SPI run L, USB CDC run M (needs a data cable from CN13 to the host), bootloader request run N, ADC run O, timer trigger run P, waveform loopback run Q, I2C run R (take the Z4 link off first: it shares the I2C's pins). Every UART and SPI looped back to
+# polled SPI run L, USB CDC run M (needs a data cable from CN13 to the host), bootloader request run N, ADC run O, timer trigger run P, waveform loopback run Q, I2C run R (I2C3 on PA8/PC9, no slave fitted, no links needed). Every UART and SPI looped back to
 # itself. Exits non-zero if any run failed.
 #
 # Needs the Zio links described in nucleo-h753zi-loopback/src/board.rs.
