@@ -473,6 +473,8 @@ pub enum ClockError {
     PllTimeout,
     /// A clock switch or the flash latency did not take within its bound.
     SwitchTimeout,
+    /// No combination of the dividers meets the request.
+    Unsatisfiable,
 }
 
 /// A chip's clock limits. Supplied by the glue layer.
@@ -684,6 +686,305 @@ impl Config {
             },
         })
     }
+}
+
+/// What a board asks the clocks for: its oscillator and the system
+/// frequency. The USB port runs from HSI48 on these chips, so it makes no
+/// request; a board that routes PLL1's Q output to peripheral kernel clocks
+/// (the Lucid's 100 MHz for SPI1 to SPI3) asks for it in `q`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct Request {
+    /// The board's oscillator.
+    pub hse: Hse,
+    /// The system frequency.
+    pub sysclk: Hertz,
+    /// What PLL1's Q output must provide, when the board routes it.
+    pub q: Option<Hertz>,
+}
+
+/// What the VCO search settles on: the DIVM1, the multiplier, the P and Q
+/// dividers, and the prescalers from SYSCLK down.
+type SolvedTree = (
+    u32,
+    u32,
+    Option<u8>,
+    Option<u8>,
+    AhbPrescaler,
+    AhbPrescaler,
+    ApbPrescaler,
+    ApbPrescaler,
+    ApbPrescaler,
+    ApbPrescaler,
+);
+
+/// The smallest AHB divisor that keeps `clock / divisor` within `max`.
+const fn ahb_pre(clock: u32, max: u32) -> Option<AhbPrescaler> {
+    let mut divisor = 1;
+    while divisor <= 512 {
+        if clock / divisor <= max {
+            return ahb_pre_of(divisor);
+        }
+        divisor *= if divisor < 16 { 2 } else { 4 };
+    }
+    None
+}
+
+const fn ahb_pre_of(divisor: u32) -> Option<AhbPrescaler> {
+    match divisor {
+        1 => Some(AhbPrescaler::Div1),
+        2 => Some(AhbPrescaler::Div2),
+        4 => Some(AhbPrescaler::Div4),
+        8 => Some(AhbPrescaler::Div8),
+        16 => Some(AhbPrescaler::Div16),
+        64 => Some(AhbPrescaler::Div64),
+        128 => Some(AhbPrescaler::Div128),
+        256 => Some(AhbPrescaler::Div256),
+        512 => Some(AhbPrescaler::Div512),
+        _ => None,
+    }
+}
+
+/// The smallest APB divisor that keeps `clock / divisor` within `max`.
+const fn apb_pre(clock: u32, max: u32) -> Option<ApbPrescaler> {
+    let mut divisor = 1;
+    while divisor <= 16 {
+        if clock / divisor <= max {
+            return Some(match divisor {
+                1 => ApbPrescaler::Div1,
+                2 => ApbPrescaler::Div2,
+                4 => ApbPrescaler::Div4,
+                8 => ApbPrescaler::Div8,
+                _ => ApbPrescaler::Div16,
+            });
+        }
+        divisor *= 2;
+    }
+    None
+}
+
+impl Config {
+    /// Computes a configuration for `request`: PLL1 from the HSE, with its
+    /// input the oscillator divided as little as the chip's input range
+    /// needs, and the VCO the smallest that the system clock (through P,
+    /// even) and the Q request divide down from, in whichever VCO range
+    /// fits. The prescalers are the smallest divisors that keep the core,
+    /// AXI and every APB within the voltage scale's limits, and the voltage
+    /// scale the lowest that supports the request, so a request a lower
+    /// voltage meets runs at it. The result is validated before it is
+    /// returned: what `solve` returns always freezes.
+    ///
+    /// USB needs no request: it runs from HSI48. This is a convenience over
+    /// [`Config`]'s stated dividers, not a replacement: a board that wants a
+    /// particular tree states it, and [`validate`](Self::validate) checks it
+    /// as ever.
+    pub const fn solve(request: Request) -> Result<Self, ClockError> {
+        if request.sysclk.0 == 0 {
+            return Err(ClockError::Cpu);
+        }
+        let limits = &CLOCK_LIMITS;
+        if request.sysclk.0 > limits.scale1.0.0 {
+            return Err(ClockError::Cpu);
+        }
+        // The scales, lowest voltage first: the first that supports the
+        // request wins.
+        let scales = [
+            VoltageScale::Scale3,
+            VoltageScale::Scale2,
+            VoltageScale::Scale1,
+        ];
+        let mut index = 0;
+        let mut last = ClockError::Unsatisfiable;
+        while index < 3 {
+            let voltage_scale = scales[index];
+            let (cpu_max, hclk_max, pclk_max) = match voltage_scale {
+                VoltageScale::Scale1 => limits.scale1,
+                VoltageScale::Scale2 => limits.scale2,
+                VoltageScale::Scale3 => limits.scale3,
+            };
+            if request.sysclk.0 > cpu_max.0 {
+                index += 1;
+                continue;
+            }
+            match Self::solve_tree(request, limits, voltage_scale, hclk_max.0, pclk_max.0) {
+                Ok(config) => {
+                    // What `solve` returns always freezes.
+                    return match config.validate() {
+                        Ok(_) => Ok(config),
+                        Err(error) => Err(error),
+                    };
+                }
+                Err(error) => {
+                    last = error;
+                    index += 1;
+                }
+            }
+        }
+        Err(last)
+    }
+
+    /// The tree within one voltage scale: the PLL input the oscillator
+    /// divided as little as the chip's input range needs, and the VCO the
+    /// smallest that the system clock (through P, even) and the Q request
+    /// divide down from.
+    const fn solve_tree(
+        request: Request,
+        limits: &Limits,
+        voltage_scale: VoltageScale,
+        hclk_max: u32,
+        pclk_max: u32,
+    ) -> Result<Self, ClockError> {
+        let hse_freq = request.hse.freq.0;
+        // The PLL input: the HSE divided as little as the 1 to 16 MHz input
+        // range needs, tried divided least first.
+        let mut prediv = 1;
+        while prediv <= 63 {
+            let input = hse_freq / prediv;
+            if input > limits.pll_input.1.0 {
+                prediv += 1;
+                continue;
+            }
+            if input < limits.pll_input.0.0 {
+                // A larger PLLM only lowers the input further.
+                break;
+            }
+            if let Some((prediv, mul, divp, divq, cpu_pre, ahb_pre, apb1, apb2, apb3, apb4)) =
+                Self::solve_vco(request, limits, input, request.sysclk.0, hclk_max, pclk_max)
+            {
+                return Ok(Self {
+                    hse: Some(request.hse),
+                    pll1: Some(Pll {
+                        source: PllSource::Hse,
+                        prediv: prediv as u8,
+                        mul: mul as u16,
+                        divp,
+                        divq,
+                        divr: None,
+                    }),
+                    sys: Sysclk::Pll1P,
+                    cpu_pre,
+                    ahb_pre,
+                    apb1_pre: apb1,
+                    apb2_pre: apb2,
+                    apb3_pre: apb3,
+                    apb4_pre: apb4,
+                    supply: Supply::Ldo,
+                    voltage_scale,
+                });
+            }
+            prediv += 1;
+        }
+        Err(ClockError::Unsatisfiable)
+    }
+}
+
+impl Config {
+    /// The smallest VCO on the input `reference` that the system clock
+    /// (through P, even) and the Q request divide down from, in whichever
+    /// VCO range fits, with the prescalers alongside. Returns the DIVM1 it
+    /// used, so the caller can go on to the next input when this one has no
+    /// solution.
+    const fn solve_vco(
+        request: Request,
+        limits: &Limits,
+        reference: u32,
+        sysclk: u32,
+        hclk_max: u32,
+        pclk_max: u32,
+    ) -> Option<SolvedTree> {
+        let mut mul = 4;
+        while mul <= 512 {
+            let vco = reference * mul;
+            // The medium VCO fits any input; the wide one needs a reference
+            // of 2 MHz or more, and tops out where both revisions meet.
+            let in_medium = in_range(vco, limits.vco_medium);
+            let in_wide = reference >= 2_000_000 && in_range(vco, limits.vco_wide);
+            if !in_medium && !in_wide {
+                if vco > limits.vco_wide.1.0 {
+                    break;
+                }
+                mul += 1;
+                continue;
+            }
+            // P: even, 2 to 128, giving the system clock exactly.
+            if !vco.is_multiple_of(sysclk) {
+                mul += 1;
+                continue;
+            }
+            let p = vco / sysclk;
+            if p < 2 || p > 128 || !p.is_multiple_of(2) {
+                mul += 1;
+                continue;
+            }
+            // Q: the request, exactly.
+            let divq = match request.q {
+                None => None,
+                Some(q) => {
+                    let mut divq = 1;
+                    let mut found = None;
+                    while divq <= 128 {
+                        if vco.is_multiple_of(divq) && vco / divq == q.0 {
+                            found = Some(divq as u8);
+                        }
+                        divq += 1;
+                    }
+                    match found {
+                        Some(divq) => Some(divq),
+                        None => {
+                            mul += 1;
+                            continue;
+                        }
+                    }
+                }
+            };
+            // The prescalers: the smallest divisors inside the scale's
+            // limits, the core first.
+            let cpu_pre = match ahb_pre(sysclk, sysclk) {
+                Some(cpu_pre) => cpu_pre,
+                None => return None,
+            };
+            let core = sysclk / cpu_pre.divisor();
+            let ahb_pre = match ahb_pre(core, hclk_max) {
+                Some(ahb_pre) => ahb_pre,
+                None => return None,
+            };
+            let hclk = core / ahb_pre.divisor();
+            let apb1 = match apb_pre(hclk, pclk_max) {
+                Some(apb1) => apb1,
+                None => return None,
+            };
+            let apb2 = match apb_pre(hclk, pclk_max) {
+                Some(apb2) => apb2,
+                None => return None,
+            };
+            let apb3 = match apb_pre(hclk, pclk_max) {
+                Some(apb3) => apb3,
+                None => return None,
+            };
+            let apb4 = match apb_pre(hclk, pclk_max) {
+                Some(apb4) => apb4,
+                None => return None,
+            };
+            return Some((
+                prediv_value(reference, request),
+                mul,
+                Some(p as u8),
+                divq,
+                cpu_pre,
+                ahb_pre,
+                apb1,
+                apb2,
+                apb3,
+                apb4,
+            ));
+        }
+        None
+    }
+}
+
+/// The DIVM1 that produced `reference` from the request's oscillator.
+const fn prediv_value(reference: u32, request: Request) -> u32 {
+    request.hse.freq.0 / reference
 }
 
 /// Spins until `done` or `spins` run out.
