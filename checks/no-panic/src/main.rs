@@ -303,20 +303,38 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
     keep(divider(black_box(Hertz::mhz(84)), black_box(Hertz::khz(1)), black_box(16)));
     keep(Tick::check::<T>(&black_box(rcc.clocks()), black_box(Hertz::khz(8))));
     keep(Timebase::check::<U>(&black_box(rcc.clocks()), black_box(Hertz::mhz(1))));
-    if let Ok(mut tick) = Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
-        keep(tick.on_interrupt());
-        keep(tick.rate());
-        keep(tick.interrupt());
-        keep(tick.verify());
-        tick.pause();
-        tick.resume();
-    }
-    if let Ok(base) = Timebase::new(rcc, base_timer, black_box(Hertz::mhz(1))) {
-        keep(base.now());
-        let reader = base.reader();
-        keep(reader.now());
-        keep(reader.frequency());
-    }
+    let mut tick = match Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
+        Ok(tick) => tick,
+        Err(refused) => {
+            keep(refused.error());
+            let tick_timer = refused.into_parts();
+            match Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
+                Ok(tick) => tick,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(tick.on_interrupt());
+    keep(tick.rate());
+    keep(tick.interrupt());
+    keep(tick.verify());
+    tick.pause();
+    tick.resume();
+    let mut base = match Timebase::new(rcc, base_timer, black_box(Hertz::mhz(1))) {
+        Ok(base) => base,
+        Err(refused) => {
+            keep(refused.error());
+            let base_timer = refused.into_parts();
+            match Timebase::new(rcc, base_timer, black_box(Hertz::mhz(1))) {
+                Ok(base) => base,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(base.now());
+    let reader = base.reader();
+    keep(reader.now());
+    keep(reader.frequency());
 }
 
 /// A PWM at `rate`, retrying once from a refusal's hand-back: the parts come
@@ -588,11 +606,20 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     }
     keep(divider(black_box(50_000)));
     keep(Watchdog::check(black_box(50_000)));
-    if let Ok(dog) = Watchdog::start(iwdg, black_box(50_000)) {
-        dog.feed();
-        keep(dog.timeout_us());
-        keep(dog.handle().timeout_us());
-    }
+    let dog = match Watchdog::start(iwdg, black_box(50_000)) {
+        Ok(dog) => dog,
+        Err(refused) => {
+            keep(refused.error());
+            let iwdg = refused.into_parts();
+            match Watchdog::start(iwdg, black_box(50_000)) {
+                Ok(dog) => dog,
+                Err(_) => park(),
+            }
+        }
+    };
+    dog.feed();
+    keep(dog.timeout_us());
+    keep(dog.handle().timeout_us());
 }
 
 /// The polled SPI through every operation.
@@ -680,7 +707,18 @@ pub fn exercise_usb(
 ) {
     keep(ferrohal_stm32::usb::UsbFs::interrupt());
     keep(rcc.usb_clock());
-    keep(ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp));
+    let usb = match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+        Ok(usb) => usb,
+        Err(refused) => {
+            keep(refused.error());
+            let (token, dm, dp) = refused.into_parts();
+            match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+                Ok(usb) => usb,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(usb);
 }
 
 fn exercise_spi(bus: &mut Spi) {
@@ -1387,8 +1425,16 @@ pub fn exercise_sdmmc<U, Ck, Cmd, D0, D1, D2, D3>(
 {
     use ferrohal_stm32::sdmmc::{BLOCK_SIZE, Config, Sdmmc};
 
-    let Ok(mut sd) = Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) else {
-        return;
+    let mut sd = match Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) {
+        Ok(sd) => sd,
+        Err(refused) => {
+            keep(refused.error());
+            let wiring = refused.into_parts();
+            match Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) {
+                Ok(sd) => sd,
+                Err(_) => park(),
+            }
+        }
     };
     keep(sd.init_card());
     keep(sd.block_count());

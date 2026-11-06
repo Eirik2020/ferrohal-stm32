@@ -35,6 +35,7 @@ use crate::{
     chip::Interrupt,
     rcc::{Bus, Clocks, Rcc, RccBit},
     resource::IrqError,
+    resource::Refused,
     time::Hertz,
 };
 
@@ -297,9 +298,13 @@ pub struct Tick {
 
 impl Tick {
     /// Enables and resets the timer, sets it to overflow at `rate` exactly,
-    /// enables its update interrupt and starts it.
-    pub fn new<T: Instance>(rcc: &mut Rcc, _timer: T, rate: Hertz) -> Result<Self, ConfigError> {
-        let (prescaler, reload) = divider(rcc.clocks().timer(T::BUS), rate, T::BITS)?;
+    /// enables its update interrupt and starts it. Refuses with the timer
+    /// token handed back: the rate is checked before the timer is touched.
+    pub fn new<T: Instance>(rcc: &mut Rcc, _timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
+        let (prescaler, reload) = match divider(rcc.clocks().timer(T::BUS), rate, T::BITS) {
+            Ok(parts) => parts,
+            Err(error) => return Err(Refused::new(error, _timer)),
+        };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
         let core = T::core();
@@ -382,14 +387,18 @@ unsafe impl Sync for TimebaseReader {}
 
 impl Timebase {
     /// Enables and resets the timer and starts it counting at `frequency`
-    /// exactly, over its whole 32-bit range.
+    /// exactly, over its whole 32-bit range. Refuses with the timer token
+    /// handed back: the rate is checked before the timer is touched.
     pub fn new<T: Instance32>(
         rcc: &mut Rcc,
         _timer: T,
         frequency: Hertz,
-    ) -> Result<Self, ConfigError> {
+    ) -> Result<Self, Refused<ConfigError, T>> {
         let clock = rcc.clocks().timer(T::BUS);
-        let prescaler = Self::prescaler(clock, frequency)?;
+        let prescaler = match Self::prescaler(clock, frequency) {
+            Ok(prescaler) => prescaler,
+            Err(error) => return Err(Refused::new(error, _timer)),
+        };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
         let core = T::core();

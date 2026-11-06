@@ -15,7 +15,7 @@
 
 use stm32_metapac::iwdg::vals::{Key, Pr};
 
-use crate::{chip::WatchdogPeripheral, time::Hertz};
+use crate::{chip::WatchdogPeripheral, resource::Refused, time::Hertz};
 
 /// The LSI's typical frequency, which the timeouts are worked out from.
 pub const LSI: Hertz = Hertz::khz(32);
@@ -63,9 +63,14 @@ pub struct Watchdog {
 
 impl Watchdog {
     /// Starts the watchdog with `timeout_us`, nominal. It runs from here on;
-    /// feed it within the timeout.
-    pub fn start(_iwdg: WatchdogPeripheral, timeout_us: u32) -> Result<Self, Error> {
-        let (code, reload) = divider(timeout_us)?;
+    /// feed it within the timeout. Refuses with the watchdog token handed
+    /// back when the timeout cannot be set; once the watchdog is running
+    /// (an `Update` refusal), only a reset stops it.
+    pub fn start(_iwdg: WatchdogPeripheral, timeout_us: u32) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
+        let (code, reload) = match divider(timeout_us) {
+            Ok(parts) => parts,
+            Err(error) => return Err(Refused::new(error, _iwdg)),
+        };
         let regs = crate::chip::iwdg_regs();
         // Starting turns the LSI on; then unlock, load, wait, reload.
         regs.kr().write(|w| w.set_key(Key::START));
@@ -82,7 +87,7 @@ impl Watchdog {
         }
         regs.kr().write(|w| w.set_key(Key::RESET));
         if !settled {
-            return Err(Error::Update);
+            return Err(Refused::new(Error::Update, _iwdg));
         }
         Ok(Self { timeout_us })
     }

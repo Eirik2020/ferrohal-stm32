@@ -26,6 +26,7 @@ use stm32_metapac::sdmmc::{
 
 use crate::{
     rcc::{Rcc, RccBit},
+    resource::Refused,
     time::Hertz,
 };
 
@@ -216,14 +217,24 @@ pub struct Sdmmc {
     blocks: u32,
 }
 
+/// What [`Sdmmc::new`](Sdmmc::new) hands back when it refuses: the reason,
+/// and the wiring it took.
+pub type SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3> =
+    Refused<Error, Wiring<U, Ck, Cmd, D0, D1, D2, D3>>;
+
 impl Sdmmc {
     /// Enables and resets the SDMMC and sets the identification clock. The
-    /// card stays unpowered until [`init_card`](Self::init_card).
+    /// card stays unpowered until [`init_card`](Self::init_card). Refuses
+    /// with the wiring handed back: the clocks are checked before the
+    /// peripheral is touched.
+    /// The refusal's parts are the wiring, whose seven parameters are the
+    /// board's statement of the route.
+    #[allow(clippy::type_complexity)]
     pub fn new<U, Ck, Cmd, D0, D1, D2, D3>(
         rcc: &mut Rcc,
         _wiring: Wiring<U, Ck, Cmd, D0, D1, D2, D3>,
         config: &Config,
-    ) -> Result<Self, Error>
+    ) -> Result<Self, SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3>>
     where
         U: Instance,
         Ck: CkPin<U>,
@@ -234,12 +245,15 @@ impl Sdmmc {
         D3: D3Pin<U>,
     {
         let clocks = rcc.clocks();
-        let kernel = clocks.pll1_q.ok_or(Error::Clock)?;
+        let kernel = match clocks.pll1_q {
+            Some(kernel) => kernel,
+            None => return Err(Refused::new(Error::Clock, _wiring)),
+        };
         if config.frequency.0 > MAX_DEFAULT_SPEED_HZ
             || divider(kernel.0, IDENTIFICATION_HZ).is_none()
             || divider(kernel.0, config.frequency.0).is_none()
         {
-            return Err(Error::Clock);
+            return Err(Refused::new(Error::Clock, _wiring));
         }
         rcc.enable(U::ENABLE);
         rcc.reset(U::ENABLE);
