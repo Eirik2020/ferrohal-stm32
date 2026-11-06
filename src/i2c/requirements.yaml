@@ -1,0 +1,168 @@
+schema_version: 2
+requirements:
+  - id: I2C-001
+    title: The I2C has one API on every chip
+    statement: >-
+      Firmware shall reach the same I2C driver API, by the same name,
+      whatever I2C version its chip has.
+    rationale: >-
+      A single unified HAL: code above the driver must not change when the
+      chip does.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
+
+  - id: I2C-002
+    title: A start that cannot run is refused
+    statement: >-
+      A speed the IP version cannot carry, or a kernel clock it cannot time
+      from, shall be refused, with the wiring handed back.
+    rationale: >-
+      Starting anyway could break a device; a refusal that keeps its tokens
+      lets the firmware try another bus.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
+
+  - id: I2C-003
+    title: Every wait is bounded and a stuck one recovers
+    statement: >-
+      Every transfer shall finish within a bound of twice its wire time plus
+      a margin, or be stopped and the bus put back, so the next transfer
+      can start.
+    rationale: >-
+      An unbounded wait has no place in a control loop, and a stuck bus
+      must not take the I2C with it.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
+
+  - id: I2C-004
+    title: An unanswered address is reported and recovered from
+    statement: >-
+      An address no device acknowledges shall be reported as a NACK, its flag
+      cleared, and the bus put back, so the next transfer runs.
+    rationale: >-
+      A vacant or broken device is a condition a flight firmware measures,
+      not a hang; the bus must not go down with it.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
+
+  - id: I2C-005
+    title: The timing registers make the speed asked for
+    statement: >-
+      The timing registers each IP version computes shall land at or below
+      the speed asked for, never above it, with the rate the driver reports
+      the one those registers make.
+    rationale: >-
+      Devices have a maximum SCL, and firmware checks against what the
+      driver reports.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::i2c_v1::tests::the_manuals_example_timing
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::i2c_v1::tests::fast_mode_from_the_boards_pclk1
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::i2c_v2::tests::every_mode_from_the_bench_pclk1
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::i2c_v2::tests::the_counts_meet_the_specification
+
+  - id: I2C-006
+    title: The transaction contract holds across both IP versions
+    statement: >-
+      The embedded-hal transaction shall be carried with adjacent
+      operations of one kind as one segment, a repeated start between
+      segments, and a stop after the last, on every IP version.
+    rationale: >-
+      The device drivers above take that contract; a wrong start or stop
+      position loses their bytes.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
+
+  - id: I2CV1-001
+    title: I2C v1 clears its event flags in the manual's sequences
+    statement: >-
+      I2C v1 shall walk its events as RM0368 §27.3.3 sequences them: the
+      address byte at SB, the one- and two-byte receive arming at ADDR, the
+      receive tail's NACK and stop while taking the last byte, and a write
+      segment's stop at BTF.
+    rationale: >-
+      The events stretch SCL until their software sequence is done, so the
+      sequences are also the only order that never stalls the bus.
+    derived_from: [I2C-006]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-F401RE
+
+  - id: I2CV2-001
+    title: I2C v2 carries its transfers in CR2 programs
+    statement: >-
+      I2C v2 shall carry a segment as CR2 programs it: NBYTES with RELOAD
+      across chunks at TCR, AUTOEND on the last segment, and the repeated
+      start through the next program's START, with the flags cleared
+      through ICR.
+    rationale: >-
+      CR2 is the transfer's own counter; a wrong NBYTES or a missing
+      AUTOEND leaves the bus stretched or without its stop.
+    derived_from: [I2C-006]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#I2C on the Nucleo-H753ZI

@@ -21,6 +21,7 @@ pub use stm32_metapac::Interrupt;
 use crate::{
     dma_v1::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
+    i2c::{SclPin, SdaPin},
     rcc_h7rm0433::{Bus, RCC, RccBit},
     sdmmc::{CkPin, CmdPin, D0Pin, D1Pin, D2Pin, D3Pin},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
@@ -459,6 +460,27 @@ dma!(
     SPI3: rx 61, tx 62;
     SPI4: rx 83, tx 84;
 );
+
+// I2C instances: (bus, enable bit). The kernel clock is the bus clock,
+// which `freeze` writes the I2C1235 and I2C4 muxes to select. The SMBus
+// SMBA pins (PB5, PB12, PA9, PB9's AF11, PD11) are not routed: the
+// driver carries I2C alone.
+
+i2cs!(
+    I2C1 => I2C1_INFO, Apb1L, 21;
+    I2C2 => I2C2_INFO, Apb1L, 22;
+    I2C3 => I2C3_INFO, Apb1L, 23;
+    I2C4 => I2C4_INFO, Apb4, 7;
+);
+
+pins!(SclPin<I2C1>: ('B', 6, 4), ('B', 8, 4));
+pins!(SdaPin<I2C1>: ('B', 7, 4), ('B', 9, 4));
+pins!(SclPin<I2C2>: ('B', 10, 4));
+pins!(SdaPin<I2C2>: ('B', 11, 4));
+pins!(SclPin<I2C3>: ('A', 8, 4));
+pins!(SdaPin<I2C3>: ('C', 9, 4));
+pins!(SclPin<I2C4>: ('B', 6, 6), ('B', 8, 6), ('D', 12, 4));
+pins!(SdaPin<I2C4>: ('B', 7, 6), ('B', 9, 6), ('D', 13, 4));
 
 // Timers: (bus, enable bit, update vector, counter bits). Each counts at its
 // bus's timer clock.

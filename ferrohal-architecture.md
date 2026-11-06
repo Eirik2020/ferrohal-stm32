@@ -245,6 +245,7 @@ Taken after the UART prototype ran on the Nucleo-F401RE and Nucleo-H753ZI benche
 |---|---|
 | UART + DMA | serial ports (SBUS, CRSF, MSP, MAVLink, ESC telemetry, CLI) |
 | SPI + DMA | the IMU |
+| I2C | the barometer (DPS310) and the GNSS's DDC mode, both new with the driver crates; added to the table 2026-11-06 |
 | USB OTG FS | CDC serial |
 | SD card, flash | H7 SD storage (SDMMC); configuration storage |
 | Timers + DMA to GPIO | DShot, the scheduler tick, the timebase |

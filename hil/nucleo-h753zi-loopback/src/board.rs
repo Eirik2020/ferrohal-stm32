@@ -53,13 +53,14 @@ use core::{
 
 use ferrohal_stm32::{
     chip::{
-        Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7, TIM8,
-        TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1, USART2, USART3,
-        USART6,
+        I2C3, Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7,
+        TIM8, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1, USART2,
+        USART3, USART6,
     },
     dma::Stream,
     exti,
     gpio::{Alternate, Ctrl, Output, Pin, Port, PortInstance, Pull, Speed},
+    i2c,
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllSource, Rcc,
         Supply, Sysclk, VoltageScale,
@@ -545,6 +546,40 @@ pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
         pc7,
         far_lane: dma2.s5,
         rcc,
+    })
+}
+
+// Run R: the I2C, I2C3 on PA8 and PC9, pulled up internally, no slave
+// fitted. No links: these pins carry no other run's wiring, so the
+// bench runs as one script.
+
+pub type I2c3Bus = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4>>, Pin<'C', 9, Alternate<4>>>;
+
+pub struct RunR {
+    pub rcc: Rcc,
+    pub led: Pin<'A', 5, Output>,
+    pub i2c: I2c3Bus,
+}
+
+pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG)?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    // SCL and SDA pulled up: with no slave fitted the lines idle high,
+    // so a vacant address is answered by the bus itself with a NACK.
+    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate(&mut a.ctrl);
+    scl.set_pull(&mut a.ctrl, Pull::Up);
+    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate(&mut c.ctrl);
+    sda.set_pull(&mut c.ctrl, Pull::Up);
+    Ok(RunR {
+        rcc,
+        led,
+        i2c: i2c::Wiring {
+            i2c: p.I2C3,
+            scl,
+            sda,
+        },
     })
 }
 

@@ -37,6 +37,8 @@ pub enum Signal {
     Sck,
     Miso,
     Mosi,
+    Scl,
+    Sda,
 }
 
 /// What a vector check found wrong.

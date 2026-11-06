@@ -81,6 +81,19 @@ pub enum Fail {
     Time { cycles: u32, min: u32, max: u32 },
     /// A timer refused a rate the check needs.
     Timer(ferrohal_stm32::timer::ConfigError),
+    /// The I2C driver reported an error the check did not expect.
+    I2c(ferrohal_stm32::i2c::Error),
+    /// The I2C refused a configuration the check needs.
+    I2cConfig(ferrohal_stm32::i2c::ConfigError),
+    /// A NACK the check provokes never came, or came back as another
+    /// error.
+    I2cNotNack(Option<ferrohal_stm32::i2c::Error>),
+    /// The I2C health counters hold other counts than the checks made.
+    I2cHealth {
+        field: &'static str,
+        expected: u32,
+        got: u32,
+    },
 }
 
 /// Passes if `result` is the refusal `expected`.

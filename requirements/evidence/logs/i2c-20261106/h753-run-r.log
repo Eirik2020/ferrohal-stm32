@@ -1,0 +1,15 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32H753ZI --probe '0483:374e' target/thumbv7em-none-eabihf/release/run-r`
+     [38;5;10m[1mFinished[0m in 2.18s
+[INFO ] run R, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_r src/bin/run_r.rs:40)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): an out-of-range speed is refused [I2C-002] (run_r ../common/tests.rs:266)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): the timing register makes the reported rate [I2C-001,I2C-005] (run_r ../common/tests.rs:266)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): a vacant write nacks within its bound [I2C-003,I2C-004] (run_r ../common/tests.rs:266)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): a vacant read nacks within its bound [I2C-003,I2C-004] (run_r ../common/tests.rs:266)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): a vacant write-read nacks within its bound [I2C-004,I2C-006] (run_r ../common/tests.rs:266)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): a vacant transaction nacks at its first segment [I2C-006] (run_r ../common/tests.rs:266)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): the bus answers after every recovery [I2C-003,I2C-004] (run_r ../common/tests.rs:266)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): the health counts the nacks [I2C-004] (run_r ../common/tests.rs:266)
+[INFO ] PASS I2C3 PA8/PC9 (no slave): the counted bound ends without a clock [I2C-003] (run_r ../common/tests.rs:266)
+[INFO ] all checks passed (run_r ../common/tests.rs:1278)
+Firmware exited successfully

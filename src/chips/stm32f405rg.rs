@@ -20,6 +20,7 @@ pub use stm32_metapac::Interrupt;
 use crate::{
     dma_v2::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
+    i2c::{SclPin, SdaPin},
     rcc_f4::{Bus, Limits, RCC, RccBit},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
@@ -379,6 +380,23 @@ dma!(SpiTxDma<SPI2>: (1, 4, 0));
 dma!(SpiRxDma<SPI2>: (1, 3, 0));
 dma!(SpiTxDma<SPI3>: (1, 5, 0), (1, 7, 0));
 dma!(SpiRxDma<SPI3>: (1, 0, 0), (1, 2, 0));
+
+// I2C instances: (bus, enable bit). The kernel clock is PCLK1, the bus
+// clock, with no mux to set. The SMBus SMBA pins (PB5, PB12, PA9) are not
+// routed: the driver carries I2C alone.
+
+i2cs!(
+    I2C1 => I2C1_INFO, Apb1, 21;
+    I2C2 => I2C2_INFO, Apb1, 22;
+    I2C3 => I2C3_INFO, Apb1, 23;
+);
+
+pins!(SclPin<I2C1>: ('B', 6, 4), ('B', 8, 4));
+pins!(SdaPin<I2C1>: ('B', 7, 4), ('B', 9, 4));
+pins!(SclPin<I2C2>: ('B', 10, 4));
+pins!(SdaPin<I2C2>: ('B', 11, 4));
+pins!(SclPin<I2C3>: ('A', 8, 4));
+pins!(SdaPin<I2C3>: ('C', 9, 4));
 
 // Timers: (bus, enable bit, update vector, counter bits). Each counts at its
 // bus's timer clock.

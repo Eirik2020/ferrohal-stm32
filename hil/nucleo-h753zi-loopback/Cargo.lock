@@ -252,6 +252,7 @@ dependencies = [
  "ferrohal-stm32",
  "panic-probe",
  "rtic",
+ "stm32-metapac",
  "usbd-serial",
 ]
 
