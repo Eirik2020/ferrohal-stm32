@@ -35,7 +35,7 @@ use stm32_metapac::{
     rcc::vals::{Hpre, Pllm, Plln, Pllp, Pllq, Pllsrc, Ppre, Sw},
 };
 
-use crate::{chip::CLOCK_LIMITS, time::Hertz};
+use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency on every F4.
 pub const HSI: Hertz = Hertz(16_000_000);
@@ -63,12 +63,16 @@ impl RCC {
 
     /// Applies `config` and returns the owner of RCC's shared registers.
     ///
-    /// Validation runs first, so a refused configuration writes nothing.
-    /// Every wait on the hardware is counted; a source that does not start
-    /// is reported, with the system still running from HSI.
-    pub fn freeze(self, config: &Config) -> Result<Rcc, ClockError> {
-        let clocks = config.validate()?;
-        apply(config, &clocks)?;
+    /// Validation runs first, so a refused configuration writes nothing, and
+    /// the RCC token comes back in the refusal. Every wait on the hardware is
+    /// counted; a source that does not start is reported, with the system
+    /// still running from HSI and whatever the attempt wrote in place.
+    pub fn freeze(self, config: &Config) -> Result<Rcc, Refused<ClockError, RCC>> {
+        let clocks = match config.validate() {
+            Ok(clocks) => clocks,
+            Err(error) => return Err(Refused::new(error, self)),
+        };
+        apply(config, &clocks).map_err(|error| Refused::new(error, self))?;
         Ok(Rcc { clocks })
     }
 }

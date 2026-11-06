@@ -388,7 +388,7 @@ fn main() -> ! {
         stm32_metapac::PWR.cr1().read().vos().to_bits(),
         Ordering::Relaxed,
     );
-    let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG) else {
+    let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error()) else {
         reboot_to_dfu()
     };
     let cause = usb_bench::cause_text(rcc.reset_cause());

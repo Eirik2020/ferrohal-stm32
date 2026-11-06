@@ -47,7 +47,7 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local) {
         usb_bench::enter_bootloader_if_requested();
         let p = cx.device;
-        let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG) else {
+        let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error()) else {
             reboot_to_dfu()
         };
         let _ = rcc.reset_cause();

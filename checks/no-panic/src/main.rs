@@ -1284,16 +1284,32 @@ pub fn exercise_adc<A, P, S>(
 {
     use ferrohal_stm32::adc::{Adc, Config};
 
-    let Ok(mut adc) = Adc::new(rcc, token, &Config::slow_source()) else {
-        return;
+    let mut adc = match Adc::new(rcc, token, &Config::slow_source()) {
+        Ok(adc) => adc,
+        Err(refused) => {
+            keep(refused.error());
+            let token = refused.into_parts();
+            match Adc::new(rcc, token, &Config::slow_source()) {
+                Ok(adc) => adc,
+                Err(_) => park(),
+            }
+        }
     };
     let channel = adc.channel(&pin);
     keep(channel.number());
     keep(adc.read(channel));
     keep(adc.max_sample());
     keep(adc.to_millivolts(black_box(1), black_box(3300)));
-    let Ok(mut scan) = adc.into_scan(stream, &[channel, channel], buffer) else {
-        return;
+    let mut scan = match adc.into_scan(stream, &[channel, channel], buffer) {
+        Ok(scan) => scan,
+        Err(refused) => {
+            keep(refused.error());
+            let (adc, stream, buffer) = refused.into_parts();
+            match adc.into_scan(stream, &[channel, channel], buffer) {
+                Ok(scan) => scan,
+                Err(_) => park(),
+            }
+        }
     };
     keep(scan.start());
     keep(scan.poll().map(|result| result.map(|samples| samples.len())));

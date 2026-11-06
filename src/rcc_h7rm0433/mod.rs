@@ -30,7 +30,7 @@ use stm32_metapac::{
     },
 };
 
-use crate::{chip::CLOCK_LIMITS, time::Hertz};
+use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency, undivided.
 pub const HSI: Hertz = Hertz(64_000_000);
@@ -65,9 +65,12 @@ impl RCC {
     /// The supply configuration (PWR_CR3) can be written once per power-on
     /// reset. This writes the LDO configuration the Nucleo boards use; a
     /// board that has already locked another one will time out here.
-    pub fn freeze(self, config: &Config) -> Result<Rcc, ClockError> {
-        let clocks = config.validate()?;
-        apply(config, &clocks)?;
+    pub fn freeze(self, config: &Config) -> Result<Rcc, Refused<ClockError, RCC>> {
+        let clocks = match config.validate() {
+            Ok(clocks) => clocks,
+            Err(error) => return Err(Refused::new(error, self)),
+        };
+        apply(config, &clocks).map_err(|error| Refused::new(error, self))?;
         Ok(Rcc { clocks })
     }
 }
