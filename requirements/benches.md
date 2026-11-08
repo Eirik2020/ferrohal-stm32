@@ -44,7 +44,7 @@ layout must stay as it is.
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires, and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 
@@ -88,22 +88,56 @@ layout must stay as it is.
 
 ## I2C on the Nucleo-F401RE
 
-`hil/run-f401.sh q`. With I2C1's SCL and SDA (PB8, PB9) pulled up and no
+`hil/run-f401.sh q s`. With I2C1's SCL and SDA (PB8, PB9) pulled up and no
 slave fitted, every kind of transfer to a vacant address is answered by
-the bus itself with a NACK, which is what the run proves the driver's
-error paths with: each is reported within its bound, the flags are cleared
-and the bus put back, so the next one runs. The run also reads the timing
+the bus itself with a NACK, which is what run Q proves the driver's error
+paths with: each is reported within its bound, the flags are cleared and
+the bus put back, so the next one runs. The run also reads the timing
 registers back (CR2's FREQ, CCR and TRISE) against the rate the driver
 reports, checks the bound with the cycle counter and without it, and the
 refusal of a speed out of range, with the wiring handed back and used.
-Pass: every check in the run passes and the script exits zero.
+Run S drives the same driver against the Pico 1 simulator
+(`hil/pico-i2c-sim`, wired per `hil/WIRING.md`, I2C3 on PA8/PC9): the
+ACK'd paths the vacant bus cannot give — 1-, 2- and 32-byte receives, a
+write that lands and reads back, a repeated start the slave observes —
+a stretch of SCL within the driver's bound and one past it (Timeout,
+then Busy while the slave still holds, then recovery), the data-phase
+refusal (an address ACK followed by a refused byte), the simulator's own
+transaction count cross-checked against the run's, the exact health
+accounting over live traffic, and the vacant address still nacking
+after it all. The data-phase refusal is the trickiest piece of the map:
+the DW NACKs the refused byte and drops it, so no command is ever
+delivered and nothing on the bus can report the refusal — the
+simulator's warden spends the arm on a three-millisecond timer, in the
+gap the suite's pause and throwaway read leave, and the serve task
+applies the map's accounting at its next command. Found on the bench:
+an I2C pin handed to the peripheral push-pull (not open drain) drives
+SDA high through every device's acknowledge bit, and every transfer to
+a live slave NACKs — the runs wire both pins with
+`into_alternate_open_drain`. Pass: every check in both runs passes and
+the script exits zero.
 
 ## I2C on the Nucleo-H753ZI
 
-`hil/run-h753.sh r`. The same checks on the TIMINGR IP version, on I2C3
-over PA8 and PC9, the one pair no other run links (PB8 and PB9 are the
-UART link Z4, and a fitted Z4 shorts SCL to SDA): a vacant address's NACK
-reported and recovered from, the timing register read back, the bounds
-with and without a cycle clock, and the refusal with the wiring handed
-back and used. Pass: every check in the run passes and the script exits
-zero.
+`hil/run-h753.sh r s`. Run R: the same checks as the F401's run Q on
+the TIMINGR IP version, on I2C3 over PA8 and PC9, the one pair no other
+run links (PB8 and PB9 are the UART link Z4, and a fitted Z4 shorts SCL
+to SDA): a vacant address's NACK reported and recovered from, the
+timing register read back, the bounds with and without a cycle clock,
+and the refusal with the wiring handed back and used. Run S drives I2C4
+over PD12 and PD13 against the Pico 1 simulator (`hil/pico-i2c-sim`,
+wired per `hil/WIRING.md`) — the one I2C of this chip a bench can wire
+(I2C1 and I2C3's pins are taken, and I2C2's PF0 is driven at all times
+by the ST-LINK's MCO through the SB45 the HSE clock check needs;
+`hil/WIRING.md` has the accounting) — and the one whose kernel clock
+is the APB4 path: the run checks it equals the tree's pclk4. On the
+wire it covers what the F401's run S does, with one IP difference the
+checks carry: the H7's v2 cannot see a held line — its own recovery
+clears ISR.BUSY — so a stuck bus surfaces as a bounded Timeout where the
+F401 reports Busy before the wire moves, and the first transfer after a
+slave's stretch can be the one that resyncs driver and device; the
+checks accept both shapes and count each exactly in the health totals.
+Pass: every check in both runs passes and the script exits zero. Run M
+(the USB device bench) is off the default list while its CN13 cable
+powers the Pico: `./run-h753.sh m` still runs it with the cable moved
+back.

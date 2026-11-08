@@ -39,6 +39,9 @@
 //! UART5's PB13 is not on the Zio header: CN7-5 reaches it through SB7,
 //! which is not fitted (it stays off while PB13 serves the Ethernet PHY).
 //!
+//! Run S talks to no jumper on this board: it drives I2C4 out to the
+//! Pico 1 simulator, whose wiring list is `hil/WIRING.md`.
+//!
 //! Each run starts from reset, so the pins a run does not use stay inputs
 //! and the links on them carry nothing. Across the runs every DMA1 and DMA2
 //! stream serves a UART at least once.
@@ -53,9 +56,9 @@ use core::{
 
 use ferrohal_stm32::{
     chip::{
-        I2C3, Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7,
-        TIM8, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1, USART2,
-        USART3, USART6,
+        I2C3, I2C4, Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5,
+        TIM6, TIM7, TIM8, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1,
+        USART2, USART3, USART6,
     },
     dma::Stream,
     exti,
@@ -568,9 +571,9 @@ pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     // SCL and SDA pulled up: with no slave fitted the lines idle high,
     // so a vacant address is answered by the bus itself with a NACK.
-    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate(&mut a.ctrl);
+    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
     scl.set_pull(&mut a.ctrl, Pull::Up);
-    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate(&mut c.ctrl);
+    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
     sda.set_pull(&mut c.ctrl, Pull::Up);
     Ok(RunR {
         rcc,
@@ -1070,5 +1073,44 @@ pub fn dma_buffers() -> [DmaBuffers; UARTS] {
             tx: &mut tx[..],
             rx: &mut rx[..],
         }
+    })
+}
+
+// Run S: the I2C master against the Pico 1 simulator, I2C4 on PD12
+// (CN10-21) and PD13 (CN10-19), pulled up internally. This is the only
+// I2C of the H753ZI a bench can wire — the others' pins are taken by
+// the ST-LINK's MCO (PF0), the unfitted morpho headers (PA8) or this
+// bench's own UART links (PB6/PB7, PB9/PB8, PB10/PB11); hil/WIRING.md
+// has the accounting — and the one whose kernel clock is the APB4
+// path, which the run checks against the tree. The simulator answers
+// at 0x2A with bus tag 2.
+
+pub type I2c4Bus = i2c::Wiring<I2C4, Pin<'D', 12, Alternate<4>>, Pin<'D', 13, Alternate<4>>>;
+
+pub struct RunS {
+    pub rcc: Rcc,
+    pub led: Pin<'A', 5, Output>,
+    pub i2c: I2c4Bus,
+}
+
+pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut d = p.GPIOD.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    // SCL and SDA pulled up here and at the Pico's end: the lines idle
+    // high at 50 kHz with no resistor fitted.
+    let mut scl: Pin<'D', 12, Alternate<4>> = d.p12.into_alternate_open_drain(&mut d.ctrl);
+    scl.set_pull(&mut d.ctrl, Pull::Up);
+    let mut sda: Pin<'D', 13, Alternate<4>> = d.p13.into_alternate_open_drain(&mut d.ctrl);
+    sda.set_pull(&mut d.ctrl, Pull::Up);
+    Ok(RunS {
+        rcc,
+        led,
+        i2c: i2c::Wiring {
+            i2c: p.I2C4,
+            scl,
+            sda,
+        },
     })
 }

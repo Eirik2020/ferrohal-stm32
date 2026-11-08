@@ -112,6 +112,18 @@ path = "src/bin/run_r.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "run-s"
+path = "src/bin/run_s.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "run-t"
+path = "src/bin/run_t.rs"
+test = false
+bench = false
+
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32f401re", "rt", "defmt"] }
 # Safe reads of registers the checks inspect (PWR, USART SR). FerroHAL's pin;

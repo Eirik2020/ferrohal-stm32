@@ -1,0 +1,46 @@
+[package]
+name = "pico-i2c-sim"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# The library is the register map, which the host unit tests exercise; the
+# binary is the firmware, which only builds for the RP2040.
+[lib]
+test = true
+
+[[bin]]
+name = "pico-i2c-sim"
+test = false
+bench = false
+
+# The library is the register map: pure and dependency-free, so its
+# unit tests run on the host. Everything below serves the firmware,
+# which only builds for the RP2040 (a `thumbv6m-none-eabi` toolchain
+# must be installed).
+[target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
+embassy-rp = { version = "0.10.0", features = [
+    "rp2040",
+    "boot2-w25q080",
+    "time-driver",
+    "critical-section-impl",
+    "unstable-pac",
+] }
+embassy-executor = { version = "0.10.0", features = [
+    "embassy-time-driver",
+    "platform-cortex-m",
+    "executor-thread",
+] }
+embassy-time = "0.5.1"
+
+cortex-m = { version = "0.7.7", features = ["inline-asm"] }
+cortex-m-rt = "0.7.6"
+panic-halt = "1.0.0"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+
+# Not part of any workspace around it.
+[workspace]
