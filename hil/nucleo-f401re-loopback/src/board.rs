@@ -22,6 +22,9 @@
 //! (runs E to G); every SPI's SCK is also routed to EXTI, which counts its
 //! edges. Run E's EXTI checks drive PA11 into PA12 over J2.
 //!
+//! Run S talks to no jumper on this board: it drives I2C3 out to the
+//! Pico 1 simulator, whose wiring list is `hil/WIRING.md`.
+//!
 //! USART2 (PA2, PA3) needs no link: SB13 and SB14 wire it to the ST-LINK's
 //! virtual COM port, where `hil/vcp_echo.py` sends every byte back.
 //!
@@ -33,8 +36,8 @@
 
 use ferrohal_stm32::{
     chip::{
-        I2C1, Peripherals, SPI1, SPI2, SPI3, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10, TIM11,
-        USART1, USART2, USART6,
+        I2C1, I2C3, Peripherals, SPI1, SPI2, SPI3, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10,
+        TIM11, USART1, USART2, USART6,
     },
     dma::Stream,
     exti,
@@ -760,9 +763,9 @@ pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     // SCL and SDA pulled up: with no slave fitted the lines idle high,
     // so a vacant address is answered by the bus itself with a NACK.
-    let mut scl: Pin<'B', 8, Alternate<4>> = b.p8.into_alternate(&mut b.ctrl);
+    let mut scl: Pin<'B', 8, Alternate<4>> = b.p8.into_alternate_open_drain(&mut b.ctrl);
     scl.set_pull(&mut b.ctrl, Pull::Up);
-    let mut sda: Pin<'B', 9, Alternate<4>> = b.p9.into_alternate(&mut b.ctrl);
+    let mut sda: Pin<'B', 9, Alternate<4>> = b.p9.into_alternate_open_drain(&mut b.ctrl);
     sda.set_pull(&mut b.ctrl, Pull::Up);
     Ok(RunQ {
         rcc,
@@ -828,4 +831,41 @@ where
     let mut rx = rx.into_alternate::<AF>(ctrl);
     rx.set_pull(ctrl, Pull::Up);
     (tx, rx)
+}
+
+// Run S: the I2C master against the Pico 1 simulator, I2C3 on PA8
+// (CN9-8, D7) and PC9 (CN10-1), pulled up internally. The simulator —
+// hil/pico-i2c-sim, wired per hil/WIRING.md — answers at 0x2A; that
+// list also explains why I2C3 is the F401's only benchable second I2C.
+// No jumper between the Nucleo's own pins: the link runs to the Pico,
+// and the NACK-only run stays on I2C1 untouched.
+
+pub type I2c3Bus = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4>>, Pin<'C', 9, Alternate<4>>>;
+
+pub struct RunS {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub i2c: I2c3Bus,
+}
+
+pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    // SCL and SDA pulled up here and at the Pico's end: the lines idle
+    // high at 50 kHz with no resistor fitted.
+    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
+    scl.set_pull(&mut a.ctrl, Pull::Up);
+    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
+    sda.set_pull(&mut c.ctrl, Pull::Up);
+    Ok(RunS {
+        rcc,
+        led,
+        i2c: i2c::Wiring {
+            i2c: p.I2C3,
+            scl,
+            sda,
+        },
+    })
 }
