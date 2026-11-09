@@ -32,6 +32,14 @@ passes and the script exits zero. Covers `usart_v4` with the caches off and on, 
 the same checks in `hil/common/tests.rs`; run A also masks USART1's line for the
 USART-005 drill, as the F401's run A does.
 
+## No reachable panic
+
+`checks/run.sh`'s `no reachable panic` step builds `checks/no-panic` per chip in
+release. It calls every public function with optimiser-opaque inputs, and its
+panic handler calls an undefined symbol, so the image links only if no panic
+path survives. Pass: the step passes for every chip. A new public function is
+added to that crate [API-001].
+
 ## Chip glue against metapac
 
 `python3 -I tools/check_glue.py`, which compares each chip's routing rows with

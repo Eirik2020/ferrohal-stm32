@@ -27,6 +27,8 @@
 //! enable and reset bits, a GPIO port's mode registers) are written only
 //! through their single owner (`&mut Rcc`, `&mut gpio::Ctrl`), so they
 //! need no critical section.
+//!
+//! Requirements: API-001
 
 #![no_std]
 

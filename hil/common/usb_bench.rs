@@ -63,8 +63,9 @@ static mut BUS: Option<UsbBusAllocator<UsbBus>> = None;
 pub fn enter_bootloader_if_requested() {
     reset::enter_bootloader_if_requested();
     if reset::peek_cause().independent_watchdog {
-        // SAFETY: nothing is set up yet.
-        unsafe { reset::enter_bootloader() }
+        // A watchdog reset goes to the bootloader too: ask for it and reset
+        // once more, which the next boot's check above acts on.
+        reset::reboot_to_bootloader()
     }
 }
 
