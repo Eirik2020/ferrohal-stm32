@@ -36,6 +36,11 @@ usb = ["dep:usb-device", "dep:synopsys-usb-otg"]
 # jumping, with no reset, so VTOR would still point at the ROM and an interrupt
 # would run the ROM's handler. The Foxeer's USB failed to enumerate that way.
 rt = ["stm32-metapac/rt", "dep:cortex-m-rt", "cortex-m-rt/set-vtor"]
+# RTIC's `peripherals = true` names `Peripherals::steal()`, so the item exists
+# only with this feature. Nothing else turns it on: a safe `steal` would alias
+# one peripheral twice, and `take()` is the safe path. Safety policy,
+# exception 1.
+rtic = ["rt"]
 defmt = ["dep:defmt", "stm32-metapac/defmt"]
 # `From` conversions between `time::Hertz` and fugit 0.6's `HertzU32`, the
 # fugit rtic-monotonics 3 uses.
