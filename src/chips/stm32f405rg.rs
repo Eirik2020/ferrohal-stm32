@@ -2,7 +2,7 @@
 //!
 //! Every routing fact here (RCC bits, pin alternate functions, DMA request
 //! channels) was read from stm32-metapac 21.0.0's metadata for this chip,
-//! whose pin lists are already cut to the LQFP64 package. They are
+//! whose ports are cut to the LQFP64 package (`BONDED` below). They are
 //! hand-written for now, in the trait shapes a generator would emit from
 //! that metadata later.
 //!
@@ -125,11 +125,7 @@ peripherals!(
     GPIOB: Port<'B'>,
     GPIOC: Port<'C'>,
     GPIOD: Port<'D'>,
-    GPIOE: Port<'E'>,
-    GPIOF: Port<'F'>,
-    GPIOG: Port<'G'>,
     GPIOH: Port<'H'>,
-    GPIOI: Port<'I'>,
     DMA1: Dma<1>,
     DMA2: Dma<2>,
     USART1: USART1,
@@ -179,9 +175,9 @@ peripherals!(
     UID: UID,
 );
 
-// GPIO ports and DMA controllers, with their AHB1ENR bits. The LQFP64
-// package bonds out ports A to C, PD2 and PH0, PH1; ports E to I exist as
-// registers only.
+// GPIO ports and DMA controllers, with their AHB1ENR bits. Only the
+// bonded ports are declared: the LQFP64 bonds A to C, PD2 and PH0/PH1 (see
+// `BONDED`); ports E to I exist as registers only.
 
 macro_rules! ports {
     ($($letter:literal => $regs:ident, $bit:literal;)+) => {
@@ -206,12 +202,20 @@ ports!(
     'B' => GPIOB, 1;
     'C' => GPIOC, 2;
     'D' => GPIOD, 3;
-    'E' => GPIOE, 4;
-    'F' => GPIOF, 5;
-    'G' => GPIOG, 6;
     'H' => GPIOH, 7;
-    'I' => GPIOI, 8;
 );
+
+/// The LQFP64 package's bonded pins, as (port, pin mask): ports A to C, PD2
+/// and PH0/PH1. `tools/check_glue.py` reads this: a routing row on any other
+/// pin fails, and a bonded pin with no row is reported, not failed.
+#[allow(dead_code)] // Read by tools/check_glue.py.
+pub(crate) const BONDED: &[(char, u16)] = &[
+    ('A', 0xffff),
+    ('B', 0xffff),
+    ('C', 0xffff),
+    ('D', 0x0004), // PD2
+    ('H', 0x0003), // PH0, PH1
+];
 
 impl crate::Sealed for Dma<1> {}
 impl crate::dma::DmaRegisters for Dma<1> {

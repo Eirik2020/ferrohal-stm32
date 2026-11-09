@@ -101,7 +101,6 @@ peripherals!(
     GPIOB: Port<'B'>,
     GPIOC: Port<'C'>,
     GPIOD: Port<'D'>,
-    GPIOE: Port<'E'>,
     GPIOH: Port<'H'>,
     DMA1: Dma<1>,
     DMA2: Dma<2>,
@@ -136,7 +135,9 @@ peripherals!(
     UID: UID,
 );
 
-// GPIO ports and DMA controllers, with their AHB1ENR bits.
+// GPIO ports and DMA controllers, with their AHB1ENR bits. Only the
+// bonded ports are declared: the LQFP64 bonds A to C, PD2 and PH0/PH1 (see
+// `BONDED`).
 
 macro_rules! ports {
     ($($letter:literal => $regs:ident, $bit:literal;)+) => {
@@ -161,9 +162,21 @@ ports!(
     'B' => GPIOB, 1;
     'C' => GPIOC, 2;
     'D' => GPIOD, 3;
-    'E' => GPIOE, 4;
     'H' => GPIOH, 7;
 );
+
+/// The LQFP64 package's bonded pins, as (port, pin mask): ports A to C, PD2
+/// and PH0/PH1, and not PB11 (DS10086's pin table). `tools/check_glue.py`
+/// reads this: a routing row on any other pin fails, and a bonded pin with no
+/// row is reported, not failed.
+#[allow(dead_code)] // Read by tools/check_glue.py.
+pub(crate) const BONDED: &[(char, u16)] = &[
+    ('A', 0xffff),
+    ('B', 0xf7ff), // PB11 is not bonded.
+    ('C', 0xffff),
+    ('D', 0x0004), // PD2
+    ('H', 0x0003), // PH0, PH1
+];
 
 impl crate::Sealed for Dma<1> {}
 impl crate::dma::DmaRegisters for Dma<1> {

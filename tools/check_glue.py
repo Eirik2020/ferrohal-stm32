@@ -23,7 +23,9 @@ bus clock its instance sits on) and SCL and SDA pins, SYSCFG's enable bit,
 every DMA stream's vector,
 the watchdog's peripheral, the EXTI line vectors `src/exti.rs` shares across
 chips, each ADC's enable bit, pins (positive inputs) and DMA routes, and each
-SDMMC's enable bit and pins. On a fixed-request DMA a stream that serves one signal on two
+SDMMC's enable bit and pins. It also checks each chip's package table: every
+port and pin a glue row names must be bonded, and bonded pins with no routing
+row are counted, not failed. On a fixed-request DMA a stream that serves one signal on two
 channels appears once in the glue, with either request. Instances the metadata
 has and the glue leaves out are listed, not failed. Exits 1 on any mismatch.
 
@@ -367,6 +369,16 @@ class Glue:
                 found[regs] = (bus.group(1), int(bit))
         return found
 
+    def bonded(self):
+        """{port letter: pin mask} from the package table, or None."""
+        m = re.search(r"pub\(crate\) const BONDED: &\[\(char, u16\)\] = &\[(.*?)\];", self.text, re.S)
+        if not m:
+            return None
+        return {
+            letter: int(mask, 0)
+            for letter, mask in re.findall(r"\('(\w)', (0x[0-9a-fA-F]+)\)", m.group(1))
+        }
+
     def dma_controllers(self):
         found = {}
         for n, bus, bit in re.findall(
@@ -467,6 +479,34 @@ def check(chip, glue_path, metapac):
         compare(f"{name} pins", {("DM", "PA11", 10), ("DP", "PA12", 10)}, theirs)
     for regs, enable in sorted(glue.ports().items()):
         compare(f"{regs} RCC enable", enable, meta.enable(regs))
+    bonded = glue.bonded()
+    compare(f"{chip}: a bonded-pin table", bonded is not None, True)
+    unrouted = 0
+    if bonded is not None:
+        compare(
+            "every port the glue hands out is bonded",
+            sorted({regs[4:] for regs in glue.ports()} - set(bonded)),
+            [],
+        )
+        glue_pins = {
+            (letter, int(pin))
+            for letter, pin in re.findall(r"\('([A-K])', (\d+)(?:,|\))", glue.text)
+        }
+        compare(
+            "every pin a glue row names is bonded",
+            sorted(
+                f"P{letter}{pin}"
+                for letter, pin in glue_pins
+                if not (bonded.get(letter, 0) >> pin) & 1
+            ),
+            [],
+        )
+        routed = {
+            (letter, pin)
+            for letter, pin in glue_pins
+            if (bonded.get(letter, 0) >> pin) & 1
+        }
+        unrouted = sum(bin(mask).count("1") for mask in bonded.values()) - len(routed)
     for dma, enable in sorted(glue.dma_controllers().items()):
         compare(f"{dma} RCC enable", enable, meta.enable(dma))
     for dma, base in sorted(glue.mux_bases().items()):
@@ -527,7 +567,11 @@ def check(chip, glue_path, metapac):
     left_out += [n for n in meta.names("timer") if n not in timers]
     left_out += [n for n in meta.names("i2c") if n not in i2cs]
     print(f"{chip}: {checked} facts checked against stm32-metapac metadata", end="")
-    print(f"; not routed in the glue: {', '.join(left_out)}" if left_out else "")
+    if left_out:
+        print(f"; not routed in the glue: {', '.join(left_out)}", end="")
+    if unrouted:
+        print(f"; {unrouted} bonded pins have no routing row", end="")
+    print()
     for failure in failures:
         print(f"  MISMATCH {failure}")
     return not failures
