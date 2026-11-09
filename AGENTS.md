@@ -40,7 +40,8 @@ hil/run-i2c-sim.sh [flash|run]   # Pico 1 I2C slave, both benches
 ```
 
 Bench traps: watchdog/bootloader runs need `--no-catch-reset`; run M + DFU need H753 CN13
-cable (Pico borrows it); probes by VID:PID 0483:374b/374e (W8 -> serial).
+cable (Pico borrows it); probes by serial through `hil/probe.sh` (`F401_PROBE`,
+`H753_PROBE`, or `PROBE_RS_PROBE`; one probe attached needs none).
 
 ## Rules
 
@@ -56,7 +57,7 @@ cable (Pico borrows it); probes by VID:PID 0483:374b/374e (W8 -> serial).
 
 ## State 2026-11-09
 
-Docs system merged (PR #7); RTIC T1-T3 confirmed; debt sweep W1-W7 done. Next: W8-W13,
+Docs system merged (PR #7); RTIC T1-T3 confirmed; debt sweep W1-W8 done. Next: W9-W13,
 then the `free()` redesign. Details `docs/plans/`.
 
 ## Style

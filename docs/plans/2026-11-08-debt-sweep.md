@@ -31,7 +31,7 @@ DEBT/RESOLVED are pointer-only indexes; one commit per item with its requirement
 | W6b1 | Six register accessors internal: `DmaInstance::regs`/`mux`, `PortInstance::regs`, SDMMC `Instance::regs` move to crate-private supertraits; `Channel::regs` and the UART line `regs` removed | - |
 | W6b2 | `Stream::steal`, `Channel::start(&Transfer)`, `Channel::set_idle_buffer`, `reset::enter_bootloader` internal; `usb_bench`/no-panic use safe paths; API-001 | API-001 |
 | W7 | Phantom pins removed per package + bonded-pin table, cross-checked by `tools/check_glue.py` (omissions are reported, not failed) | - |
-| W8 | Probe selection by serial (env override + `probe-rs list`); today hardcoded `0483:374b`/`0483:374e` in `hil/run-*.sh:28` | - |
+| W8 | Probe selection by serial: `hil/probe.sh` resolves `PROBE_RS_PROBE`, then `F401_PROBE`/`H753_PROBE`, then the only probe attached, and lists the candidates when it cannot choose; crate runners drop `--probe`, F401's host echo follows the chosen serial | - |
 | W9 | Run M race: pre-build before starting the host; host waits for a **fresh** port (disappear then reappear) | - |
 | W10 | Bench crates enable `rt` (VTOR; the F4 DFU leave leaves VTOR on the ROM) | - |
 | W11 | Finish the ES0392 review (cache, system, flash ECC); discoveries become explicit DEBT items | - |
