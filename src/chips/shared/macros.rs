@@ -50,18 +50,32 @@ macro_rules! peripherals {
                     None
                 } else {
                     // SAFETY: the flag says this is the first time.
-                    Some(unsafe { Self::steal() })
+                    Some(unsafe { Self::steal_unchecked() })
                 }
             }
 
             /// The tokens, unconditionally. RTIC calls this when its app
-            /// sets `peripherals = true`.
+            /// sets `peripherals = true`; the `rtic` feature is what makes
+            /// the item exist.
             ///
             /// # Safety
             ///
             /// No token from an earlier `take` or `steal` may still be in
             /// use.
+            #[cfg(feature = "rtic")]
             pub unsafe fn steal() -> Self {
+                // SAFETY: the caller promised no token set is still in use.
+                unsafe { Self::steal_unchecked() }
+            }
+
+            /// The tokens without the feature or the flag: the one path
+            /// inside the crate.
+            ///
+            /// # Safety
+            ///
+            /// As `Peripherals::steal`: no token from an earlier `take` or
+            /// `steal` may still be in use.
+            pub(crate) unsafe fn steal_unchecked() -> Self {
                 TAKEN.store(true, core::sync::atomic::Ordering::Release);
                 Self {
                     $($name: <$ty>::new(),)+

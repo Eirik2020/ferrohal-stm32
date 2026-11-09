@@ -125,7 +125,7 @@ test = false
 bench = false
 
 [dependencies]
-ferrohal-stm32 = { path = "../..", features = ["stm32h753zi", "rt", "defmt", "usb"] }
+ferrohal-stm32 = { path = "../..", features = ["stm32h753zi", "rt", "defmt", "usb", "rtic"] }
 # Safe reads of the registers the checks inspect (the I2C timing).
 stm32-metapac = { version = "=21.0.0", default-features = false, features = ["stm32h753zi"] }
 usbd-serial = "0.2.2"

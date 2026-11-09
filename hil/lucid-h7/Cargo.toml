@@ -17,7 +17,7 @@ test = false
 bench = false
 
 [dependencies]
-ferrohal-stm32 = { path = "../..", features = ["stm32h743vi", "rt", "usb"] }
+ferrohal-stm32 = { path = "../..", features = ["stm32h743vi", "rt", "usb", "rtic"] }
 usbd-serial = "0.2.2"
 embedded-hal = "1.0.0"
 
