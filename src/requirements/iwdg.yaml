@@ -88,3 +88,27 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::iwdg_v2::tests::window_is_inside_the_timeout
+
+  - id: IWDG-006
+    title: A measured LSI sets the timeout
+    statement: >-
+      A watchdog started with a measured LSI frequency shall scale its
+      prescaler and reload to that frequency.
+    rationale: >-
+      The LSI varies from chip to chip; a board constant keeps the timeout
+      near what was asked.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::iwdg_v1::tests::divider_follows_the_lsi

@@ -37,9 +37,9 @@ fn main() -> ! {
     tests::set_cpu_hz(board::CLOCKS.cpu.0);
     let mut report = Report::new();
     let name = "IWDG 50 ms";
-    if !watchdog::after_reset(&mut report, name, cause, (17, 47)) {
+    if !watchdog::after_reset(&mut report, name, cause, (17, 47), (47_500, 52_500)) {
         let frozen = Watchdog::is_frozen_on_halt();
-        match Watchdog::start(run.iwdg, watchdog::TIMEOUT_US) {
+        match Watchdog::start_with_lsi(run.iwdg, watchdog::TIMEOUT_US, board::LSI_HZ) {
             Ok(dog) => watchdog::feed_then_starve(
                 &mut report,
                 name,

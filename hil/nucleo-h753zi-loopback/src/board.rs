@@ -100,6 +100,10 @@ pub const CLOCK_CONFIG: Config = Config {
 
 /// The frequencies `CLOCK_CONFIG` gives, worked out and checked while
 /// compiling.
+/// The IWDG's LSI, measured across a reset: 50 ms at the nominal 32 kHz
+/// came back as 50.5 ms, so this board's LSI runs at 31.7 kHz.
+pub const LSI_HZ: Hertz = Hertz::hz(31_700);
+
 pub const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
     Ok(clocks) => clocks,
     Err(_) => panic!("CLOCK_CONFIG breaks the H753's limits"),

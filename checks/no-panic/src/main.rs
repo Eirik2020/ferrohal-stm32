@@ -588,7 +588,7 @@ where
 /// The watchdog and the reset cause.
 pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm32::chip::WatchdogPeripheral) {
     use ferrohal_stm32::{
-        iwdg::{Watchdog, divider, window_divider},
+        iwdg::{Watchdog, divider, divider_with_lsi, window_divider},
         reset,
     };
 
@@ -605,6 +605,10 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
         unsafe { reset::enter_bootloader() };
     }
     keep(divider(black_box(50_000)));
+    keep(divider_with_lsi(
+        black_box(50_000),
+        ferrohal_stm32::time::Hertz::hz(30_000),
+    ));
     keep(window_divider(black_box(50_000), black_box(10_000)));
     keep(Watchdog::check(black_box(50_000)));
     let dog = match Watchdog::start(iwdg, black_box(50_000)) {
@@ -622,6 +626,16 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     keep(dog.timeout_us());
     keep(dog.handle().timeout_us());
     keep(Watchdog::is_frozen_on_halt());
+    if black_box(false) {
+        // SAFETY: never taken; only its code has to link, and no token from
+        // this boot is in use at that point.
+        let iwdg = unsafe { ferrohal_stm32::chip::WatchdogPeripheral::steal() };
+        keep(Watchdog::start_with_lsi(
+            iwdg,
+            black_box(50_000),
+            ferrohal_stm32::time::Hertz::hz(30_000),
+        ));
+    }
     #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
     if black_box(false) {
         // SAFETY: never taken; only its code has to link, and no token from

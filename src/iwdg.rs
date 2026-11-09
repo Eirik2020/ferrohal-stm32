@@ -15,9 +15,11 @@
 //! halted (`DBGMCU`), so a breakpoint inside a session does not become a
 //! reset. `iwdg_v2` adds a window register: [`Watchdog::start_windowed`]
 //! resets the chip if fed before the window opens, which catches firmware
-//! that feeds in a tight loop without doing its work.
+//! that feeds in a tight loop without doing its work. [`Watchdog::start`]
+//! works from the nominal 32 kHz; [`Watchdog::start_with_lsi`] takes the
+//! frequency a board measured, since the LSI varies from chip to chip.
 //!
-//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004, IWDG-005
+//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004, IWDG-005, IWDG-006
 
 use stm32_metapac::iwdg::vals::{Key, Pr};
 
@@ -46,8 +48,14 @@ pub enum Error {
 /// The prescaler code and the reload value nearest `timeout_us` at the
 /// nominal LSI.
 pub const fn divider(timeout_us: u32) -> Result<(u8, u16), Error> {
+    divider_with_lsi(timeout_us, LSI)
+}
+
+/// The prescaler code and the reload value nearest `timeout_us` at `lsi`,
+/// the frequency a board measured, instead of the nominal [`LSI`].
+pub const fn divider_with_lsi(timeout_us: u32, lsi: Hertz) -> Result<(u8, u16), Error> {
     // LSI counts in the timeout, before the prescaler.
-    let counts = timeout_us as u64 * LSI.0 as u64 / 1_000_000;
+    let counts = timeout_us as u64 * lsi.0 as u64 / 1_000_000;
     let mut code = 0;
     while code < 7 {
         let divide = 4u64 << code;
@@ -116,6 +124,22 @@ impl Watchdog {
         timeout_us: u32,
     ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
         let (code, reload) = match divider(timeout_us) {
+            Ok(parts) => parts,
+            Err(error) => return Err(Refused::new(error, iwdg)),
+        };
+        Self::start_with(iwdg, timeout_us, code, reload, None)
+    }
+
+    /// Starts the watchdog with `timeout_us` at the LSI frequency the board
+    /// measured, rather than at the nominal 32 kHz of [`LSI`]. The LSI
+    /// varies from chip to chip (17 to 47 kHz on the F4), so a board that
+    /// needs the timeout to hold should measure its own and pass it here.
+    pub fn start_with_lsi(
+        iwdg: WatchdogPeripheral,
+        timeout_us: u32,
+        lsi: Hertz,
+    ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
+        let (code, reload) = match divider_with_lsi(timeout_us, lsi) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, iwdg)),
         };
@@ -231,6 +255,15 @@ mod tests {
         assert_eq!(divider(30_000_000), Ok((6, 3749)));
         assert_eq!(divider(0), Err(Error::Timeout));
         assert_eq!(divider(40_000_000), Err(Error::Timeout));
+    }
+
+    #[test]
+    fn divider_follows_the_lsi() {
+        // The same 50 ms at a board's measured 30 kHz: 1500 counts, / 4 =
+        // 375 ticks, reload 374. At the nominal 32 kHz it stays 399.
+        assert_eq!(divider_with_lsi(50_000, Hertz::hz(30_000)), Ok((0, 374)));
+        assert_eq!(divider_with_lsi(50_000, LSI), Ok((0, 399)));
+        assert_eq!(divider_with_lsi(50_000, Hertz::hz(0)), Err(Error::Timeout));
     }
 
     #[test]
