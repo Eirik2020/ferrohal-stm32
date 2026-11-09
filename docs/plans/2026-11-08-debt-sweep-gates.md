@@ -7,7 +7,17 @@ Part of [the plan](2026-11-08-debt-sweep.md).
 - W2: a feed before the window opens resets; `window_us <= timeout_us` validated by the divider arithmetic; v1 (F4) has no window register -> API absent there.
 - W3: IWDG has no readable counter (`iwdg_v1.rs` kr/pr/rlr/sr; `iwdg_v2.rs` + winr); timers count at the bus clock and the F4 has no LSI route -> the HAL cannot measure LSI. Bench measures it across a reset (50 ms -> 53.3 ms F401, 50.5 ms H753): per-board constant, no runtime measurement.
 - W4b: safe `Pwm::free()` unsound today (`Pwm<T>` holds `PhantomData<T>`; `PwmChannel`/`CompareLane` hold no borrow); `Tick`/`Timebase` non-generic, token erased. Restructure benches now; redesign later.
-- W6: leaks = `DmaInstance::regs`, `DmaInstance::mux`, `PortInstance::regs`, SDMMC `Instance::regs`, `Channel::regs`, uart `stream_dma::regs`. No users in `hil/` or ferro-wasp; `mux` (H7 `Dmamux`) is the easily missed one.
+- W6a (done): `Peripherals::steal` behind `rtic`; `take()` uses `steal_unchecked`; every RTIC
+  bench and `checks/no-panic` enable `rtic`.
+- W6b: leaks = `DmaInstance::regs`, `DmaInstance::mux`, `PortInstance::regs`, SDMMC
+  `Instance::regs`, `Channel::regs`, uart `stream_dma::regs`. No users in `hil/` or ferro-wasp;
+  `mux` (H7 `Dmamux`) is the easily missed one. Each trait accessor moves to a crate-private
+  supertrait (`DmaRegisters`, `PortRegisters`, sdmmc's) that the public trait requires, with
+  `#[allow(private_bounds)]` and the reason beside it; the glue implements both. With
+  `Stream::steal` and `Channel::start`/`set_idle_buffer` internal, no-panic takes stream tokens
+  from `Peripherals` and exercises starts through the public drivers; `enter_bootloader` goes
+  internal and `usb_bench`/no-panic call `reboot_to_bootloader()`. Hardware: run L and N
+  (bootloader request) plus run A.
 - W12: safe-api rules (1) no `pub unsafe fn` outside chip glue beyond the allowlist; (2) item carries `cfg(rtic)`; (3) `default = []`, `rtic = ["rt"]`, nothing implies it; (4) metapac imports only `src/chips/` + 12 drivers.
 - Next free IDs: IWDG-004/005/006, PWM-007, USART-005, API-001.
 - Masked vectors must not fail `UartIrq::verify()`.

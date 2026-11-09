@@ -24,7 +24,7 @@ Metadata only - read a document after choosing it, not before. 28 documents, ~83
 | h | README.md | 4610 B | A scheduler-agnostic STM32 HAL on stm32-metapachttps://c |
 | h | RESOLVED.md | 29454 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
 | h | THIRD-PARTY.md | 3052 B | FerroHAL is licensed under MIT OR Apache-2.0 LICENSE-MIT |
-| h | docs/plans/2026-11-08-debt-sweep-gates.md | 2369 B | Part of the plan2026-11-08-debt-sweep.md. |
+| h | docs/plans/2026-11-08-debt-sweep-gates.md | 3051 B | Part of the plan2026-11-08-debt-sweep.md. |
 | h | docs/plans/2026-11-08-debt-sweep.md | 3703 B | Status: in progress - W1-W5b and W6a done watchdog debug |
 | h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. steal goes und |
 | h | ferrohal-architecture.md | 26005 B | Architecture only. Implementation details are decided wh |
