@@ -20,12 +20,12 @@ Metadata only - read a document after choosing it, not before. 28 documents, ~83
 | a | docs/policies/agent-docs.md | 296 tok | Agent docs = AGENTS.md + docs/{policies,decisions,notes, |
 | a | docs/policies/documentation.md | 797 tok | Normative. Two classes: |
 | a | docs/policies/safety.md | 608 tok | Normative. Goal G5 requirements/goals.md. Rationale: |
-| h | DEBT.md | 24787 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
+| h | DEBT.md | 24227 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
 | h | README.md | 4610 B | A scheduler-agnostic STM32 HAL on stm32-metapachttps://c |
-| h | RESOLVED.md | 29454 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
+| h | RESOLVED.md | 29995 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
 | h | THIRD-PARTY.md | 3052 B | FerroHAL is licensed under MIT OR Apache-2.0 LICENSE-MIT |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 3051 B | Part of the plan2026-11-08-debt-sweep.md. |
-| h | docs/plans/2026-11-08-debt-sweep.md | 3703 B | Status: in progress - W1-W5b and W6a done watchdog debug |
+| h | docs/plans/2026-11-08-debt-sweep.md | 3843 B | Status: in progress - W1-W6a and W6b1 done watchdog debu |
 | h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. steal goes und |
 | h | ferrohal-architecture.md | 26005 B | Architecture only. Implementation details are decided wh |
 | h | hil/WIRING.md | 4765 B | The two Nucleo benches prove FerroHAL's I2C masters agai |

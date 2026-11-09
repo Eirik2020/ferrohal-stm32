@@ -125,10 +125,16 @@ impl Config {
 }
 
 /// An SDMMC instance. The kernel clock is PLL1Q, SDMMCSEL as reset leaves it.
-pub trait Instance: crate::Sealed {
+/// The controller's register block. Crate-internal: a public bound naming it
+/// would hand metapac out.
+pub(crate) trait Registers {
+    fn regs() -> Regs;
+}
+
+#[allow(private_bounds)] // `Registers` is the crate-internal half.
+pub trait Instance: crate::Sealed + Registers {
     const NAME: &'static str;
     const ENABLE: RccBit;
-    fn regs() -> Regs;
 }
 
 /// A pin, in the right alternate function, that carries `U`'s clock.

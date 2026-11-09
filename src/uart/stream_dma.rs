@@ -69,7 +69,7 @@ use crate::{
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
-    usart::{LineRegs, Regs},
+    usart::LineRegs,
     wait::{Deadline, wait},
 };
 
@@ -387,15 +387,6 @@ impl Line {
     /// Restores the idle, parity and error enables.
     pub fn unmask(&mut self) {
         self.info.regs.set_event_enables(true);
-    }
-
-    /// The raw USART registers. FerroHAL's guarantees end here.
-    ///
-    /// # Safety
-    ///
-    /// The caller takes over every invariant this driver keeps.
-    pub unsafe fn regs(&self) -> Regs {
-        self.info.regs.regs()
     }
 }
 

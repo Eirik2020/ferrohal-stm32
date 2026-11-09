@@ -51,17 +51,19 @@ impl<const D: u8> Dma<D> {
     }
 }
 
-/// A DMA controller this chip has. Chip facts: the glue layer implements it.
-pub trait DmaInstance: crate::Sealed {
-    #[doc(hidden)]
+/// The controller's register block and its DMAMUX. Crate-internal: a public
+/// bound naming them would hand metapac out.
+pub(crate) trait DmaRegisters {
     fn regs() -> Regs;
+    #[cfg(feature = "dma_v1")]
+    fn mux() -> Dmamux;
+}
+
+/// A DMA controller this chip has. Chip facts: the glue layer implements it.
+#[allow(private_bounds)] // `DmaRegisters` is the crate-internal half.
+pub trait DmaInstance: crate::Sealed + DmaRegisters {
     #[doc(hidden)]
     const ENABLE: RccBit;
-    /// The DMAMUX serving this controller, and the mux channel of its
-    /// stream 0; stream `n` uses channel `MUX_BASE + n`.
-    #[cfg(feature = "dma_v1")]
-    #[doc(hidden)]
-    fn mux() -> Dmamux;
     #[cfg(feature = "dma_v1")]
     #[doc(hidden)]
     const MUX_BASE: u8;
@@ -210,10 +212,10 @@ where
     fn claim(&self, _key: claim::Key) -> Channel {
         const { assert!(N < 8, "a controller has streams 0 to 7") };
         Channel {
-            regs: <Dma<D> as DmaInstance>::regs(),
+            regs: <Dma<D> as DmaRegisters>::regs(),
             index: N,
             #[cfg(feature = "dma_v1")]
-            mux: <Dma<D> as DmaInstance>::mux(),
+            mux: <Dma<D> as DmaRegisters>::mux(),
             #[cfg(feature = "dma_v1")]
             mux_channel: <Dma<D> as DmaInstance>::MUX_BASE + N,
         }
@@ -388,18 +390,6 @@ pub enum Target {
 }
 
 impl Channel {
-    /// The controller and the stream's number. FerroHAL's guarantees end
-    /// where this is used.
-    ///
-    /// # Safety
-    ///
-    /// The caller takes over every invariant this driver keeps: which
-    /// memory the stream may touch, and that nothing else writes its
-    /// registers.
-    pub unsafe fn regs(&self) -> (Regs, usize) {
-        (self.regs, usize::from(self.index))
-    }
-
     /// A handle for reading and clearing this stream's flags from an
     /// interrupt handler while the `Channel` itself lives elsewhere.
     pub fn flag_handle(&self) -> FlagHandle {

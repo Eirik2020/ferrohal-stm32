@@ -26,7 +26,7 @@ use stm32_metapac::{EXTI as EXTI_REGS, SYSCFG as SYSCFG_REGS, exti::regs::Lines}
 
 use crate::{
     chip::{EXTI, Interrupt, SYSCFG, SYSCFG_ENABLE},
-    gpio::{Port, PortInstance},
+    gpio::{Port, PortInstance, PortRegisters},
     rcc::Rcc,
 };
 
@@ -171,7 +171,7 @@ where
     /// The pin's level now, read from its port's input register, whatever
     /// mode it is in.
     pub fn is_high(&self) -> bool {
-        <Port<P> as PortInstance>::regs()
+        <Port<P> as PortRegisters>::regs()
             .idr()
             .read()
             .idr(usize::from(N & 15))

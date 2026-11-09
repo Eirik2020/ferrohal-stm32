@@ -246,10 +246,13 @@ macro_rules! ports {
         $(
             impl crate::Sealed for Port<$letter> {}
 
-            impl PortInstance for Port<$letter> {
+            impl crate::gpio::PortRegisters for Port<$letter> {
                 fn regs() -> pac::gpio::Gpio {
                     pac::$regs
                 }
+            }
+
+            impl PortInstance for Port<$letter> {
                 const ENABLE: RccBit = RccBit::new(Bus::Ahb4, $bit);
             }
         )+
@@ -275,26 +278,30 @@ ports!(
 // own; it runs with the controllers.
 
 impl crate::Sealed for Dma<1> {}
-impl DmaInstance for Dma<1> {
+impl crate::dma::DmaRegisters for Dma<1> {
     fn regs() -> pac::dma::Dma {
         pac::DMA1
     }
-    const ENABLE: RccBit = RccBit::new(Bus::Ahb1, 0);
     fn mux() -> pac::dmamux::Dmamux {
         pac::DMAMUX1
     }
+}
+impl DmaInstance for Dma<1> {
+    const ENABLE: RccBit = RccBit::new(Bus::Ahb1, 0);
     const MUX_BASE: u8 = 0;
 }
 
 impl crate::Sealed for Dma<2> {}
-impl DmaInstance for Dma<2> {
+impl crate::dma::DmaRegisters for Dma<2> {
     fn regs() -> pac::dma::Dma {
         pac::DMA2
     }
-    const ENABLE: RccBit = RccBit::new(Bus::Ahb1, 1);
     fn mux() -> pac::dmamux::Dmamux {
         pac::DMAMUX1
     }
+}
+impl DmaInstance for Dma<2> {
+    const ENABLE: RccBit = RccBit::new(Bus::Ahb1, 1);
     const MUX_BASE: u8 = 8;
 }
 
