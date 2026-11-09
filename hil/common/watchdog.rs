@@ -5,7 +5,8 @@
 //! First boot: start a 50 ms watchdog and feed it every 10 ms for 300 ms
 //! (no reset may come), then stop feeding and keep writing the time since
 //! the last feed. Second boot: the reset cause must be the independent
-//! watchdog, and the last time written must fit the LSI's spread.
+//! watchdog, and the last time written must fit the LSI's spread. Starting
+//! must also have frozen the counter for the debugger [IWDG-004].
 
 // Each run binary compiles this file and uses what it needs.
 #![allow(dead_code)]
@@ -113,6 +114,7 @@ pub fn feed_then_starve(
     cause: ResetCause,
     dog: Watchdog,
     cpu: Hertz,
+    frozen_before_start: bool,
 ) {
     report.check(
         name,
@@ -124,6 +126,21 @@ pub fn feed_then_starve(
         } else {
             Ok(())
         },
+    );
+    report.check(
+        name,
+        "start froze the watchdog for the debugger [IWDG-004]",
+        if Watchdog::is_frozen_on_halt() {
+            Ok(())
+        } else {
+            Err(Fail::Level { expected_high: true })
+        },
+    );
+    defmt::info!(
+        "{=str}: debug freeze before start {=bool}, after {=bool}",
+        name,
+        frozen_before_start,
+        Watchdog::is_frozen_on_halt()
     );
     write(1, 0);
     for _ in 0..30 {

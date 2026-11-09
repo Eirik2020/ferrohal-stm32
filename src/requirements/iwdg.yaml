@@ -50,3 +50,22 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::iwdg_v1::tests::divider_picks_the_finest_prescaler
+
+  - id: IWDG-004
+    title: A halted core does not starve the watchdog
+    statement: >-
+      A watchdog started by this crate shall be frozen while a debugger
+      holds the core halted.
+    rationale: >-
+      A breakpoint must not reset the chip under the debugger.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI

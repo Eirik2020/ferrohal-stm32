@@ -11,7 +11,11 @@
 //! Choose a timeout with that margin in mind. `rcc`'s `reset_cause` tells
 //! a firmware, after the fact, that the watchdog reset it.
 //!
-//! Requirements: IWDG-001, IWDG-002, IWDG-003
+//! Starting also freezes the counter while a debugger holds the core
+//! halted (`DBGMCU`), so a breakpoint inside a session does not become a
+//! reset.
+//!
+//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004
 
 use stm32_metapac::iwdg::vals::{Key, Pr};
 
@@ -75,6 +79,9 @@ impl Watchdog {
             Err(error) => return Err(Refused::new(error, _iwdg)),
         };
         let regs = crate::chip::iwdg_regs();
+        // A breakpoint must not become a reset: freeze the counter while a
+        // debugger holds the core halted.
+        crate::chip::set_watchdog_freeze();
         // Starting turns the LSI on; then unlock, load, wait, reload.
         regs.kr().write(|w| w.set_key(Key::START));
         regs.kr().write(|w| w.set_key(Key::ENABLE));
@@ -122,6 +129,12 @@ impl Watchdog {
     /// The timeout asked for, nominal.
     pub fn timeout_us(&self) -> u32 {
         self.timeout_us
+    }
+
+    /// Whether the watchdog is frozen while a debugger holds the core
+    /// halted. [`Watchdog::start`] sets it.
+    pub fn is_frozen_on_halt() -> bool {
+        crate::chip::watchdog_frozen()
     }
 }
 

@@ -40,8 +40,16 @@ fn main() -> ! {
     let mut report = Report::new();
     let name = "IWDG1 50 ms";
     if !watchdog::after_reset(&mut report, name, cause, (29, 34)) {
+        let frozen = Watchdog::is_frozen_on_halt();
         match Watchdog::start(run.iwdg, watchdog::TIMEOUT_US) {
-            Ok(dog) => watchdog::feed_then_starve(&mut report, name, cause, dog, board::CLOCKS.cpu),
+            Ok(dog) => watchdog::feed_then_starve(
+                &mut report,
+                name,
+                cause,
+                dog,
+                board::CLOCKS.cpu,
+                frozen,
+            ),
             Err(refused) => report.check(
                 name,
                 "start",

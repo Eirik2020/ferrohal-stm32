@@ -426,6 +426,17 @@ pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
     pac::IWDG1
 }
 
+/// Freezes the watchdog while a debugger holds the core halted:
+/// `DBGMCU_APB4FZR1.IWDG1` (bit 18; IWDG1 sits on APB4, not APB1).
+pub(crate) fn set_watchdog_freeze() {
+    pac::DBGMCU.apb4fzr1().modify(|w| w.set_iwdg1(true));
+}
+
+/// Whether that freeze is set.
+pub(crate) fn watchdog_frozen() -> bool {
+    pac::DBGMCU.apb4fzr1().read().iwdg1()
+}
+
 /// SYSCFG's clock enable, which EXTI's port selection (EXTICR) needs.
 pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb4, 1);
 

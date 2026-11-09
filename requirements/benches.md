@@ -52,11 +52,11 @@ layout must stay as it is.
 
 ## Watchdog on the Nucleo-F401RE
 
-`hil/run-f401.sh j`. Resets the chip on purpose. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh j`. Resets the chip on purpose. Also checks that starting the watchdog froze it for the debugger [IWDG-004]. Pass: every check in every run passes and the script exits zero.
 
 ## Watchdog on the Nucleo-H753ZI
 
-`hil/run-h753.sh k`. Resets the chip on purpose. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh k`. Resets the chip on purpose. Also checks that starting the watchdog froze it for the debugger [IWDG-004]. Pass: every check in every run passes and the script exits zero.
 
 ## Bootloader request on the Nucleo-F401RE
 
