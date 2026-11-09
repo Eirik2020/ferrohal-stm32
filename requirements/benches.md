@@ -1,6 +1,7 @@
 # Bench Procedures
 
-What each requirement's bench entry runs. A run proves the files that declare the
+What each requirement's bench entry runs. The rig itself, what it can prove and what to
+improve next, is [hil.md](hil.md). A run proves the files that declare the
 requirement it covers, so after the first pass, a change to one file owes only that
 file's requirements a new run.
 

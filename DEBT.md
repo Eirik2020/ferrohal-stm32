@@ -7,7 +7,7 @@ Status as of 2026-11-06:
 - **F401:** `hil/run-f401.sh` passes all eighteen runs, 248 checks; the runs, their links and their checks are in `requirements/benches.md`.
 - **H753ZI:** `hil/run-h753.sh` passes all eighteen runs, same detail; run M needs a cable from CN13, and passed 11 of 11 on 2026-11-05.
 - **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
-- **H743VI:** `hil/run-lucid.sh` passes 32 of 32 with a card on the TBS Lucid H7, plus the host's USB echo, polled and from its interrupt: its crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, and its motor timers and streams.
+- **H743VI:** `hil/run-lucid.sh` passes 50 of 50 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 571 and 487 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams (2026-11-09). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |

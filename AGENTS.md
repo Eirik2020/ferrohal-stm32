@@ -41,7 +41,8 @@ hil/run-i2c-sim.sh [flash|run]   # Pico 1 I2C slave, both benches
 
 Bench traps: watchdog/bootloader runs need `--no-catch-reset`; run M + DFU need H753 CN13
 cable (Pico borrows it); probes by serial through `hil/probe.sh` (`F401_PROBE`,
-`H753_PROBE`, or `PROBE_RS_PROBE`; one probe attached needs none).
+`H753_PROBE`, or `PROBE_RS_PROBE`; one probe attached needs none). The rig's
+capabilities, blind spots and improvement queue are in `requirements/hil.md`.
 
 ## Rules
 
