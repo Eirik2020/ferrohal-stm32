@@ -151,7 +151,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: no frame has reached a Lucid motor pad, and its UARTs run only as the H753ZI's.** Same die and driver under the H753ZI's glue, with the H743 routes pinned by a test; UART8 (its ESC telemetry port) has run on neither.
 - **Low: FerroWasp's H7 reboot request is likely lost the same way.** `ferrowasp-stm32h7-critical`'s `system_bootloader` writes one word to AXI SRAM just before the reset, which RM0433 2.4 says a reset loses; the bench measured it on this die. `reboot_to_bootloader` writes the whole doubleword.
 - **Low: state kept across a reset on the H7 should be whole doublewords.** The bootloader bench lost results written as single words beside each other across resets, and passed once each had its own doubleword; why isn't explained beyond RM0433 2.4's rule.
-- **Low: the Lucid is TFBGA100, and the tree had it as LQFP100.** The fitted part is STM32H743VIH6; 2.2.22 ties its VDDLDO ball to VDD, so no rail may use it. FerroWasp's manifest and `Embed.toml` still need VIH6/TFBGA100 and `STM32H743VIHx`; the glue's `BONDED` table stands, since DS12117 Table 8 bonds the same GPIO set on both 100-pin packages.
 - Everything in section 4 applies too.
 
 ---

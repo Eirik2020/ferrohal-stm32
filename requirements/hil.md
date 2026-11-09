@@ -63,8 +63,11 @@ Grouped by why; each is a candidate for the queue below.
 
 - **Silicon revision**: nothing reads `DBGMCU_IDC.REV_ID`, so revision-dependent
   errata (ES0392 2.2.10 AXI SRAM reads, 2.2.21 480 MHz) cannot be decided per part.
-- **Package**: one package per chip. The Lucid is TFBGA100; no LQFP100 H743 is on
-  the rig, and 2.2.22's VDDLDO consequence is a board fact, not a run.
+- **Bondout and package facts**: one package per die runs here, and that is
+  enough for digital behaviour — the same RTL sits behind every bondout, so a
+  second package would add no firmware evidence. What a package does change is
+  read, not run: which pins are bonded (UART4/5 below), and package-scoped facts
+  such as the TFBGA100 having no VDDLDO supply or VREF+ pin.
 - **Cache and MPU shapes**: one configuration (off, or on with one non-cacheable
   window). Write-through memory, MPU-off-with-caches-on, invalidate-then-store
   and DEBR locking are not exercised, so the ES0392 cache rules are inspection.
@@ -92,8 +95,8 @@ In order; each names what it unlocks. Cheap ones first, then the ones that
 unblock a claim.
 
 1. **Record `REV_ID` and the fitted part marking in every run's log.** One check
-   plus board constants. Unlocks the 2.2.10/2.2.21/2.2.22 decisions and makes
-   the board identity auditable.
+   plus board constants. Unlocks the 2.2.10 (AXI SRAM) and 2.2.21 (480 MHz)
+   decisions and makes the board identity auditable.
 2. **A refusal run per chip.** Refuse each public constructor on hardware, then
    use the returned parts. Closes `DEBT.md` §8's largest item and exercises
    error paths for real.
