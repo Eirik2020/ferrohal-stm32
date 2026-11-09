@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 28,
-  "agent": 16,
-  "agent_tokens": 8367
+  "documents": 29,
+  "agent": 17,
+  "agent_tokens": 9161
  },
  "documents": [
   {
@@ -11,16 +11,16 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40",
-   "bytes": 3358,
-   "tokens": 840
+   "bytes": 3537,
+   "tokens": 885
   },
   {
    "path": "DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.mdRESOL",
-   "bytes": 23620,
-   "tokens": 5905
+   "bytes": 24494,
+   "tokens": 6124
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once done. Li",
-   "bytes": 32914,
-   "tokens": 8229
+   "bytes": 31339,
+   "tokens": 7835
   },
   {
    "path": "THIRD-PARTY.md",
@@ -111,6 +111,14 @@
    "tokens": 432
   },
   {
+   "path": "docs/design/h7-errata.md",
+   "class": "agent",
+   "title": "ES0392 review: cache, system, flash ECC",
+   "purpose": "W11 of the debt sweep. Read against ES0392 Rev 15 2025-0",
+   "bytes": 2995,
+   "tokens": 749
+  },
+  {
    "path": "docs/design/uart-ownership.md",
    "class": "agent",
    "title": "UART ownership: line, flags, data (2026-11-09)",
@@ -163,8 +171,8 @@
    "class": "human",
    "title": "FerroHAL debt sweep - plan of record",
    "purpose": "Status: in progress - W1-W7 done watchdog debug freeze, ",
-   "bytes": 4277,
-   "tokens": 1070
+   "bytes": 4343,
+   "tokens": 1086
   },
   {
    "path": "docs/plans/2026-11-08-free-redesign.md",

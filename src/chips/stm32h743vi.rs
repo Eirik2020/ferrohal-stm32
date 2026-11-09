@@ -2,8 +2,11 @@
 //!
 //! Every routing fact here (RCC bits, pin alternate functions, DMAMUX
 //! request IDs) was read from stm32-metapac 21.0.0's metadata for this
-//! chip, whose ports are cut to the LQFP100 package (`BONDED` below). They are
-//! hand-written for now, in the trait shapes a generator would emit later.
+//! chip, whose ports are cut to the package's bonded pins (`BONDED` below):
+//! the Lucid fits the TFBGA100 (STM32H743VIH6), which DS12117 Table 8 shows
+//! bonds the same GPIO set as the LQFP100, the two differing in supplies
+//! (VDDLDO among them, ES0392 2.2.22). They are hand-written for now, in the
+//! trait shapes a generator would emit later.
 //! Clock limits and the memory map, shared with the H753, are in
 //! `shared/h7.rs`.
 //!
@@ -234,8 +237,8 @@ peripherals!(
 );
 
 // GPIO ports, with their AHB4ENR bits. Only the bonded ports are declared:
-// the LQFP100 bonds A to E and PH0/PH1 (see `BONDED`); ports F to K exist as
-// registers only.
+// both 100-pin packages bond A to E and PH0/PH1 (see `BONDED`); ports F to K
+// exist as registers only.
 
 macro_rules! ports {
     ($($letter:literal => $regs:ident, $bit:literal;)+) => {
@@ -263,8 +266,10 @@ ports!(
     'E' => GPIOE, 4;
     'H' => GPIOH, 7;
 );
-/// The LQFP100 package's bonded pins, as (port, pin mask): ports A to E and
-/// PH0/PH1. `tools/check_glue.py` reads this: a routing row on any other pin
+/// The 100-pin packages' bonded pins, as (port, pin mask): ports A to E and
+/// PH0/PH1. DS12117 Table 8 gives the same GPIO set for LQFP100 and the
+/// Lucid's TFBGA100 (STM32H743VIH6), so one table serves both.
+/// `tools/check_glue.py` reads this: a routing row on any other pin
 /// fails, and a bonded pin with no row is reported, not failed.
 #[allow(dead_code)] // Read by tools/check_glue.py.
 pub(crate) const BONDED: &[(char, u16)] = &[
