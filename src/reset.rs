@@ -110,7 +110,7 @@ pub fn enter_bootloader_if_requested() {
 ///
 /// Call it first in `main` or in `init`, with the chip as reset left it: no
 /// clock, cache or peripheral set up. The jump abandons everything in RAM.
-pub unsafe fn enter_bootloader() -> ! {
+pub(crate) unsafe fn enter_bootloader() -> ! {
     cortex_m::interrupt::disable();
     crate::rcc::clear_reset_flags();
     crate::chip::map_system_memory();

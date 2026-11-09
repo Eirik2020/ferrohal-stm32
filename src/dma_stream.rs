@@ -112,15 +112,6 @@ impl<const D: u8, const N: u8> Stream<D, N> {
     const fn new() -> Self {
         Self { _private: () }
     }
-
-    /// A second token for this stream.
-    ///
-    /// # Safety
-    ///
-    /// Nothing else may use the stream while this one is in use.
-    pub unsafe fn steal() -> Self {
-        Self::new()
-    }
 }
 
 impl<const D: u8, const N: u8> Stream<D, N> {
@@ -428,20 +419,6 @@ impl Channel {
         }
     }
 
-    /// Points the buffer the stream is not using at `address`.
-    ///
-    /// # Safety
-    ///
-    /// The memory at `address` must stay valid, and untouched by anything
-    /// but this stream, until the stream has moved on from it or stopped.
-    pub unsafe fn set_idle_buffer(&mut self, address: u32) {
-        let st = self.regs.st(stream_index(self.index));
-        match self.current_target() {
-            Target::Memory0 => st.m1ar().write_value(address),
-            Target::Memory1 => st.m0ar().write_value(address),
-        }
-    }
-
     /// Turns the stream's interrupts on or off. Allowed while it runs: the
     /// reference manuals protect most of CR while EN is set, but not the
     /// interrupt enables, nor FCR's FEIE.
@@ -512,7 +489,7 @@ impl Channel {
     /// this stream writes in the meantime (or reads, for a
     /// peripheral-to-memory transfer). `peripheral` must be the data
     /// register of the peripheral `request` selects on this stream.
-    pub unsafe fn start(&mut self, transfer: &Transfer) -> Result<(), StartError> {
+    pub(crate) unsafe fn start(&mut self, transfer: &Transfer) -> Result<(), StartError> {
         #[cfg(feature = "dma_v2")]
         let request_valid = transfer.request <= 7;
         #[cfg(feature = "dma_v1")]

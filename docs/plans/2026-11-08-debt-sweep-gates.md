@@ -9,17 +9,16 @@ Part of [the plan](2026-11-08-debt-sweep.md).
 - W4b: safe `Pwm::free()` unsound today (`Pwm<T>` holds `PhantomData<T>`; `PwmChannel`/`CompareLane` hold no borrow); `Tick`/`Timebase` non-generic, token erased. Restructure benches now; redesign later.
 - W6a (done): `Peripherals::steal` behind `rtic`; `take()` uses `steal_unchecked`; every RTIC
   bench and `checks/no-panic` enable `rtic`.
-- W6b: leaks = `DmaInstance::regs`, `DmaInstance::mux`, `PortInstance::regs`, SDMMC
-  `Instance::regs`, `Channel::regs`, uart `stream_dma::regs`. No users in `hil/` or ferro-wasp;
-  `mux` (H7 `Dmamux`) is the easily missed one. Each trait accessor moves to a crate-private
-  supertrait (`DmaRegisters`, `PortRegisters`, sdmmc's) that the public trait requires, with
-  `#[allow(private_bounds)]` and the reason beside it; the glue implements both. With
-  `Stream::steal` and `Channel::start`/`set_idle_buffer` internal, no-panic takes stream tokens
-  from `Peripherals` and exercises starts through the public drivers; `enter_bootloader` goes
-  internal and `usb_bench`/no-panic call `reboot_to_bootloader()`. Hardware: run L and N
-  (bootloader request) plus run A.
+- W6b1 (done): the six accessors (`DmaInstance::regs`/`mux`, `PortInstance::regs`, SDMMC
+  `Instance::regs`, `Channel::regs`, uart line `regs`) moved to crate-private supertraits
+  (`DmaRegisters`, `PortRegisters`, `sdmmc::Registers`) or were removed; no users in `hil/`
+  or ferro-wasp; `mux` (H7 `Dmamux`) was the easily missed one.
+- W6b2 (done): `Stream::steal` and `Channel::set_idle_buffer` had no users left and are removed;
+  `Channel::start` and `enter_bootloader` are crate-internal; no-panic takes spare streams from
+  `Peripherals::steal().DMAx.split(rcc)`; `usb_bench`/no-panic use `reboot_to_bootloader()`;
+  `API-001` is declared by `src/lib.rs` and measured by the no-panic link. Hardware: runs L, N, A.
 - W12: safe-api rules (1) no `pub unsafe fn` outside chip glue beyond the allowlist; (2) item carries `cfg(rtic)`; (3) `default = []`, `rtic = ["rt"]`, nothing implies it; (4) metapac imports only `src/chips/` + 12 drivers.
-- Next free IDs: IWDG-004/005/006, PWM-007, USART-005, API-001.
+- Next free IDs: IWDG-007, PWM-008, USART-006, API-002.
 - Masked vectors must not fail `UartIrq::verify()`.
 - `checks/no-panic` gains every new public fn: `start_windowed`, `start_with_lsi`, `start_one_pulse`, `mask`, `unmask`.
 

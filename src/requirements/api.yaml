@@ -1,0 +1,17 @@
+schema_version: 2
+requirements:
+  - id: API-001
+    title: No public function panics
+    statement: >-
+      Every public function shall be reachable without a panic path.
+    rationale: >-
+      A fault or a bad request comes back as an error; a panic on a flight
+      board loses the vehicle. The link check fails when a new public
+      function brings one in.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: analysis
+          environment: host
+          method:
+            procedure: requirements/benches.md#No reachable panic

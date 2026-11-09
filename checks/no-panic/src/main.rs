@@ -23,7 +23,7 @@ use cortex_m_rt::entry;
 use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin};
 use ferrohal_stm32::{
     chip::Peripherals,
-    dma::{Direction, FifoMode, Flags, Interrupts, Priority, StreamInstance, Transfer, WordSize},
+    dma::{Flags, StreamInstance},
     i2c::{self, I2c},
     spi::{self, Spi},
     time::Hertz,
@@ -191,28 +191,6 @@ fn main() -> ! {
     keep(handle.flags());
     handle.clear(black_box(Flags::default()));
     keep(handle.remaining());
-    let transfer = black_box(Transfer {
-        request: 1,
-        #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
-        bufferable: false,
-        direction: Direction::MemoryToPeripheral,
-        peripheral: 0x4000_0000,
-        memory: 0x2400_0000,
-        double_buffer: Some(0x2400_0100),
-        len: 16,
-        size: WordSize::Word,
-        memory_increment: true,
-        circular: false,
-        priority: Priority::Low,
-        fifo: FifoMode::Direct,
-        interrupts: Interrupts::default(),
-    });
-    // SAFETY: never run; only linked.
-    unsafe {
-        keep(channel.start(&transfer));
-        channel.set_idle_buffer(black_box(0x2400_0200));
-    }
-
     park()
 }
 
@@ -605,10 +583,6 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     if black_box(false) {
         reset::reboot_to_bootloader();
     }
-    if black_box(false) {
-        // SAFETY: never taken; only its code has to link.
-        unsafe { reset::enter_bootloader() };
-    }
     keep(divider(black_box(50_000)));
     keep(divider_with_lsi(
         black_box(50_000),
@@ -884,6 +858,11 @@ mod chip {
         let mut b = p.GPIOB.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
+        // A second set of tokens for the exercises that need a stream the
+        // wiring below does not take. The build never runs, so the aliasing
+        // exists only in the linked code.
+        let spare1 = unsafe { Peripherals::steal() }.DMA1.split(&mut rcc);
+        let spare2 = unsafe { Peripherals::steal() }.DMA2.split(&mut rcc);
         let mut tx = a.p9.into_alternate::<7>(&mut a.ctrl);
         tx.set_speed(&mut a.ctrl, core::hint::black_box(Speed::Medium));
         let mut rx = a.p10.into_alternate::<7>(&mut a.ctrl);
@@ -907,7 +886,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
-            unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
+            spare2.s1,
         );
         // PA12 is USART6's here, so the constructor is left to the F405,
         // which shares this code; the F4's clock check runs on its own.
@@ -928,7 +907,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
-            unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
+            spare1.s5,
         );
         // TIM1 is the F401's only break-unit timer and its only update
         // request on DMA2, so it samples here and the F405 covers CHxN.
@@ -1051,6 +1030,11 @@ mod chip {
         let mut c = p.GPIOC.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
+        // A second set of tokens for the exercises that need a stream the
+        // wiring below does not take. The build never runs, so the aliasing
+        // exists only in the linked code.
+        let spare1 = unsafe { Peripherals::steal() }.DMA1.split(&mut rcc);
+        let spare2 = unsafe { Peripherals::steal() }.DMA2.split(&mut rcc);
         let mut tx = a.p2.into_alternate::<7>(&mut a.ctrl);
         tx.set_speed(&mut a.ctrl, core::hint::black_box(Speed::Medium));
         let mut rx = a.p3.into_alternate::<7>(&mut a.ctrl);
@@ -1074,7 +1058,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
-            unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
+            spare2.s1,
         );
         super::exercise_usb(
             &mut rcc,
@@ -1098,7 +1082,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
-            unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
+            spare1.s5,
         );
         super::exercise_complementary(&mut rcc, p.TIM8, a.p7.into_alternate::<3>(&mut a.ctrl), dma2.s2);
         super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
@@ -1220,6 +1204,11 @@ mod chip {
         let mut d = p.GPIOD.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
+        // A second set of tokens for the exercises that need a stream the
+        // wiring below does not take. The build never runs, so the aliasing
+        // exists only in the linked code.
+        let spare1 = unsafe { Peripherals::steal() }.DMA1.split(&mut rcc);
+        let spare2 = unsafe { Peripherals::steal() }.DMA2.split(&mut rcc);
         let mut tx = d.p5.into_alternate::<7>(&mut d.ctrl);
         tx.set_speed(&mut d.ctrl, core::hint::black_box(Speed::Medium));
         let mut rx = d.p6.into_alternate::<7>(&mut d.ctrl);
@@ -1258,7 +1247,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
-            unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
+            spare2.s1,
         );
         super::exercise_usb(
             &mut rcc,
@@ -1282,7 +1271,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
-            unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
+            spare1.s5,
         );
         super::exercise_complementary(&mut rcc, p.TIM1, a.p7.into_alternate::<1>(&mut a.ctrl), dma1.s3);
         super::exercise_sampler(&mut rcc, p.TIM8, dma2.s1);
