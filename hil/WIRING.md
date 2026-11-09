@@ -7,6 +7,9 @@ The two Nucleo benches prove FerroHAL's I2C masters against a vacant address
 ends use only the internal ~40 k pull-ups at 50 kHz, so every link below is
 a plain DuPont jumper and no resistor is fitted.
 
+The simulator's own documentation - register map, build and flashing - is
+[`pico-i2c-sim/README.md`](pico-i2c-sim/README.md).
+
 ## Power: the Nucleo-H753ZI's CN13 cable
 
 The Pico 1 is powered and flashed over USB, with the cable taken from the

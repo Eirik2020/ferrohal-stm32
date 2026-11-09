@@ -9,6 +9,13 @@ Status tags:
 
 Facts marked *(measured)* were read from source at the versions given. Everything else is design.
 
+This document is the **architecture map**: what FerroHAL is, how it is layered, and the
+rules that hold across it. It is ratcheted - it may only shrink - so it never becomes a
+diary. A design decision is distilled into its own topic document under `docs/design/`
+(one topic per file, budgeted like any other document); the relevant section here keeps a
+one-line link. When a chapter of this map outgrows its budget it moves to a topic document
+and leaves a summary and link behind.
+
 ---
 
 ## 1. What FerroHAL is

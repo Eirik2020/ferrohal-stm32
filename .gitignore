@@ -3,3 +3,7 @@ target/
 
 # Written by the HIL scripts on every run.
 hil/logs/
+
+# Python byte-code from tools/check_docs.py and tools/housekeeping.py.
+__pycache__/
+*.pyc

@@ -1,0 +1,216 @@
+{
+ "docs_schema": 1,
+ "counts": {
+  "documents": 25,
+  "agent": 13,
+  "agent_tokens": 6694
+ },
+ "documents": [
+  {
+   "path": "AGENTS.md",
+   "class": "agent",
+   "title": "FerroHAL - agent entry",
+   "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40",
+   "bytes": 3273,
+   "tokens": 819
+  },
+  {
+   "path": "DEBT.md",
+   "class": "human",
+   "title": "FerroHAL: open debt and issues",
+   "purpose": "Open items only. Finished work moves to RESOLVED.mdRESOL",
+   "bytes": 25861,
+   "tokens": 6466
+  },
+  {
+   "path": "README.md",
+   "class": "human",
+   "title": "ferrohal-stm32",
+   "purpose": "A scheduler-agnostic STM32 HAL on stm32-metapachttps://c",
+   "bytes": 4610,
+   "tokens": 1153
+  },
+  {
+   "path": "RESOLVED.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt",
+   "purpose": "History: items moved out of DEBT.mdDEBT.md once done. Li",
+   "bytes": 28102,
+   "tokens": 7026
+  },
+  {
+   "path": "THIRD-PARTY.md",
+   "class": "human",
+   "title": "Third-party code",
+   "purpose": "FerroHAL is licensed under MIT OR Apache-2.0 LICENSE-MIT",
+   "bytes": 3052,
+   "tokens": 763
+  },
+  {
+   "path": "docs/decisions/2026-11-08-free-teardown-brief.md",
+   "class": "agent",
+   "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
+   "purpose": "ADR-002 - Status: accepted",
+   "bytes": 2157,
+   "tokens": 540,
+   "adr": "ADR-002",
+   "status": "accepted"
+  },
+  {
+   "path": "docs/decisions/2026-11-08-g5-safe-by-default.md",
+   "class": "agent",
+   "title": "ADR-001: G5, safe by default (2026-11-08)",
+   "purpose": "ADR-001 - Status: promoted",
+   "bytes": 2238,
+   "tokens": 560,
+   "adr": "ADR-001",
+   "status": "promoted"
+  },
+  {
+   "path": "docs/decisions/2026-11-08-naming-scheme.md",
+   "class": "agent",
+   "title": "Decision: naming scheme (2026-11-08)",
+   "purpose": "ADR-003 - Status: accepted",
+   "bytes": 2788,
+   "tokens": 697,
+   "adr": "ADR-003",
+   "status": "accepted"
+  },
+  {
+   "path": "docs/decisions/README.md",
+   "class": "agent",
+   "title": "Decision records (ADR hub)",
+   "purpose": "Record = event what, why, rejected, date, not rule. Bind",
+   "bytes": 1402,
+   "tokens": 351
+  },
+  {
+   "path": "docs/decisions/index/2026.md",
+   "class": "agent",
+   "title": "Decision index, 2026",
+   "purpose": "One row per record. The record itself is authoritative f",
+   "bytes": 614,
+   "tokens": 154
+  },
+  {
+   "path": "docs/housekeeping/README.md",
+   "class": "agent",
+   "title": "Housekeeping",
+   "purpose": "Documents rot by addition. An agent adds a note because ",
+   "bytes": 1934,
+   "tokens": 484
+  },
+  {
+   "path": "docs/housekeeping/state.md",
+   "class": "agent",
+   "title": "Housekeeping state",
+   "purpose": "Cadence: monthly, or immediately when more than ten docu",
+   "bytes": 619,
+   "tokens": 155
+  },
+  {
+   "path": "docs/notes/2026-11-08-naming-audit.md",
+   "class": "agent",
+   "title": "Naming audit (evidence)",
+   "purpose": "Audited 2026-11-08/09. Target scheme: ../decisions/2026-",
+   "bytes": 2314,
+   "tokens": 579
+  },
+  {
+   "path": "docs/notes/2026-11-08-rtic-and-hal-comparison.md",
+   "class": "agent",
+   "title": "RTIC + reference-HAL evidence (G5)",
+   "purpose": "Code-only, 2026-11-08/09. Sources: rtic-macros-2.4.0; st",
+   "bytes": 2637,
+   "tokens": 660
+  },
+  {
+   "path": "docs/plans/2026-11-08-debt-sweep-gates.md",
+   "class": "human",
+   "title": "Debt sweep: detail, gates, cross-repo",
+   "purpose": "Part of the plan2026-11-08-debt-sweep.md.",
+   "bytes": 2369,
+   "tokens": 593
+  },
+  {
+   "path": "docs/plans/2026-11-08-debt-sweep.md",
+   "class": "human",
+   "title": "FerroHAL debt sweep - plan of record",
+   "purpose": "Status: not started. Decisions complete; nothing impleme",
+   "bytes": 3193,
+   "tokens": 799
+  },
+  {
+   "path": "docs/plans/2026-11-08-free-redesign.md",
+   "class": "human",
+   "title": "Ownership / `free()` redesign (with W14 naming)",
+   "purpose": "Next project after the sweep, its own PR. steal goes und",
+   "bytes": 2755,
+   "tokens": 689
+  },
+  {
+   "path": "docs/policies/agent-docs.md",
+   "class": "agent",
+   "title": "Agent-doc style",
+   "purpose": "Agent docs = AGENTS.md + docs/{policies,decisions,notes,",
+   "bytes": 1183,
+   "tokens": 296
+  },
+  {
+   "path": "docs/policies/documentation.md",
+   "class": "agent",
+   "title": "Documentation policy",
+   "purpose": "Normative. Two classes:",
+   "bytes": 3161,
+   "tokens": 791
+  },
+  {
+   "path": "docs/policies/safety.md",
+   "class": "agent",
+   "title": "Safety policy",
+   "purpose": "Normative. Goal G5 requirements/goals.md. Rationale:",
+   "bytes": 2430,
+   "tokens": 608
+  },
+  {
+   "path": "ferrohal-architecture.md",
+   "class": "human",
+   "title": "FerroHAL: architecture brief",
+   "purpose": "Architecture only. Implementation details are decided wh",
+   "bytes": 26052,
+   "tokens": 6513
+  },
+  {
+   "path": "hil/WIRING.md",
+   "class": "human",
+   "title": "Bench wiring: the Pico 1 I2C simulator",
+   "purpose": "The two Nucleo benches prove FerroHAL's I2C masters agai",
+   "bytes": 4765,
+   "tokens": 1192
+  },
+  {
+   "path": "hil/pico-i2c-sim/README.md",
+   "class": "human",
+   "title": "pico-i2c-sim",
+   "purpose": "A Raspberry Pi Pico 1 RP2040 standing in for the I2C per",
+   "bytes": 1483,
+   "tokens": 371
+  },
+  {
+   "path": "requirements/benches.md",
+   "class": "human",
+   "title": "Bench Procedures",
+   "purpose": "What each requirement's bench entry runs. A run proves t",
+   "bytes": 8245,
+   "tokens": 2062
+  },
+  {
+   "path": "requirements/goals.md",
+   "class": "human",
+   "title": "FerroHAL's Goals",
+   "purpose": "Every requirement derives from one of these, or from ano",
+   "bytes": 916,
+   "tokens": 229
+  }
+ ]
+}
