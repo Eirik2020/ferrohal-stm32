@@ -591,6 +591,7 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     use ferrohal_stm32::{
         iwdg::{Watchdog, divider, divider_with_lsi, window_divider},
         reset,
+        time::Hertz,
     };
 
     keep(rcc.reset_cause());
@@ -612,6 +613,23 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     ));
     keep(window_divider(black_box(50_000), black_box(10_000)));
     keep(Watchdog::check(black_box(50_000)));
+    // Both refusals hand the token back before the watchdog is touched, so
+    // those paths are exercised and `start` still has the token.
+    let iwdg = match Watchdog::start_with_lsi(iwdg, black_box(50_000), Hertz::hz(0)) {
+        Ok(_) => park(),
+        Err(refused) => {
+            keep(refused.error());
+            refused.into_parts()
+        }
+    };
+    #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
+    let iwdg = match Watchdog::start_windowed(iwdg, black_box(50_000), black_box(60_000)) {
+        Ok(_) => park(),
+        Err(refused) => {
+            keep(refused.error());
+            refused.into_parts()
+        }
+    };
     let dog = match Watchdog::start(iwdg, black_box(50_000)) {
         Ok(dog) => dog,
         Err(refused) => {
@@ -627,27 +645,6 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     keep(dog.timeout_us());
     keep(dog.handle().timeout_us());
     keep(Watchdog::is_frozen_on_halt());
-    if black_box(false) {
-        // SAFETY: never taken; only its code has to link, and no token from
-        // this boot is in use at that point.
-        let iwdg = unsafe { ferrohal_stm32::chip::WatchdogPeripheral::steal() };
-        keep(Watchdog::start_with_lsi(
-            iwdg,
-            black_box(50_000),
-            ferrohal_stm32::time::Hertz::hz(30_000),
-        ));
-    }
-    #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
-    if black_box(false) {
-        // SAFETY: never taken; only its code has to link, and no token from
-        // this boot is in use at that point.
-        let iwdg = unsafe { ferrohal_stm32::chip::WatchdogPeripheral::steal() };
-        keep(Watchdog::start_windowed(
-            iwdg,
-            black_box(50_000),
-            black_box(10_000),
-        ));
-    }
 }
 
 /// The polled SPI through every operation.
@@ -897,15 +894,15 @@ mod chip {
         super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
         super::exercise_watchdog(&mut rcc, p.IWDG);
         super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
-        super::exercise_adc_internal(&mut rcc, unsafe { ferrohal_stm32::chip::ADC1::steal() });
+        super::exercise_adc_internal(&mut rcc, unsafe { Peripherals::steal() }.ADC1);
         super::exercise_trigger(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM1::steal() },
-            unsafe { ferrohal_stm32::chip::TIM3::steal() },
+            unsafe { Peripherals::steal() }.TIM1,
+            unsafe { Peripherals::steal() }.TIM3,
         );
         super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
             unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
         );
@@ -926,7 +923,7 @@ mod chip {
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
         super::exercise_into_lane(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM2::steal() },
+            unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
             unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
         );
@@ -1064,15 +1061,15 @@ mod chip {
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG);
         super::exercise_adc(&mut rcc, p.ADC1, a.p4.into_analog(&mut a.ctrl), dma2.s4, super::adc_buffer());
-        super::exercise_adc_internal(&mut rcc, unsafe { ferrohal_stm32::chip::ADC1::steal() });
+        super::exercise_adc_internal(&mut rcc, unsafe { Peripherals::steal() }.ADC1);
         super::exercise_trigger(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM1::steal() },
-            unsafe { ferrohal_stm32::chip::TIM3::steal() },
+            unsafe { Peripherals::steal() }.TIM1,
+            unsafe { Peripherals::steal() }.TIM3,
         );
         super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
             unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
         );
@@ -1096,7 +1093,7 @@ mod chip {
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma1.s0);
         super::exercise_into_lane(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM2::steal() },
+            unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
             unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
         );
@@ -1251,12 +1248,12 @@ mod chip {
         }
         super::exercise_trigger(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM1::steal() },
-            unsafe { ferrohal_stm32::chip::TIM8::steal() },
+            unsafe { Peripherals::steal() }.TIM1,
+            unsafe { Peripherals::steal() }.TIM8,
         );
         super::exercise_two_way::<_, _, _, _, 'A'>(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM1::steal() },
+            unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
             unsafe { ferrohal_stm32::dma::Stream::<2, 1>::steal() },
         );
@@ -1280,7 +1277,7 @@ mod chip {
         super::exercise_lane(&mut rcc, p.TIM4, b.p6.into_alternate::<2>(&mut b.ctrl), dma2.s0);
         super::exercise_into_lane(
             &mut rcc,
-            unsafe { ferrohal_stm32::chip::TIM2::steal() },
+            unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
             unsafe { ferrohal_stm32::dma::Stream::<1, 5>::steal() },
         );

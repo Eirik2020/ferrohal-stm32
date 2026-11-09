@@ -1,6 +1,6 @@
 # Document index (generated)
 
-Metadata only - read a document after choosing it, not before. 25 documents, ~6889 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read a document after choosing it, not before. 26 documents, ~7321 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -10,6 +10,7 @@ Metadata only - read a document after choosing it, not before. 25 documents, ~68
 | a | docs/decisions/2026-11-08-naming-scheme.md | 697 tok | ADR-003 - Status: accepted |
 | a | docs/decisions/README.md | 351 tok | Record = event what, why, rejected, date, not rule. Bind |
 | a | docs/decisions/index/2026.md | 154 tok | One row per record. The record itself is authoritative f |
+| a | docs/design/free.md | 432 tok | There is no Pwm::free, Uart::free or Tick hand-back. Thi |
 | a | docs/housekeeping/README.md | 484 tok | Documents rot by addition. An agent adds a note because  |
 | a | docs/housekeeping/state.md | 155 tok | Cadence: monthly, or immediately when more than ten docu |
 | a | docs/notes/2026-11-08-naming-audit.md | 579 tok | Audited 2026-11-08/09. Target scheme: ../decisions/2026- |
@@ -17,15 +18,15 @@ Metadata only - read a document after choosing it, not before. 25 documents, ~68
 | a | docs/policies/agent-docs.md | 296 tok | Agent docs = AGENTS.md + docs/{policies,decisions,notes, |
 | a | docs/policies/documentation.md | 797 tok | Normative. Two classes: |
 | a | docs/policies/safety.md | 608 tok | Normative. Goal G5 requirements/goals.md. Rationale: |
-| h | DEBT.md | 25513 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
+| h | DEBT.md | 24929 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
 | h | README.md | 4610 B | A scheduler-agnostic STM32 HAL on stm32-metapachttps://c |
 | h | RESOLVED.md | 28955 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
 | h | THIRD-PARTY.md | 3052 B | FerroHAL is licensed under MIT OR Apache-2.0 LICENSE-MIT |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 2369 B | Part of the plan2026-11-08-debt-sweep.md. |
-| h | docs/plans/2026-11-08-debt-sweep.md | 3239 B | Status: in progress - W1-W4 done watchdog debug freeze,  |
+| h | docs/plans/2026-11-08-debt-sweep.md | 3263 B | Status: in progress - W1-W4b done watchdog debug freeze, |
 | h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. steal goes und |
 | h | ferrohal-architecture.md | 26052 B | Architecture only. Implementation details are decided wh |
 | h | hil/WIRING.md | 4765 B | The two Nucleo benches prove FerroHAL's I2C masters agai |
 | h | hil/pico-i2c-sim/README.md | 1483 B | A Raspberry Pi Pico 1 RP2040 standing in for the I2C per |
-| h | requirements/benches.md | 8915 B | What each requirement's bench entry runs. A run proves t |
+| h | requirements/benches.md | 9179 B | What each requirement's bench entry runs. A run proves t |
 | h | requirements/goals.md | 916 B | Every requirement derives from one of these, or from ano |
