@@ -69,3 +69,22 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
+
+  - id: IWDG-005
+    title: A feed before the window opens resets
+    statement: >-
+      A watchdog started with a window shall reset the chip if fed before
+      the window opens.
+    rationale: >-
+      A window catches firmware that feeds in a loop without doing its work.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::iwdg_v2::tests::window_is_inside_the_timeout

@@ -13,9 +13,11 @@
 //!
 //! Starting also freezes the counter while a debugger holds the core
 //! halted (`DBGMCU`), so a breakpoint inside a session does not become a
-//! reset.
+//! reset. `iwdg_v2` adds a window register: [`Watchdog::start_windowed`]
+//! resets the chip if fed before the window opens, which catches firmware
+//! that feeds in a tight loop without doing its work.
 //!
-//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004
+//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004, IWDG-005
 
 use stm32_metapac::iwdg::vals::{Key, Pr};
 
@@ -37,6 +39,8 @@ pub enum Error {
     /// The new prescaler and reload didn't reach the watchdog within the
     /// bound. It runs, with whatever it had.
     Update,
+    /// The window is longer than the timeout, or shorter than one count.
+    Window,
 }
 
 /// The prescaler code and the reload value nearest `timeout_us` at the
@@ -59,6 +63,43 @@ pub const fn divider(timeout_us: u32) -> Result<(u8, u16), Error> {
     Err(Error::Timeout)
 }
 
+/// The prescaler code, reload and window for a windowed watchdog: the
+/// window, in counts at the chosen prescaler, must be inside the timeout
+/// and at least one count.
+pub const fn window_divider(timeout_us: u32, window_us: u32) -> Result<(u8, u16, u16), Error> {
+    let (code, reload) = match divider(timeout_us) {
+        Ok(parts) => parts,
+        Err(error) => return Err(error),
+    };
+    // The window is compared with the counter, which ticks through the same
+    // prescaler as the timeout. The counter loads the reload value and counts
+    // down from it, so a window of `ticks` tick times is the register value
+    // `ticks - 1`.
+    let counts = window_us as u64 * LSI.0 as u64 / 1_000_000;
+    // The prescaler divider per code: a match keeps every arm a nonzero
+    // constant, so the divisions below carry no panic path for the public
+    // API check. `divider` never returns a code above 6.
+    let divide = match code {
+        0 => 4u64,
+        1 => 8,
+        2 => 16,
+        3 => 32,
+        4 => 64,
+        5 => 128,
+        _ => 256,
+    };
+    let ticks = (counts + divide / 2) / divide;
+    if ticks == 0 {
+        return Err(Error::Window);
+    }
+    let window = ticks - 1;
+    if window <= reload as u64 {
+        Ok((code, reload, window as u16))
+    } else {
+        Err(Error::Window)
+    }
+}
+
 /// The running watchdog. `feed` is a single key write, so the handle can
 /// sit wherever the firmware feeds from.
 pub struct Watchdog {
@@ -71,13 +112,42 @@ impl Watchdog {
     /// back when the timeout cannot be set; once the watchdog is running
     /// (an `Update` refusal), only a reset stops it.
     pub fn start(
-        _iwdg: WatchdogPeripheral,
+        iwdg: WatchdogPeripheral,
         timeout_us: u32,
     ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
         let (code, reload) = match divider(timeout_us) {
             Ok(parts) => parts,
-            Err(error) => return Err(Refused::new(error, _iwdg)),
+            Err(error) => return Err(Refused::new(error, iwdg)),
         };
+        Self::start_with(iwdg, timeout_us, code, reload, None)
+    }
+
+    /// Starts the watchdog with a window: it resets the chip if fed before
+    /// the last `window_us` of the timeout. `iwdg_v2` only; the F4s have no
+    /// window register, so this is absent there.
+    ///
+    /// Refuses with the token handed back when the timeout or window cannot
+    /// be set, as [`Watchdog::start`] does.
+    #[cfg(feature = "iwdg_v2")]
+    pub fn start_windowed(
+        iwdg: WatchdogPeripheral,
+        timeout_us: u32,
+        window_us: u32,
+    ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
+        let (code, reload, window) = match window_divider(timeout_us, window_us) {
+            Ok(parts) => parts,
+            Err(error) => return Err(Refused::new(error, iwdg)),
+        };
+        Self::start_with(iwdg, timeout_us, code, reload, Some(window))
+    }
+
+    fn start_with(
+        iwdg: WatchdogPeripheral,
+        timeout_us: u32,
+        code: u8,
+        reload: u16,
+        window: Option<u16>,
+    ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
         let regs = crate::chip::iwdg_regs();
         // A breakpoint must not become a reset: freeze the counter while a
         // debugger holds the core halted.
@@ -87,6 +157,15 @@ impl Watchdog {
         regs.kr().write(|w| w.set_key(Key::ENABLE));
         regs.pr().write(|w| w.set_pr(Pr::from_bits(code)));
         regs.rlr().write(|w| w.set_rl(reload));
+        // The window is written while the watchdog is unlocked, before the
+        // reload that starts the counter. Without one the register keeps its
+        // reset value: no window.
+        #[cfg(feature = "iwdg_v2")]
+        if let Some(window) = window {
+            regs.winr().write(|w| w.set_win(window));
+        }
+        #[cfg(feature = "iwdg_v1")]
+        let _ = window;
         let mut settled = false;
         for _ in 0..UPDATE_SPINS {
             let sr = regs.sr().read();
@@ -97,7 +176,7 @@ impl Watchdog {
         }
         regs.kr().write(|w| w.set_key(Key::RESET));
         if !settled {
-            return Err(Refused::new(Error::Update, _iwdg));
+            return Err(Refused::new(Error::Update, iwdg));
         }
         Ok(Self { timeout_us })
     }
@@ -152,5 +231,17 @@ mod tests {
         assert_eq!(divider(30_000_000), Ok((6, 3749)));
         assert_eq!(divider(0), Err(Error::Timeout));
         assert_eq!(divider(40_000_000), Err(Error::Timeout));
+    }
+
+    #[test]
+    fn window_is_inside_the_timeout() {
+        // 50 ms at 32 kHz: 1600 counts, / 4 = 400 ticks, reload 399. A
+        // 10 ms window is 80 ticks, so the register takes 79.
+        assert_eq!(window_divider(50_000, 10_000), Ok((0, 399, 79)));
+        // A window as long as the timeout is the whole reload.
+        assert_eq!(window_divider(50_000, 50_000), Ok((0, 399, 399)));
+        // No window, or one longer than the timeout.
+        assert_eq!(window_divider(50_000, 0), Err(Error::Window));
+        assert_eq!(window_divider(50_000, 60_000), Err(Error::Window));
     }
 }

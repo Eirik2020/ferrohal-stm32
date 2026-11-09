@@ -56,7 +56,7 @@ layout must stay as it is.
 
 ## Watchdog on the Nucleo-H753ZI
 
-`hil/run-h753.sh k`. Resets the chip on purpose. Also checks that starting the watchdog froze it for the debugger [IWDG-004]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh k`. Resets the chip on purpose. Also checks that starting the watchdog froze it for the debugger [IWDG-004], and after the starvation report it starts a 100 ms windowed watchdog, feeds it early, and checks that the feed itself caused the reset [IWDG-005]. Pass: every check in every run passes and the script exits zero.
 
 ## Bootloader request on the Nucleo-F401RE
 
