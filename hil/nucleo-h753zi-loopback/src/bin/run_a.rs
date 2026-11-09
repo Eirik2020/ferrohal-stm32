@@ -178,17 +178,17 @@ mod app {
 
     #[task(binds = USART1, priority = 2, shared = [irq_usart1])]
     fn usart1_line(cx: usart1_line::Context) {
-        cx.shared.irq_usart1.on_interrupt();
+        cx.shared.irq_usart1.on_uart();
     }
 
     #[task(binds = DMA2_STREAM4, priority = 2, shared = [irq_usart1])]
     fn usart1_rx(cx: usart1_rx::Context) {
-        cx.shared.irq_usart1.on_interrupt();
+        cx.shared.irq_usart1.on_rx_dma();
     }
 
     #[task(binds = DMA2_STREAM5, priority = 2, shared = [irq_usart1])]
     fn usart1_tx(cx: usart1_tx::Context) {
-        cx.shared.irq_usart1.on_interrupt();
+        cx.shared.irq_usart1.on_tx_dma();
     }
 
     #[task(binds = USART3, priority = 2, shared = [irq_usart3])]
@@ -287,6 +287,15 @@ mod app {
                 Interrupt::DMA2_STREAM5,
             ]),
             true,
+        );
+        report.check_for(
+            "USART1 PB6->PB7, SBUS 100000 8E2",
+            "USART-005",
+            "a masked line keeps its events out until unmasking",
+            tests::line_mask(&mut Loop {
+                name: "USART1 PB6->PB7, SBUS 100000 8E2",
+                uart: &mut *usart1,
+            }),
         );
         tests::full_suite(
             &mut report,

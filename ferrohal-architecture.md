@@ -55,6 +55,8 @@ and leaves a summary and link behind.
   - A layer that constructs drivers at runtime (for example an async layer) wraps the owner in its own lock.
   - Bit-banding exists only on M4 parts (F4, G4) and is at most an optimisation. M7 and M33 parts (F7, H7, H5) have none.
 - **[Decided]** There are no critical sections inside drivers.
+- **[Decided]** Control and flag registers are separate capabilities; design:
+  `docs/design/uart-ownership.md`.
 - **[Decided]** Raw register escape hatch: an `unsafe fn` returns the raw metapac register accessor for a peripheral. Past that point the caller owns every invariant and there are no guarantees. metapac must not be reachable through the normal safe public API.
 - **[Decided]** Instance typing: an `Instance` trait checks routing at construction, after which the instance type is erased. This is the pattern used by embassy-stm32 (a static `Info` reference) and imxrt-hal (`AnyInstance`). One driver type then serves every instance (USART1 to USART6), so one FerroForge task can name a single concrete type.
 
@@ -142,7 +144,7 @@ Decided by the owner on 2026-11-03. The tool that holds evidence and gates is se
 
 ### Requirement IDs
 
-- **[Decided]** IDs are named, such as `UART-012`, not paths, and carry no project prefix: the crate name says whose they are. The layer above sets a requirement once, and every part that fulfils it declares the ID, so `usart_v2` and `usart_v4` share one requirement and a replacement part keeps it. A requirement only one part has gets that part's own family, such as `USARTV2-003`. This replaces the earlier decision for path-based IDs after Ferrocene, which tied a requirement to the part that fulfils it and would have needed a rename map.
+- **[Decided]** IDs are named, such as `UART-012`, not paths, and carry no project prefix: the crate name says whose they are. The layer above sets a requirement once, and every part that fulfils it declares the ID, so `usart_v2` and `usart_v4` share one requirement and a replacement part keeps it. A requirement only one part has gets that part's own family, such as `USARTV2-003`.
 - **[Decided]** IDs stay unique across projects by naming the catalog, not by a hash. A catalog is named by its crate, and a link names both, such as `ferrohal-stm32:UART-012`, so two catalogs may share a prefix and a reader can still read the link.
 
 ### What FerroHAL offers its users

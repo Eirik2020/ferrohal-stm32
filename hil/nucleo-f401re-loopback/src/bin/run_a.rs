@@ -146,17 +146,17 @@ mod app {
 
     #[task(binds = USART1, priority = 2, shared = [irq1])]
     fn usart1_line(cx: usart1_line::Context) {
-        cx.shared.irq1.on_interrupt();
+        cx.shared.irq1.on_uart();
     }
 
     #[task(binds = DMA2_STREAM2, priority = 2, shared = [irq1])]
     fn usart1_rx(cx: usart1_rx::Context) {
-        cx.shared.irq1.on_interrupt();
+        cx.shared.irq1.on_rx_dma();
     }
 
     #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq1])]
     fn usart1_tx(cx: usart1_tx::Context) {
-        cx.shared.irq1.on_interrupt();
+        cx.shared.irq1.on_tx_dma();
     }
 
     #[task(binds = USART6, priority = 2, shared = [irq6])]
@@ -230,6 +230,13 @@ mod app {
                 Interrupt::DMA2_STREAM7,
             ]),
             false,
+        );
+
+        report.check_for(
+            "USART1 PA9->PA10",
+            "USART-005",
+            "a masked line keeps its events out until unmasking",
+            tests::line_mask(&mut loop1),
         );
 
         let mut loop6 = Loop {

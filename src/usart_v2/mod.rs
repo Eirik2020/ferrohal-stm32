@@ -2,7 +2,7 @@
 //! register operations the [`crate::uart`] driver needs. The driver itself,
 //! and the routing traits the glue implements, are re-exported here.
 //!
-//! Requirements: USART-001, USART-002, USART-003, USART-004, USARTV2-001
+//! Requirements: USART-001, USART-002, USART-003, USART-004, USART-005, USARTV2-001
 
 use stm32_metapac::usart::{
     regs::Sr,
@@ -10,7 +10,7 @@ use stm32_metapac::usart::{
 };
 
 pub use crate::uart::stream_dma::{
-    Info, Instance, RxDma, RxPin, TxDma, TxPin, Uart, UartIrq, UartRx, UartTx,
+    Info, Instance, Line, RxDma, RxPin, TxDma, TxPin, Uart, UartIrq, UartRx, UartTx,
 };
 use crate::uart::{
     Config, Parity, StopBits,
@@ -24,11 +24,11 @@ pub type Regs = stm32_metapac::usart::Usart;
 /// RX and TX inversion: v2 has no such bits.
 pub(crate) const INVERSION: bool = false;
 
-/// One USART's registers, as the driver uses them.
+/// One USART's register block, as the driver uses it.
 #[derive(Clone, Copy)]
-pub struct Line(Regs);
+pub struct LineRegs(Regs);
 
-impl Line {
+impl LineRegs {
     pub(crate) const fn new(regs: Regs) -> Self {
         Self(regs)
     }
@@ -100,6 +100,19 @@ impl Line {
 
     pub(crate) fn disable(self) {
         self.0.cr1().modify(|w| w.set_ue(false));
+    }
+
+    /// Clears or sets the line's event interrupt enables: idle and parity in
+    /// CR1, errors in CR3. `RXNEIE` is left alone: the receive path is DMA's.
+    pub(crate) fn set_event_enables(self, on: bool) {
+        let parity = self.0.cr1().read().pce();
+        self.0.cr1().modify(|w| {
+            w.set_idleie(on);
+            // PEIE only matters with parity; without it the bit stays as the
+            // frame settings left it.
+            w.set_peie(on && parity);
+        });
+        self.0.cr3().modify(|w| w.set_eie(on));
     }
 
     /// Clears TC before a transfer, as RM0368 asks. RXNE and LBD are written

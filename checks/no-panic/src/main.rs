@@ -98,7 +98,7 @@ fn main() -> ! {
     keep(Uart::check::<chip::RxUart>(&black_box(rcc.clocks()), &sbus));
     // SAFETY: as TX and RX above.
     let ring = black_box(unsafe { &mut *addr_of_mut!(RX2) });
-    let (mut rx_only, mut rx_irq) = match UartRx::new(&mut rcc, rx_wiring, &sbus, ring) {
+    let (_rx_line, mut rx_only, mut rx_irq) = match UartRx::new(&mut rcc, rx_wiring, &sbus, ring) {
         Ok(opened) => opened,
         Err(refused) => {
             keep(refused.error());
@@ -229,7 +229,7 @@ fn exercise_uart(uart: &mut Uart) {
     keep(uart.tx().health());
     keep(uart.tx().flush());
     keep(uart.tx().is_idle());
-    keep(uart.tx().send_break());
+    keep(uart.send_break());
     keep(uart.rx().try_read(black_box(&mut buf)));
     keep(uart.rx().read_within(black_box(&mut buf), black_box(10)));
     keep(uart.rx().available());
@@ -246,7 +246,10 @@ fn exercise_uart(uart: &mut Uart) {
             .with_inverted_tx(true),
     );
     keep(uart.set_config(&config));
-    let (tx, rx) = uart.halves();
+    // The line's event enables, off and on again.
+    uart.line().mask();
+    uart.line().unmask();
+    let (_line, tx, rx) = uart.halves();
     keep(tx.write(data));
     keep(rx.try_read(&mut buf));
     // The chunk reader, the fault counts and the caller clock.

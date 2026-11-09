@@ -550,6 +550,26 @@ requirements:
     verification:
       entries: []
 
+  - id: USART-005
+    title: The line's events can be masked and restored
+    statement: >-
+      Masking the line shall clear its idle, parity and error interrupt
+      enables until unmasking restores them.
+    rationale: >-
+      A task that must not be preempted by the USART vector needs the line's
+      own enables off; the vectors themselves belong to the scheduler.
+    derived_from: [UART-003]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
   - id: USARTV2-001
     title: USART v2 refuses inversion
     statement: >-
