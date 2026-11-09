@@ -40,3 +40,18 @@ BUF, Option<BUF>)`); f4xx-hal 0. FerroHAL 0, but tokens return on refusal.
 | T3 | copy with a safe `pub fn steal` | compiles | keyword = FerroHAL soundness, not RTIC |
 
 Results go into the G5 rationale and the PR body.
+
+### Results (2026-11-09)
+
+`rtic 2.4.0`, `cargo check --offline --target thumbv7em-none-eabihf`, crates in
+`/tmp/rtic-t` (the two HAL copies differ only in `Peripherals::steal`):
+
+| test | result |
+|---|---|
+| T1 | exit 0 |
+| T2 | E0599: no associated function or constant named `steal` found for struct `Peripherals` |
+| T3 | exit 0 |
+
+The expansion needs the item, not the keyword. `pub unsafe fn new` (`:294-299`) calls
+`steal()` in its body; T3's safe `pub fn steal` satisfies that call untouched, so
+`unsafe` on ours states the aliasing rule, not a constraint RTIC imposes.

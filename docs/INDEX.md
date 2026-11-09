@@ -1,19 +1,19 @@
 # Document index (generated)
 
-Metadata only - read a document after choosing it, not before. 25 documents, ~6694 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read a document after choosing it, not before. 25 documents, ~6879 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | AGENTS.md | 819 tok | STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40 |
+| a | AGENTS.md | 817 tok | STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40 |
 | a | docs/decisions/2026-11-08-free-teardown-brief.md | 540 tok | ADR-002 - Status: accepted |
-| a | docs/decisions/2026-11-08-g5-safe-by-default.md | 560 tok | ADR-001 - Status: promoted |
+| a | docs/decisions/2026-11-08-g5-safe-by-default.md | 603 tok | ADR-001 - Status: promoted |
 | a | docs/decisions/2026-11-08-naming-scheme.md | 697 tok | ADR-003 - Status: accepted |
 | a | docs/decisions/README.md | 351 tok | Record = event what, why, rejected, date, not rule. Bind |
 | a | docs/decisions/index/2026.md | 154 tok | One row per record. The record itself is authoritative f |
 | a | docs/housekeeping/README.md | 484 tok | Documents rot by addition. An agent adds a note because  |
 | a | docs/housekeeping/state.md | 155 tok | Cadence: monthly, or immediately when more than ten docu |
 | a | docs/notes/2026-11-08-naming-audit.md | 579 tok | Audited 2026-11-08/09. Target scheme: ../decisions/2026- |
-| a | docs/notes/2026-11-08-rtic-and-hal-comparison.md | 660 tok | Code-only, 2026-11-08/09. Sources: rtic-macros-2.4.0; st |
+| a | docs/notes/2026-11-08-rtic-and-hal-comparison.md | 804 tok | Code-only, 2026-11-08/09. Sources: rtic-macros-2.4.0; st |
 | a | docs/policies/agent-docs.md | 296 tok | Agent docs = AGENTS.md + docs/{policies,decisions,notes, |
 | a | docs/policies/documentation.md | 791 tok | Normative. Two classes: |
 | a | docs/policies/safety.md | 608 tok | Normative. Goal G5 requirements/goals.md. Rationale: |
