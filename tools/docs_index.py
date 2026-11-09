@@ -37,7 +37,7 @@ def purpose(path: Path) -> str:
             continue
         text = MARKUP.sub("", text).strip()
         if text:
-            return text[:56]
+            return text[:50]
     return ""
 
 

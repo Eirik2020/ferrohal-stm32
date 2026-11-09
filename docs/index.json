@@ -1,32 +1,32 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 29,
+  "documents": 30,
   "agent": 17,
-  "agent_tokens": 9161
+  "agent_tokens": 9183
  },
  "documents": [
   {
    "path": "AGENTS.md",
    "class": "agent",
    "title": "FerroHAL - agent entry",
-   "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40",
-   "bytes": 3537,
-   "tokens": 885
+   "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, st",
+   "bytes": 3625,
+   "tokens": 907
   },
   {
    "path": "DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt and issues",
-   "purpose": "Open items only. Finished work moves to RESOLVED.mdRESOL",
-   "bytes": 24494,
-   "tokens": 6124
+   "purpose": "Open items only. Finished work moves to RESOLVED.m",
+   "bytes": 24586,
+   "tokens": 6147
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
-   "purpose": "A scheduler-agnostic STM32 HAL on stm32-metapachttps://c",
+   "purpose": "A scheduler-agnostic STM32 HAL on stm32-metapachtt",
    "bytes": 4610,
    "tokens": 1153
   },
@@ -34,7 +34,7 @@
    "path": "RESOLVED.md",
    "class": "human",
    "title": "FerroHAL: resolved debt",
-   "purpose": "History: items moved out of DEBT.mdDEBT.md once done. Li",
+   "purpose": "History: items moved out of DEBT.mdDEBT.md once do",
    "bytes": 31339,
    "tokens": 7835
   },
@@ -42,7 +42,7 @@
    "path": "THIRD-PARTY.md",
    "class": "human",
    "title": "Third-party code",
-   "purpose": "FerroHAL is licensed under MIT OR Apache-2.0 LICENSE-MIT",
+   "purpose": "FerroHAL is licensed under MIT OR Apache-2.0 LICEN",
    "bytes": 3052,
    "tokens": 763
   },
@@ -90,7 +90,7 @@
    "path": "docs/decisions/README.md",
    "class": "agent",
    "title": "Decision records (ADR hub)",
-   "purpose": "Record = event what, why, rejected, date, not rule. Bind",
+   "purpose": "Record = event what, why, rejected, date, not rule",
    "bytes": 1402,
    "tokens": 351
   },
@@ -98,7 +98,7 @@
    "path": "docs/decisions/index/2026.md",
    "class": "agent",
    "title": "Decision index, 2026",
-   "purpose": "One row per record. The record itself is authoritative f",
+   "purpose": "One row per record. The record itself is authorita",
    "bytes": 737,
    "tokens": 185
   },
@@ -106,7 +106,7 @@
    "path": "docs/design/free.md",
    "class": "agent",
    "title": "`free()`: the teardown the drivers do not have (2026-11-09)",
-   "purpose": "There is no Pwm::free, Uart::free or Tick hand-back. Thi",
+   "purpose": "There is no Pwm::free, Uart::free or Tick hand-bac",
    "bytes": 1725,
    "tokens": 432
   },
@@ -114,7 +114,7 @@
    "path": "docs/design/h7-errata.md",
    "class": "agent",
    "title": "ES0392 review: cache, system, flash ECC",
-   "purpose": "W11 of the debt sweep. Read against ES0392 Rev 15 2025-0",
+   "purpose": "W11 of the debt sweep. Read against ES0392 Rev 15 ",
    "bytes": 2995,
    "tokens": 749
   },
@@ -122,7 +122,7 @@
    "path": "docs/design/uart-ownership.md",
    "class": "agent",
    "title": "UART ownership: line, flags, data (2026-11-09)",
-   "purpose": "Source: ADR-004, ../decisions/2026-11-09-uart-capabiliti",
+   "purpose": "Source: ADR-004, ../decisions/2026-11-09-uart-capa",
    "bytes": 1710,
    "tokens": 428
   },
@@ -130,7 +130,7 @@
    "path": "docs/housekeeping/README.md",
    "class": "agent",
    "title": "Housekeeping",
-   "purpose": "Documents rot by addition. An agent adds a note because ",
+   "purpose": "Documents rot by addition. An agent adds a note be",
    "bytes": 1934,
    "tokens": 484
   },
@@ -138,7 +138,7 @@
    "path": "docs/housekeeping/state.md",
    "class": "agent",
    "title": "Housekeeping state",
-   "purpose": "Cadence: monthly, or immediately when more than ten docu",
+   "purpose": "Cadence: monthly, or immediately when more than te",
    "bytes": 619,
    "tokens": 155
   },
@@ -146,7 +146,7 @@
    "path": "docs/notes/2026-11-08-naming-audit.md",
    "class": "agent",
    "title": "Naming audit (evidence)",
-   "purpose": "Audited 2026-11-08/09. Target scheme: ../decisions/2026-",
+   "purpose": "Audited 2026-11-08/09. Target scheme: ../decisions",
    "bytes": 2458,
    "tokens": 615
   },
@@ -154,7 +154,7 @@
    "path": "docs/notes/2026-11-08-rtic-and-hal-comparison.md",
    "class": "agent",
    "title": "RTIC + reference-HAL evidence (G5)",
-   "purpose": "Code-only, 2026-11-08/09. Sources: rtic-macros-2.4.0; st",
+   "purpose": "Code-only, 2026-11-08/09. Sources: rtic-macros-2.4",
    "bytes": 3216,
    "tokens": 804
   },
@@ -170,7 +170,7 @@
    "path": "docs/plans/2026-11-08-debt-sweep.md",
    "class": "human",
    "title": "FerroHAL debt sweep - plan of record",
-   "purpose": "Status: in progress - W1-W7 done watchdog debug freeze, ",
+   "purpose": "Status: in progress - W1-W7 done watchdog debug fr",
    "bytes": 4343,
    "tokens": 1086
   },
@@ -178,7 +178,7 @@
    "path": "docs/plans/2026-11-08-free-redesign.md",
    "class": "human",
    "title": "Ownership / `free()` redesign (with W14 naming)",
-   "purpose": "Next project after the sweep, its own PR. steal goes und",
+   "purpose": "Next project after the sweep, its own PR. steal go",
    "bytes": 2755,
    "tokens": 689
   },
@@ -186,7 +186,7 @@
    "path": "docs/policies/agent-docs.md",
    "class": "agent",
    "title": "Agent-doc style",
-   "purpose": "Agent docs = AGENTS.md + docs/{policies,decisions,notes,",
+   "purpose": "Agent docs = AGENTS.md + docs/{policies,decisions,",
    "bytes": 1183,
    "tokens": 296
   },
@@ -202,7 +202,7 @@
    "path": "docs/policies/safety.md",
    "class": "agent",
    "title": "Safety policy",
-   "purpose": "Normative. Goal G5 requirements/goals.md. Rationale:",
+   "purpose": "Normative. Goal G5 requirements/goals.md. Rational",
    "bytes": 2430,
    "tokens": 608
   },
@@ -210,7 +210,7 @@
    "path": "ferrohal-architecture.md",
    "class": "human",
    "title": "FerroHAL: architecture brief",
-   "purpose": "Architecture only. Implementation details are decided wh",
+   "purpose": "Architecture only. Implementation details are deci",
    "bytes": 26005,
    "tokens": 6502
   },
@@ -218,7 +218,7 @@
    "path": "hil/WIRING.md",
    "class": "human",
    "title": "Bench wiring: the Pico 1 I2C simulator",
-   "purpose": "The two Nucleo benches prove FerroHAL's I2C masters agai",
+   "purpose": "The two Nucleo benches prove FerroHAL's I2C master",
    "bytes": 4765,
    "tokens": 1192
   },
@@ -226,7 +226,7 @@
    "path": "hil/pico-i2c-sim/README.md",
    "class": "human",
    "title": "pico-i2c-sim",
-   "purpose": "A Raspberry Pi Pico 1 RP2040 standing in for the I2C per",
+   "purpose": "A Raspberry Pi Pico 1 RP2040 standing in for the I",
    "bytes": 1483,
    "tokens": 371
   },
@@ -234,17 +234,25 @@
    "path": "requirements/benches.md",
    "class": "human",
    "title": "Bench Procedures",
-   "purpose": "What each requirement's bench entry runs. A run proves t",
-   "bytes": 11590,
-   "tokens": 2898
+   "purpose": "What each requirement's bench entry runs. The rig ",
+   "bytes": 11671,
+   "tokens": 2918
   },
   {
    "path": "requirements/goals.md",
    "class": "human",
    "title": "FerroHAL's Goals",
-   "purpose": "Every requirement derives from one of these, or from ano",
+   "purpose": "Every requirement derives from one of these, or fr",
    "bytes": 916,
    "tokens": 229
+  },
+  {
+   "path": "requirements/hil.md",
+   "class": "human",
+   "title": "HIL rig: capabilities and improvements",
+   "purpose": "The rig turns requirement claims into measurements",
+   "bytes": 7565,
+   "tokens": 1892
   }
  ]
 }
