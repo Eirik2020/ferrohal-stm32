@@ -74,10 +74,10 @@ fn main() -> ! {
     // fresh boot, the windowed one after its report.
     let mut iwdg = Some(run.iwdg);
     let name = "IWDG1 50 ms";
-    if !watchdog::after_reset(&mut report, name, cause, (29, 34)) {
+    if !watchdog::after_reset(&mut report, name, cause, (29, 34), (47_500, 52_500)) {
         let frozen = Watchdog::is_frozen_on_halt();
         let token = iwdg.take().unwrap_or_else(|| defmt::unreachable!());
-        match Watchdog::start(token, watchdog::TIMEOUT_US) {
+        match Watchdog::start_with_lsi(token, watchdog::TIMEOUT_US, board::LSI_HZ) {
             Ok(dog) => watchdog::feed_then_starve(
                 &mut report,
                 name,

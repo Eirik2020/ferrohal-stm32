@@ -5,8 +5,9 @@
 //! First boot: start a 50 ms watchdog and feed it every 10 ms for 300 ms
 //! (no reset may come), then stop feeding and keep writing the time since
 //! the last feed. Second boot: the reset cause must be the independent
-//! watchdog, and the last time written must fit the LSI's spread. Starting
-//! must also have frozen the counter for the debugger [IWDG-004].
+//! watchdog, and the last time written must fit the LSI's spread and, at
+//! the board's measured LSI, 5% of the timeout. Starting must also have
+//! frozen the counter for the debugger [IWDG-004].
 
 // Each run binary compiles this file and uses what it needs.
 #![allow(dead_code)]
@@ -52,6 +53,7 @@ pub fn after_reset(
     name: &str,
     cause: ResetCause,
     lsi_spread: (u32, u32),
+    tight_us: (u32, u32),
 ) -> bool {
     let armed = read(0) == MAGIC;
     write(0, 0);
@@ -100,6 +102,19 @@ pub fn after_reset(
                 cycles: starved,
                 min,
                 max,
+            })
+        },
+    );
+    report.check(
+        name,
+        "starved: at the board's LSI, within 5% of 50 ms [IWDG-006]",
+        if (tight_us.0..=tight_us.1).contains(&starved) {
+            Ok(())
+        } else {
+            Err(Fail::Time {
+                cycles: starved,
+                min: tight_us.0,
+                max: tight_us.1,
             })
         },
     );

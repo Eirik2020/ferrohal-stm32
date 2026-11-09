@@ -74,6 +74,10 @@ pub const CLOCK_CONFIG: Config = Config {
 
 /// The frequencies `CLOCK_CONFIG` gives, worked out and checked while
 /// compiling.
+/// The IWDG's LSI, measured across a reset: 50 ms at the nominal 32 kHz
+/// came back as 53.3 ms, so this board's LSI runs at 30.0 kHz.
+pub const LSI_HZ: Hertz = Hertz::hz(30_000);
+
 pub const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
     Ok(clocks) => clocks,
     Err(_) => panic!("CLOCK_CONFIG breaks the F401's limits"),
