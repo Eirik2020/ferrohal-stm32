@@ -23,6 +23,12 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
 
 /// RAM DMA1 and DMA2 can reach (RM0433 figure 1): AXI SRAM, SRAM1 to 3 in
 /// D2, and SRAM4 in D3. Not the DTCM or ITCM, which only the core sees.
+///
+/// On revision Y/W parts, ES0392 2.2.10 can corrupt reads of the AXI SRAM
+/// block while a controller delays accepting a transfer. The fix,
+/// `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE`, costs read throughput and metapac
+/// doesn't carry the register, so DEBT.md holds the decision. The SRAM1 to 4
+/// blocks are outside the erratum; `docs/design/h7-errata.md` has the review.
 const DMA_RAM: [(usize, usize); 3] = [
     (0x2400_0000, 512 * 1024),
     (0x3000_0000, 288 * 1024),
