@@ -1,10 +1,10 @@
 # Document index (generated)
 
-Metadata only - read a document after choosing it, not before. 28 documents, ~8349 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read a document after choosing it, not before. 28 documents, ~8348 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | AGENTS.md | 822 tok | STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40 |
+| a | AGENTS.md | 821 tok | STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40 |
 | a | docs/decisions/2026-11-08-free-teardown-brief.md | 540 tok | ADR-002 - Status: accepted |
 | a | docs/decisions/2026-11-08-g5-safe-by-default.md | 603 tok | ADR-001 - Status: promoted |
 | a | docs/decisions/2026-11-08-naming-scheme.md | 697 tok | ADR-003 - Status: accepted |
@@ -20,12 +20,12 @@ Metadata only - read a document after choosing it, not before. 28 documents, ~83
 | a | docs/policies/agent-docs.md | 296 tok | Agent docs = AGENTS.md + docs/{policies,decisions,notes, |
 | a | docs/policies/documentation.md | 797 tok | Normative. Two classes: |
 | a | docs/policies/safety.md | 608 tok | Normative. Goal G5 requirements/goals.md. Rationale: |
-| h | DEBT.md | 24227 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
+| h | DEBT.md | 24008 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
 | h | README.md | 4610 B | A scheduler-agnostic STM32 HAL on stm32-metapachttps://c |
 | h | RESOLVED.md | 30644 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
 | h | THIRD-PARTY.md | 3052 B | FerroHAL is licensed under MIT OR Apache-2.0 LICENSE-MIT |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 2997 B | Part of the plan2026-11-08-debt-sweep.md. |
-| h | docs/plans/2026-11-08-debt-sweep.md | 3861 B | Status: in progress - W1-W6b2 done watchdog debug freeze |
+| h | docs/plans/2026-11-08-debt-sweep.md | 3893 B | Status: in progress - W1-W7 done watchdog debug freeze,  |
 | h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. steal goes und |
 | h | ferrohal-architecture.md | 26005 B | Architecture only. Implementation details are decided wh |
 | h | hil/WIRING.md | 4765 B | The two Nucleo benches prove FerroHAL's I2C masters agai |

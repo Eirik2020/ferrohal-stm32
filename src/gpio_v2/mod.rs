@@ -8,8 +8,11 @@
 //! uses BSRR, a single write that touches only that pin, so it needs no
 //! owner.
 //!
-//! Which pins a package bonds out is not checked yet: the split hands out
-//! all sixteen on every port.
+//! Which pins a package bonds out is glued data: each chip's `BONDED` table,
+//! which `tools/check_glue.py` holds every routing row against. A port the
+//! package does not bond has no token. A bonded port still splits into all
+//! sixteen pins, so an unbonded one can be split out but not routed; see
+//! `DEBT.md`.
 //!
 //! Requirements: GPIO-001
 

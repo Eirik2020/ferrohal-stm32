@@ -95,12 +95,12 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: clock checks are indirect:** `freeze`'s record matching the `const` one, plus working baud rates (and the F401 host echo). Nothing measures MCO.
 
 ---
+- **Low: a bonded port still splits into every pin.** `Port::split` hands out all sixteen pins of a port the package bonds, so an unbonded one (PB11 on the F401's LQFP64, a second PH pin on the H7s) can be split out as a GPIO though no routing row may name it: each chip's `BONDED` table and `tools/check_glue.py` enforce the rows, not the split. A per-package `Parts` would remove the fields themselves.
 
 ## 2. STM32F401RE (Nucleo-F401RE)
 
 - **Low: only one supply range** (2.7–3.6 V) in `Supply`.
 - **Low: HSE with a crystal is untested;** only bypass (the ST-LINK MCO) has run.
-- **Low: phantom pins:** LQFP64 bonds only PD2, PH0, PH1 outside ports A to C, no port E, and not every pin of port B either — PB11 is missing from the LQFP64 (DS10086's pin table, which bonds it only on the UFBGA100; metapac has no PB11 for this chip), which a hand-written glue row found the hard way.
 - **Low: ES0299 2.2.11 for samplers.** DMA2 can corrupt data serving AHB (GPIO, a `Sampler`) and APB2 at once. The bench's run I keeps its lanes on DMA1 (TIM3) so DMA2 serves only GPIO and memory; firmware that samples while APB2 peripherals (TIM1, SPI1, USART1/6) use DMA2 must avoid the overlap. UARTs alone are unaffected.
 
 ## 3. STM32F405RG (Foxeer F405 V2)
@@ -111,7 +111,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: FerroWasp's F405 image is exposed to the VTOR trap until the swap.** It doesn't set VTOR, so after a DFU `leave` its USB should fail as the bench's did, until a power cycle. FerroHAL's `rt` feature fixes it for the swap. Seen on the bench's firmware only, not tried on FerroWasp's.
 - **Low: a Foxeer firmware that fails before USB can't say why.** It restarts into DFU, which shows only that something failed.
 - **Low: prefetch on revision A.** `freeze` sets PRFTEN; ES0182 2.2.1 says revision A doesn't support the prefetch queue. Later revisions are fixed.
-- **Low: phantom pins:** ports E to I are handed out though LQFP64 bonds only ports A to C, PD2, PH0, PH1.
 - **Medium: reading a pin on DMA2 while DMA2 also serves APB2 meets ES0182 2.2.19.** The waveform generator can now turn a lane round to read its pin, which is what bidirectional DShot needs, and FerroWasp doesn't use it yet. The Foxeer's motor timers are TIM1 and TIM8 on DMA2, and only DMA2 reaches GPIO on the F4, so reading replies shares DMA2 with anything on APB2, such as SPI1's IMU streams. DMA2 serving both at once can corrupt data. Before bidirectional DShot flies on an F4, the two need keeping apart.
 - **Low: complementary outputs are untested on the F401 and F405 hardware.** The F401's only break-unit timer, TIM1, is also its only timer whose update request reaches DMA2, so the bench can't sample a CHxN output there; the H753ZI bench covers CHxN. The Foxeer's motor 4 is TIM1 CH3N.
 
@@ -141,7 +140,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: the bench's SPI checks run with the caches off,** as the Lucid does; the UART runs cover the D-cache with DMA buffers in non-cacheable memory, the SPI runs don't.
 - **Low: hardware FIFOs unused** (`FIFOEN` off).
 - **Low: DMAMUX overruns aren't watched** (CSR SOFx); ES0392 2.5.1 says writing CFR doesn't assert them anyway.
-- **Low: phantom pins:** ports I to K are handed out though LQFP144 doesn't bond them; port H only has PH0, PH1.
 
 ### Errata
 
@@ -154,7 +152,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: no frame has reached a Lucid motor pad, and its UARTs run only as the H753ZI's.** The same die and driver code under the H753ZI's glue, with the H743's routes pinned to the Lucid's manifest by a test. UART8, its ESC telemetry port, has run on neither: the H753ZI's Zio headers don't reach it.
 - **Low: FerroWasp's H7 reboot request is likely lost the same way.** `ferrowasp-stm32h7-critical`'s `system_bootloader` writes one word to AXI SRAM just before the reset, the write RM0433 2.4 says a reset loses, which the bench measured on this die. FerroHAL's `reset::reboot_to_bootloader` writes the whole doubleword. Not tried on FerroWasp itself.
 - **Low: state kept across a reset on the H7 should be whole doublewords.** The bootloader bench lost results written as single words beside each other across resets, and passed once each had its own doubleword; why isn't explained beyond RM0433 2.4's rule.
-- **Low: phantom pins:** ports F to K are handed out though LQFP100 bonds ports A to E, PH0, PH1.
 - Everything in section 4 applies too.
 
 ---

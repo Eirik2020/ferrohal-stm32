@@ -139,9 +139,6 @@ peripherals!(
     GPIOF: Port<'F'>,
     GPIOG: Port<'G'>,
     GPIOH: Port<'H'>,
-    GPIOI: Port<'I'>,
-    GPIOJ: Port<'J'>,
-    GPIOK: Port<'K'>,
     DMA1: Dma<1>,
     DMA2: Dma<2>,
     USART1: USART1,
@@ -236,8 +233,9 @@ peripherals!(
     UID: UID,
 );
 
-// GPIO ports, with their AHB4ENR bits. The LQFP144 package bonds out ports
-// A to G and PH0, PH1; ports I to K exist as registers only.
+// GPIO ports, with their AHB4ENR bits. Only the bonded ports are declared:
+// the LQFP144 bonds A to G and PH0/PH1 (see `BONDED`); ports I to K exist as
+// registers only.
 
 macro_rules! ports {
     ($($letter:literal => $regs:ident, $bit:literal;)+) => {
@@ -266,10 +264,21 @@ ports!(
     'F' => GPIOF, 5;
     'G' => GPIOG, 6;
     'H' => GPIOH, 7;
-    'I' => GPIOI, 8;
-    'J' => GPIOJ, 9;
-    'K' => GPIOK, 10;
 );
+/// The LQFP144 package's bonded pins, as (port, pin mask): ports A to G and
+/// PH0/PH1. `tools/check_glue.py` reads this: a routing row on any other pin
+/// fails, and a bonded pin with no row is reported, not failed.
+#[allow(dead_code)] // Read by tools/check_glue.py.
+pub(crate) const BONDED: &[(char, u16)] = &[
+    ('A', 0xffff),
+    ('B', 0xffff),
+    ('C', 0xffff),
+    ('D', 0xffff),
+    ('E', 0xffff),
+    ('F', 0xffff),
+    ('G', 0xffff),
+    ('H', 0x0003), // PH0, PH1
+];
 
 // DMA1 and DMA2, with their AHB1ENR bits. DMAMUX1 channels 0 to 7 feed DMA1
 // streams 0 to 7, channels 8 to 15 DMA2's. DMAMUX1 has no clock bit of its

@@ -2,7 +2,7 @@
 //!
 //! Every routing fact here (RCC bits, pin alternate functions, DMAMUX
 //! request IDs) was read from stm32-metapac 21.0.0's metadata for this
-//! chip, whose pin lists are already cut to the LQFP100 package. They are
+//! chip, whose ports are cut to the LQFP100 package (`BONDED` below). They are
 //! hand-written for now, in the trait shapes a generator would emit later.
 //! Clock limits and the memory map, shared with the H753, are in
 //! `shared/h7.rs`.
@@ -139,12 +139,7 @@ peripherals!(
     GPIOC: Port<'C'>,
     GPIOD: Port<'D'>,
     GPIOE: Port<'E'>,
-    GPIOF: Port<'F'>,
-    GPIOG: Port<'G'>,
     GPIOH: Port<'H'>,
-    GPIOI: Port<'I'>,
-    GPIOJ: Port<'J'>,
-    GPIOK: Port<'K'>,
     DMA1: Dma<1>,
     DMA2: Dma<2>,
     USART1: USART1,
@@ -238,8 +233,9 @@ peripherals!(
     UID: UID,
 );
 
-// GPIO ports, with their AHB4ENR bits. The LQFP100 package bonds out ports
-// A to E and PH0, PH1; ports F to K exist as registers only.
+// GPIO ports, with their AHB4ENR bits. Only the bonded ports are declared:
+// the LQFP100 bonds A to E and PH0/PH1 (see `BONDED`); ports F to K exist as
+// registers only.
 
 macro_rules! ports {
     ($($letter:literal => $regs:ident, $bit:literal;)+) => {
@@ -265,13 +261,20 @@ ports!(
     'C' => GPIOC, 2;
     'D' => GPIOD, 3;
     'E' => GPIOE, 4;
-    'F' => GPIOF, 5;
-    'G' => GPIOG, 6;
     'H' => GPIOH, 7;
-    'I' => GPIOI, 8;
-    'J' => GPIOJ, 9;
-    'K' => GPIOK, 10;
 );
+/// The LQFP100 package's bonded pins, as (port, pin mask): ports A to E and
+/// PH0/PH1. `tools/check_glue.py` reads this: a routing row on any other pin
+/// fails, and a bonded pin with no row is reported, not failed.
+#[allow(dead_code)] // Read by tools/check_glue.py.
+pub(crate) const BONDED: &[(char, u16)] = &[
+    ('A', 0xffff),
+    ('B', 0xffff),
+    ('C', 0xffff),
+    ('D', 0xffff),
+    ('E', 0xffff),
+    ('H', 0x0003), // PH0, PH1
+];
 
 // DMA1 and DMA2, with their AHB1ENR bits. DMAMUX1 channels 0 to 7 feed DMA1
 // streams 0 to 7, channels 8 to 15 DMA2's. DMAMUX1 has no clock bit of its
