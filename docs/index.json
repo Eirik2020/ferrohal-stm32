@@ -3,7 +3,7 @@
  "counts": {
   "documents": 29,
   "agent": 17,
-  "agent_tokens": 9116
+  "agent_tokens": 9161
  },
  "documents": [
   {
@@ -11,16 +11,16 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40",
-   "bytes": 3358,
-   "tokens": 840
+   "bytes": 3537,
+   "tokens": 885
   },
   {
    "path": "DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.mdRESOL",
-   "bytes": 23468,
-   "tokens": 5867
+   "bytes": 24494,
+   "tokens": 6124
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once done. Li",
-   "bytes": 33942,
-   "tokens": 8486
+   "bytes": 31339,
+   "tokens": 7835
   },
   {
    "path": "THIRD-PARTY.md",

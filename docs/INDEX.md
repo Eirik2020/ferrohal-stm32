@@ -1,10 +1,10 @@
 # Document index (generated)
 
-Metadata only - read a document after choosing it, not before. 29 documents, ~9116 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read a document after choosing it, not before. 29 documents, ~9161 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | AGENTS.md | 840 tok | STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40 |
+| a | AGENTS.md | 885 tok | STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40 |
 | a | docs/decisions/2026-11-08-free-teardown-brief.md | 540 tok | ADR-002 - Status: accepted |
 | a | docs/decisions/2026-11-08-g5-safe-by-default.md | 603 tok | ADR-001 - Status: promoted |
 | a | docs/decisions/2026-11-08-naming-scheme.md | 697 tok | ADR-003 - Status: accepted |
@@ -21,9 +21,9 @@ Metadata only - read a document after choosing it, not before. 29 documents, ~91
 | a | docs/policies/agent-docs.md | 296 tok | Agent docs = AGENTS.md + docs/{policies,decisions,notes, |
 | a | docs/policies/documentation.md | 797 tok | Normative. Two classes: |
 | a | docs/policies/safety.md | 608 tok | Normative. Goal G5 requirements/goals.md. Rationale: |
-| h | DEBT.md | 23468 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
+| h | DEBT.md | 24494 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
 | h | README.md | 4610 B | A scheduler-agnostic STM32 HAL on stm32-metapachttps://c |
-| h | RESOLVED.md | 33942 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
+| h | RESOLVED.md | 31339 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
 | h | THIRD-PARTY.md | 3052 B | FerroHAL is licensed under MIT OR Apache-2.0 LICENSE-MIT |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 2997 B | Part of the plan2026-11-08-debt-sweep.md. |
 | h | docs/plans/2026-11-08-debt-sweep.md | 4343 B | Status: in progress - W1-W7 done watchdog debug freeze,  |

@@ -91,7 +91,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the H753ZI bench reaches the Zio headers only.** No morpho headers (CN11, CN12): UART8 TX, the Lucid's USART1 RX, PA8, PA9, PB14 and PG9 are unreachable, and UART5's PB13 needs SB7; PA1, PA2, PA11, PA12 need rework.
 - **Low: USART2 on the F401 goes through the ST-LINK,** so break, baud and parity changes aren't checked there; SB13/SB14 off and SB62/SB63 on would allow a direct link.
 - **Low: clock checks are indirect:** `freeze`'s record matching the `const` one, plus working baud rates (and the F401 host echo). Nothing measures MCO.
-- **Low: the rig cannot reach several ES0392 conditions.** One MPU/cache shape, one package and one silicon revision per chip, and neither `REV_ID` nor the part marking is recorded: write-through memory, the HCLK/8 SysTick path, WWDG, option-byte/RDP flows and flash ECC go untested, so cache and package errata stay firmware notes, not bench facts. Record `REV_ID` and the marking, and add a write-through run when cache guidance is needed.
 
 ---
 - **Low: a bonded port still splits into every pin.** `Port::split` hands out all sixteen pins, so an unbonded one (PB11 on the F401's LQFP64, a second PH pin on the H7s) can be split out as GPIO though no routing row may name it; `BONDED` and `check_glue.py` enforce the rows, not the split. A per-package `Parts` would remove the fields.
@@ -167,3 +166,14 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 Code that exists only for the move of FerroWasp onto FerroHAL (§15). Each is marked `TRANSITION:` in its documentation and is removed once FerroWasp uses FerroHAL's native model.
 
 - FerroWasp's UART and SPI adapters, in its `ferrowasp-ferrohal-critical`, marked `TRANSITION:` there. They go when its transports move to FerroHAL's native model. FerroHAL itself holds no transition code.
+
+## 8. Deferred: no bench can prove it yet
+
+Built, and checked by the compiler, host tests or the no-panic link, but the
+behaviour they change has not run on hardware. They stay open and rank below
+every testable item above.
+
+- **Lowest: no run refuses a constructor.** Every public constructor hands its tokens back (`Refused`), proven by its type, `Refused`'s host tests and the no-panic link's retries; no bench run refuses one and then uses the parts. A run per chip that refuses each constructor (UART, SPI, I2C, PWM, lane, sampler, AWG, ADC, SDMMC, USB, tick, timebase, watchdog, RCC) would close it.
+- **Lowest: UART4/5's reserved CTS bit is changed but not exercised.** `clear_tc` now writes 0 at SR bit 9 on UART4/5 (CTS is reserved there, RM0090 30.6.1); no run uses UART4 or UART5, because the F405 bench doesn't wire them.
+- **Lowest: `signature::device_uid` has not been read on hardware.** A bench run that prints it, checks it is nonzero and survives a reset would prove it; nothing compares it yet.
+- **Lowest: the rig cannot vary the conditions several ES0392 rules depend on.** One MPU/cache shape, one package and one silicon revision per chip, and neither `REV_ID` nor the part marking is recorded: write-through memory, the HCLK/8 SysTick path, WWDG, option-byte/RDP flows and flash ECC go untested, so those errata stay firmware rules, not bench facts. Record `REV_ID` and the marking, and add a write-through run, when cache guidance is needed.

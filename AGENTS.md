@@ -45,6 +45,9 @@ cable (Pico borrows it); probes by serial through `hil/probe.sh` (`F401_PROBE`,
 
 ## Rules
 
+- Evidence: a debt item leaves `DEBT.md` only when hardware proves the fix. A fix no
+  bench can reach stays open as Deferred (`DEBT.md` §8), ranked below every testable
+  item.
 - G5: no `unsafe fn` public; only `Peripherals::steal` behind `rtic`. Registers -> take metapac.
 - No unsafe wrappers around register writes; token-owning module only; PAC imports confined.
 - One `shall` per requirement; module trailer names its IDs.
