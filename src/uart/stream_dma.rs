@@ -375,6 +375,20 @@ impl Line {
         }
     }
 
+    /// Stops the line raising its own interrupt: clears the idle, parity and
+    /// error enables. The vectors stay enabled in the NVIC, so
+    /// [`UartIrq::verify`] still passes, and an event that arrives while
+    /// masked stays pending in the USART and is reported after
+    /// [`unmask`](Self::unmask).
+    pub fn mask(&mut self) {
+        self.info.regs.set_event_enables(false);
+    }
+
+    /// Restores the idle, parity and error enables.
+    pub fn unmask(&mut self) {
+        self.info.regs.set_event_enables(true);
+    }
+
     /// The raw USART registers. FerroHAL's guarantees end here.
     ///
     /// # Safety

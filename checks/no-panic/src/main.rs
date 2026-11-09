@@ -246,6 +246,9 @@ fn exercise_uart(uart: &mut Uart) {
             .with_inverted_tx(true),
     );
     keep(uart.set_config(&config));
+    // The line's event enables, off and on again.
+    uart.line().mask();
+    uart.line().unmask();
     let (_line, tx, rx) = uart.halves();
     keep(tx.write(data));
     keep(rx.try_read(&mut buf));

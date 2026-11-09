@@ -267,6 +267,31 @@ impl Link for Pair<'_> {
     }
 }
 
+/// A looped-back link whose line can be masked. The transmitter is the
+/// receiver, so masking it silences the USART's own vector.
+pub trait Maskable: Link {
+    fn mask(&mut self);
+    fn unmask(&mut self);
+}
+
+impl Maskable for Loop<'_> {
+    fn mask(&mut self) {
+        self.uart.line().mask();
+    }
+    fn unmask(&mut self) {
+        self.uart.line().unmask();
+    }
+}
+
+impl Maskable for HostEcho<'_> {
+    fn mask(&mut self) {
+        self.uart.line().mask();
+    }
+    fn unmask(&mut self) {
+        self.uart.line().unmask();
+    }
+}
+
 /// Counts and logs check results.
 pub struct Report {
     pub failed: u32,
@@ -835,6 +860,29 @@ pub fn line_break(link: &mut dyn Link) -> Result<(), Fail> {
     link.send_break()?;
     expect_error(link, Error::Framing)?;
     echo(link, b"after the break")
+}
+
+/// Masking the line keeps the USART's events out of the ring; unmasking
+/// reports them, the idle line included.
+pub fn line_mask<L: Maskable>(link: &mut L) -> Result<(), Fail> {
+    drain(link);
+    let generation = link.rx().generation();
+    link.mask();
+    // One byte, short of the receive stream's half lap and followed by
+    // nothing: only the USART's idle interrupt could end its chunk.
+    send_pattern(link, 0, 1)?;
+    delay_ms(5);
+    let mut buf = [0u8; 16];
+    if let Some(chunk) = link.rx().read_chunk(&mut buf)? {
+        return Err(Fail::Chunk {
+            end: chunk.end,
+            len: chunk.len,
+            generation: chunk.generation,
+        });
+    }
+    link.unmask();
+    let chunk = next_chunk(link, &mut buf)?;
+    expect_chunk(chunk, &buf, ChunkEnd::Idle, 0, 1, generation)
 }
 
 /// Reads until the line goes quiet, and fails unless `expected` came up.

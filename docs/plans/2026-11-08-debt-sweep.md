@@ -1,6 +1,6 @@
 # FerroHAL debt sweep - plan of record
 
-Status: **in progress** - W1-W4b and W5a done (watchdog debug freeze, window, measured LSI; one-pulse; fresh-boot second uses; UART control/flag split); W5b-W13 pending.
+Status: **in progress** - W1-W5b done (watchdog debug freeze, window, measured LSI; one-pulse; fresh-boot second uses; UART control/flag split; masking); W6-W13 pending.
 
 ## Prerequisites (in order)
 1. **AWG-011 PR first**, own branch off `origin/main` (140697c): 3 files, +56/-4 -

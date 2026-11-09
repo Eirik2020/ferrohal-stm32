@@ -3,7 +3,7 @@
  "counts": {
   "documents": 28,
   "agent": 16,
-  "agent_tokens": 8351
+  "agent_tokens": 8348
  },
  "documents": [
   {
@@ -11,16 +11,16 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40",
-   "bytes": 3293,
-   "tokens": 824
+   "bytes": 3284,
+   "tokens": 821
   },
   {
    "path": "DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.mdRESOL",
-   "bytes": 24929,
-   "tokens": 6233
+   "bytes": 24787,
+   "tokens": 6197
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once done. Li",
-   "bytes": 28955,
-   "tokens": 7239
+   "bytes": 29454,
+   "tokens": 7364
   },
   {
    "path": "THIRD-PARTY.md",
@@ -162,7 +162,7 @@
    "path": "docs/plans/2026-11-08-debt-sweep.md",
    "class": "human",
    "title": "FerroHAL debt sweep - plan of record",
-   "purpose": "Status: in progress - W1-W4b and W5a done watchdog debug",
+   "purpose": "Status: in progress - W1-W5b done watchdog debug freeze,",
    "bytes": 3488,
    "tokens": 872
   },
@@ -227,8 +227,8 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. A run proves t",
-   "bytes": 9179,
-   "tokens": 2295
+   "bytes": 9447,
+   "tokens": 2362
   },
   {
    "path": "requirements/goals.md",

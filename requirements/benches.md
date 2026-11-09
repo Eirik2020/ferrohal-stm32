@@ -14,7 +14,10 @@ hash of the manifest beside its logs, which lists every binary of the run by SHA
 `hil/nucleo-f401re-loopback/src/board.rs` fitted and the host echo for USART2
 running, which the script starts. Pass: every check in every run passes and the
 script exits zero. Covers `usart_v2` on all three USARTs, all 10 TX and RX pin
-entries and all 9 USART DMA routes, and the checks in `hil/common/tests.rs`. Run B
+entries and all 9 USART DMA routes, and the checks in `hil/common/tests.rs`. Run A
+also masks USART1's line, sends one byte and unmasks it: no chunk ends while the
+line is masked, and the idle that arrived meanwhile delivers the byte after
+unmasking [USART-005]. Run B
 also checks the parity error's clear, each way: one byte with a parity error, then
 a good frame straight after it, which must arrive whole and in order, with the one
 parity error reported right after the bad byte, and PE seen by the UART's vectors,
@@ -26,7 +29,8 @@ saw PE, and how many bytes the receive DMA had taken by then.
 `hil/run-h753.sh a b c d e`, with the Zio links in
 `hil/nucleo-h753zi-loopback/src/board.rs` fitted. Pass: every check in every run
 passes and the script exits zero. Covers `usart_v4` with the caches off and on, and
-the same checks in `hil/common/tests.rs`.
+the same checks in `hil/common/tests.rs`; run A also masks USART1's line for the
+USART-005 drill, as the F401's run A does.
 
 ## Chip glue against metapac
 

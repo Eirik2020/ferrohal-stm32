@@ -4,7 +4,7 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-11-06:
 
-- **F401:** `hil/run-f401.sh` passes all eighteen runs, 247 checks; the runs, their links and their checks are in `requirements/benches.md`.
+- **F401:** `hil/run-f401.sh` passes all eighteen runs, 248 checks; the runs, their links and their checks are in `requirements/benches.md`.
 - **H753ZI:** `hil/run-h753.sh` passes all eighteen runs, same detail; run M needs a cable from CN13, and passed 11 of 11 on 2026-11-05.
 - **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
 - **H743VI:** `hil/run-lucid.sh` passes 32 of 32 with a card on the TBS Lucid H7, plus the host's USB echo, polled and from its interrupt: its crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, and its motor timers and streams.
@@ -49,7 +49,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: USB sits outside the no-panic proof.** `synopsys-usb-otg` has about 30 panic and unwrap sites and spins unbounded on registers (it hung forever in core reset before the H7's `hs` mode was set). It's behind the `usb` feature; the check covers only FerroHAL's clock and constructor. A flight firmware should keep USB from taking down anything critical.
 - **Medium: USB is device-mode CDC on OTG_FS, tested on the H753ZI, the Foxeer's F405 and the Lucid's H743.** No OTG_HS (the Foxeer's and Lucid's ports are OTG_FS, so not needed yet), no host mode. The F401's Nucleo has no USB connector. The flight controllers run it both polled and bound to `OTG_FS` under RTIC, as FerroWasp does.
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
-- **Medium: interrupts can't be masked from the handle** (§7 hook 1). `UartIrq` can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover to rtic-monotonics** (§7 hook 5, §8 foot-gun 1). FerroHAL's `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL timer token as its monotonic.
 - **Low: only the trigger routes in use are in the glue:** TIM1 to TIM3 on every chip, TIM1 to TIM8 where TIM8 exists, TIM3 to TIM2 on the F4s (the SpeedyBee's motor arrangement, run R on the F401). `check_glue.py` can't check them, since the metadata has no such table; each is exercised on hardware or follows RM0090 table 94, RM0368 table 54 or RM0433 table 336.
 - **Medium: timer features still missing:** input capture, dead time, the break input (FerroWasp's reply window).
