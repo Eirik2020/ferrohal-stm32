@@ -1,10 +1,10 @@
 //! Run I: every timer the H753ZI has, against the DWT cycle counter. No
 //! links.
 //!
-//! Each timer ticks at 1 kHz (TIM4 also at 8 kHz, the Lucid's control loop
-//! rate) and must keep that rate to 0.05 %, then stop when paused. TIM2 and
-//! TIM5, the 32-bit timers, also run as 1 MHz timebases (TIM2 is the
-//! Lucid's).
+//! Each timer ticks at 1 kHz and must keep that rate to 0.05 %, then stop
+//! when paused. Run T takes the second use of TIM4 (8 kHz, the Lucid's
+//! control loop rate) and of TIM2 and TIM5 (1 MHz timebases; TIM2 is the
+//! Lucid's) on a fresh boot, so no token is stolen.
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
@@ -166,35 +166,6 @@ mod app {
         tick!("TIM15 tick 1 kHz", run.tim15.take(), khz, 50);
         tick!("TIM16 tick 1 kHz", run.tim16.take(), khz, 50);
         tick!("TIM17 tick 1 kHz", run.tim17.take(), khz, 50);
-        // Second uses: each timer's first owner above has been paused and
-        // dropped, so a stolen token is the only one in use.
-        // SAFETY: as above.
-        let tim4 = unsafe { ferrohal_stm32::chip::TIM4::steal() };
-        tick!("TIM4 tick 8 kHz", Some(tim4), board::CONTROL_RATE, 400);
-        // SAFETY: as above.
-        let (tim2, tim5) = unsafe {
-            (
-                ferrohal_stm32::chip::TIM2::steal(),
-                ferrohal_stm32::chip::TIM5::steal(),
-            )
-        };
-        for (name, base) in [
-            (
-                "TIM2 timebase 1 MHz",
-                Timebase::new(&mut run.rcc, tim2, Hertz::mhz(1))
-                    .map_err(|refused| refused.error()),
-            ),
-            (
-                "TIM5 timebase 1 MHz",
-                Timebase::new(&mut run.rcc, tim5, Hertz::mhz(1))
-                    .map_err(|refused| refused.error()),
-            ),
-        ] {
-            match base {
-                Ok(base) => timers::timebase_check(&mut report, name, &base, cpu),
-                Err(error) => report.check(name, "open", Err(Fail::Timer(error))),
-            }
-        }
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

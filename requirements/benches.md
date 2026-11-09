@@ -44,11 +44,11 @@ layout must stay as it is.
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p r u`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run U takes each timer's second use from a fresh boot, so no token is stolen: TIM4 at 8 kHz and TIM2 and TIM5 as 1 MHz timebases. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 
-`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh i j p q t`, with Z2 fitted for Q. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run T takes each timer's second use from a fresh boot, so no token is stolen: TIM4 at 8 kHz and TIM2 and TIM5 as 1 MHz timebases. Pass: every check in every run passes and the script exits zero.
 
 ## Watchdog on the Nucleo-F401RE
 

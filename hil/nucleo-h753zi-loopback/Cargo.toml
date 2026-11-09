@@ -118,6 +118,12 @@ path = "src/bin/run_s.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "run-t"
+path = "src/bin/run_t.rs"
+test = false
+bench = false
+
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32h753zi", "rt", "defmt", "usb"] }
 # Safe reads of the registers the checks inspect (the I2C timing).

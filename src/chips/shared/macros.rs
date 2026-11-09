@@ -21,16 +21,6 @@ macro_rules! tokens {
                 const fn new() -> Self {
                     Self { _private: () }
                 }
-
-                /// A second token for this peripheral.
-                ///
-                /// # Safety
-                ///
-                /// Nothing else may use the peripheral while this token is
-                /// in use.
-                pub unsafe fn steal() -> Self {
-                    Self::new()
-                }
             }
 
             impl crate::Sealed for $name {}
