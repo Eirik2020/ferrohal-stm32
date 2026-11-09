@@ -56,7 +56,7 @@ cable (Pico borrows it); probes by VID:PID 0483:374b/374e (W8 -> serial).
 
 ## State 2026-11-09
 
-PR #6 merged; benches green. Next: AWG-011 PR (3 files), then debt sweep W1-W13, then `free()`
+Docs system merged (PR #7); RTIC T1-T3 confirmed. Next: debt sweep W1-W13, then `free()`
 redesign. Details `docs/plans/`.
 
 ## Style

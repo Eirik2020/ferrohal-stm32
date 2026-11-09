@@ -3,7 +3,7 @@
  "counts": {
   "documents": 25,
   "agent": 13,
-  "agent_tokens": 6694
+  "agent_tokens": 6879
  },
  "documents": [
   {
@@ -11,8 +11,8 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40",
-   "bytes": 3273,
-   "tokens": 819
+   "bytes": 3267,
+   "tokens": 817
   },
   {
    "path": "DEBT.md",
@@ -61,8 +61,8 @@
    "class": "agent",
    "title": "ADR-001: G5, safe by default (2026-11-08)",
    "purpose": "ADR-001 - Status: promoted",
-   "bytes": 2238,
-   "tokens": 560,
+   "bytes": 2409,
+   "tokens": 603,
    "adr": "ADR-001",
    "status": "promoted"
   },
@@ -121,8 +121,8 @@
    "class": "agent",
    "title": "RTIC + reference-HAL evidence (G5)",
    "purpose": "Code-only, 2026-11-08/09. Sources: rtic-macros-2.4.0; st",
-   "bytes": 2637,
-   "tokens": 660
+   "bytes": 3216,
+   "tokens": 804
   },
   {
    "path": "docs/plans/2026-11-08-debt-sweep-gates.md",

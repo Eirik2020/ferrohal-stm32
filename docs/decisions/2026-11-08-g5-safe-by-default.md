@@ -29,6 +29,8 @@ safe code can reconfigure any register.
 
 - `rtic-macros-2.4.0/src/codegen/module.rs:38` emits `device: #device::Peripherals::steal()`;
   the call sits in a generated `pub unsafe fn new` (`:294-299`).
+- T1-T3 (2026-11-09): the real crate compiles; without the item the expansion fails with
+  E0599; with a safe `pub fn steal` it compiles. The keyword is ours, not RTIC's.
 - metapac: 0 `Deref` impls; peripherals are `pub const` blocks from `unsafe from_ptr`, so any
   metapac re-export would hand out safe register access.
 - Counts and the T1-T3 experiments: `../notes/2026-11-08-rtic-and-hal-comparison.md`.
