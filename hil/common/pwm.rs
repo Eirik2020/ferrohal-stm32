@@ -595,6 +595,71 @@ pub fn duty_check(
     );
 }
 
+/// One period from `Pwm::start_one_pulse`: the first period carries the set
+/// duty, then the line holds still and the counter has stopped itself.
+pub fn one_pulse_check<T: ChannelTimer>(
+    report: &mut Report,
+    name: &str,
+    pwm: &mut Pwm<T>,
+    pin: u8,
+    sixteenths: u32,
+    sampler: &mut Sampler,
+    cpu: Hertz,
+) {
+    let per_period = (u64::from(sampler.rate().0) / u64::from(pwm.frequency().0)).max(1) as usize;
+    let count = per_period * 3;
+    let result = (|| {
+        pwm.stage(0);
+        sampler.start(count).map_err(|_| Fail::Count {
+            expected: count as u32,
+            got: 0,
+        })?;
+        pwm.start_one_pulse();
+        if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
+            sampler.stop();
+            return Err(Fail::Count {
+                expected: count as u32,
+                got: 0,
+            });
+        }
+        let samples = sampler.samples();
+        // The first period, as sampled on the pin.
+        let first = &samples[..per_period.min(samples.len())];
+        let high = first.iter().filter(|s| *s & (1 << pin) != 0).count() as u32;
+        let got16 = high * 16 / first.len().max(1) as u32;
+        if got16.abs_diff(sixteenths) > 2 {
+            return Err(Fail::Count {
+                expected: sixteenths,
+                got: got16,
+            });
+        }
+        // Nothing after it but the one edge back to the stopped level.
+        let tail = &samples[first.len().min(samples.len())..];
+        let mut edges = 0;
+        let mut before = first.last().map(|s| s & (1 << pin) != 0).unwrap_or(false);
+        for sample in tail {
+            let now = sample & (1 << pin) != 0;
+            if now != before {
+                edges += 1;
+                before = now;
+            }
+        }
+        if edges > 1 {
+            return Err(Fail::Count {
+                expected: 1,
+                got: edges,
+            });
+        }
+        if pwm.is_running() {
+            return Err(Fail::Level {
+                expected_high: false,
+            });
+        }
+        Ok(())
+    })();
+    report.check(name, "one period, then the counter stops [PWM-007]", result);
+}
+
 /// One timer starting another: the slave sits still until the master starts,
 /// then runs within `max_skew` counts of it, frame after frame. No outputs:
 /// these counters drive no pin.

@@ -56,7 +56,7 @@ cable (Pico borrows it); probes by VID:PID 0483:374b/374e (W8 -> serial).
 
 ## State 2026-11-09
 
-Docs system merged (PR #7); RTIC T1-T3 confirmed; debt sweep W1-W3 done. Next: W4-W13,
+Docs system merged (PR #7); RTIC T1-T3 confirmed; debt sweep W1-W4 done. Next: W4b-W13,
 then the `free()` redesign. Details `docs/plans/`.
 
 ## Style

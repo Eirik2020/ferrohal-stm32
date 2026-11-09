@@ -52,7 +52,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: interrupts can't be masked from the handle** (§7 hook 1). `UartIrq` can't turn the peripheral's interrupt-enable bits on or off.
 - **Medium: there's no timer handover to rtic-monotonics** (§7 hook 5, §8 foot-gun 1). FerroHAL's `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL timer token as its monotonic.
 - **Low: only the trigger routes in use are in the glue:** TIM1 to TIM3 on every chip, TIM1 to TIM8 where TIM8 exists, TIM3 to TIM2 on the F4s (the SpeedyBee's motor arrangement, run R on the F401). `check_glue.py` can't check them, since the metadata has no such table; each is exercised on hardware or follows RM0090 table 94, RM0368 table 54 or RM0433 table 336.
-- **Medium: timer features still missing:** input capture, one-pulse mode, dead time, the break input (FerroWasp's reply window).
+- **Medium: timer features still missing:** input capture, dead time, the break input (FerroWasp's reply window).
 - **Low: the watchdog's LSI constant is one measurement, and windows are nominal.** `start_with_lsi` scales the timeout to a per-board constant, but the LSI drifts with temperature and supply, so the timeout follows it; `start_windowed` still counts at 32 kHz.
 - **Low: the watchdog bench run needs reset catch off.** probe-rs halts a core it sees reset, so `hil/run-*.sh` run the watchdog check with `--no-catch-reset`; the second boot waits before reporting so the host finds RTT again.
 - **Low: arming and staging lanes takes time.** About 14 µs for two lanes on the F401 at 84 MHz, measured by the bench; a frame scheduler must allow for it.
