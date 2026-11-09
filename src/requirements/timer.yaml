@@ -104,6 +104,10 @@ requirements:
         - level: target
           environment: development
           method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
   - id: PWM-002
@@ -420,6 +424,10 @@ requirements:
     derived_from: [AWG-009]
     verification:
       entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
           method:
