@@ -63,6 +63,18 @@ added to that crate [API-001].
 stm32-metapac's metadata. Pass: it exits zero. It reads the rows as text, so their
 layout must stay as it is.
 
+## Firmware crates enable `rt`
+
+`python3 -I tools/check_firmware_features.py`, a `checks/run.sh` step. Every crate
+under `hil/` and `checks/` that depends on `ferrohal-stm32` must name the crate's
+`rt` feature, or `rtic`, which implies it. `rt` is `cortex-m-rt`'s `set-vtor`: the
+F4's ROM bootloader leaves for the application by jumping, with no reset, so
+without it VTOR still points at the ROM and an interrupt runs the ROM's handler —
+the Foxeer's USB never enumerated after a DFU `leave` until the feature was on. A
+probe flash resets the chip and hides the fault, so tests can't rely on how the
+image arrived. Pass: it exits zero, naming the five firmware crates and the
+simulator it skips.
+
 ## SPI and EXTI on the Nucleo-F401RE
 
 `hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
