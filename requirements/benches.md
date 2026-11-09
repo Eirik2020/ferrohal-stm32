@@ -8,6 +8,17 @@ Every UART check prints the requirements it verifies in square brackets after it
 name, so a log shows which layer each line speaks for. A record's image hash is the
 hash of the manifest beside its logs, which lists every binary of the run by SHA-256.
 
+## Which probe
+
+`hil/probe.sh` picks the probe by its serial, as `probe-rs list` prints it after
+`--` (`VID:PID:Serial`): `PROBE_RS_PROBE` if already set, else the board's own
+variable (`F401_PROBE` for `hil/run-f401.sh`, `H753_PROBE` for `hil/run-h753.sh`),
+else the only probe attached. With more than one attached and none chosen it lists
+them and exits before building, so a shared bench says which board it flashes. The
+choice reaches probe-rs through its `PROBE_RS_PROBE` variable, which the crate
+runners in `hil/*/.cargo/config.toml` leave unset. `hil/run-f401.sh`'s host echo
+runs over the chosen probe's own virtual COM port; `F401_VCP` overrides the path.
+
 ## UART on the Nucleo-F401RE
 
 `hil/run-f401.sh a b c d`, with the links in

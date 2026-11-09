@@ -9,8 +9,10 @@
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
-# The F401 Nucleo's ST-LINK/V2-1 (probe 0483:374b).
-port=/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_0674FF555185754867115446-if02
+source "$here/probe.sh"
+probe_for F401_PROBE || exit 1
+# The host echo runs over this probe's own virtual COM port.
+port="${F401_VCP:-/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_${PROBE_RS_PROBE#*:*:}-if02}"
 mkdir -p "$here/logs"
 
 python3 -I "$here/vcp_echo.py" "$port" 115200 > "$here/logs/f401-echo.log" 2>&1 &
@@ -25,7 +27,7 @@ for run in ${*:-a b c d e f g h i j k l m n o p q r s u}; do
     # catch that reset, or the second boot never runs.
     runner=()
     if [ "$run" = j ] || [ "$run" = l ]; then
-        runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32F401RE --probe 0483:374b")
+        runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32F401RE")
     fi
     (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1
     code=$?

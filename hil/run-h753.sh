@@ -14,6 +14,8 @@
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$here/logs"
+source "$here/probe.sh"
+probe_for H753_PROBE || exit 1
 
 status=0
 # Run M still runs when asked for (`./run-h753.sh m`), with the cable
@@ -25,7 +27,7 @@ for run in ${*:-a b c d e f g h i j k l n o p q r s t}; do
     # catch that reset, or the second boot never runs.
     runner=()
     if [ "$run" = k ] || [ "$run" = n ]; then
-        runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32H753ZI --probe 0483:374e")
+        runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32H753ZI")
     fi
     # The USB run needs its host side alongside: the host checks every byte.
     host=""

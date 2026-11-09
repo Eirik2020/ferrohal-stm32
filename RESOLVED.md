@@ -4,6 +4,8 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 
 ## Crate-wide
 
+- **Probes are chosen by serial** (2026-11-09). `hil/probe.sh` resolves `PROBE_RS_PROBE`, then the board's variable (`F401_PROBE`, `H753_PROBE`), then the only probe attached; it exports the choice for probe-rs's `--probe` and, when it cannot choose, lists the candidates and exits before building. The crate runners in `hil/*/.cargo/config.toml` carry no `--probe`, and the F401's host echo follows the chosen serial, with `F401_VCP` to override. Two probes are attached to this bench: run A passed with the variables set (F401 46/46, H753 89/89), and with none set the script named both and exited 1. `requirements/benches.md` § Which probe.
+
 - **The watchdog freezes under the debugger, can be windowed, and follows the board's LSI** (2026-11-09). `Watchdog::start` sets the per-chip `DBGMCU` freeze, so a halted core does not starve the counter; `start_windowed` (H7 only, `iwdg_v2`) resets a feed before the window opens; `start_with_lsi` scales the timeout to a measured LSI. IWDG-004 to IWDG-006, `src/iwdg.rs`; runs J on the F401 (50.09 ms for a nominal 50 ms) and K on the H753ZI (50.06 ms).
 - **`Pwm::start_one_pulse` sends one period and stops** (2026-11-09). `CR1.OPM` clears the counter enable at the next update; a staged counter would stop at the latching update one tick in, so the start latches with `EGR.UG` while the mode is off, then enables it. The H753's TIM1 CH3N check samples one period at 1/4 duty and that the counter stopped itself: PWM-007, `src/timer_pwm.rs`; run J.
 
