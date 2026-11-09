@@ -4,9 +4,11 @@
 //! request IDs) was read from stm32-metapac 21.0.0's metadata for this
 //! chip, whose ports are cut to the package's bonded pins (`BONDED` below):
 //! the Lucid fits the TFBGA100 (STM32H743VIH6), which DS12117 Table 8 shows
-//! bonds the same GPIO set as the LQFP100, the two differing in supplies
-//! (VDDLDO among them, ES0392 2.2.22). They are hand-written for now, in the
-//! trait shapes a generator would emit later.
+//! bonds the same GPIO set as the LQFP100. The supplies differ: the TFBGA100
+//! has no VDDLDO supply (F4 is internally tied to VDD, ES0392 2.2.22) and no
+//! VREF+ pin (double-bonded to VDDA, so VREFBUF stays disabled; DS12117
+//! note 5). They are hand-written for now, in the trait shapes a generator
+//! would emit later.
 //! Clock limits and the memory map, shared with the H753, are in
 //! `shared/h7.rs`.
 //!

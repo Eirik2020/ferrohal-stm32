@@ -19,8 +19,8 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.m",
-   "bytes": 24586,
-   "tokens": 6147
+   "bytes": 24237,
+   "tokens": 6060
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once do",
-   "bytes": 31339,
-   "tokens": 7835
+   "bytes": 31949,
+   "tokens": 7988
   },
   {
    "path": "THIRD-PARTY.md",
@@ -115,7 +115,7 @@
    "class": "agent",
    "title": "ES0392 review: cache, system, flash ECC",
    "purpose": "W11 of the debt sweep. Read against ES0392 Rev 15 ",
-   "bytes": 2995,
+   "bytes": 2993,
    "tokens": 749
   },
   {
@@ -251,8 +251,8 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measurements",
-   "bytes": 7565,
-   "tokens": 1892
+   "bytes": 7807,
+   "tokens": 1952
   }
  ]
 }
