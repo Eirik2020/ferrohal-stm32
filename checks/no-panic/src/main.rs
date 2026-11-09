@@ -620,6 +620,7 @@ pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm3
     dog.feed();
     keep(dog.timeout_us());
     keep(dog.handle().timeout_us());
+    keep(Watchdog::is_frozen_on_halt());
 }
 
 /// The polled SPI through every operation.

@@ -319,6 +319,18 @@ pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
     pac::IWDG
 }
 
+/// Freezes the watchdog while a debugger holds the core halted:
+/// `DBGMCU_APB1FZ.IWDG` (bit 12; the freeze lives in the APB1 freeze
+/// register, not `DBGMCU_CR`).
+pub(crate) fn set_watchdog_freeze() {
+    pac::DBGMCU.apb1fzr().modify(|w| w.set_iwdg(true));
+}
+
+/// Whether that freeze is set.
+pub(crate) fn watchdog_frozen() -> bool {
+    pac::DBGMCU.apb1fzr().read().iwdg()
+}
+
 // Timers another timer's trigger output can start.
 
 timer_trigger!(TIM8: TIM1, 0);
