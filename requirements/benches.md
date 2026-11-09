@@ -43,6 +43,12 @@ passes and the script exits zero. Covers `usart_v4` with the caches off and on, 
 the same checks in `hil/common/tests.rs`; run A also masks USART1's line for the
 USART-005 drill, as the F401's run A does.
 
+Run M (USB CDC over CN13, off the default list while the cable powers the Pico)
+builds `run-m` before starting `hil/usb_cdc_host.py`, so the host's wait for a port
+is not spent compiling, and the host opens only a port that appeared after the one
+a previous image left had gone: a rerun cannot talk to the image it is about to
+replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
+
 ## No reachable panic
 
 `checks/run.sh`'s `no reachable panic` step builds `checks/no-panic` per chip in

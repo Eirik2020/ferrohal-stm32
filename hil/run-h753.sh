@@ -23,20 +23,31 @@ status=0
 # powers the Pico.
 for run in ${*:-a b c d e f g h i j k l n o p q r s t}; do
     log="$here/logs/h753-run-$run.log"
+    : > "$log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
     # catch that reset, or the second boot never runs.
     runner=()
     if [ "$run" = k ] || [ "$run" = n ]; then
         runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32H753ZI")
     fi
-    # The USB run needs its host side alongside: the host checks every byte.
+    # The USB run needs its host side alongside: build first, so the host's
+    # wait for the port is not spent compiling. The host waits for the port
+    # the previous image left to go, so a rerun cannot open it while this
+    # run is being flashed.
     host=""
+    code=0
     if [ "$run" = m ]; then
-        python3 -I "$here/usb_cdc_host.py" 30 h753zi > "$log.host" 2>&1 &
-        host=$!
+        (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo build --release --bin run-m) >> "$log" 2>&1
+        code=$?
+        if [ "$code" -eq 0 ]; then
+            python3 -I "$here/usb_cdc_host.py" --fresh 30 h753zi > "$log.host" 2>&1 &
+            host=$!
+        fi
     fi
-    (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1
-    code=$?
+    if [ "$code" -eq 0 ]; then
+        (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") >> "$log" 2>&1
+        code=$?
+    fi
     if [ -n "$host" ]; then
         wait "$host" || code=1
         cat "$log.host" >> "$log"

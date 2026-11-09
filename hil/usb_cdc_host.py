@@ -7,6 +7,13 @@ A board serial picks that board's port when several are connected. With
 `report` (a board with no probe, reporting over this port), asks the board to
 run its checks and prints its report first, then asks it to echo.
 
+`--fresh` puts the wait before the flash: a port a previous image left has to go
+before the host opens anything, so a rerun cannot talk to the image it is about
+to replace. Without it the host takes the first port that matches, which is the
+flashed image's own when the caller flashed first and waited for the old port to
+go (run-dfu.sh). `FERROHAL_SERIAL_GLOB` overrides the by-id pattern (a bench
+whose udev names differ, or a self-test with a fake directory).
+
 The sizes around 64 bytes straddle the full-speed packet size, where a
 transfer ending on a whole packet needs a zero-length packet to finish. Ends
 the board's run with the END marker. Exits non-zero on any mismatch.
@@ -22,23 +29,48 @@ import time
 END = b"BENCHEND"
 RUN = b"BENCHRUN"
 ECHO = b"BENCHECH"
-wait = float(sys.argv[1]) if len(sys.argv) > 1 else 30.0
-board = sys.argv[2] if len(sys.argv) > 2 else ""
-reports = len(sys.argv) > 3
+args = [argument for argument in sys.argv[1:] if argument != "--fresh"]
+fresh = len(args) != len(sys.argv) - 1
+wait = float(args[0]) if args else 30.0
+board = args[1] if len(args) > 1 else ""
+reports = len(args) > 2
+
+
+def signature(path):
+    """What tells a port from the one a previous image left, even if udev reuses its name."""
+    stat = os.stat(path)
+    return (os.path.realpath(path), stat.st_ino, stat.st_rdev)
 
 
 def find_port():
+    pattern = os.environ.get("FERROHAL_SERIAL_GLOB") or f"/dev/serial/by-id/*FerroHAL*{board}*"
     deadline = time.monotonic() + wait
+    stale = sorted(glob.glob(pattern)) if fresh else []
+    stale_signature = signature(stale[0]) if stale else None
+    gone = not stale
     while time.monotonic() < deadline:
-        ports = glob.glob(f"/dev/serial/by-id/*FerroHAL*{board}*")
+        ports = sorted(glob.glob(pattern))
         if ports:
-            # udev has just made it; give permissions a moment to settle.
-            time.sleep(0.3)
-            return ports[0]
-        time.sleep(0.1)
+            try:
+                found = signature(ports[0])
+            except FileNotFoundError:
+                found = None
+            if found is not None and (not fresh or gone or found != stale_signature):
+                # udev has just made it; give permissions a moment to settle.
+                time.sleep(0.3)
+                return ports[0]
+        else:
+            gone = True
+        time.sleep(0.02)
     sys.exit(
-        f"FAIL no FerroHAL serial port within {wait:.0f} s: is a data cable in the user USB port? "
-        "A charge-only cable gives the board VBUS and the host nothing."
+        f"FAIL no {'fresh ' if fresh else ''}FerroHAL serial port within {wait:.0f} s: is a data cable "
+        "in the user USB port? A charge-only cable gives the board VBUS and the host nothing."
+        + (
+            " A port the previous image left has to go before its replacement appears; a cable "
+            "that stays leaves it there."
+            if fresh
+            else ""
+        )
     )
 
 
