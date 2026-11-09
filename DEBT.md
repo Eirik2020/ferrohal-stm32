@@ -90,7 +90,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: some error paths are never exercised:** DMA transfer errors (the spike's `inject-dma-error` wasn't ported), USART-level overrun, noise, stop timeout.
 - **Medium: the H753ZI bench reaches the Zio headers only.** No morpho headers (CN11, CN12) are fitted: UART8 (TX only on PE1), the Lucid's USART1 RX (PA10), and PA8, PA9, PB14, PG9 are unreachable; UART5's PB13 needs SB7. Fit the headers (the 38-of-46 plan) and SB7. PA1, PA2, PA11, PA12 need rework (Ethernet, USB).
 - **Low: USART2 on the F401 goes through the ST-LINK,** so break, baud and parity changes aren't checked on it. SB13/SB14 off and SB62/SB63 on would allow a direct link.
-- **Low: run M's host side has two races.** `usb_cdc_host.py` starts before the build, so a rebuild can use up its 30 s, and on a rerun it can open the port the previous image left, while the board is being flashed. On a failure after either, run `hil/run-h753.sh l` and then `m`.
 - **Low: clock checks are indirect:** `freeze`'s record matching the `const` one, plus working baud rates (and the F401 host echo). Nothing measures MCO.
 
 ---

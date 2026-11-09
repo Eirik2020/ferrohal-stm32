@@ -57,7 +57,7 @@ cable (Pico borrows it); probes by serial through `hil/probe.sh` (`F401_PROBE`,
 
 ## State 2026-11-09
 
-Docs system merged (PR #7); RTIC T1-T3 confirmed; debt sweep W1-W8 done. Next: W9-W13,
+Docs system merged (PR #7); RTIC T1-T3 confirmed; debt sweep W1-W9 done. Next: W10-W13,
 then the `free()` redesign. Details `docs/plans/`.
 
 ## Style
