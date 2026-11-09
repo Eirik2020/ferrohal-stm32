@@ -15,7 +15,7 @@ Status: **in progress** - W1-W7 done (watchdog debug freeze, window, measured LS
 See ../policies/safety.md. Summary: G5 (no public `unsafe fn`; single
 `Peripherals::steal` behind `rtic` feature); behaviour documented in the owning file;
 DEBT/RESOLVED are pointer-only indexes; one commit per item with its requirement and
-`checks/run.sh` (17 -> 19 steps) + reqtool green.
+`checks/run.sh` (21 steps) + reqtool green.
 
 ## Items (one commit each)
 | # | Work | Requirement |
@@ -33,7 +33,7 @@ DEBT/RESOLVED are pointer-only indexes; one commit per item with its requirement
 | W7 | Phantom pins removed per package + bonded-pin table, cross-checked by `tools/check_glue.py` (omissions are reported, not failed) | - |
 | W8 | Probe selection by serial: `hil/probe.sh` resolves `PROBE_RS_PROBE`, then `F401_PROBE`/`H753_PROBE`, then the only probe attached, and lists the candidates when it cannot choose; crate runners drop `--probe`, F401's host echo follows the chosen serial | - |
 | W9 | Run M race: `run-m` is built before the host starts, and the host opens only a port that appeared after the previous image's went (inode/realdir signature), so a rerun cannot open the image it is about to replace | - |
-| W10 | Bench crates enable `rt` (VTOR; the F4 DFU leave leaves VTOR on the ROM) | - |
+| W10 | Every firmware crate linking FerroHAL enables `rt` (or `rtic`, which implies it); `tools/check_firmware_features.py` in `checks/run.sh` names one that doesn't. `rt` is what takes VTOR back after the F4's ROM bootloader jumps | - |
 | W11 | Finish the ES0392 review (cache, system, flash ECC); discoveries become explicit DEBT items | - |
 | W12 | Hardening: deny `clippy::undocumented_unsafe_blocks` + `unsafe_op_in_unsafe_fn`; `checks/safe-api.py`; `checks/no-metapac` compile-fail probes; architecture §5 register-access + documentation rules | G5 + API-001 |
 | W13 | Migrate behaviour prose out of DEBT/RESOLVED into owning files (I2C open-drain pins, DW slave semantics -> `hil/pico-i2c-sim/src/lib.rs`, H7-vs-F401 held line -> `src/i2c`, probe-rs reset catch -> scripts + `requirements/benches.md`, H7 doubleword -> `src/reset.rs`) | - |

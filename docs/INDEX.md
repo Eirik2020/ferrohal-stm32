@@ -22,13 +22,13 @@ Metadata only - read a document after choosing it, not before. 28 documents, ~83
 | a | docs/policies/safety.md | 608 tok | Normative. Goal G5 requirements/goals.md. Rationale: |
 | h | DEBT.md | 23620 B | Open items only. Finished work moves to RESOLVED.mdRESOL |
 | h | README.md | 4610 B | A scheduler-agnostic STM32 HAL on stm32-metapachttps://c |
-| h | RESOLVED.md | 32072 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
+| h | RESOLVED.md | 32914 B | History: items moved out of DEBT.mdDEBT.md once done. Li |
 | h | THIRD-PARTY.md | 3052 B | FerroHAL is licensed under MIT OR Apache-2.0 LICENSE-MIT |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 2997 B | Part of the plan2026-11-08-debt-sweep.md. |
-| h | docs/plans/2026-11-08-debt-sweep.md | 4131 B | Status: in progress - W1-W7 done watchdog debug freeze,  |
+| h | docs/plans/2026-11-08-debt-sweep.md | 4277 B | Status: in progress - W1-W7 done watchdog debug freeze,  |
 | h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. steal goes und |
 | h | ferrohal-architecture.md | 26005 B | Architecture only. Implementation details are decided wh |
 | h | hil/WIRING.md | 4765 B | The two Nucleo benches prove FerroHAL's I2C masters agai |
 | h | hil/pico-i2c-sim/README.md | 1483 B | A Raspberry Pi Pico 1 RP2040 standing in for the I2C per |
-| h | requirements/benches.md | 10890 B | What each requirement's bench entry runs. A run proves t |
+| h | requirements/benches.md | 11590 B | What each requirement's bench entry runs. A run proves t |
 | h | requirements/goals.md | 916 B | Every requirement derives from one of these, or from ano |
