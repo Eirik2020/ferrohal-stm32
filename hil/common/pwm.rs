@@ -416,6 +416,43 @@ pub fn awg_wire_out_check<T: ChannelTimer, const C: u8>(
         recovered(sampler.samples(), far_pin, false, sampler.rate(), awg.sample_rate(), awg.period(), &sent)
     })();
     report.check(name, "AWG out over the wire: samples read back at the far end [AWG-008]", result);
+
+    // With the sender's output off, nothing crosses: the far end reads
+    // only its pull-up, the whole capture through.
+    awg.set_outputs(false);
+    let result = (|| {
+        sampler.start(CAPTURES).map_err(|_| Fail::Count {
+            expected: CAPTURES as u32,
+            got: 0,
+        })?;
+        play_one(awg, &sent, budget)?;
+        if !matches!(wait(budget, || sampler.poll()), Some(Ok(_))) {
+            sampler.stop();
+            return Err(Fail::Count {
+                expected: CAPTURES as u32,
+                got: 0,
+            });
+        }
+        let pulled_low = sampler
+            .samples()
+            .iter()
+            .filter(|sample| *sample & (1 << far_pin) == 0)
+            .count();
+        if pulled_low == 0 {
+            Ok(())
+        } else {
+            Err(Fail::Count {
+                expected: 0,
+                got: pulled_low as u32,
+            })
+        }
+    })();
+    report.check(
+        name,
+        "AWG: with the output off, nothing crosses the wire [AWG-011]",
+        result,
+    );
+    awg.set_outputs(true);
 }
 
 /// In over a wire: `far` plays active low, and `near` listens on its own lane's

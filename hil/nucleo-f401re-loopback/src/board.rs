@@ -41,7 +41,7 @@ use ferrohal_stm32::{
     },
     dma::Stream,
     exti,
-    gpio::{Alternate, Ctrl, Output, Parts, Pin, Port, PortInstance, Pull, Speed},
+    gpio::{Alternate, Ctrl, Input, Output, Parts, Pin, Port, PortInstance, Pull, Speed},
     i2c,
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP,
@@ -586,7 +586,9 @@ pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
 // Run O: the waveform generator out over J3, read at the far end.
 
 /// TIM4 channel 1 on PB6, on DMA1 stream 0, plays into J3. TIM1's update request
-/// on DMA2 stream 5 reads port C, where J3 reaches PC7, left an input.
+/// on DMA2 stream 5 reads port C, where J3 reaches PC7, left an input
+/// and pulled up: with the sender's output off a released wire reads
+/// high, so "nothing crossed" is a level the checks can see.
 pub struct RunO {
     pub rcc: Rcc,
     pub led: Led,
@@ -595,14 +597,18 @@ pub struct RunO {
     pub lane: Stream<1, 0>,
     pub tim1: TIM1,
     pub sampler: Stream<2, 5>,
+    pub pc7: Pin<'C', 7, Input>,
 }
 
 pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
     let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
-    // PC7, J3's far end, stays an input; the port only needs its clock.
-    let _c = p.GPIOC.split(&mut rcc);
+    // PC7, J3's far end, stays an input, pulled up; the pin is held so
+    // the pull is not an accident of boot.
+    let mut c = p.GPIOC.split(&mut rcc);
+    let mut pc7 = c.p7.into_input(&mut c.ctrl);
+    pc7.set_pull(&mut c.ctrl, Pull::Up);
     let dma1 = p.DMA1.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
@@ -613,6 +619,7 @@ pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
         lane: dma1.s0,
         tim1: p.TIM1,
         sampler: dma2.s5,
+        pc7,
         rcc,
     })
 }
