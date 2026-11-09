@@ -37,10 +37,6 @@ impl LineRegs {
         Self(regs)
     }
 
-    pub(crate) fn regs(self) -> Regs {
-        self.0
-    }
-
     pub(crate) fn rx_address(self) -> u32 {
         self.0.rdr().as_ptr() as u32
     }

@@ -437,12 +437,15 @@ macro_rules! timer_trigger {
 macro_rules! sdmmcs {
     ($($name:ident => $bus:ident, $bit:literal;)+) => {
         $(
-            impl crate::sdmmc::Instance for $name {
-                const NAME: &'static str = stringify!($name);
-                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
+            impl crate::sdmmc::Registers for $name {
                 fn regs() -> stm32_metapac::sdmmc::Sdmmc {
                     pac::$name
                 }
+            }
+
+            impl crate::sdmmc::Instance for $name {
+                const NAME: &'static str = stringify!($name);
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
             }
         )+
     };

@@ -34,9 +34,15 @@ impl<const P: char> Port<P> {
 }
 
 /// A port this chip has. Chip facts: the glue layer implements it.
-pub trait PortInstance: crate::Sealed {
-    #[doc(hidden)]
+/// One port's register block. Crate-internal: a public bound naming it would
+/// hand metapac out.
+pub(crate) trait PortRegisters {
     fn regs() -> Gpio;
+}
+
+/// A GPIO port this chip has. Chip facts: the glue layer implements it.
+#[allow(private_bounds)] // `PortRegisters` is the crate-internal half.
+pub trait PortInstance: crate::Sealed + PortRegisters {
     #[doc(hidden)]
     const ENABLE: RccBit;
 }
@@ -141,7 +147,7 @@ where
     Port<P>: PortInstance,
 {
     fn regs() -> Gpio {
-        <Port<P> as PortInstance>::regs()
+        <Port<P> as PortRegisters>::regs()
     }
 
     fn set_mode(mode: Moder) {

@@ -50,7 +50,7 @@ use crate::{
         Channel, Direction, FifoMode, Flags, Interrupts, Priority, StreamInterrupt, Transfer,
         WordSize,
     },
-    gpio::{Port, PortInstance},
+    gpio::{Port, PortInstance, PortRegisters},
     rcc::Rcc,
     resource::{IrqError, Refused},
     time::Hertz,
@@ -473,7 +473,7 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
             }
         };
         lane.input = Some(LaneInput {
-            port: <Port<P> as PortInstance>::regs().idr().as_ptr() as u32,
+            port: <Port<P> as PortRegisters>::regs().idr().as_ptr() as u32,
             samples,
             len: 0,
         });
@@ -564,7 +564,7 @@ where
             input: None,
         };
         lane.input = Some(LaneInput {
-            port: <Port<PORT> as PortInstance>::regs().idr().as_ptr() as u32,
+            port: <Port<PORT> as PortRegisters>::regs().idr().as_ptr() as u32,
             samples,
             len: 0,
         });
@@ -884,7 +884,7 @@ impl Sampler {
             dma,
             request: S::REQUEST,
             vector: S::INTERRUPT,
-            input: <Port<P> as PortInstance>::regs().idr().as_ptr() as u32,
+            input: <Port<P> as PortRegisters>::regs().idr().as_ptr() as u32,
             buffer,
             rate,
             state: SampleState::Idle,

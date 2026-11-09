@@ -1,6 +1,6 @@
 # FerroHAL debt sweep - plan of record
 
-Status: **in progress** - W1-W5b and W6a done (watchdog debug freeze, window, measured LSI; one-pulse; fresh-boot second uses; UART control/flag split; masking; `steal` behind `rtic`); W6b-W13 pending.
+Status: **in progress** - W1-W6a and W6b1 done (watchdog debug freeze, window, measured LSI; one-pulse; fresh-boot second uses; UART control/flag split; masking; `steal` behind `rtic`; register accessors internal); W6b2-W13 pending.
 
 ## Prerequisites (in order)
 1. **AWG-011 PR first**, own branch off `origin/main` (140697c): 3 files, +56/-4 -
@@ -28,7 +28,8 @@ DEBT/RESOLVED are pointer-only indexes; one commit per item with its requirement
 | W5a | UART control/flag split: a `Line` handle owns CR1-CR3, BRR and PRESC; `UartIrq` keeps flag servicing; `split`/`halves`/`UartRx::new`/`send_break`/`set_config`/`regs` move (ADR-004) | - |
 | W5b | `Line::mask()/unmask()` toggling IDLEIE, PEIE, EIE | **USART-005** (001-004 taken) |
 | W6a | `Peripherals::steal` behind default-off `rtic`; `take` uses an internal `steal_unchecked`; every RTIC bench and no-panic enable `rtic` (policy exception 1) | - |
-| W6b | Six register accessors internal; `Stream::steal`, `Channel::start(&Transfer)`, `Channel::set_idle_buffer`, `reset::enter_bootloader` internal (`hil/common/usb_bench.rs` -> safe `reboot_to_bootloader()`); `Peripherals::steal` item already gated in W6a | API-001 |
+| W6b1 | Six register accessors internal: `DmaInstance::regs`/`mux`, `PortInstance::regs`, SDMMC `Instance::regs` move to crate-private supertraits; `Channel::regs` and the UART line `regs` removed | - |
+| W6b2 | `Stream::steal`, `Channel::start(&Transfer)`, `Channel::set_idle_buffer`, `reset::enter_bootloader` internal; `usb_bench`/no-panic use safe paths; API-001 | API-001 |
 | W7 | Phantom pins removed per package + bonded-pin table, cross-checked by `tools/check_glue.py` (omissions are reported, not failed) | - |
 | W8 | Probe selection by serial (env override + `probe-rs list`); today hardcoded `0483:374b`/`0483:374e` in `hil/run-*.sh:28` | - |
 | W9 | Run M race: pre-build before starting the host; host waits for a **fresh** port (disappear then reappear) | - |
