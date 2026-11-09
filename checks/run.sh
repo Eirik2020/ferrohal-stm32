@@ -2,6 +2,7 @@
 # Every check that needs no hardware, for every chip. Exits non-zero if any
 # fails. The hardware benches are hil/run-f401.sh and the H7 loopback.
 #
+# - the formatting (rustfmt), as CI checks it;
 # - clippy on the crate, per chip, with warnings as errors;
 # - no reachable panic in the public API, per chip (checks/no-panic);
 # - the chip glue against stm32-metapac's metadata (tools/check_glue.py);
@@ -27,6 +28,7 @@ step() {
     fi
 }
 
+step "rustfmt" cargo fmt --manifest-path "$root/Cargo.toml" --check
 for chip in "${chips[@]}"; do
     step "clippy ($chip)" \
         cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb" -- -D warnings
