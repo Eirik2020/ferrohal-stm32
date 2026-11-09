@@ -69,7 +69,7 @@ use crate::{
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
-    usart::{Line, Regs},
+    usart::{LineRegs, Regs},
     wait::{Deadline, wait},
 };
 
@@ -102,18 +102,18 @@ const COUNT_TRIES: u32 = 8;
 /// Per-instance facts and state. Chip facts: the glue layer holds one
 /// static `Info` per USART.
 pub struct Info {
-    line: Line,
+    regs: LineRegs,
     enable: RccBit,
     state: State,
 }
 
-// SAFETY: `line` is an address, and `State` is atomics.
+// SAFETY: `port` is an address, and `State` is atomics.
 unsafe impl Sync for Info {}
 
 impl Info {
-    pub(crate) const fn new(line: Line, enable: RccBit) -> Self {
+    pub(crate) const fn new(regs: LineRegs, enable: RccBit) -> Self {
         Self {
-            line,
+            regs,
             enable,
             state: State::new(),
         }
@@ -139,6 +139,8 @@ struct State {
     /// errors when `marks` was full.
     errors: AtomicU8,
     counts: Counts,
+    /// CPU cycles one frame lasts at the current baud rate.
+    frame_cycles: AtomicU32,
     tx: TxState,
 }
 
@@ -252,6 +254,7 @@ impl State {
             marks: MarkQueue::new(),
             errors: AtomicU8::new(0),
             counts: Counts::new(),
+            frame_cycles: AtomicU32::new(0),
             tx: TxState::new(),
         }
     }
@@ -319,12 +322,67 @@ pub unsafe trait RxDma<U: Instance>: StreamInstance + StreamInterrupt {
 ///   such as [`UartRx::read_chunk`], needs a timeout fallback on v2, such
 ///   as a timer, not IDLE alone.
 pub struct Uart {
+    line: Line,
     tx: UartTx,
     rx: UartRx,
+}
+
+/// The line's control registers: the frame, the interrupt enables and a
+/// break. Exactly one exists per open UART: [`Uart::split`] hands it out,
+/// and [`Uart`] keeps it while the UART is whole.
+///
+/// A frame change and a break borrow the transmit half, so neither can run
+/// beside the other, beside a mask, or between two contexts.
+pub struct Line {
+    info: &'static Info,
+    /// The bus clock the baud rate divides.
     kernel_clock: Hertz,
-    /// The instance's `FRACTIONAL_STOP_BITS`, for `set_config`.
+    /// The instance's `FRACTIONAL_STOP_BITS`.
     fractional_stop: bool,
     cpu: Hertz,
+}
+
+impl Line {
+    /// Changes the frame settings. Waits for transmission to finish first;
+    /// the receive ring keeps running, but a byte arriving during the change
+    /// is lost.
+    pub fn set_config(&mut self, tx: &mut UartTx, config: &Config) -> Result<(), ConfigError> {
+        let brr = config.divider(self.kernel_clock, self.fractional_stop)?;
+        // A failed flush has already stopped the stream or halted the
+        // transmit side, and the next write reports it.
+        let _ = tx.flush();
+        let port = self.info.regs;
+        port.disable();
+        port.write_frame(config, brr);
+        port.enable(true);
+        self.info
+            .state
+            .frame_cycles
+            .store(frame_cycles(self.cpu, config.baudrate), Ordering::Relaxed);
+        Ok(())
+    }
+
+    /// Sends a break: the line held low for a frame and more.
+    pub fn send_break(&mut self, tx: &mut UartTx) -> Result<(), Error> {
+        tx.flush()?;
+        let port = self.info.regs;
+        port.request_break();
+        let deadline = Deadline::new(tx.clock, tx.budget(2), REGISTER_PASS_CYCLES);
+        if wait(deadline, || !port.break_pending()) {
+            Ok(())
+        } else {
+            Err(Error::Timeout)
+        }
+    }
+
+    /// The raw USART registers. FerroHAL's guarantees end here.
+    ///
+    /// # Safety
+    ///
+    /// The caller takes over every invariant this driver keeps.
+    pub unsafe fn regs(&self) -> Regs {
+        self.info.regs.regs()
+    }
 }
 
 /// The transmit half: a queue of whole frames in the transmit buffer.
@@ -337,7 +395,6 @@ pub struct UartTx {
     /// Where the last queued frame ends. Written only by this half.
     write: u16,
     timeouts: u32,
-    frame_cycles: u32,
     clock: Option<&'static dyn CycleClock>,
 }
 
@@ -358,7 +415,6 @@ pub struct UartRx {
     restarts: u32,
     /// The stream did not stop; reception is off for good.
     halted: bool,
-    frame_cycles: u32,
     clock: Option<&'static dyn CycleClock>,
 }
 
@@ -463,6 +519,9 @@ impl Uart {
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
 
         reset(rcc, info, rx_len);
+        info.state
+            .frame_cycles
+            .store(frame_cycles, Ordering::Relaxed);
         let mut tx = UartTx {
             info,
             dma: crate::dma::claim_channel(tx_dma),
@@ -471,7 +530,6 @@ impl Uart {
             cap: tx_len,
             write: 0,
             timeouts: 0,
-            frame_cycles,
             clock: None,
         };
         let rx = UartRx::assemble(
@@ -479,7 +537,6 @@ impl Uart {
             crate::dma::claim_channel(rx_dma),
             RxD::REQUEST,
             buffers.rx,
-            frame_cycles,
         );
 
         // Streams left running by an earlier owner must stop before they
@@ -500,11 +557,14 @@ impl Uart {
         let (rx, irq) = rx.start(config, brr, true, Some(tx_irq), vectors)?;
         Ok((
             Self {
+                line: Line {
+                    info,
+                    kernel_clock,
+                    fractional_stop: U::FRACTIONAL_STOP_BITS,
+                    cpu: clocks.cpu,
+                },
                 tx,
                 rx,
-                kernel_clock,
-                fractional_stop: U::FRACTIONAL_STOP_BITS,
-                cpu: clocks.cpu,
             },
             irq,
         ))
@@ -525,18 +585,12 @@ impl Uart {
     /// the receive ring keeps running, but a byte arriving during the change
     /// is lost.
     pub fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
-        let brr = config.divider(self.kernel_clock, self.fractional_stop)?;
-        // A failed flush has already stopped the stream or halted the
-        // transmit side, and the next write reports it.
-        let _ = self.tx.flush();
-        let line = self.tx.info.line;
-        line.disable();
-        line.write_frame(config, brr);
-        line.enable(true);
-        let cycles = frame_cycles(self.cpu, config.baudrate);
-        self.tx.frame_cycles = cycles;
-        self.rx.frame_cycles = cycles;
-        Ok(())
+        self.line.set_config(&mut self.tx, config)
+    }
+
+    /// Sends a break: the line held low for a frame and more.
+    pub fn send_break(&mut self) -> Result<(), Error> {
+        self.line.send_break(&mut self.tx)
     }
 
     /// Measures every wait of both halves with `clock` instead of counting
@@ -546,14 +600,21 @@ impl Uart {
         self.rx.clock = clock;
     }
 
-    pub fn split(self) -> (UartTx, UartRx) {
-        (self.tx, self.rx)
+    /// The line and both data halves, each able to live in its own task.
+    pub fn split(self) -> (Line, UartTx, UartRx) {
+        (self.line, self.tx, self.rx)
     }
 
-    /// Both halves at once, borrowed: [`split`](Self::split) without giving
-    /// up `set_config`.
-    pub fn halves(&mut self) -> (&mut UartTx, &mut UartRx) {
-        (&mut self.tx, &mut self.rx)
+    /// The line and both halves at once, borrowed: [`split`](Self::split)
+    /// without giving the UART up.
+    pub fn halves(&mut self) -> (&mut Line, &mut UartTx, &mut UartRx) {
+        (&mut self.line, &mut self.tx, &mut self.rx)
+    }
+
+    /// The line's control handle: the frame, the interrupt enables and a
+    /// break.
+    pub fn line(&mut self) -> &mut Line {
+        &mut self.line
     }
 
     pub fn tx(&mut self) -> &mut UartTx {
@@ -562,15 +623,6 @@ impl Uart {
 
     pub fn rx(&mut self) -> &mut UartRx {
         &mut self.rx
-    }
-
-    /// The raw USART registers. FerroHAL's guarantees end here.
-    ///
-    /// # Safety
-    ///
-    /// The caller takes over every invariant this driver keeps.
-    pub unsafe fn regs(&self) -> Regs {
-        self.tx.info.line.regs()
     }
 }
 
@@ -687,9 +739,9 @@ impl UartTx {
                 return self.time_out();
             }
         }
-        let line = self.info.line;
+        let port = self.info.regs;
         let deadline = Deadline::new(self.clock, self.budget(1), REGISTER_PASS_CYCLES);
-        if wait(deadline, || line.tc()) {
+        if wait(deadline, || port.tc()) {
             Ok(())
         } else {
             Err(Error::Timeout)
@@ -718,19 +770,6 @@ impl UartTx {
         }
     }
 
-    /// Sends a break: the line held low for a frame and more.
-    pub fn send_break(&mut self) -> Result<(), Error> {
-        self.flush()?;
-        let line = self.info.line;
-        line.request_break();
-        let deadline = Deadline::new(self.clock, self.budget(2), REGISTER_PASS_CYCLES);
-        if wait(deadline, || !line.break_pending()) {
-            Ok(())
-        } else {
-            Err(Error::Timeout)
-        }
-    }
-
     /// Measures this half's waits with `clock`; see [`Uart::set_clock`].
     pub fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
         self.clock = clock;
@@ -739,7 +778,7 @@ impl UartTx {
     /// CPU cycles that cover `bytes` frames, twice over.
     fn budget(&self, bytes: u16) -> u32 {
         (u32::from(bytes) + 2)
-            .saturating_mul(self.frame_cycles)
+            .saturating_mul(self.info.state.frame_cycles.load(Ordering::Relaxed))
             .saturating_mul(2)
     }
 
@@ -844,13 +883,13 @@ fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
     let Some(frame) = tx.frames.peek() else {
         return;
     };
-    info.line.clear_tc();
+    info.regs.clear_tc();
     let transfer = Transfer {
         request,
         #[cfg(feature = "dma_v1")]
         bufferable: true,
         direction: Direction::MemoryToPeripheral,
-        peripheral: info.line.tx_address(),
+        peripheral: info.regs.tx_address(),
         // SAFETY (of the address): the frame lies inside the buffer.
         memory: buf.wrapping_add(usize::from(frame.offset)) as u32,
         double_buffer: None,
@@ -889,7 +928,10 @@ impl UartRx {
         wiring: RxWiring<U, RxP, RxD>,
         config: &Config,
         ring: &'static mut [u8],
-    ) -> Result<(Self, UartIrq), Refused<ConfigError, (RxWiring<U, RxP, RxD>, &'static mut [u8])>>
+    ) -> Result<
+        (Line, Self, UartIrq),
+        Refused<ConfigError, (RxWiring<U, RxP, RxD>, &'static mut [u8])>,
+    >
     where
         U: Instance,
         RxP: RxPin<U>,
@@ -908,42 +950,44 @@ impl UartRx {
         rx_dma: &RxD,
         config: &Config,
         ring: &mut [u8],
-    ) -> Result<(Self, UartIrq), ConfigError>
+    ) -> Result<(Line, Self, UartIrq), ConfigError>
     where
         U: Instance,
         RxD: RxDma<U>,
     {
         let info = U::info();
         let clocks = rcc.clocks();
-        let brr = config.divider(clocks.bus(U::KERNEL), U::FRACTIONAL_STOP_BITS)?;
+        let kernel_clock = clocks.bus(U::KERNEL);
+        let brr = config.divider(kernel_clock, U::FRACTIONAL_STOP_BITS)?;
         let rx_len = ring_len(ring)?;
         let frame_cycles = frame_cycles(clocks.cpu, config.baudrate);
         reset(rcc, info, rx_len);
-        let rx = Self::assemble(
-            info,
-            crate::dma::claim_channel(rx_dma),
-            RxD::REQUEST,
-            ring,
-            frame_cycles,
-        );
+        info.state
+            .frame_cycles
+            .store(frame_cycles, Ordering::Relaxed);
+        let rx = Self::assemble(info, crate::dma::claim_channel(rx_dma), RxD::REQUEST, ring);
         let vectors = UartInterrupts {
             line: U::INTERRUPT,
             rx_dma: RxD::INTERRUPT,
             tx_dma: None,
         };
-        rx.start(config, brr, false, None, vectors)
+        let (rx, irq) = rx.start(config, brr, false, None, vectors)?;
+        Ok((
+            Line {
+                info,
+                kernel_clock,
+                fractional_stop: U::FRACTIONAL_STOP_BITS,
+                cpu: clocks.cpu,
+            },
+            rx,
+            irq,
+        ))
     }
 
     /// Keeps the ring's address and length only: the caller's `'static`
     /// reference ends once the UART is open, leaving the driver the ring's
     /// only user.
-    fn assemble(
-        info: &'static Info,
-        dma: Channel,
-        request: u8,
-        ring: &mut [u8],
-        frame_cycles: u32,
-    ) -> Self {
+    fn assemble(info: &'static Info, dma: Channel, request: u8, ring: &mut [u8]) -> Self {
         Self {
             info,
             dma,
@@ -957,7 +1001,6 @@ impl UartRx {
             // `start_ring` counts the first start too.
             restarts: 0,
             halted: false,
-            frame_cycles,
             clock: None,
         }
     }
@@ -973,9 +1016,9 @@ impl UartRx {
         tx_irq: Option<TxIrq>,
         vectors: UartInterrupts,
     ) -> Result<(Self, UartIrq), ConfigError> {
-        self.info.line.write_frame(config, brr);
+        self.info.regs.write_frame(config, brr);
         self.start_ring().map_err(|_| ConfigError::DmaBusy)?;
-        self.info.line.enable(tx);
+        self.info.regs.enable(tx);
         let irq = UartIrq {
             info: self.info,
             rx_dma: self.dma.flag_handle(),
@@ -1093,7 +1136,7 @@ impl UartRx {
     /// as long as `frames` frames take at the configured baud rate.
     /// `Err(Timeout)` if none came.
     pub fn read_within(&mut self, buf: &mut [u8], frames: u32) -> Result<usize, Error> {
-        let cycles = frames.saturating_mul(self.frame_cycles);
+        let cycles = frames.saturating_mul(self.info.state.frame_cycles.load(Ordering::Relaxed));
         let mut deadline = Deadline::new(self.clock, cycles, RX_PASS_CYCLES);
         loop {
             let len = self.try_read(buf)?;
@@ -1268,7 +1311,7 @@ impl UartRx {
             #[cfg(feature = "dma_v1")]
             bufferable: true,
             direction: Direction::PeripheralToMemory,
-            peripheral: self.info.line.rx_address(),
+            peripheral: self.info.regs.rx_address(),
             memory: self.ring as u32,
             double_buffer: None,
             len: self.len,
@@ -1370,7 +1413,7 @@ impl UartIrq {
     /// The USART vector: marks where the line went idle and where line
     /// errors struck, and clears them.
     pub fn on_uart(&mut self) {
-        let (bits, idle) = self.info.line.take_events();
+        let (bits, idle) = self.info.regs.take_events();
         if bits == 0 && !idle {
             return;
         }

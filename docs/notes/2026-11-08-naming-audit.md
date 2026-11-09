@@ -20,6 +20,7 @@ Audited 2026-11-08/09. Target scheme: `../decisions/2026-11-08-naming-scheme.md`
 - SIG-001 = the UID requirement.
 - Granularity: DMA-001/GPIO-001/RES-001 one per driver; UART 15+10+4.
 - GLUE-* has no catalog of its own.
+- Replaced by ADR-003: path-based IDs after Ferrocene, which tied a requirement to the part that fulfils it and would have needed a rename map.
 
 ## Features
 

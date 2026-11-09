@@ -1,6 +1,6 @@
 # FerroHAL debt sweep - plan of record
 
-Status: **in progress** - W1-W4b done (watchdog debug freeze, window, measured LSI; one-pulse; fresh-boot second uses); W5-W13 pending.
+Status: **in progress** - W1-W4b and W5a done (watchdog debug freeze, window, measured LSI; one-pulse; fresh-boot second uses; UART control/flag split); W5b-W13 pending.
 
 ## Prerequisites (in order)
 1. **AWG-011 PR first**, own branch off `origin/main` (140697c): 3 files, +56/-4 -
@@ -25,7 +25,8 @@ DEBT/RESOLVED are pointer-only indexes; one commit per item with its requirement
 | W3 | `Watchdog::start_with_lsi(iwdg, timeout_us, lsi: Hertz)`; `start()` stays nominal; board constants from the bench: F401 ~30.0 kHz, H753 ~31.7 kHz | IWDG-006 |
 | W4 | `Pwm::start_one_pulse()` (OPM bit) | PWM-007 |
 | W4b | Move the six "second use" checks (`run_h.rs:188,193,194`; `run_i.rs:172,177,178`) into fresh-boot runs; delete `tokens!::steal`; DEBT design brief for `free()` | - |
-| W5 | `UartIrq::mask()/unmask()` toggling RXNEIE, IDLEIE, EIE | **USART-005** (001-004 taken) |
+| W5a | UART control/flag split: a `Line` handle owns CR1-CR3, BRR and PRESC; `UartIrq` keeps flag servicing; `split`/`halves`/`UartRx::new`/`send_break`/`set_config`/`regs` move (ADR-004) | - |
+| W5b | `Line::mask()/unmask()` toggling IDLEIE, PEIE, EIE | **USART-005** (001-004 taken) |
 | W6 | Six register accessors internal; `Stream::steal`, `Channel::start(&Transfer)`, `Channel::set_idle_buffer`, `reset::enter_bootloader` internal (`hil/common/usb_bench.rs` -> safe `reboot_to_bootloader()`); `Peripherals::steal` behind `rtic` | API-001 |
 | W7 | Phantom pins removed per package + bonded-pin table, cross-checked by `tools/check_glue.py` (omissions are reported, not failed) | - |
 | W8 | Probe selection by serial (env override + `probe-rs list`); today hardcoded `0483:374b`/`0483:374e` in `hil/run-*.sh:28` | - |

@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 26,
-  "agent": 14,
-  "agent_tokens": 7321
+  "documents": 28,
+  "agent": 16,
+  "agent_tokens": 8351
  },
  "documents": [
   {
@@ -11,8 +11,8 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f40",
-   "bytes": 3284,
-   "tokens": 821
+   "bytes": 3293,
+   "tokens": 824
   },
   {
    "path": "DEBT.md",
@@ -77,6 +77,16 @@
    "status": "accepted"
   },
   {
+   "path": "docs/decisions/2026-11-09-uart-capabilities.md",
+   "class": "agent",
+   "title": "Decision: UART control and flag capabilities (2026-11-09)",
+   "purpose": "ADR-004 - Status: promoted",
+   "bytes": 2125,
+   "tokens": 532,
+   "adr": "ADR-004",
+   "status": "promoted"
+  },
+  {
    "path": "docs/decisions/README.md",
    "class": "agent",
    "title": "Decision records (ADR hub)",
@@ -89,8 +99,8 @@
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is authoritative f",
-   "bytes": 614,
-   "tokens": 154
+   "bytes": 737,
+   "tokens": 185
   },
   {
    "path": "docs/design/free.md",
@@ -99,6 +109,14 @@
    "purpose": "There is no Pwm::free, Uart::free or Tick hand-back. Thi",
    "bytes": 1725,
    "tokens": 432
+  },
+  {
+   "path": "docs/design/uart-ownership.md",
+   "class": "agent",
+   "title": "UART ownership: line, flags, data (2026-11-09)",
+   "purpose": "Source: ADR-004, ../decisions/2026-11-09-uart-capabiliti",
+   "bytes": 1710,
+   "tokens": 428
   },
   {
    "path": "docs/housekeeping/README.md",
@@ -121,8 +139,8 @@
    "class": "agent",
    "title": "Naming audit (evidence)",
    "purpose": "Audited 2026-11-08/09. Target scheme: ../decisions/2026-",
-   "bytes": 2314,
-   "tokens": 579
+   "bytes": 2458,
+   "tokens": 615
   },
   {
    "path": "docs/notes/2026-11-08-rtic-and-hal-comparison.md",
@@ -144,9 +162,9 @@
    "path": "docs/plans/2026-11-08-debt-sweep.md",
    "class": "human",
    "title": "FerroHAL debt sweep - plan of record",
-   "purpose": "Status: in progress - W1-W4b done watchdog debug freeze,",
-   "bytes": 3263,
-   "tokens": 816
+   "purpose": "Status: in progress - W1-W4b and W5a done watchdog debug",
+   "bytes": 3488,
+   "tokens": 872
   },
   {
    "path": "docs/plans/2026-11-08-free-redesign.md",
@@ -185,8 +203,8 @@
    "class": "human",
    "title": "FerroHAL: architecture brief",
    "purpose": "Architecture only. Implementation details are decided wh",
-   "bytes": 26052,
-   "tokens": 6513
+   "bytes": 26005,
+   "tokens": 6502
   },
   {
    "path": "hil/WIRING.md",

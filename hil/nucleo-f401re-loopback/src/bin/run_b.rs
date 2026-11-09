@@ -480,8 +480,8 @@ mod app {
             crate::pe_clear(&mut report, &mut cross, receiver, RX_RING as u32);
         }
 
-        let (tx1, rx1) = usart1.halves();
-        let (tx6, rx6) = usart6.halves();
+        let (line1, tx1, rx1) = usart1.halves();
+        let (line6, tx6, rx6) = usart6.halves();
         report.check_for(
             "USART1 <-> USART6",
             "UART-002",
@@ -490,11 +490,13 @@ mod app {
                 &mut [
                     &mut Pair {
                         name: "USART1->USART6",
+                        line: line1,
                         tx: tx1,
                         rx: rx6,
                     },
                     &mut Pair {
                         name: "USART6->USART1",
+                        line: line6,
                         tx: tx6,
                         rx: rx1,
                     },

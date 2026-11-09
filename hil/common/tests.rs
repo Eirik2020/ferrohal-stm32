@@ -16,7 +16,7 @@ use core::sync::atomic::{AtomicU32, Ordering};
 
 use embedded_io::Write;
 use ferrohal_stm32::uart::{
-    Chunk, ChunkEnd, Config, ConfigError, Error, IrqError, Parity, SendError, StopBits, Uart,
+    Chunk, ChunkEnd, Config, ConfigError, Error, IrqError, Line, Parity, SendError, StopBits, Uart,
     UartInterrupts, UartRx, UartTx,
 };
 
@@ -134,6 +134,8 @@ pub trait Link {
     fn name(&self) -> &'static str;
     fn tx(&mut self) -> &mut UartTx;
     fn rx(&mut self) -> &mut UartRx;
+    /// Sends a break from the transmitting side's line.
+    fn send_break(&mut self) -> Result<(), Error>;
     /// Frames to wait for the next byte before calling the line silent.
     fn patience(&self) -> u32 {
         PATIENCE
@@ -165,6 +167,9 @@ impl Link for Loop<'_> {
     fn rx(&mut self) -> &mut UartRx {
         self.uart.rx()
     }
+    fn send_break(&mut self) -> Result<(), Error> {
+        self.uart.send_break()
+    }
 }
 
 impl Configurable for Loop<'_> {
@@ -189,6 +194,9 @@ impl Link for HostEcho<'_> {
     }
     fn rx(&mut self) -> &mut UartRx {
         self.uart.rx()
+    }
+    fn send_break(&mut self) -> Result<(), Error> {
+        self.uart.send_break()
     }
     fn patience(&self) -> u32 {
         // At least 43 ms at 115200, well over a USB round trip.
@@ -222,6 +230,9 @@ impl Link for Cross<'_> {
     fn rx(&mut self) -> &mut UartRx {
         self.to.rx()
     }
+    fn send_break(&mut self) -> Result<(), Error> {
+        self.from.send_break()
+    }
 }
 
 impl Configurable for Cross<'_> {
@@ -235,6 +246,8 @@ impl Configurable for Cross<'_> {
 /// change the frame, so it streams only.
 pub struct Pair<'a> {
     pub name: &'static str,
+    /// The transmitting side's line.
+    pub line: &'a mut Line,
     pub tx: &'a mut UartTx,
     pub rx: &'a mut UartRx,
 }
@@ -248,6 +261,9 @@ impl Link for Pair<'_> {
     }
     fn rx(&mut self) -> &mut UartRx {
         self.rx
+    }
+    fn send_break(&mut self) -> Result<(), Error> {
+        self.line.send_break(self.tx)
     }
 }
 
@@ -629,7 +645,7 @@ pub fn break_is_a_gap(link: &mut dyn Link) -> Result<(), Fail> {
     let framing = link.rx().health().framing;
     send_pattern(link, 0, 10)?;
     delay_ms(2);
-    link.tx().send_break()?;
+    link.send_break()?;
     delay_ms(2);
     send_pattern(link, 10, 10)?;
     delay_ms(2);
@@ -816,7 +832,7 @@ pub fn inversion(link: &mut dyn Configurable, base: &Config, supported: bool) ->
 /// Sends a break, which the receiver sees as a frame with no stop bit: it
 /// must be reported as a framing error, and the link must recover.
 pub fn line_break(link: &mut dyn Link) -> Result<(), Fail> {
-    link.tx().send_break()?;
+    link.send_break()?;
     expect_error(link, Error::Framing)?;
     echo(link, b"after the break")
 }

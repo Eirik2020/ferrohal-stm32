@@ -21,7 +21,7 @@ use crate::{
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
     uart::ConfigError,
-    usart_v2::{self, Info, Line, RxDma, RxPin, TxDma, TxPin},
+    usart_v2::{self, Info, LineRegs, RxDma, RxPin, TxDma, TxPin},
 };
 
 #[path = "shared/macros.rs"]
@@ -184,7 +184,7 @@ impl DmaInstance for Dma<2> {
 macro_rules! usarts {
     ($($name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
         $(
-            static $info: Info = Info::new(Line::new(pac::$name), RccBit::new(Bus::$bus, $bit));
+            static $info: Info = Info::new(LineRegs::new(pac::$name), RccBit::new(Bus::$bus, $bit));
 
             impl usart_v2::Instance for $name {
                 const KERNEL: Bus = Bus::$bus;

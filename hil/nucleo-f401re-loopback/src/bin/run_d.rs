@@ -59,7 +59,7 @@ mod app {
         };
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run D, clocks: {}", board::CLOCKS);
-        let (usart6, irq6) =
+        let (_line6, usart6, irq6) =
             UartRx::new(&mut run.rcc, run.usart6, &board::SBUS_PLAIN, cx.local.rx6)
                 .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
         let vectors6 = irq6.interrupts();

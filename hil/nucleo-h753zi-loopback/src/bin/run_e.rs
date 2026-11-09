@@ -68,14 +68,14 @@ mod app {
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run E, clocks: {}", board::CLOCKS);
         let mut buffers = board::dma_buffers().into_iter();
-        let (usart1, irq1) = UartRx::new(
+        let (_line1, usart1, irq1) = UartRx::new(
             &mut run.rcc,
             run.usart1,
             &board::SBUS,
             buffers.next().unwrap().rx,
         )
         .unwrap_or_else(|error| defmt::panic!("USART1: {}", error));
-        let (uart7, irq7) = UartRx::new(
+        let (_line7, uart7, irq7) = UartRx::new(
             &mut run.rcc,
             run.uart7,
             &board::MSP,

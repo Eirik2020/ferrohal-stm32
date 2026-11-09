@@ -15,7 +15,7 @@ use stm32_metapac::usart::{
 };
 
 pub use crate::uart::stream_dma::{
-    Info, Instance, RxDma, RxPin, TxDma, TxPin, Uart, UartIrq, UartRx, UartTx,
+    Info, Instance, Line, RxDma, RxPin, TxDma, TxPin, Uart, UartIrq, UartRx, UartTx,
 };
 use crate::uart::{
     Config, Parity, StopBits,
@@ -28,11 +28,11 @@ pub type Regs = stm32_metapac::usart::Usart;
 /// RX and TX inversion: CR2's RXINV and TXINV.
 pub(crate) const INVERSION: bool = true;
 
-/// One USART's registers, as the driver uses them.
+/// One USART's register block, as the driver uses it.
 #[derive(Clone, Copy)]
-pub struct Line(Regs);
+pub struct LineRegs(Regs);
 
-impl Line {
+impl LineRegs {
     pub(crate) const fn new(regs: Regs) -> Self {
         Self(regs)
     }
