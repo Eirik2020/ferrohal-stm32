@@ -213,6 +213,7 @@ mod app {
                 tim1.start();
                 let _ = sampler_b.set_rate(Hertz::mhz(2));
                 pwm::duty_check(&mut report, name, &mut sampler_b, 15, 4, cpu);
+                pwm::one_pulse_check(&mut report, name, &mut tim1, 15, 4, &mut sampler_b, cpu);
                 tim1.set_output::<3>(false);
                 tim1.stop();
             }

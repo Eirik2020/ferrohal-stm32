@@ -200,6 +200,20 @@ requirements:
           method:
             test: ferrohal_stm32::timer_v1::pwm::tests::nearest_rounds_and_reports
 
+  - id: PWM-007
+    title: One pulse, then the counter stops
+    statement: >-
+      A one-pulse start shall output exactly one period and stop the counter.
+    rationale: >-
+      A single pulse must not repeat; a caller needs the timer to stop itself.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
   - id: AWG-001
     title: Each lane plays its own samples
     statement: >-

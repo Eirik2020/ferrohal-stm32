@@ -21,7 +21,7 @@
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
 //!
-//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006
+//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007
 
 use core::{
     marker::PhantomData,
@@ -354,8 +354,35 @@ impl<T: ChannelTimer> Pwm<T> {
         });
     }
 
+    /// Starts the counter and clears one-pulse mode: a timer left in it by
+    /// [`start_one_pulse`](Self::start_one_pulse) would stop after one
+    /// period again.
     pub fn start(&mut self) {
-        self.gp.cr1().modify(|w| w.set_cen(true));
+        self.gp.cr1().modify(|w| {
+            w.set_opm(false);
+            w.set_cen(true);
+        });
+    }
+
+    /// Starts exactly one period: `CR1.OPM` clears the counter enable at
+    /// the next update, so the channels output one period of their waveform
+    /// and no more. With PWM mode 1 the stopped counter leaves the output
+    /// active; a caller that needs the pin idle must
+    /// [`set_output`](Self::set_output) it false afterwards.
+    pub fn start_one_pulse(&mut self) {
+        // A staged counter sits at its reload value, so its next update is
+        // one tick away: with one-pulse mode already on, that update would
+        // stop the counter before a period ran. Latch the preloaded duties
+        // and reset the counter with an update generation while the mode is
+        // off, then start with it on.
+        self.gp.egr().write(|w| w.set_ug(true));
+        self.gp
+            .sr()
+            .write_value(stm32_metapac::timer::regs::SrGp16(0));
+        self.gp.cr1().modify(|w| {
+            w.set_opm(true);
+            w.set_cen(true);
+        });
     }
 
     pub fn stop(&mut self) {

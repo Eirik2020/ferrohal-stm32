@@ -546,6 +546,7 @@ where
     pwm.set_output::<1>(black_box(false));
     pwm.set_output::<1>(black_box(true));
     pwm.start();
+    pwm.start_one_pulse();
 }
 
 /// A sampler of port B through every operation.
