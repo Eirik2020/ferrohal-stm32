@@ -24,9 +24,10 @@ status=0
 for run in ${*:-a b c d e f g h i j k l m n o p q r s u v}; do
     log="$here/logs/f401-run-$run.log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
-    # catch that reset, or the second boot never runs.
+    # catch that reset, or the second boot never runs. Run V's own watchdog
+    # does the same at the end of its first boot.
     runner=()
-    if [ "$run" = j ] || [ "$run" = l ]; then
+    if [ "$run" = j ] || [ "$run" = l ] || [ "$run" = v ]; then
         runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32F401RE")
     fi
     (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1

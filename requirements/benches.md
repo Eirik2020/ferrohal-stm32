@@ -163,3 +163,25 @@ Pass: every check in both runs passes and the script exits zero. Run M
 (the USB device bench) is off the default list while its CN13 cable
 powers the Pico: `./run-h753.sh m` still runs it with the cable moved
 back.
+
+## Constructor refusals on the Nucleo-F401RE
+
+`hil/run-f401.sh v`, with J1, J2, S3 and S5 fitted. Every public
+constructor refuses on hardware, hands its parts back, and the run uses
+them: a no-PLL clock config (the RCC token re-freezes at 56 MHz on PLLQ,
+so the USB port must refuse too, and its pins come back as the GPIO that
+carries a level over J2), a 1-baud UART (the wiring and buffers open the
+port, which echoes a frame over J1), a 0 Hz SPI stream config on S5 and
+a 0 Hz polled config on S3 (both wirings transfer bytes), an
+out-of-range I2C speed (the wiring opens the bus, which NACKs a vacant
+address), an empty ADC scan sequence (the converter, stream and buffer
+scan the internal channels), a 0-rate PWM (the timer makes the lanes),
+a lane buffer in CCM RAM, which no DMA controller reaches (the channel
+and stream play on PB0), a 0-rate sampler (the parts decode that
+lane), two AWG timers at different periods (the second PWM re-rated and
+the pair plays on PB6), an inexact tick and timebase (both timers run,
+the tick paused), and a 1 us watchdog (the peripheral starts, feeds for
+300 ms, then starves, and the second boot reports the bite — run J's
+shape, so this run's own reset clears its flags and leaves none for
+the next bench run). Pass: every check in both boots passes and the
+script exits zero.

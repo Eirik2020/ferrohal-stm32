@@ -42,6 +42,8 @@ mod board;
 mod pwm;
 #[path = "../../../common/tests.rs"]
 mod tests;
+#[path = "../../../common/watchdog.rs"]
+mod watchdog;
 
 use defmt_rtt as _;
 use panic_probe as _;
@@ -60,6 +62,7 @@ mod app {
     use crate::{
         board, pwm,
         tests::{self, Fail, Report},
+        watchdog,
     };
 
     #[shared]
@@ -144,6 +147,14 @@ mod app {
         let Some(mut run) = cx.local.run.take() else {
             defmt::unreachable!()
         };
+        // Run J's two-boot shape: the second boot, arriving by the watchdog's
+        // own reset at the end of the first, reports the bite and ends
+        // cleanly; the first runs the refusals.
+        let cause = run.rcc.reset_cause();
+        if watchdog::after_reset(&mut report, "IWDG 50 ms", cause, (17, 47), (47_500, 52_500)) {
+            let led = &mut run.led;
+            tests::finish(&report, || led.set_high());
+        }
         static mut SPI_TX: [u8; 64] = [0; 64];
         static mut SPI_RX: [u8; 64] = [0; 64];
         static mut LANE3: [u32; 20] = [0; 20];
@@ -653,26 +664,21 @@ mod app {
         );
 
         // Watchdog: a 1 us timeout refuses; the peripheral comes back and
-        // starts. Its 5 s outlasts probe-rs's own exit handling, which
-        // outlasted a 500 ms one and caught the bite as an exception: the
-        // bite itself is run J's, not this run's.
+        // starts. From there run J's shape takes over: feed for 300 ms,
+        // then starve, and the second boot reports the bite. This way the
+        // run's own reset clears its flags, and no live watchdog outlives
+        // probe-rs to leave one behind for the next bench run.
         let (dog, watchdog_refusal) = match Watchdog::start(run.iwdg, 1) {
             Ok(_) => defmt::panic!("a 1 us watchdog was accepted"),
             Err(refused) => {
                 let error = refused.error();
                 let iwdg = refused.into_parts();
-                match Watchdog::start_with_lsi(iwdg, 5_000_000, board::LSI_HZ) {
+                match Watchdog::start_with_lsi(iwdg, watchdog::TIMEOUT_US, board::LSI_HZ) {
                     Ok(dog) => (dog, Some(error)),
                     Err(refused) => defmt::panic!("the watchdog: {}", refused.error()),
                 }
             }
         };
-        dog.feed();
-        // Freeze the watchdog on a debugger halt: probe-rs halts the core at
-        // the semihosting exit, and the frozen counter cannot reset the chip
-        // out from under that, the way it did before this bit was set.
-        use stm32_metapac as pac;
-        pac::DBGMCU.apb1fzr().modify(|w| w.set_iwdg(true));
         report.check(
             "IWDG",
             "a 1 us timeout refuses; the peripheral comes back and starts [API-001]",
@@ -685,7 +691,14 @@ mod app {
                 None => Err(Fail::Count { expected: 1, got: 0 }),
             },
         );
-        let led = &mut run.led;
-        tests::finish(&report, || led.set_high());
+        let frozen = Watchdog::is_frozen_on_halt();
+        watchdog::feed_then_starve(
+            &mut report,
+            "IWDG 50 ms",
+            cause,
+            dog,
+            board::REFUSAL_CLOCKS.cpu,
+            frozen,
+        );
     }
 }
