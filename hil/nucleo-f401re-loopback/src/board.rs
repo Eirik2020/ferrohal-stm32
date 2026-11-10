@@ -880,3 +880,195 @@ pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
         },
     })
 }
+
+// Run V: every constructor refuses on hardware and hands its parts back.
+
+/// The clocks run V freezes: the bench's own, except PLLQ gives 56 MHz
+/// instead of 48, so the USB constructor must refuse (an F4's only USB
+/// clock source is a 48 MHz PLLQ). Nothing else on this bench uses PLLQ.
+pub const REFUSAL_CLOCK_CONFIG: Config = Config {
+    hse: None,
+    pll: Some(Pll {
+        source: PllSource::Hsi,
+        prediv: 16,
+        mul: 336,
+        divp: PllP::Div4,
+        divq: Some(6),
+    }),
+    sys: Sysclk::PllP,
+    ahb_pre: AhbPrescaler::Div1,
+    apb1_pre: ApbPrescaler::Div2,
+    apb2_pre: ApbPrescaler::Div1,
+    supply: Supply::V2_7To3_6,
+};
+pub const REFUSAL_CLOCKS: Clocks = match REFUSAL_CLOCK_CONFIG.validate() {
+    Ok(clocks) => clocks,
+    Err(_) => panic!("REFUSAL_CLOCK_CONFIG breaks the F401's limits"),
+};
+
+/// A configuration that must refuse: `PllP` as the system clock with no
+/// PLL configured at all.
+pub const NO_PLL_CONFIG: Config = Config {
+    hse: None,
+    pll: None,
+    sys: Sysclk::PllP,
+    ahb_pre: AhbPrescaler::Div1,
+    apb1_pre: ApbPrescaler::Div2,
+    apb2_pre: ApbPrescaler::Div1,
+    supply: Supply::V2_7To3_6,
+};
+const _: () = assert!(matches!(
+    NO_PLL_CONFIG.validate(),
+    Err(ClockError::PllNotConfigured)
+));
+const _: () = {
+    match REFUSAL_CLOCKS.pll_q {
+        Some(Hertz(56_000_000)) => {}
+        _ => panic!("REFUSAL_CLOCK_CONFIG must give 56 MHz on PLLQ"),
+    }
+};
+
+/// USART1 over J1, DMA2 stream 7 transmitting, stream 2 receiving.
+pub type Usart1LoopS2 = Wiring<USART1, Af7<'A', 9>, Af7<'A', 10>, Stream<2, 7>, Stream<2, 2>>;
+/// SPI3 on port C over S5, DMA1 stream 5 transmitting, stream 2 receiving:
+/// DMA2's streams are the UART's, the ADC scan's and the sampler's.
+pub type Spi3PortCRefusal =
+    spi::Wiring<SPI3, Af6<'C', 10>, Af6<'C', 11>, Af6<'C', 12>, Stream<1, 5>, Stream<1, 2>>;
+
+/// I2C3 to the Pico simulator's link, or to nothing: pulled up either way,
+/// a vacant address is NACKed by the bus itself.
+pub type I2c3Link =
+    i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4>>, Pin<'C', 9, Alternate<4>>>;
+
+/// SPI2 polled, over S3.
+pub type Spi2Polled =
+    spi::BlockingWiring<SPI2, Af5<'B', 13>, Af5<'B', 14>, Af5<'B', 15>>;
+
+pub struct RunV {
+    pub rcc: Rcc,
+    pub led: Led,
+    /// The USB token and its two pins, as the driver wants them wired.
+    pub usb: (
+        ferrohal_stm32::chip::USB_OTG_FS,
+        Pin<'A', 11, Alternate<10>>,
+        Pin<'A', 12, Alternate<10>>,
+    ),
+    /// USART1 over J1, DMA2 streams 7 and 2.
+    pub usart1: Usart1LoopS2,
+    /// SPI3 over S5, DMA1 streams 5 and 2.
+    pub spi3: Spi3PortCRefusal,
+    /// The ADC scan's stream, DMA2 stream 0.
+    pub scan_stream: Stream<2, 0>,
+    /// SPI2 polled over S3.
+    pub spi2_polled: Spi2Polled,
+    /// I2C3 on PA8 and PC9.
+    pub i2c3: I2c3Link,
+    /// ADC1; the scan uses the internal channels, so no pin is taken.
+    pub adc1: ferrohal_stm32::chip::ADC1,
+    /// TIM3's CH3 on PB0, and the same channel again on PC8: the refused
+    /// lane construction uses PC8's channel with PB0's buffer.
+    pub tim3: TIM3,
+    pub ch3: Pin<'B', 0, Alternate<2>>,
+    /// TIM3 CH3's stream, DMA1 stream 7.
+    pub lane3_stream: Stream<1, 7>,
+    /// TIM4's CH1 on PB6, run O's waveform pin, on DMA1 stream 0; TIM2's
+    /// CH3 on PB10, run R's, on DMA1 stream 1; both read back by the TIM1
+    /// sampler on DMA2 stream 5.
+    pub tim4: TIM4,
+    pub pb6: Pin<'B', 6, Alternate<2>>,
+    pub lane4_stream: Stream<1, 0>,
+    pub tim2: TIM2,
+    pub pb10: Pin<'B', 10, Alternate<1>>,
+    pub lane2_stream: Stream<1, 1>,
+    pub tim1: TIM1,
+    pub sampler_stream: Stream<2, 5>,
+    /// TIM9 for the tick, TIM5 for the timebase.
+    pub tim9: TIM9,
+    pub tim5: TIM5,
+    pub iwdg: ferrohal_stm32::chip::IWDG,
+    /// Port A's control, for re-purposing the USB pins the refusal hands back.
+    pub ctrl_a: Ctrl<'A'>,
+}
+
+pub fn run_v(p: Peripherals) -> Result<(RunV, ClockError), ClockError> {
+    // The refusal first: a config naming PllP with no PLL must hand the RCC
+    // token back, and that token freezes the run's own clocks.
+    let (refusal, rcc) = match p.RCC.freeze(&NO_PLL_CONFIG) {
+        Err(refused) => refused.into_inner(),
+        Ok(_) => defmt::panic!("NO_PLL_CONFIG was accepted"),
+    };
+    let mut rcc = rcc
+        .freeze(&REFUSAL_CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    let (tx1, rx1) = uart_pins(a.p9, a.p10, &mut a.ctrl);
+    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
+    scl.set_pull(&mut a.ctrl, Pull::Up);
+    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
+    sda.set_pull(&mut c.ctrl, Pull::Up);
+    // The DShot600-rate lanes need fast edges, as the `sck` helper sets.
+    let mut ch3: Pin<'B', 0, Alternate<2>> = b.p0.into_alternate(&mut b.ctrl);
+    ch3.set_speed(&mut b.ctrl, Speed::High);
+    let mut pb6: Pin<'B', 6, Alternate<2>> = b.p6.into_alternate(&mut b.ctrl);
+    pb6.set_speed(&mut b.ctrl, Speed::High);
+    let mut pb10: Pin<'B', 10, Alternate<1>> = b.p10.into_alternate(&mut b.ctrl);
+    pb10.set_speed(&mut b.ctrl, Speed::High);
+    Ok((RunV {
+        rcc,
+        led,
+        usb: (
+            p.USB_OTG_FS,
+            a.p11.into_alternate(&mut a.ctrl),
+            a.p12.into_alternate(&mut a.ctrl),
+        ),
+        usart1: Wiring {
+            uart: p.USART1,
+            tx: tx1,
+            rx: rx1,
+            tx_dma: dma2.s7,
+            rx_dma: dma2.s2,
+        },
+        spi3: spi::Wiring {
+            spi: p.SPI3,
+            sck: sck(c.p10, &mut c.ctrl),
+            miso: miso(c.p11, &mut c.ctrl),
+            mosi: mosi(c.p12, &mut c.ctrl),
+            tx_dma: dma1.s5,
+            rx_dma: dma1.s2,
+        },
+        scan_stream: dma2.s0,
+        spi2_polled: spi::BlockingWiring {
+            spi: p.SPI2,
+            sck: sck(b.p13, &mut b.ctrl),
+            miso: miso(b.p14, &mut b.ctrl),
+            mosi: mosi(b.p15, &mut b.ctrl),
+        },
+        i2c3: i2c::Wiring {
+            i2c: p.I2C3,
+            scl,
+            sda,
+        },
+        adc1: p.ADC1,
+        tim3: p.TIM3,
+        ch3: ch3,
+        lane3_stream: dma1.s7,
+        tim4: p.TIM4,
+        pb6: pb6,
+        lane4_stream: dma1.s0,
+        tim2: p.TIM2,
+        pb10: pb10,
+        lane2_stream: dma1.s1,
+        tim1: p.TIM1,
+        sampler_stream: dma2.s5,
+        tim9: p.TIM9,
+        tim5: p.TIM5,
+        iwdg: p.IWDG,
+        ctrl_a: a.ctrl,
+    }, refusal))
+}
+
