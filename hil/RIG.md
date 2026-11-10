@@ -26,3 +26,18 @@ the Foxeer's USB never enumerated after a DFU `leave` until the feature was on. 
 probe flash resets the chip and hides the fault, so tests can't rely on how the
 image arrived. Pass: it exits zero, naming the five firmware crates and the
 simulator it skips.
+
+## The fitted parts
+
+Every run's log ends with the identity pair — `device_uid` and the die
+revision, `DBGMCU_IDC.REV_ID` — so the revision a check ran on is in the
+record. The fitted part itself is a board constant, the type each board's
+manual and chip module name:
+
+- **Nucleo-F401RE**: STM32F401RET6, die revision 0x1001.
+- **Nucleo-H753ZI**: STM32H753ZIT6, die revision 0x2003 (V).
+- **Foxeer F405 V2**: STM32F405RGT6, die revision 0x100f.
+- **Lucid H743**: STM32H743VIT6, die revision 0x2003 (V).
+
+ES0392's per-part rules — 2.2.10's AXI SRAM reads, revision Y/W only, and
+2.2.21's 480 MHz — are decided off the revision: both H7s here are V.

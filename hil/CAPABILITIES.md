@@ -46,8 +46,8 @@ and the Lucid's CN13 with its DFU runs.
   start, stretching within and past the bound, refusal, stuck-bus recovery,
   health counts; the Lucid's barometer was proven on this path.
 - **USB CDC**: enumeration and 64 KiB echo (run M, rerun-safe), the RTIC-vector
-  variant on the flight boards, the UID and `REV_ID` they report, the VBUS
-  diagnostics that tell a charge-only cable from a dead port.
+  variant on the flight boards, the VBUS diagnostics that tell a charge-only
+  cable from a dead port.
 - **Storage**: the Lucid's SD card, one and sixteen blocks; the Foxeer's NOR
   erase/program/read in FerroWasp's scratch sector.
 - **Caches, one shape**: the H753 UART runs with I- and D-cache on and the DMA
@@ -58,6 +58,9 @@ and the Lucid's CN13 with its DFU runs.
   H753ZI, and both flight benches' nine staged refusals. The Lucid's is the
   only bench where the SDMMC constructor is provable; USB is the F401's
   alone, the H7's constructor starting its own 48 MHz source.
+- **Identity**: every run's log ends with the UID and the die revision, and
+  RIG.md records each board's fitted part; 2.2.10 and 2.2.21 are decided off
+  them.
 - **Host-only proofs**: the no-panic link per chip, glue against metapac,
   feature guards, doc budgets, host unit tests. These need no board and are not
   counted as hardware evidence.
@@ -66,9 +69,6 @@ and the Lucid's CN13 with its DFU runs.
 
 Grouped by why; each is a candidate for the queue below.
 
-- **Silicon revision**: the USB-reporting benches print `REV_ID` (the Lucid is
-  0x2003, revision V), but the Nucleo runs do not and no rule keys off it, so
-  2.2.10 and 2.2.21 are decided per part by hand.
 - **Bondout and package facts**: one package per die runs here, and that is
   enough for digital behaviour — the same RTL sits behind every bondout, so a
   second package would add no firmware evidence. What a package does change is
@@ -82,7 +82,6 @@ Grouped by why; each is a candidate for the queue below.
 - **WWDG, flash ECC, option bytes/RDP**: no driver and no run; their errata are
   firmware rules only.
 - **UART4/5 on the F405**: not wired, so the reserved-CTS-bit fix is inspection.
-- **`device_uid`**: never read on hardware.
 - **USB beyond CDC**: no OTG_HS, no host mode, no VBUS/data fault injection.
 - **Error paths**: DMA transfer errors, USART overrun, noise, stop timeout.
 - **Electrical**: no rail margining, no current measurement, no scope on edges;
@@ -98,26 +97,23 @@ Grouped by why; each is a candidate for the queue below.
 In order; each names what it unlocks. Cheap ones first, then the ones that
 unblock a claim.
 
-1. **Extend `REV_ID` and the fitted part marking to the Nucleo runs.** The USB
-   benches report the identity pair; the Nucleo ones print only the UID, and the
-   marking is a board constant. Unlocks 2.2.10 and 2.2.21 per part.
-2. **Fault injection.** DMA transfer error, USART overrun, noise, stop timeout —
+1. **Fault injection.** DMA transfer error, USART overrun, noise, stop timeout —
    the error paths `DEBT.md` names as never exercised.
-3. **A cache/MPU matrix.** Write-through region, MPU off with caches on, an
+2. **A cache/MPU matrix.** Write-through region, MPU off with caches on, an
    invalidate followed by a store with and without a DMB. Proves the ES0392
    firmware rules and answers "is it safe for FerroWasp to enable caches?" with
    a run instead of an argument.
-4. **UART4/5 on the F405** (or move that check to the H753): closes an
+3. **UART4/5 on the F405** (or move that check to the H753): closes an
    inspection-only fix.
-5. **DFU without a hand on BOOT.** Keep a DFU requester on the host, or a boot
+4. **DFU without a hand on BOOT.** Keep a DFU requester on the host, or a boot
    image that always accepts `reboot dfu`.
-6. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
+5. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
-7. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
+6. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
    the drift and lock-up classes a 300 s run cannot.
-8. **Environmental corners.** Temperature and supply extremes only where a
+7. **Environmental corners.** Temperature and supply extremes only where a
    flight-relevant claim needs them.
-9. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
+8. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
    claims get tight enough that read-back is not enough.
 
 ## Using it

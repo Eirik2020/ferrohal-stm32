@@ -37,7 +37,7 @@ Metadata only - read after choosing. 48 documents, ~16553 agent tokens. Regenera
 | a | docs/policies/agent-docs.md | 289 tok | Agent docs = AGENTS.md + docs/{policies,decis |
 | a | docs/policies/documentation.md | 788 tok | Normative. Two classes: |
 | a | docs/policies/safety.md | 631 tok | Normative. Goal G5 requirements/goals.md. Rat |
-| h | DEBT.md | 23562 B | Open items only. Finished work moves to RESOL |
+| h | DEBT.md | 23454 B | Open items only. Finished work moves to RESOL |
 | h | README.md | 4883 B | A scheduler-agnostic STM32 HAL on stm32-metap |
 | h | RESOLVED.md | 36813 B | History: items moved out of DEBT.mdDEBT.md on |
 | h | THIRD-PARTY.md | 3045 B | FerroHAL is licensed under MIT OR Apache-2.0  |
@@ -45,8 +45,8 @@ Metadata only - read after choosing. 48 documents, ~16553 agent tokens. Regenera
 | h | docs/plans/2026-11-08-debt-sweep.md | 4343 B | Status: in progress - W1-W7 done watchdog deb |
 | h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. ste |
 | h | docs/plans/2026-11-10-doc-sweep.md | 3413 B | Owner-ordered, after W12 merged #29: the READ |
-| h | hil/CAPABILITIES.md | 7979 B | The rig turns requirement claims into measure |
-| h | hil/RIG.md | 1593 B | What every bench script and firmware crate re |
+| h | hil/CAPABILITIES.md | 7627 B | The rig turns requirement claims into measure |
+| h | hil/RIG.md | 2250 B | What every bench script and firmware crate re |
 | h | hil/WIRING.md | 4765 B | The two Nucleo benches prove FerroHAL's I2C m |
 | h | hil/pico-i2c-sim/README.md | 1483 B | A Raspberry Pi Pico 1 RP2040 standing in for  |
 | h | requirements/benches-refusals.md | 2594 B | The refusal runs of benches.mdbenches.md, spl |

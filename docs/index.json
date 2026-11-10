@@ -19,8 +19,8 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 23562,
-   "tokens": 5891
+   "bytes": 23454,
+   "tokens": 5864
   },
   {
    "path": "README.md",
@@ -351,16 +351,16 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 7979,
-   "tokens": 1995
+   "bytes": 7627,
+   "tokens": 1907
   },
   {
    "path": "hil/RIG.md",
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 1593,
-   "tokens": 399
+   "bytes": 2250,
+   "tokens": 563
   },
   {
    "path": "hil/WIRING.md",
