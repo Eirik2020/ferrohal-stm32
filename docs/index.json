@@ -19,8 +19,8 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.m",
-   "bytes": 24237,
-   "tokens": 6060
+   "bytes": 24203,
+   "tokens": 6051
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once do",
-   "bytes": 31949,
-   "tokens": 7988
+   "bytes": 32447,
+   "tokens": 8112
   },
   {
    "path": "THIRD-PARTY.md",
@@ -251,8 +251,8 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measurements",
-   "bytes": 7807,
-   "tokens": 1952
+   "bytes": 7901,
+   "tokens": 1976
   }
  ]
 }

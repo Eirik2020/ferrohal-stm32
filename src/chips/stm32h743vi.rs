@@ -647,6 +647,11 @@ stream_interrupts!(
         4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
 );
 
+/// The die revision code, `DBGMCU_IDC.REV_ID` (bits 31:16) on RM0433.
+pub(crate) fn revision() -> u16 {
+    pac::DBGMCU.idc().read().rev_id()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

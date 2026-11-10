@@ -264,6 +264,19 @@ pub fn uid_suite(report: &mut Report, link: &mut Link) {
     );
 }
 
+/// The die revision, `DBGMCU_IDC.REV_ID`. ES0392 2.2.10 and 2.2.21 depend on it,
+/// so the log must carry it; the name appears when ES0392 Table 2 knows it.
+pub fn revision_suite(report: &mut Report, link: &mut Link) {
+    let rev = signature::revision();
+    let name = match rev {
+        0x1003 => " (Y/W)",
+        0x2001 => " (X)",
+        0x2003 => " (V)",
+        _ => "",
+    };
+    check!(report, link, rev != 0, "rev: 0x{:04x}{}", rev, name);
+}
+
 /// The CPU's cycles counted against the host's 1 kHz start-of-frames, the one
 /// clock here that doesn't come from the crystal, then the timebase against
 /// the CPU. `dsts` is the USB core's device status register.

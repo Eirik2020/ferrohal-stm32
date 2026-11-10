@@ -46,8 +46,8 @@ and the Lucid's CN13 with its DFU runs.
   start, stretching within and past the bound, refusal, stuck-bus recovery,
   health counts; the Lucid's barometer was proven on this path.
 - **USB CDC**: enumeration and 64 KiB echo (run M, rerun-safe), the RTIC-vector
-  variant on the flight boards, the VBUS diagnostics that tell a charge-only
-  cable from a dead port.
+  variant on the flight boards, the UID and `REV_ID` they report, the VBUS
+  diagnostics that tell a charge-only cable from a dead port.
 - **Storage**: the Lucid's SD card, one and sixteen blocks; the Foxeer's NOR
   erase/program/read in FerroWasp's scratch sector.
 - **Caches, one shape**: the H753 UART runs with I- and D-cache on and the DMA
@@ -61,8 +61,9 @@ and the Lucid's CN13 with its DFU runs.
 
 Grouped by why; each is a candidate for the queue below.
 
-- **Silicon revision**: nothing reads `DBGMCU_IDC.REV_ID`, so revision-dependent
-  errata (ES0392 2.2.10 AXI SRAM reads, 2.2.21 480 MHz) cannot be decided per part.
+- **Silicon revision**: the USB-reporting benches print `REV_ID` (the Lucid is
+  0x2003, revision V), but the Nucleo runs do not and no rule keys off it, so
+  2.2.10 and 2.2.21 are decided per part by hand.
 - **Bondout and package facts**: one package per die runs here, and that is
   enough for digital behaviour — the same RTL sits behind every bondout, so a
   second package would add no firmware evidence. What a package does change is
@@ -94,9 +95,9 @@ Grouped by why; each is a candidate for the queue below.
 In order; each names what it unlocks. Cheap ones first, then the ones that
 unblock a claim.
 
-1. **Record `REV_ID` and the fitted part marking in every run's log.** One check
-   plus board constants. Unlocks the 2.2.10 (AXI SRAM) and 2.2.21 (480 MHz)
-   decisions and makes the board identity auditable.
+1. **Extend `REV_ID` and the fitted part marking to the Nucleo runs.** The USB
+   benches report the identity pair; the Nucleo ones print only the UID, and the
+   marking is a board constant. Unlocks 2.2.10 and 2.2.21 per part.
 2. **A refusal run per chip.** Refuse each public constructor on hardware, then
    use the returned parts. Closes `DEBT.md` §8's largest item and exercises
    error paths for real.

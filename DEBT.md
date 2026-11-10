@@ -7,7 +7,7 @@ Status as of 2026-11-06:
 - **F401:** `hil/run-f401.sh` passes all eighteen runs, 248 checks; the runs, their links and their checks are in `requirements/benches.md`.
 - **H753ZI:** `hil/run-h753.sh` passes all eighteen runs, same detail; run M needs a cable from CN13, and passed 11 of 11 on 2026-11-05.
 - **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
-- **H743VI:** `hil/run-lucid.sh` passes 50 of 50 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 571 and 487 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams (2026-11-09). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
+- **H743VI:** `hil/run-lucid.sh` passes 51 of 51 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 572 and 568 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams, its UID and rev V (2026-11-10). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
@@ -141,7 +141,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Errata
 
-- **Medium: ES0392 2.2.10 exposes AXI SRAM DMA reads on rev-Y H7s.** DMA buffers are AXI SRAM (bench: its top 16 KiB; `chip::DMA_RAM`); on revision Y/W a controller delaying acceptance while another read is issued can see corruption (absent on X and V). `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it at a throughput cost, metapac lacks the register, and nothing reads `DBGMCU_IDC.REV_ID`: decide per part. `docs/design/h7-errata.md`.
+- **Medium: ES0392 2.2.10 exposes AXI SRAM DMA reads on rev-Y H7s.** DMA buffers are AXI SRAM (bench: its top 16 KiB; `chip::DMA_RAM`); on revision Y/W a controller delaying acceptance while another read is issued can see corruption (absent on X and V). `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it at a throughput cost and metapac lacks the register. `signature::revision` reports the code: the Lucid is 0x2003, revision V, so 2.2.10 is clear there; the H753ZI's revision is unread, and a Y/W part needs the override. `docs/design/h7-errata.md`.
 - **Low: a flash driver must start from ES0392 2.2.6/2.2.7/2.2.18.** `BFAR` may hold the previous access's address on a double ECC error, so only `FLASH_ECC_FA1R/FA2R` is usable; `FAxR` may miss the second of two consecutive errors (no workaround), and flash CRC is invalid at sector 7's last address. Nothing reads flash status yet.
 
 ## 5. STM32H743VI (TBS Lucid H7)
@@ -174,5 +174,4 @@ every testable item above.
 
 - **Lowest: no run refuses a constructor.** Every public constructor hands its tokens back (`Refused`), proven by its type, `Refused`'s host tests and the no-panic link's retries; no bench run refuses one and then uses the parts. A run per chip that refuses each constructor (UART, SPI, I2C, PWM, lane, sampler, AWG, ADC, SDMMC, USB, tick, timebase, watchdog, RCC) would close it.
 - **Lowest: UART4/5's reserved CTS bit is changed but not exercised.** `clear_tc` now writes 0 at SR bit 9 on UART4/5 (CTS is reserved there, RM0090 30.6.1); no run uses UART4 or UART5, because the F405 bench doesn't wire them.
-- **Lowest: `signature::device_uid` has not been read on hardware.** A bench run that prints it, checks it is nonzero and survives a reset would prove it; nothing compares it yet.
-- **Lowest: the rig cannot vary the conditions several ES0392 rules depend on.** One MPU/cache shape, one package and one silicon revision per chip, and neither `REV_ID` nor the part marking is recorded: write-through memory, the HCLK/8 SysTick path, WWDG, option-byte/RDP flows and flash ECC go untested, so those errata stay firmware rules, not bench facts. Record `REV_ID` and the marking, and add a write-through run, when cache guidance is needed.
+- **Lowest: the rig cannot vary the conditions several ES0392 rules depend on.** One MPU/cache shape, one package and one silicon revision per chip, and the part marking is not recorded while only the USB benches report `REV_ID`: write-through memory, the HCLK/8 SysTick path, WWDG, option-byte/RDP flows and flash ECC go untested, so those errata stay firmware rules, not bench facts. Record the marking, and add a write-through run, when cache guidance is needed.

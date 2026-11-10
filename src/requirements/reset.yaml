@@ -98,3 +98,23 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
+
+  - id: SIG-002
+    title: The die revision is readable
+    statement: >-
+      The driver shall read the chip's die revision code.
+    rationale: >-
+      ES0392 2.2.10 and 2.2.21 depend on the silicon revision, so a board must
+      know which part it carries.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#The TBS Lucid H7 board bench
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
+
