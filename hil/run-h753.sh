@@ -4,8 +4,10 @@
 # polled SPI run L, USB CDC run M (off the default list: its CN13 cable now
 # powers the Pico 1 — move it back to run `m` by hand), bootloader request
 # run N, ADC run O, timer trigger run P, waveform loopback run Q, I2C run R
-# (I2C3 on PA8/PC9, no slave fitted, no links needed), and I2C run S against
-# the Pico 1 simulator (I2C4 on PD12/PD13; hil/WIRING.md has the wiring).
+# (I2C3 on PA8/PC9, no slave fitted, no links needed), I2C run S against
+# the Pico 1 simulator (I2C4 on PD12/PD13; hil/WIRING.md has the wiring), and
+# constructor-refusal run U (needs Z2, S1 and S3; no USB check: this chip's
+# constructor starts its own 48 MHz source and cannot be made to refuse).
 # Every UART and SPI looped back to itself. Exits non-zero if any run failed.
 #
 # Needs the Zio links described in nucleo-h753zi-loopback/src/board.rs.
@@ -21,13 +23,13 @@ status=0
 # Run M still runs when asked for (`./run-h753.sh m`), with the cable
 # moved back to CN13; it is off the defaults below while the cable
 # powers the Pico.
-for run in ${*:-a b c d e f g h i j k l n o p q r s t}; do
+for run in ${*:-a b c d e f g h i j k l n o p q r s t u}; do
     log="$here/logs/h753-run-$run.log"
     : > "$log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
     # catch that reset, or the second boot never runs.
     runner=()
-    if [ "$run" = k ] || [ "$run" = n ]; then
+    if [ "$run" = k ] || [ "$run" = n ] || [ "$run" = u ]; then
         runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32H753ZI")
     fi
     # The USB run needs its host side alongside: build first, so the host's
