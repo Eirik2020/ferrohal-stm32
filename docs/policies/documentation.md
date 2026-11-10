@@ -3,8 +3,8 @@
 Normative. Two classes:
 
 - **Human-readable** (prose, citations, people read them): `requirements/**` (`goals.md`,
-  `benches.md`, `evidence/`), `src/**/requirements.yaml`, `ferrohal-architecture.md`,
-  `DEBT.md`, `RESOLVED.md`, `README.md`, `THIRD-PARTY.md`, `hil/WIRING.md`, `hil/*/README.md`.
+  `benches.md`, `evidence/`), `src/**/requirements.yaml`,
+  `DEBT.md`, `RESOLVED.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
 - Agent-facing (token-optimised, `agent-docs.md` style): `AGENTS.md`,
   `docs/{policies,decisions,notes,housekeeping,design}/**`.
 - **Plans are human-readable**: `docs/plans/**` uses prose and the byte budget below.
@@ -26,7 +26,7 @@ Measurement wins for what the code does; record both; divergence -> erratum cand
 
 ## Requirements
 
-- A file states its requirements; the `Requirements:` trailer names the IDs; architecture §9 hashes it.
+- A file states its requirements; the `Requirements:` trailer names the IDs; `docs/design/requirements-system.md` hashes it.
 - One `shall` per statement. A single-part requirement gets its own family (`USARTV4-001`).
 
 ## Decision records
@@ -43,8 +43,8 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 - Agent docs - estimated tokens (4 B/token): `AGENTS.md` 1100; policies 750; decision hub 500;
   decision 750; decision index 400; note 850; housekeeping 500; design topic 750.
 - Human docs - bytes: plans 6000; benches 12000; README/THIRD-PARTY/WIRING 8000.
-- Ratchets (human): `DEBT.md` 24033, `RESOLVED.md` 36089, map 25995. `DEBT.md` and the map
-  shrink only; `RESOLVED.md` grows by each resolution, raising its ratchet then.
+- Ratchets (human): `DEBT.md` 23943, `RESOLVED.md` 36834. `DEBT.md`
+  shrinks only; `RESOLVED.md` grows by each resolution, raising its ratchet then.
 - Over a limit: **split into a second document**; never compress, never drop a fact.
 - Checker: `tools/check_docs.py` in `checks/run.sh`; workspace:
   `agent-memory/tools/check_agent_docs.py`.

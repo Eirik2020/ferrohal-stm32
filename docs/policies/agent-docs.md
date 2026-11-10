@@ -8,7 +8,7 @@ see `documentation.md`.
 
 - Imperative fragments. Drop articles, politeness, restated context, "this document".
 - Tables > paragraphs. `key: value` lines. Arrows (`->`, `|`) > sentences.
-- Reference path + section (`ferrohal-architecture.md` §5); never restate the rule.
+- Reference path + section (`docs/design/api-surface.md`); never restate the rule.
 - One fact per line. No diary prose; the dated filename carries the date.
 - Abbreviations: RM=reference manual, DS=datasheet, ES=errata, §=section. Define new ones once.
 - Keep numbers exact (bytes, IDs, line refs) - they are the evidence.
@@ -20,6 +20,6 @@ see `documentation.md`.
 
 ## Human docs stay human
 
-`requirements/**`, `src/**/requirements.yaml`, `ferrohal-architecture.md`, `DEBT.md`,
+`requirements/**`, `src/**/requirements.yaml`, `DEBT.md`,
 `RESOLVED.md`, `README.md`, `THIRD-PARTY.md`, `hil/WIRING.md`, `hil/*/README.md`: normal
 prose, citations, readable by people. Do not compress them for tokens.

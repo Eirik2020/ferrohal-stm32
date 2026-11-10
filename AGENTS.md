@@ -6,13 +6,13 @@ Public repo. Bench-verified.
 ## Authority
 
 - This file governs this tree only. Workspace `CLAUDE.md` = siblings. `ferrohal-handover.md` = history, not rules.
-- Normative: `docs/policies/{safety,documentation,agent-docs}.md`, `ferrohal-architecture.md`, `requirements/goals.md`.
+- Normative: `docs/policies/{safety,documentation,agent-docs}.md`, `docs/design/`, `requirements/goals.md`.
 
 ## Read when
 
 | task | docs |
 |---|---|
-| change public API | `docs/policies/safety.md`, architecture §5 |
+| change public API | `docs/policies/safety.md`, `docs/design/api-surface.md` |
 | add/move requirements | `docs/policies/documentation.md`, `requirements/goals.md`, an `src/**/requirements.yaml` |
 | fix limitation/close debt | `DEBT.md`, `RESOLVED.md` (indexes) -> owning file |
 | touch IP driver | `src/<ip>_vN/mod.rs` + its `requirements.yaml` |
@@ -22,7 +22,7 @@ Public repo. Bench-verified.
 | unsafe/registers | `docs/policies/safety.md`, `docs/decisions/README.md`, `docs/notes/2026-11-08-rtic-and-hal-comparison.md` |
 | record/find decision | `docs/decisions/README.md` -> `docs/decisions/index/<year>.md` |
 | find a document | `docs/INDEX.md` (generated; `docs/index.json` for tools) |
-| change design | `ferrohal-architecture.md` (map), `docs/design/<topic>.md`, decisions hub |
+| change design | `docs/design/<topic>.md`, decisions hub |
 | after housekeeping date | `docs/housekeeping/README.md`, `state.md`, `tools/housekeeping.py` |
 
 ## Commands
@@ -42,12 +42,12 @@ hil/run-i2c-sim.sh [flash|run]   # Pico 1 I2C slave, both benches
 Bench traps: watchdog/bootloader runs need `--no-catch-reset`; run M + DFU need H753 CN13
 cable (Pico borrows it); probes by serial through `hil/probe.sh` (`F401_PROBE`,
 `H753_PROBE`, or `PROBE_RS_PROBE`; one probe attached needs none). The rig's
-capabilities, blind spots and improvement queue are in `requirements/hil.md`.
+capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 
 ## Rules
 
 - Evidence: a debt item leaves `DEBT.md` only when hardware proves the fix. A fix no
-  bench can reach stays open as Deferred (`DEBT.md` §8), ranked below every testable
+  bench can reach stays open as Deferred (`DEBT.md` §7), ranked below every testable
   item.
 - G5: no `unsafe fn` public; only `Peripherals::steal` behind `rtic`. Registers -> take metapac.
 - No unsafe wrappers around register writes; token-owning module only; PAC imports confined.
@@ -59,9 +59,10 @@ capabilities, blind spots and improvement queue are in `requirements/hil.md`.
 - Don't touch `flash-backups/`, `requirements/evidence/`. `ferrosmith-board-schema.md` stays untracked.
 - Workspace habits: `../agent-memory/MEMORY.md`.
 
-## State 2026-11-09
+## State 2026-11-10
 
-Docs system merged (PR #7); RTIC T1-T3 confirmed; debt sweep W1-W11 done. Next: W12-W13,
+Debt sweep W1-W12 done (#29); the architecture map dissolved into `docs/design/`
+topics, notes and ADR-005; the rig docs live in `hil/`. Next: the refusal runs, W13,
 then the `free()` redesign. Details `docs/plans/`.
 
 ## Style

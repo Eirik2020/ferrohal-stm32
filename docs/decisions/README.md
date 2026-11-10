@@ -3,7 +3,7 @@
 Record = event (what, why, rejected, date), not rule. Binds -> promote: policy ->
 `docs/policies/`; design -> `docs/design/<topic>.md`; behaviour ->
 `src/**/requirements.yaml`. Record keeps `Status: promoted` + `Promoted to: [path](path)`.
-`AGENTS.md` points here, at policies and at the map - never at a record.
+`AGENTS.md` points here, at policies and at the design topics - never at a record.
 
 Index: `index/<year>.md`. Policies: `../policies/`. Plans: `../plans/`.
 

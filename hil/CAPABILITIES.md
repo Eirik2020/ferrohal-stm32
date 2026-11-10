@@ -1,8 +1,8 @@
 # HIL rig: capabilities and improvements
 
-The rig turns requirement claims into measurements. [`benches.md`](benches.md) says
+The rig turns requirement claims into measurements. [`benches.md`](../requirements/benches.md) says
 how each run is performed; this chapter is the map of the rig itself: what it can
-prove, where its blind spots are, and the order to close them in. `DEBT.md` §8
+prove, where its blind spots are, and the order to close them in. `DEBT.md` §7
 lists fixes waiting for the rig to reach them; when an item here lands, its run
 moves to `benches.md` and the deferral comes out.
 
@@ -77,7 +77,7 @@ Grouped by why; each is a candidate for the queue below.
 - **WWDG, flash ECC, option bytes/RDP**: no driver and no run; their errata are
   firmware rules only.
 - **Constructor refusals**: no run refuses a constructor on hardware and then
-  reuses the parts (`DEBT.md` §8).
+  reuses the parts (`DEBT.md` §7).
 - **UART4/5 on the F405**: not wired, so the reserved-CTS-bit fix is inspection.
 - **`device_uid`**: never read on hardware.
 - **USB beyond CDC**: no OTG_HS, no host mode, no VBUS/data fault injection.
@@ -99,7 +99,7 @@ unblock a claim.
    benches report the identity pair; the Nucleo ones print only the UID, and the
    marking is a board constant. Unlocks 2.2.10 and 2.2.21 per part.
 2. **A refusal run per chip.** Refuse each public constructor on hardware, then
-   use the returned parts. Closes `DEBT.md` §8's largest item and exercises
+   use the returned parts. Closes `DEBT.md` §7's largest item and exercises
    error paths for real.
 3. **Fault injection.** DMA transfer error, USART overrun, noise, stop timeout —
    the error paths `DEBT.md` names as never exercised.
@@ -126,6 +126,6 @@ unblock a claim.
   lists the runs and their pass criteria. Logs land in `hil/logs/` and the
   manifest beside each log hashes every binary.
 - A claim in a commit or requirement names the run that proves it. A claim based
-  on inspection says so and points at `DEBT.md` §8 or `docs/design/h7-errata.md`.
+  on inspection says so and points at `DEBT.md` §7 or `docs/design/h7-errata.md`.
 - When the rig gains a capability, add its run to `benches.md`, move the entry
-  out of the queue here, and remove the matching deferral from `DEBT.md` §8.
+  out of the queue here, and remove the matching deferral from `DEBT.md` §7.

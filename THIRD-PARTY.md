@@ -17,7 +17,7 @@ What was ported:
 
 The overall structure is also embassy's design, though not its code: one module per stm32-metapac IP version, and instance traits that return an erased static `Info`.
 
-The F4 clock code deliberately departs from embassy in one place: the voltage scale. Embassy's `f247.rs` writes VOS Scale 1 on every F4, which is reserved on the F401 (see `ferrohal-architecture.md` §6). FerroHAL writes the scale each chip file names, from RM0368 and RM0090, with the PLL off, and waits for VOSRDY before switching to the PLL.
+The F4 clock code deliberately departs from embassy in one place: the voltage scale. Embassy's `f247.rs` writes VOS Scale 1 on every F4, which is reserved on the F401 (see `docs/design/clocks.md`). FerroHAL writes the scale each chip file names, from RM0368 and RM0090, with the PLL off, and waits for VOSRDY before switching to the PLL.
 
 Embassy's MIT notice:
 

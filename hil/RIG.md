@@ -1,7 +1,7 @@
 # Rig set-up
 
 What every bench script and firmware crate relies on before a procedure in
-[benches.md](benches.md) runs. Split out of that file on 2026-11-10, when it reached
+[benches.md](../requirements/benches.md) runs. Split out of that file on 2026-11-10, when it reached
 its budget; the text is unchanged.
 
 ## Which probe

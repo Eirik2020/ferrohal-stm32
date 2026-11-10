@@ -2,7 +2,7 @@
 """Prints one document, or one section of it, with a token cap.
 
 Section-addressed reads are how an agent gets one fact without loading a whole file:
-    python3 -I tools/docs_read.py ferrohal-architecture.md 5
+    python3 -I tools/docs_read.py docs/design/requirements-system.md
     python3 -I tools/docs_read.py docs/policies/safety.md "Exception 1"
 Output is capped at 400 estimated tokens; anything longer is truncated with a note.
 Paths outside the repository are refused - the repository is the root this tool serves.
