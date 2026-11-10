@@ -64,7 +64,7 @@ TOKENS: list[tuple[str, str, int]] = [
 
 # Ratcheted: present size, may only shrink until the planned split.
 RATCHET: dict[str, int] = {
-    "DEBT.md": 23_562,
+    "DEBT.md": 23_454,
     "RESOLVED.md": 36_813,
 }
 

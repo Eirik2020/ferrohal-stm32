@@ -1346,8 +1346,17 @@ pub fn nvic_mask_all<I: cortex_m::interrupt::InterruptNumber, const N: usize>(
 
 /// Logs the outcome, calls `pass` if every check passed, and ends the run
 /// through semihosting: status 0 on a pass, 1 otherwise.
+///
+/// First the identity pair — the UID and the die revision — so every run's
+/// log carries what the flight benches report and the ES0392 rules are
+/// decided on (2.2.10 and 2.2.21 name the revision).
 pub fn finish(report: &Report, pass: impl FnOnce()) -> ! {
     use cortex_m_semihosting::debug::{self, EXIT_FAILURE, EXIT_SUCCESS};
+    defmt::info!(
+        "identity: uid {=[u8]:02x}, rev 0x{=u16:x}",
+        ferrohal_stm32::signature::device_uid(),
+        ferrohal_stm32::signature::revision()
+    );
     let passed = report.failed == 0;
     if passed {
         pass();
