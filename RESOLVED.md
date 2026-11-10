@@ -115,6 +115,10 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 - **`signature::device_uid`:** the unique ID, in memory order.
 - **Glue:** `check_glue.py` checks each ADC's enable bit, pins and DMA routes, plus each SPI's kernel clock, SYSCFG's enable, DMA stream vectors, the watchdog peripheral and EXTI vectors, the gaps it had before.
 
+## Constructor refusals
+
+- **A run per chip refuses each public constructor on hardware, then uses the parts it hands back** (2026-11-10). The F401's run V (23 checks: RCC, UART, stream and polled SPI, I2C, ADC, PWM, a CCM lane buffer, sampler, AWG, tick, timebase, watchdog — the watchdog two-booted so its own reset clears its flags — and USB, refused by freezing at 56 MHz on PLLQ, its pins returning as GPIO over J2); the H753ZI's run U (23 checks: the same set through the H7's constructors, a DTCM lane buffer, PA1 in place of the internal ADC channels this driver lacks, the watchdog refused twice over one token — window past the timeout, then 1 us — and no USB, which this chip's constructor cannot be made to refuse); the Foxeer's bench (nine staged refusals leading its report, every part reused by the checks that follow) and the Lucid's bench (the same nine through the H7's constructors, with the SDMMC's `Error::Clock` on a bus speed past the card's default limit, its wiring reopening the real card — the only bench where that constructor is provable).
+
 ## One timer starting another
 
 - **`Pwm::lead` and `Pwm::follow`** (2026-11-02): FerroWasp's Foxeer starts TIM8 from TIM1 so all four lanes begin on one edge. Run N on the F401 (TIM1, TIM3), run P on the H753ZI and the Foxeer's own check (TIM1, TIM8): the slave waits, starts every time over 100 starts, and reads within 3 or 4 counts of the master, read one after the other. No output is enabled in any of them.

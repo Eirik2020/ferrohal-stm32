@@ -53,6 +53,13 @@ and the Lucid's CN13 with its DFU runs.
 - **Caches, one shape**: the H753 UART runs with I- and D-cache on and the DMA
   window in a non-cacheable MPU region; `check_dma_buffer` refusals of cached RAM
   and the DTCM are checked there.
+- **Constructor refusals**: each public constructor refused on purpose and
+  its handed-back parts used, per chip — run V on the F401, run U on the
+  H753ZI, and both flight boards' benches, whose nine staged refusals lead
+  their reports. The Lucid's is the only bench where the SDMMC constructor
+  is provable; USB is the F401's alone, the flight boards' only port being
+  their report, and the H7's constructor starts its own 48 MHz source and
+  cannot be made to refuse.
 - **Host-only proofs**: the no-panic link per chip, glue against metapac,
   feature guards, doc budgets, host unit tests. These need no board and are not
   counted as hardware evidence.
@@ -76,8 +83,6 @@ Grouped by why; each is a candidate for the queue below.
   the HCLK/8 (`External`) path never runs.
 - **WWDG, flash ECC, option bytes/RDP**: no driver and no run; their errata are
   firmware rules only.
-- **Constructor refusals**: no run refuses a constructor on hardware and then
-  reuses the parts (`DEBT.md` §7).
 - **UART4/5 on the F405**: not wired, so the reserved-CTS-bit fix is inspection.
 - **`device_uid`**: never read on hardware.
 - **USB beyond CDC**: no OTG_HS, no host mode, no VBUS/data fault injection.
@@ -98,27 +103,24 @@ unblock a claim.
 1. **Extend `REV_ID` and the fitted part marking to the Nucleo runs.** The USB
    benches report the identity pair; the Nucleo ones print only the UID, and the
    marking is a board constant. Unlocks 2.2.10 and 2.2.21 per part.
-2. **A refusal run per chip.** Refuse each public constructor on hardware, then
-   use the returned parts. Closes `DEBT.md` §7's largest item and exercises
-   error paths for real.
-3. **Fault injection.** DMA transfer error, USART overrun, noise, stop timeout —
+2. **Fault injection.** DMA transfer error, USART overrun, noise, stop timeout —
    the error paths `DEBT.md` names as never exercised.
-4. **A cache/MPU matrix.** Write-through region, MPU off with caches on, an
+3. **A cache/MPU matrix.** Write-through region, MPU off with caches on, an
    invalidate followed by a store with and without a DMB. Proves the ES0392
    firmware rules and answers "is it safe for FerroWasp to enable caches?" with
    a run instead of an argument.
-5. **UART4/5 on the F405** (or move that check to the H753): closes an
+4. **UART4/5 on the F405** (or move that check to the H753): closes an
    inspection-only fix.
-6. **DFU without a hand on BOOT.** Keep a DFU requester on the host, or a boot
+5. **DFU without a hand on BOOT.** Keep a DFU requester on the host, or a boot
    image that always accepts `reboot dfu`.
-7. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
+6. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
-8. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
+7. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
    the drift and lock-up classes a 300 s run cannot.
-9. **Environmental corners.** Temperature and supply extremes only where a
+8. **Environmental corners.** Temperature and supply extremes only where a
    flight-relevant claim needs them.
-10. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
-    claims get tight enough that read-back is not enough.
+9. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
+   claims get tight enough that read-back is not enough.
 
 ## Using it
 

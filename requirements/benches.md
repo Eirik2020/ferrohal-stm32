@@ -98,11 +98,11 @@ layout must stay as it is.
 
 ## The Foxeer F405 V2 board bench
 
-`hil/run-foxeer.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. It sets scale 2 before `freeze`, for it to replace, and its clock checks read back PWR: the voltage scale `freeze` wrote must be scale 1 (PWR_CR bits 15:14 at 0b01, bit 14 being this chip's VOS) with VOSRDY set. Pass: every check in every run passes and the script exits zero.
+`hil/run-foxeer.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. It sets scale 2 before `freeze`, for it to replace, and its clock checks read back PWR: the voltage scale `freeze` wrote must be scale 1 (PWR_CR bits 15:14 at 0b01, bit 14 being this chip's VOS) with VOSRDY set. Nine refusals lead the report: a no-PLL clock config (its token freezes these clocks), a 1 us watchdog, an inexact timebase rate, a 0 Hz SPI config and a 0 Hz polled config, an empty ADC sequence, a 0-rate PWM, a motor lane's CCM buffer, and the AWG's TIM1/TIM8 mismatch re-rated — each constructor handing its parts back, and every part the checks after them use. Pass: every check in every run passes and the script exits zero.
 
 ## The TBS Lucid H7 board bench
 
-`hil/run-lucid.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its SD checks need a card in the slot. Pass: every check in every run passes and the script exits zero.
+`hil/run-lucid.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its SD checks need a card in the slot. Nine refusals lead the report, as the Foxeer's through the H7's constructors, with a DTCM lane buffer in place of the CCM one; the ninth is the SDMMC: a bus speed past the card's default limit refuses before the peripheral is touched, and the wiring that comes back opens the real card. Pass: every check in every run passes and the script exits zero.
 
 ## The TBS Lucid H7 with its slot empty
 
@@ -185,3 +185,23 @@ the tick paused), and a 1 us watchdog (the peripheral starts, feeds for
 shape, so this run's own reset clears its flags and leaves none for
 the next bench run). Pass: every check in both boots passes and the
 script exits zero.
+
+## Constructor refusals on the Nucleo-H753ZI
+
+`hil/run-h753.sh u`, with Z2, S1 and S3 fitted. The H7's own set: a
+no-PLL1 clock config (the RCC token re-freezes the bench's clocks), an
+unreachable-baud USART6 over Z2, a 0 Hz SPI stream config on S1 and a
+0 Hz polled config on S3, an out-of-range I2C3 speed (the bus NACKs a
+vacant address), an empty ADC scan sequence (the parts scan PA1 twice),
+a 0-rate TIM3 PWM, a lane buffer in the DTCM, which no DMA controller
+reaches (the channel and stream play on PB0), a 0-rate TIM8 sampler
+(the parts decode that lane), TIM3 and TIM5 at different periods (the
+second PWM re-rated and the AWG plays PB0), an inexact TIM15 tick and
+TIM2 timebase, and a watchdog refused twice over one token — a window
+longer than the timeout, then a 1 us timeout — before it starts, feeds
+for 300 ms and starves, and the second boot reports the bite, run K's
+shape. USB is left out: this chip's constructor starts its own 48 MHz
+source, so nothing this bench can wire makes it refuse; the F401's run
+V covers it. Pass: every check in both boots passes and the script
+exits zero.
+
