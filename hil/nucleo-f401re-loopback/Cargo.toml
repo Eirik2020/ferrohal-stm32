@@ -130,8 +130,14 @@ path = "src/bin/run_u.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "run-v"
+path = "src/bin/run_v.rs"
+test = false
+bench = false
+
 [dependencies]
-ferrohal-stm32 = { path = "../..", features = ["stm32f401re", "rt", "defmt", "rtic"] }
+ferrohal-stm32 = { path = "../..", features = ["stm32f401re", "rt", "defmt", "rtic", "usb"] }
 # Safe reads of registers the checks inspect (PWR, USART SR). FerroHAL's pin;
 # FerroHAL already turns this chip on.
 stm32-metapac = { version = "=21.0.0", default-features = false, features = ["stm32f401re"] }

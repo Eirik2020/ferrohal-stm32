@@ -167,6 +167,5 @@ Built, and checked by the compiler, host tests or the no-panic link, but the
 behaviour they change has not run on hardware. They stay open and rank below
 every testable item above.
 
-- **Lowest: no run refuses a constructor.** Every public constructor hands its tokens back (`Refused`), proven by its type, `Refused`'s host tests and the no-panic link's retries; no bench run refuses one and then uses the parts. A run per chip that refuses each constructor (UART, SPI, I2C, PWM, lane, sampler, AWG, ADC, SDMMC, USB, tick, timebase, watchdog, RCC) would close it.
 - **Lowest: UART4/5's reserved CTS bit is changed but not exercised.** `clear_tc` now writes 0 at SR bit 9 on UART4/5 (CTS is reserved there, RM0090 30.6.1); no run uses UART4 or UART5, because the F405 bench doesn't wire them.
 - **Lowest: the rig cannot vary the conditions several ES0392 rules depend on.** One MPU/cache shape, one package and one silicon revision per chip, and the part marking is not recorded while only the USB benches report `REV_ID`: write-through memory, the HCLK/8 SysTick path, WWDG, option-byte/RDP flows and flash ECC go untested, so those errata stay firmware rules, not bench facts. Record the marking, and add a write-through run, when cache guidance is needed.

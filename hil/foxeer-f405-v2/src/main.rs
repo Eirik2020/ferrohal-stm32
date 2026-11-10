@@ -3,6 +3,11 @@
 //! start-of-frames, the IMU on SPI1 over DMA with its data-ready on EXTI4, the
 //! NOR on SPI2 without DMA, and USB itself through the host's echo.
 //!
+//! Every constructor that can refuse does, on purpose: each hands its parts
+//! back, and the parts build the rest of this bench. The staged refusals are
+//! reported first, and the reuse is the checks that follow. USB is left to
+//! the Nucleo-F401's run V: this board's only USB port is its report.
+//!
 //! The motor, receiver and ESC telemetry pins stay as reset left them. The
 //! NOR checks erase and program only the scratch sector, which FerroWasp
 //! keeps for destructive tests, and check that the sectors either side (a
@@ -35,13 +40,14 @@ use ferrohal_stm32::{
     exti::Edge,
     gpio::{Alternate, Output, Pin, Pull, Speed},
     iwdg::Watchdog,
+    rcc::ClockError,
     spi::{self, BlockingSpi, BlockingWiring, Buffers, Spi, Wiring},
     time::Hertz,
     timer::{Awg, Pwm, Timebase},
     usb::UsbFs,
 };
 
-use clocks::{CLOCK_CONFIG, CLOCKS};
+use clocks::{CLOCKS, CLOCK_CONFIG, REFUSAL_CONFIG};
 use imu::Imu;
 use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
 
@@ -54,6 +60,8 @@ const _: () = assert!(Timebase::check::<TIM2>(&CLOCKS, Hertz::mhz(1)).is_ok());
 const IMU_SLOW: spi::Config = spi::Config::new(Hertz::mhz(1)).with_mode(spi::MODE_3);
 const IMU_FAST: spi::Config = spi::Config::new(Hertz::mhz(11)).with_mode(spi::MODE_3);
 const NOR_BUS: spi::Config = spi::Config::new(Hertz::mhz(11));
+/// A config no clock can make: 0 Hz, for the constructor refusals.
+const SPI_ZERO: spi::Config = spi::Config::new(Hertz(0));
 const _: () = assert!(matches!(
     Spi::check::<SPI1>(&CLOCKS, &IMU_SLOW),
     Ok(Hertz(656_250))
@@ -388,14 +396,39 @@ fn main() -> ! {
         stm32_metapac::PWR.cr1().read().vos().to_bits(),
         Ordering::Relaxed,
     );
-    let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error()) else {
-        reboot_to_dfu()
+    let (rcc_refused, mut rcc) = match p.RCC.freeze(&REFUSAL_CONFIG) {
+        Err(refused) => {
+            let refused_plls = matches!(refused.error(), ClockError::PllNotConfigured);
+            // The refused token is the one that freezes the bench's clocks.
+            let token = refused.into_parts();
+            match token.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error()) {
+                Ok(rcc) => (refused_plls, rcc),
+                Err(_) => reboot_to_dfu(),
+            }
+        }
+        Ok(_) => reboot_to_dfu(),
     };
     let cause = usb_bench::cause_text(rcc.reset_cause());
-    let Ok(watchdog) = Watchdog::start(p.IWDG, WATCHDOG_US) else {
+    let (watchdog_refused, iwdg) = match Watchdog::start(p.IWDG, 1) {
+        Err(refused) => {
+            let refused_timeout =
+                matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
+            (refused_timeout, refused.into_parts())
+        }
+        Ok(_) => reboot_to_dfu(),
+    };
+    let Ok(watchdog) = Watchdog::start(iwdg, WATCHDOG_US) else {
         reboot_to_dfu()
     };
-    let Ok(clock) = Timebase::new(&mut rcc, p.TIM2, Hertz::mhz(1)) else {
+    let (timebase_refused, tim2) = match Timebase::new(&mut rcc, p.TIM2, Hertz::mhz(5)) {
+        Err(refused) => {
+            let refused_inexact =
+                matches!(refused.error(), ferrohal_stm32::timer::ConfigError::Inexact);
+            (refused_inexact, refused.into_parts())
+        }
+        Ok(_) => reboot_to_dfu(),
+    };
+    let Ok(clock) = Timebase::new(&mut rcc, tim2, Hertz::mhz(1)) else {
         reboot_to_dfu()
     };
 
@@ -427,6 +460,15 @@ fn main() -> ! {
             rx: &mut *addr_of_mut!(IMU_RX),
         }
     };
+    let (spi_refused, imu_wiring, buffers) = match Spi::new(&mut rcc, imu_wiring, &SPI_ZERO, buffers)
+    {
+        Err(refused) => {
+            let refused_zero = matches!(refused.error(), spi::ConfigError::Frequency);
+            let (wiring, buffers) = refused.into_parts();
+            (refused_zero, wiring, buffers)
+        }
+        Ok(_) => reboot_to_dfu(),
+    };
     let Ok(mut imu_spi) = Spi::new(&mut rcc, imu_wiring, &IMU_SLOW, buffers) else {
         reboot_to_dfu()
     };
@@ -444,6 +486,13 @@ fn main() -> ! {
         sck,
         miso,
         mosi,
+    };
+    let (nor_refused, nor_wiring) = match BlockingSpi::new(&mut rcc, nor_wiring, &SPI_ZERO) {
+        Err(refused) => {
+            let refused_zero = matches!(refused.error(), spi::ConfigError::Frequency);
+            (refused_zero, refused.into_parts())
+        }
+        Ok(_) => reboot_to_dfu(),
     };
     let Ok(spi) = BlockingSpi::new(&mut rcc, nor_wiring, &NOR_BUS) else {
         reboot_to_dfu()
@@ -469,13 +518,31 @@ fn main() -> ! {
     let channels = [adc.temperature_channel(), adc.channel(&voltage), adc.channel(&current)];
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
-    let Ok(mut scan) = adc.into_scan(dma2.s4, &channels, samples) else {
+    let (scan_refused, adc1, scan_stream, samples) = match adc.into_scan(dma2.s4, &[], samples) {
+        Err(refused) => {
+            let refused_empty =
+                matches!(refused.error(), ferrohal_stm32::adc::Error::Sequence);
+            let (adc1, stream, samples) = refused.into_parts();
+            (refused_empty, adc1, stream, samples)
+        }
+        Ok(_) => reboot_to_dfu(),
+    };
+    let Ok(mut scan) = adc1.into_scan(scan_stream, &channels, samples) else {
         reboot_to_dfu()
     };
 
+    let (pwm_refused, tim1) = match Pwm::new(&mut rcc, p.TIM1, Hertz(0)) {
+        Err(refused) => {
+            let refused_zero =
+                matches!(refused.error(), ferrohal_stm32::timer::ConfigError::Inexact);
+            (refused_zero, refused.into_parts())
+        }
+        Ok(_) => reboot_to_dfu(),
+    };
     let (Ok(mut tim1), Ok(mut tim8)) = (
-        Pwm::new(&mut rcc, p.TIM1, Hertz::khz(600)),
-        Pwm::new(&mut rcc, p.TIM8, Hertz::khz(600)),
+        Pwm::new(&mut rcc, tim1, Hertz::khz(600)),
+        // A different rate on purpose, for the waveform generator's refusal.
+        Pwm::new(&mut rcc, p.TIM8, Hertz::khz(300)),
     ) else {
         reboot_to_dfu()
     };
@@ -502,8 +569,28 @@ fn main() -> ! {
     // SAFETY: `main` runs once, and these are the only references.
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
     let [read1, read2, read3, read4] = unsafe { &mut *addr_of_mut!(LANE_READS) };
+    // A lane buffer in CCM RAM, which no DMA controller reaches (RM0090),
+    // refuses; the channel, stream and both buffers come back. The
+    // constructor checks the buffer before programming anything, so the CCM
+    // is never touched.
+    // SAFETY: the F405's CCM RAM at 0x10000000 is real memory, but no DMA
+    // controller reaches it.
+    let ccm: &'static mut [u32] =
+        unsafe { core::slice::from_raw_parts_mut(0x1000_0000 as *mut u32, 16) };
+    let (lane_refused, channel1, stream1, lane_read1) =
+        match channel1.into_two_way_lane::<_, 'A'>(dma2.s1, ccm, &mut read1[..]) {
+            Err(refused) => {
+                let refused_ccm = matches!(
+                    refused.error(),
+                    ferrohal_stm32::uart::ConfigError::BufferUnreachable
+                );
+                let (channel, stream, _ccm, read) = refused.into_parts();
+                (refused_ccm, channel, stream, read)
+            }
+            Ok(_) => reboot_to_dfu(),
+        };
     let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
-        channel1.into_two_way_lane::<_, 'A'>(dma2.s1, &mut one[..], &mut read1[..]),
+        channel1.into_two_way_lane::<_, 'A'>(stream1, &mut one[..], lane_read1),
         channel3n.into_two_way_lane::<_, 'B'>(dma2.s6, &mut two[..], &mut read2[..]),
         channel3.into_two_way_lane::<_, 'C'>(dma2.s2, &mut three[..], &mut read3[..]),
         channel4.into_two_way_lane::<_, 'C'>(dma2.s7, &mut four[..], &mut read4[..]),
@@ -511,7 +598,23 @@ fn main() -> ! {
         reboot_to_dfu()
     };
     let (timer_still, timer_missed, timer_apart) = measure_motor_timers(&mut tim1, &mut tim8);
-    let Ok(mut motors) = Awg::linked(tim1, tim8, (lane1, lane2), (lane3, lane4)) else {
+    // The waveform generator: TIM1 and TIM8 at different periods refuse;
+    // both PWMs and both lane pairs come back, TIM8 re-rated, and the
+    // linked pair is what the lane checks use.
+    let (awg_refused, tim1, tim8, first, second) =
+        match Awg::linked(tim1, tim8, (lane1, lane2), (lane3, lane4)) {
+            Err(refused) => {
+                let refused_mismatch = matches!(
+                    refused.error(),
+                    ferrohal_stm32::timer::ConfigError::PeriodMismatch
+                );
+                let (tim1, mut tim8, first, second) = refused.into_parts();
+                let re_rated = tim8.set_frequency(Hertz::khz(600)).is_ok();
+                (refused_mismatch && re_rated, tim1, tim8, first, second)
+            }
+            Ok(_) => reboot_to_dfu(),
+        };
+    let Ok(mut motors) = Awg::linked(tim1, tim8, first, second) else {
         reboot_to_dfu()
     };
 
@@ -531,6 +634,60 @@ fn main() -> ! {
         fast: IMU_FAST,
     };
     usb_bench::serve(&mut link, cause, |report, link| {
+        check!(
+            report,
+            link,
+            rcc_refused,
+            "refusals: a config naming PLLP with no PLL refuses, and its token froze these clocks [API-001]"
+        );
+        check!(
+            report,
+            link,
+            watchdog_refused,
+            "refusals: a 1 us watchdog timeout refuses, and its peripheral runs the bench's [API-001]"
+        );
+        check!(
+            report,
+            link,
+            timebase_refused,
+            "refusals: a rate the clock cannot divide to refuses, and the timer keeps time [API-001]"
+        );
+        check!(
+            report,
+            link,
+            spi_refused,
+            "refusals: a 0 Hz SPI config refuses, and the wiring talks to the IMU [API-001]"
+        );
+        check!(
+            report,
+            link,
+            nor_refused,
+            "refusals: a 0 Hz polled SPI config refuses, and the wiring talks to the NOR [API-001]"
+        );
+        check!(
+            report,
+            link,
+            scan_refused,
+            "refusals: an empty ADC sequence refuses, and the parts scan the battery inputs [API-001]"
+        );
+        check!(
+            report,
+            link,
+            pwm_refused,
+            "refusals: a 0 rate refuses, and the timer carries the motor lanes [API-001]"
+        );
+        check!(
+            report,
+            link,
+            lane_refused,
+            "refusals: a CCM lane buffer no DMA reaches refuses, and the lane carried the frames [API-001]"
+        );
+        check!(
+            report,
+            link,
+            awg_refused,
+            "refusals: mismatched periods refuse, and the pair linked after re-rating [API-001]"
+        );
         rcc_suite(report, link);
         usb_bench::clock_suite(report, link, OTG_FS_DSTS, CLOCKS.sysclk.0);
         usb_bench::uid_suite(report, link);
