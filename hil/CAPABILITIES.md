@@ -55,11 +55,9 @@ and the Lucid's CN13 with its DFU runs.
   and the DTCM are checked there.
 - **Constructor refusals**: each public constructor refused on purpose and
   its handed-back parts used, per chip — run V on the F401, run U on the
-  H753ZI, and both flight boards' benches, whose nine staged refusals lead
-  their reports. The Lucid's is the only bench where the SDMMC constructor
-  is provable; USB is the F401's alone, the flight boards' only port being
-  their report, and the H7's constructor starts its own 48 MHz source and
-  cannot be made to refuse.
+  H753ZI, and both flight benches' nine staged refusals. The Lucid's is the
+  only bench where the SDMMC constructor is provable; USB is the F401's
+  alone, the H7's constructor starting its own 48 MHz source.
 - **Host-only proofs**: the no-panic link per chip, glue against metapac,
   feature guards, doc budgets, host unit tests. These need no board and are not
   counted as hardware evidence.

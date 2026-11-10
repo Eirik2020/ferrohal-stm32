@@ -130,7 +130,7 @@
     {
       "requirement": "API-001",
       "method": {
-        "procedure": "requirements/benches.md#Constructor refusals on the Nucleo-H753ZI"
+        "procedure": "requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI"
       },
       "level": "target",
       "environment": "development",

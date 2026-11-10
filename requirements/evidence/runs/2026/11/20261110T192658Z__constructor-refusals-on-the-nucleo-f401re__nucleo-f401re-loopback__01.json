@@ -128,7 +128,7 @@
     {
       "requirement": "API-001",
       "method": {
-        "procedure": "requirements/benches.md#Constructor refusals on the Nucleo-F401RE"
+        "procedure": "requirements/benches-refusals.md#Constructor refusals on the Nucleo-F401RE"
       },
       "level": "target",
       "environment": "development",
