@@ -17,7 +17,8 @@
 //! `.uninit` RAM, tagged with a magic value: the H7 keeps only whole
 //! doublewords across a reset (RM0433 2.4), and an untagged word holding
 //! whatever RAM held would read as a phase. Boot 2's failures ride along
-//! in the same doubleword, so boot 3's exit status counts them.
+//! in the same doubleword, and boot 1's in the shared watchdog marker
+//! (boot 2 folds them in), so the exit status counts every boot.
 
 #![no_std]
 #![no_main]

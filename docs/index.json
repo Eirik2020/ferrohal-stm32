@@ -19,8 +19,8 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.m",
-   "bytes": 24180,
-   "tokens": 6045
+   "bytes": 24033,
+   "tokens": 6009
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once do",
-   "bytes": 34279,
-   "tokens": 8570
+   "bytes": 36089,
+   "tokens": 9023
   },
   {
    "path": "THIRD-PARTY.md",
@@ -235,8 +235,8 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The rig ",
-   "bytes": 11002,
-   "tokens": 2751
+   "bytes": 11149,
+   "tokens": 2788
   },
   {
    "path": "requirements/goals.md",

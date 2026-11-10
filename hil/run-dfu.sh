@@ -6,9 +6,15 @@
 #     run-dfu.sh <crate and USB serial> <its flash layout in the DFU listing>
 #
 # The layout keeps one board's image off another: only a DFU device showing it
-# gets flashed. Reaches the bootloader by itself from the bench's firmware. From
-# anything else, it asks: hold BOOT while plugging in the USB cable. Log goes to
-# hil/logs/<board>.log.
+# gets flashed. Boards can share a layout (the H753ZI and the Lucid both say
+# 16*128Kg), so with more than one match the script lists them and stops; and
+# <BOARD>_DFU_SERIAL - the serial dfu-util prints for the board - pins the pick
+# when set (LUCID_H7_DFU_SERIAL for run-lucid.sh). That serial is not always
+# board-unique: the Lucid's H7 prints its IDCODE (200364500000, measured
+# 2026-11-10) and the H753ZI's IDCODE measured the same, so the count guard is
+# what protects that pair. Reaches the bootloader by itself from the bench's
+# firmware. From anything else, it asks: hold BOOT while plugging in the USB
+# cable. Log goes to hil/logs/<board>.log.
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -21,7 +27,25 @@ mkdir -p "$here/logs"
 (cd "$crate" && cargo build --release) || exit 1
 
 dfu_serial() {
-    dfu-util -d 0483:df11 -l 2>/dev/null | grep -F "$layout" | sed -n 's/.*serial="\([^"]*\)".*/\1/p' | head -1
+    # One device lists one line per alt setting with the serial repeated, so
+    # matches are counted per device - dfu-util's devnum - not per line.
+    local pin_var pin listing picks count
+    pin_var="${board//-/_}"
+    pin_var="${pin_var^^}_DFU_SERIAL"
+    pin="${!pin_var:-}"
+    listing=$(dfu-util -d 0483:df11 -l 2>/dev/null)
+    if [ -n "$pin" ]; then
+        picks=$(printf '%s\n' "$listing" | grep -F "serial=\"$pin\"" | sed -n 's/.*devnum=\([0-9]*\),.*serial="\([^"]*\)".*/\1 \2/p' | sort -u)
+    else
+        picks=$(printf '%s\n' "$listing" | grep -F "$layout" | sed -n 's/.*devnum=\([0-9]*\),.*serial="\([^"]*\)".*/\1 \2/p' | sort -u)
+    fi
+    count=$(printf '%s\n' "$picks" | grep -c . || true)
+    if [ "$count" -gt 1 ]; then
+        echo "FAIL dfu: $count devices in DFU match $layout (or the pin); set $pin_var or plug one board in:" >&2
+        printf '%s\n' "$picks" | cut -d' ' -f2- >&2
+        return 1
+    fi
+    printf '%s\n' "$picks" | head -1 | cut -d' ' -f2-
 }
 
 # Flashes one firmware of the crate, from whatever of this bench is running.
@@ -34,16 +58,27 @@ flash() {
     done
     local serial=""
     for _ in $(seq 1 100); do
-        serial="$(dfu_serial)"
-        [ -n "$serial" ] && break
+        if serial="$(dfu_serial)"; then
+            [ -n "$serial" ] && break
+        else
+            return 1
+        fi
         sleep 0.3
     done
     if [ -z "$serial" ]; then
         echo "FAIL no $board in DFU: hold BOOT while plugging in the USB cable, then run this again"
         return 1
     fi
-    # `dfu-util` exits non-zero when the board leaves DFU before the last status.
-    dfu-util -d 0483:df11 -S "$serial" -a 0 -s 0x08000000:leave -D "$elf.bin" 2>&1 | tail -2
+    # The ROM leaves DFU at `leave` without answering the last GET_STATUS, so
+    # dfu-util ends with that error on every good flash; the download itself
+    # must have completed.
+    local out
+    out=$(dfu-util -d 0483:df11 -S "$serial" -a 0 -s 0x08000000:leave -D "$elf.bin" 2>&1)
+    printf '%s\n' "$out" | tail -2
+    if ! printf '%s\n' "$out" | grep -q 'File downloaded successfully'; then
+        echo "FAIL dfu-util did not report a completed download of $1"
+        return 1
+    fi
     # The old firmware's port goes first, or the host could find it again.
     sleep 1
 }
