@@ -66,7 +66,7 @@ mod app {
             reboot_to_dfu()
         };
         let idle_dog = watchdog.handle();
-        let link = Link::new(usb, "foxeer-f405-v2", watchdog, clock);
+        let link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.reader());
         (
             Shared { link },
             Local {

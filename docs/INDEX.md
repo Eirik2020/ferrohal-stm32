@@ -1,12 +1,12 @@
 # Document index (generated)
 
-Metadata only - read after choosing. 49 documents, ~16551 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read after choosing. 49 documents, ~16640 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | class | path | size | purpose |
 |---|---|---|---|
 | a | AGENTS.md | 921 tok | STM32 HAL on stm32-metapac. Chips: stm32f401r |
 | a | docs/decisions/2026-10-31-ferrowasp-integration.md | 734 tok | ADR-005 - Status: accepted |
-| a | docs/decisions/2026-11-08-free-teardown-brief.md | 540 tok | ADR-002 - Status: accepted |
+| a | docs/decisions/2026-11-08-free-teardown-brief.md | 567 tok | ADR-002 - Status: accepted |
 | a | docs/decisions/2026-11-08-g5-safe-by-default.md | 603 tok | ADR-001 - Status: promoted |
 | a | docs/decisions/2026-11-08-naming-scheme.md | 697 tok | ADR-003 - Status: accepted |
 | a | docs/decisions/2026-11-09-uart-capabilities.md | 532 tok | ADR-004 - Status: promoted |
@@ -17,7 +17,7 @@ Metadata only - read after choosing. 49 documents, ~16551 agent tokens. Regenera
 | a | docs/design/clocks.md | 240 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/execution-model.md | 195 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ferroforge-seam.md | 521 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/free.md | 432 tok | There is no Pwm::free, Uart::free or Tick han |
+| a | docs/design/free.md | 494 tok | There is no Pwm::free, Uart::free or Tick han |
 | a | docs/design/h7-errata.md | 747 tok | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 409 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ownership.md | 508 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
@@ -43,7 +43,7 @@ Metadata only - read after choosing. 49 documents, ~16551 agent tokens. Regenera
 | h | THIRD-PARTY.md | 3045 B | FerroHAL is licensed under MIT OR Apache-2.0  |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 2997 B | Part of the plan2026-11-08-debt-sweep.md. |
 | h | docs/plans/2026-11-08-debt-sweep.md | 4484 B | Status: done - W1-W7 watchdog debug freeze, w |
-| h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. ste |
+| h | docs/plans/2026-11-08-free-redesign.md | 3203 B | Next project after the sweep, its own PR. ste |
 | h | docs/plans/2026-11-10-doc-sweep.md | 3413 B | Owner-ordered, after W12 merged #29: the READ |
 | h | hil/CAPABILITIES.md | 7239 B | The rig turns requirement claims into measure |
 | h | hil/RIG.md | 2575 B | What every bench script and firmware crate re |

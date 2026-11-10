@@ -424,8 +424,8 @@ pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
 /// The Lucid's control loop rate on TIM4, and its microsecond timebase on
 /// TIM2, checked while compiling.
 pub const CONTROL_RATE: Hertz = Hertz::khz(8);
-const _: () = assert!(Tick::check::<TIM4>(&CLOCKS, CONTROL_RATE).is_ok());
-const _: () = assert!(Timebase::check::<TIM2>(&CLOCKS, Hertz::mhz(1)).is_ok());
+const _: () = assert!(Tick::<TIM4>::check(&CLOCKS, CONTROL_RATE).is_ok());
+const _: () = assert!(Timebase::<TIM2>::check(&CLOCKS, Hertz::mhz(1)).is_ok());
 
 /// The timers as options, so the checks can take each in turn.
 pub struct RunI {

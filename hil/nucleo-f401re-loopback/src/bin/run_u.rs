@@ -21,6 +21,7 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
+        chip::TIM4,
         time::Hertz,
         timer::{Tick, Timebase},
     };
@@ -33,7 +34,7 @@ mod app {
 
     #[shared]
     struct Shared {
-        bench: TickBench,
+        bench: TickBench<Tick<TIM4>>,
     }
 
     #[local]

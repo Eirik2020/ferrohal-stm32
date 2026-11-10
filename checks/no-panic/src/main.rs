@@ -282,8 +282,8 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
     use ferrohal_stm32::timer::{Tick, Timebase, divider};
 
     keep(divider(black_box(Hertz::mhz(84)), black_box(Hertz::khz(1)), black_box(16)));
-    keep(Tick::check::<T>(&black_box(rcc.clocks()), black_box(Hertz::khz(8))));
-    keep(Timebase::check::<U>(&black_box(rcc.clocks()), black_box(Hertz::mhz(1))));
+    keep(Tick::<T>::check(&black_box(rcc.clocks()), black_box(Hertz::khz(8))));
+    keep(Timebase::<U>::check(&black_box(rcc.clocks()), black_box(Hertz::mhz(1))));
     let mut tick = match Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
         Ok(tick) => tick,
         Err(refused) => {
@@ -316,6 +316,10 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
     let reader = base.reader();
     keep(reader.now());
     keep(reader.frequency());
+    let tick_token = tick.free();
+    keep(tick_token);
+    let base_token = base.free();
+    keep(base_token);
 }
 
 /// A PWM at `rate`, retrying once from a refusal's hand-back: the parts come

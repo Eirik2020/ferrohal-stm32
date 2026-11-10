@@ -29,8 +29,10 @@ contract. Ecosystem precedent exists: `stm32h7xx-hal-0.16` has 11 `free(...)` me
   `Pwm::free()` would be callable while a lane still drives the timer. Binding them by
   lifetime conflicts with `start`/`stage` taking `&mut Pwm` while lanes live - hence a
   redesign, not a method.
-- `Tick`/`Timebase` are **non-generic**; the token is erased (`hil/common/timers.rs:22`,
-  `tick_check(..., tick: Tick, ...)` at `:68`). They need `Tick<T>`/`Timebase<T>`.
+- ~~`Tick`/`Timebase` are **non-generic**; the token is erased~~ **done (2026-11-10):**
+  they are `Tick<T>`/`Timebase<T>` and hand the token back with `free()`; the bench's
+  `TickBench<E>` holds a per-run enum of benched ticks so the token stays sealed while
+  the vector runs.
 - `I2c` (`src/i2c/mod.rs:256`) and `Spi`/`Uart` store `&'static Info`, not their tokens.
 - `UartRx`/`UartTx` must rejoin before `Uart::free()`.
 

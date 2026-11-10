@@ -55,9 +55,10 @@ fn main() -> ! {
     };
     tests::set_cpu_hz(board::CLOCKS.cpu.0);
     defmt::info!("run M, clocks: {}", board::CLOCKS);
-    let Ok(clock) = Timebase::new(&mut run.rcc, run.tim2, Hertz::mhz(1)) else {
+    let Ok(timebase) = Timebase::new(&mut run.rcc, run.tim2, Hertz::mhz(1)) else {
         defmt::panic!("TIM2 timebase")
     };
+    let clock = timebase.reader();
     let usb = match UsbFs::new(&mut run.rcc, run.usb, run.dm, run.dp) {
         Ok(usb) => usb,
         Err(error) => defmt::panic!("USB clock: {}", error),

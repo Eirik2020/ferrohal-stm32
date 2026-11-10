@@ -10,23 +10,106 @@
 
 use cortex_m::peripheral::DWT;
 use ferrohal_stm32::{
+    resource::IrqError,
     time::Hertz,
-    timer::{Tick, Timebase},
+    timer::{Instance, Instance32, Tick, Timebase},
 };
 use rtic::Mutex;
 
 use crate::tests::{Fail, Report};
 
-/// What the update handlers share with the checks task.
-pub struct TickBench {
-    pub tick: Option<Tick>,
+/// The shared surface of a benched tick: implemented for [`Tick`] itself,
+/// and for a board's enum of benched ticks ([`benched_ticks!`]). The timer
+/// token stays sealed inside the handle, so a benched tick cannot be freed
+/// while its vector is bound.
+pub trait BenchedTick {
+    /// Serves the tick's update interrupt: clears the flag and says whether
+    /// it was set.
+    fn on_interrupt(&mut self) -> bool;
+    /// Stops counting; no more ticks until resumed.
+    fn pause(&mut self);
+    /// The tick's rate.
+    fn rate(&self) -> Hertz;
+    /// Checks the NVIC, reading only: the vector is enabled.
+    fn verify(&self) -> Result<(), IrqError>;
+    /// Stops the counter, kills its update interrupt and clears its flag.
+    fn stop(&mut self);
+}
+
+impl<T: Instance> BenchedTick for Tick<T> {
+    fn on_interrupt(&mut self) -> bool {
+        self.on_interrupt()
+    }
+    fn pause(&mut self) {
+        self.pause()
+    }
+    fn rate(&self) -> Hertz {
+        self.rate()
+    }
+    fn verify(&self) -> Result<(), IrqError> {
+        self.verify()
+    }
+    fn stop(&mut self) {
+        self.stop()
+    }
+}
+
+/// Declares a board's benched ticks: one enum over the timers the run ticks,
+/// each variant a [`Tick`] with the timer token sealed inside, with the
+/// [`BenchedTick`] surface. A run that ticks more than one timer in turn
+/// stores the enum in its [`TickBench`]; a run with a single tick stores the
+/// `Tick` itself.
+#[allow(unused_macros)]
+macro_rules! benched_ticks {
+    ($(#[$meta:meta])* $name:ident { $($variant:ident : $timer:ident),+ $(,)? }) => {
+        $(#[$meta])*
+        pub enum $name {
+            $($variant(ferrohal_stm32::timer::Tick<$timer>),)+
+        }
+
+        impl crate::timers::BenchedTick for $name {
+            fn on_interrupt(&mut self) -> bool {
+                match self {
+                    $(Self::$variant(tick) => tick.on_interrupt(),)+
+                }
+            }
+            fn pause(&mut self) {
+                match self {
+                    $(Self::$variant(tick) => tick.pause(),)+
+                }
+            }
+            fn rate(&self) -> ferrohal_stm32::time::Hertz {
+                match self {
+                    $(Self::$variant(tick) => tick.rate(),)+
+                }
+            }
+            fn verify(&self) -> Result<(), ferrohal_stm32::resource::IrqError> {
+                match self {
+                    $(Self::$variant(tick) => tick.verify(),)+
+                }
+            }
+            fn stop(&mut self) {
+                match self {
+                    $(Self::$variant(tick) => tick.stop(),)+
+                }
+            }
+        }
+    };
+}
+#[allow(unused_imports)]
+pub(crate) use benched_ticks;
+
+/// What the update handlers share with the checks task. The benched tick
+/// moves in and is stopped and dropped at the end of its check.
+pub struct TickBench<T: BenchedTick> {
+    pub tick: Option<T>,
     pub count: u32,
     /// DWT at the first and the latest tick.
     pub first: Option<u32>,
     pub last: u32,
 }
 
-impl TickBench {
+impl<T: BenchedTick> TickBench<T> {
     pub const fn new() -> Self {
         Self {
             tick: None,
@@ -60,15 +143,19 @@ fn spin_until(cycles: u32, mut done: impl FnMut() -> bool) -> bool {
 }
 
 /// `ticks` ticks of `tick`, timed against the DWT, then a pause that must
-/// stop them. `tick` is dropped at the end, paused.
-pub fn tick_check<B: Mutex<T = TickBench>>(
+/// stop them. The tick moves into the bench, timer token sealed inside, and
+/// is stopped and dropped at the end.
+pub fn tick_check<E, B>(
     report: &mut Report,
     name: &str,
     bench: &mut B,
-    tick: Tick,
+    tick: E,
     cpu: Hertz,
     ticks: u32,
-) {
+) where
+    E: BenchedTick,
+    B: Mutex<T = TickBench<E>>,
+{
     let rate = tick.rate().0;
     let period = cpu.0 / rate;
     report.check(
@@ -122,7 +209,12 @@ pub fn tick_check<B: Mutex<T = TickBench>>(
             });
             let paused = bench.lock(|b| b.count);
             spin_until(period.saturating_mul(4), || false);
-            let after = bench.lock(|b| b.tick.take().map(|_| b.count));
+            let after = bench.lock(|b| {
+                if let Some(tick) = b.tick.as_mut() {
+                    tick.stop();
+                }
+                b.tick.take().map(|_| b.count)
+            });
             match after {
                 Some(after) if after == paused => Ok(()),
                 Some(after) => Err(Fail::Count {
@@ -139,7 +231,12 @@ pub fn tick_check<B: Mutex<T = TickBench>>(
 }
 
 /// `base` counts at its frequency, to 0.01 % of the DWT over 20 ms.
-pub fn timebase_check(report: &mut Report, name: &str, base: &Timebase, cpu: Hertz) {
+pub fn timebase_check<T: Instance32>(
+    report: &mut Report,
+    name: &str,
+    base: &Timebase<T>,
+    cpu: Hertz,
+) {
     let reader = base.reader();
     report.check(
         name,
