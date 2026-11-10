@@ -1,7 +1,7 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 47,
+  "documents": 48,
   "agent": 33,
   "agent_tokens": 16553
  },
@@ -19,8 +19,8 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.m",
-   "bytes": 23943,
-   "tokens": 5986
+   "bytes": 23562,
+   "tokens": 5891
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once do",
-   "bytes": 36834,
-   "tokens": 9209
+   "bytes": 36813,
+   "tokens": 9204
   },
   {
    "path": "THIRD-PARTY.md",
@@ -351,8 +351,8 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measurements",
-   "bytes": 7917,
-   "tokens": 1980
+   "bytes": 7979,
+   "tokens": 1995
   },
   {
    "path": "hil/RIG.md",
@@ -379,12 +379,20 @@
    "tokens": 371
   },
   {
+   "path": "requirements/benches-refusals.md",
+   "class": "human",
+   "title": "Bench Procedures: the constructor refusals",
+   "purpose": "The refusal runs of benches.mdbenches.md, split ou",
+   "bytes": 2693,
+   "tokens": 674
+  },
+  {
    "path": "requirements/benches.md",
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The rig ",
-   "bytes": 11166,
-   "tokens": 2792
+   "bytes": 11820,
+   "tokens": 2955
   },
   {
    "path": "requirements/goals.md",
