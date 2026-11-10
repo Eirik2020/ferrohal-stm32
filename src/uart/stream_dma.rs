@@ -443,12 +443,15 @@ struct TxIrq {
     request: u8,
 }
 
-// SAFETY: each half is the only owner of its buffer, its stream and the
-// registers it writes; moving it to another context moves that ownership.
-// `UartIrq` shares the transmit stream and buffer with `UartTx` only under
-// `service_tx`'s protocol.
+// SAFETY: the only owner of its buffer and its transmit stream; moving it
+// to another context moves that ownership. `UartIrq` shares both with it
+// only under `service_tx`'s protocol.
 unsafe impl Send for UartTx {}
+// SAFETY: the only owner of its buffer and its receive stream; moving it to
+// another context moves that ownership.
 unsafe impl Send for UartRx {}
+// SAFETY: shares the transmit stream and buffer with `UartTx` only under
+// `service_tx`'s protocol, and writes no register the halves own.
 unsafe impl Send for UartIrq {}
 
 impl Uart {
