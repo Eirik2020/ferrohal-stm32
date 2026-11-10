@@ -410,6 +410,7 @@ fn main() -> ! {
         rcc_suite(report, link);
         usb_bench::clock_suite(report, link, OTG_FS_DSTS, CLOCKS.cpu.0);
         usb_bench::uid_suite(report, link);
+        usb_bench::revision_suite(report, link);
         imu.suite(report, link);
         let vdda = vdda_mv.unwrap_or(0);
         check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);

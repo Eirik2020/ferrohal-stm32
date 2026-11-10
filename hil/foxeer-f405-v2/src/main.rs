@@ -534,6 +534,7 @@ fn main() -> ! {
         rcc_suite(report, link);
         usb_bench::clock_suite(report, link, OTG_FS_DSTS, CLOCKS.sysclk.0);
         usb_bench::uid_suite(report, link);
+        usb_bench::revision_suite(report, link);
         imu.suite(report, link);
         nor_suite(report, link, &mut nor);
         check!(report, link, timer_still, "timers: TIM8 waits for TIM1");
