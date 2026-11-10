@@ -1,8 +1,7 @@
 # Bench Procedures: the constructor refusals
 
 The refusal runs of [benches.md](benches.md), split out to keep that file in
-its budget. The same rules: a run proves the files that declare the requirement
-it covers, and a claim names the run that proves it.
+its budget; the same rules apply.
 
 ## Constructor refusals on the Nucleo-F401RE
 

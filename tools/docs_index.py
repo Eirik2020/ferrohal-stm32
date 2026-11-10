@@ -37,7 +37,7 @@ def purpose(path: Path) -> str:
             continue
         text = MARKUP.sub("", text).strip()
         if text:
-            return text[:50]
+            return text[:45]
     return ""
 
 
@@ -85,7 +85,7 @@ def markdown(data: dict) -> str:
     lines = [
         "# Document index (generated)",
         "",
-        "Metadata only - read a document after choosing it, not before. "
+        "Metadata only - read after choosing. "
         f"{data['counts']['documents']} documents, "
         f"~{data['counts']['agent_tokens']} agent tokens. "
         "Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.",
