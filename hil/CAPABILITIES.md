@@ -61,6 +61,9 @@ and the Lucid's CN13 with its DFU runs.
 - **Identity**: every run's log ends with the UID and the die revision, and
   RIG.md records each board's fitted part; 2.2.10 and 2.2.21 are decided off
   them.
+- **Injected faults**: the USART's own overrun flag, noise, a DMA transfer
+  error and a transmit timeout, injected on hardware and survived, both
+  USART IP versions (benches-faults.md).
 - **Host-only proofs**: the no-panic link per chip, glue against metapac,
   feature guards, doc budgets, host unit tests. These need no board and are not
   counted as hardware evidence.
@@ -83,7 +86,6 @@ Grouped by why; each is a candidate for the queue below.
   firmware rules only.
 - **UART4/5 on the F405**: not wired, so the reserved-CTS-bit fix is inspection.
 - **USB beyond CDC**: no OTG_HS, no host mode, no VBUS/data fault injection.
-- **Error paths**: DMA transfer errors, USART overrun, noise, stop timeout.
 - **Electrical**: no rail margining, no current measurement, no scope on edges;
   timing claims are read back through the chip, not measured on the wire.
 - **Environment and endurance**: room temperature only, no soak, no automated
@@ -97,23 +99,21 @@ Grouped by why; each is a candidate for the queue below.
 In order; each names what it unlocks. Cheap ones first, then the ones that
 unblock a claim.
 
-1. **Fault injection.** DMA transfer error, USART overrun, noise, stop timeout —
-   the error paths `DEBT.md` names as never exercised.
-2. **A cache/MPU matrix.** Write-through region, MPU off with caches on, an
+1. **A cache/MPU matrix.** Write-through region, MPU off with caches on, an
    invalidate followed by a store with and without a DMB. Proves the ES0392
    firmware rules and answers "is it safe for FerroWasp to enable caches?" with
    a run instead of an argument.
-3. **UART4/5 on the F405** (or move that check to the H753): closes an
+2. **UART4/5 on the F405** (or move that check to the H753): closes an
    inspection-only fix.
-4. **DFU without a hand on BOOT.** Keep a DFU requester on the host, or a boot
+3. **DFU without a hand on BOOT.** Keep a DFU requester on the host, or a boot
    image that always accepts `reboot dfu`.
-5. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
+4. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
-6. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
+5. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
    the drift and lock-up classes a 300 s run cannot.
-7. **Environmental corners.** Temperature and supply extremes only where a
+6. **Environmental corners.** Temperature and supply extremes only where a
    flight-relevant claim needs them.
-8. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
+7. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
    claims get tight enough that read-back is not enough.
 
 ## Using it

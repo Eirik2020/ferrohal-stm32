@@ -23,7 +23,7 @@ status=0
 # Run M still runs when asked for (`./run-h753.sh m`), with the cable
 # moved back to CN13; it is off the defaults below while the cable
 # powers the Pico.
-for run in ${*:-a b c d e f g h i j k l n o p q r s t u}; do
+for run in ${*:-a b c d e f g h i j k l n o p q r s t u w}; do
     log="$here/logs/h753-run-$run.log"
     : > "$log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not

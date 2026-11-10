@@ -11,6 +11,8 @@ hash of the manifest beside its logs, which lists every binary of the run by SHA
 
 How the rig is driven, before any procedure here runs — which probe a script flashes
 through, and the `rt` feature every firmware crate needs — is [rig.md](hil/RIG.md).
+The injected faults, split out to keep this file in its budget, are
+[benches-faults.md](benches-faults.md).
 
 ## UART on the Nucleo-F401RE
 

@@ -31,7 +31,7 @@ pub fn set_cpu_hz(hz: u32) {
     CYCLES_PER_MS.store(hz / 1000, Ordering::Relaxed);
 }
 
-fn delay_ms(ms: u32) {
+pub fn delay_ms(ms: u32) {
     let cycles = CYCLES_PER_MS.load(Ordering::Relaxed);
     for _ in 0..ms {
         cortex_m::asm::delay(cycles);
