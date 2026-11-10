@@ -9,16 +9,8 @@ Every UART check prints the requirements it verifies in square brackets after it
 name, so a log shows which layer each line speaks for. A record's image hash is the
 hash of the manifest beside its logs, which lists every binary of the run by SHA-256.
 
-## Which probe
-
-`hil/probe.sh` picks the probe by its serial, as `probe-rs list` prints it after
-`--` (`VID:PID:Serial`): `PROBE_RS_PROBE` if already set, else the board's own
-variable (`F401_PROBE` for `hil/run-f401.sh`, `H753_PROBE` for `hil/run-h753.sh`),
-else the only probe attached. With more than one attached and none chosen it lists
-them and exits before building, so a shared bench says which board it flashes. The
-choice reaches probe-rs through its `PROBE_RS_PROBE` variable, which the crate
-runners in `hil/*/.cargo/config.toml` leave unset. `hil/run-f401.sh`'s host echo
-runs over the chosen probe's own virtual COM port; `F401_VCP` overrides the path.
+How the rig is driven, before any procedure here runs — which probe a script flashes
+through, and the `rt` feature every firmware crate needs — is [rig.md](rig.md).
 
 ## UART on the Nucleo-F401RE
 
@@ -64,18 +56,6 @@ added to that crate [API-001].
 stm32-metapac's metadata. Pass: it exits zero. It reads the rows as text, so their
 layout must stay as it is.
 
-## Firmware crates enable `rt`
-
-`python3 -I tools/check_firmware_features.py`, a `checks/run.sh` step. Every crate
-under `hil/` and `checks/` that depends on `ferrohal-stm32` must name the crate's
-`rt` feature, or `rtic`, which implies it. `rt` is `cortex-m-rt`'s `set-vtor`: the
-F4's ROM bootloader leaves for the application by jumping, with no reset, so
-without it VTOR still points at the ROM and an interrupt runs the ROM's handler —
-the Foxeer's USB never enumerated after a DFU `leave` until the feature was on. A
-probe flash resets the chip and hides the fault, so tests can't rely on how the
-image arrived. Pass: it exits zero, naming the five firmware crates and the
-simulator it skips.
-
 ## SPI and EXTI on the Nucleo-F401RE
 
 `hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
@@ -98,7 +78,7 @@ simulator it skips.
 
 ## Watchdog on the Nucleo-H753ZI
 
-`hil/run-h753.sh k`. Resets the chip on purpose. Also checks that starting the watchdog froze it for the debugger [IWDG-004], and after the starvation report it starts a 100 ms windowed watchdog, feeds it early, and checks that the feed itself caused the reset [IWDG-005]. The starvation run starts at the board's measured LSI, 31.7 kHz, and requires the reset within 5% of 50 ms [IWDG-006]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh k`. Resets the chip on purpose, three boots in all. Also checks that starting the watchdog froze it for the debugger [IWDG-004]. After the starvation report it starts a 100 ms watchdog whose last 30 ms are its window, feeds it five times 85 ms after each reload, inside the window, and checks that the chip kept running [IWDG-007]; then it feeds 10 ms after a reload, above the window, and the next boot checks that the feed caused the reset [IWDG-005]. The window phase's progress and the second boot's failures cross the resets in one magic-tagged doubleword, so a reset anywhere in the phase is named and counted in the exit status. probe-rs can lose its session at one of the resets (`SwdApFault`, 1 run in 8 on 2026-11-10); that run exits non-zero with no FAIL line and is rerun. The starvation run starts at the board's measured LSI, 31.7 kHz, and requires the reset within 5% of 50 ms [IWDG-006]. Pass: every check in every run passes and the script exits zero.
 
 ## Bootloader request on the Nucleo-F401RE
 

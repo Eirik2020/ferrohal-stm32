@@ -1,6 +1,6 @@
 # Document index (generated)
 
-Metadata only - read a document after choosing it, not before. 30 documents, ~9183 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read a document after choosing it, not before. 31 documents, ~9183 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -23,7 +23,7 @@ Metadata only - read a document after choosing it, not before. 30 documents, ~91
 | a | docs/policies/safety.md | 608 tok | Normative. Goal G5 requirements/goals.md. Rational |
 | h | DEBT.md | 24203 B | Open items only. Finished work moves to RESOLVED.m |
 | h | README.md | 4610 B | A scheduler-agnostic STM32 HAL on stm32-metapachtt |
-| h | RESOLVED.md | 32447 B | History: items moved out of DEBT.mdDEBT.md once do |
+| h | RESOLVED.md | 33716 B | History: items moved out of DEBT.mdDEBT.md once do |
 | h | THIRD-PARTY.md | 3052 B | FerroHAL is licensed under MIT OR Apache-2.0 LICEN |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 2997 B | Part of the plan2026-11-08-debt-sweep.md. |
 | h | docs/plans/2026-11-08-debt-sweep.md | 4343 B | Status: in progress - W1-W7 done watchdog debug fr |
@@ -31,6 +31,7 @@ Metadata only - read a document after choosing it, not before. 30 documents, ~91
 | h | ferrohal-architecture.md | 26005 B | Architecture only. Implementation details are deci |
 | h | hil/WIRING.md | 4765 B | The two Nucleo benches prove FerroHAL's I2C master |
 | h | hil/pico-i2c-sim/README.md | 1483 B | A Raspberry Pi Pico 1 RP2040 standing in for the I |
-| h | requirements/benches.md | 11671 B | What each requirement's bench entry runs. The rig  |
+| h | requirements/benches.md | 11002 B | What each requirement's bench entry runs. The rig  |
 | h | requirements/goals.md | 916 B | Every requirement derives from one of these, or fr |
 | h | requirements/hil.md | 7901 B | The rig turns requirement claims into measurements |
+| h | requirements/rig.md | 1577 B | What every bench script and firmware crate relies  |

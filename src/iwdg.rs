@@ -15,11 +15,15 @@
 //! halted (`DBGMCU`), so a breakpoint inside a session does not become a
 //! reset. `iwdg_v2` adds a window register: [`Watchdog::start_windowed`]
 //! resets the chip if fed before the window opens, which catches firmware
-//! that feeds in a tight loop without doing its work. [`Watchdog::start`]
+//! that feeds in a tight loop without doing its work, and keeps it running
+//! when fed inside the window. The window is written last, after the
+//! prescaler and reload have settled, and its write is the reload that
+//! starts the count (RM0433 45.3.3). [`Watchdog::start`]
 //! works from the nominal 32 kHz; [`Watchdog::start_with_lsi`] takes the
 //! frequency a board measured, since the LSI varies from chip to chip.
 //!
-//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004, IWDG-005, IWDG-006
+//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004, IWDG-005, IWDG-006,
+//! IWDG-007
 
 use stm32_metapac::iwdg::vals::{Key, Pr};
 
@@ -108,6 +112,24 @@ pub const fn window_divider(timeout_us: u32, window_us: u32) -> Result<(u8, u16,
     }
 }
 
+/// Whether every pending register update (PVU, RVU, and on `iwdg_v2` WVU)
+/// reached the watchdog's clock domain within [`UPDATE_SPINS`] reads: the
+/// status register reading zero, which RM0433 45.3.3 waits for.
+fn updated() -> bool {
+    let regs = crate::chip::iwdg_regs();
+    for _ in 0..UPDATE_SPINS {
+        let sr = regs.sr().read();
+        #[cfg(feature = "iwdg_v2")]
+        let busy = sr.pvu() || sr.rvu() || sr.wvu();
+        #[cfg(feature = "iwdg_v1")]
+        let busy = sr.pvu() || sr.rvu();
+        if !busy {
+            return true;
+        }
+    }
+    false
+}
+
 /// The running watchdog. `feed` is a single key write, so the handle can
 /// sit wherever the firmware feeds from.
 pub struct Watchdog {
@@ -151,7 +173,8 @@ impl Watchdog {
     /// window register, so this is absent there.
     ///
     /// Refuses with the token handed back when the timeout or window cannot
-    /// be set, as [`Watchdog::start`] does.
+    /// be set, as [`Watchdog::start`] does. After an `Update` refusal the
+    /// window may already be in force, so feed only inside it.
     #[cfg(feature = "iwdg_v2")]
     pub fn start_windowed(
         iwdg: WatchdogPeripheral,
@@ -176,28 +199,34 @@ impl Watchdog {
         // A breakpoint must not become a reset: freeze the counter while a
         // debugger holds the core halted.
         crate::chip::set_watchdog_freeze();
-        // Starting turns the LSI on; then unlock, load, wait, reload.
+        // Starting turns the LSI on; then unlock, load, and wait for the
+        // prescaler and reload to reach the watchdog's clock domain.
         regs.kr().write(|w| w.set_key(Key::START));
         regs.kr().write(|w| w.set_key(Key::ENABLE));
         regs.pr().write(|w| w.set_pr(Pr::from_bits(code)));
         regs.rlr().write(|w| w.set_rl(reload));
-        // The window is written while the watchdog is unlocked, before the
-        // reload that starts the counter. Without one the register keeps its
-        // reset value: no window.
+        let settled = updated();
         #[cfg(feature = "iwdg_v2")]
-        if let Some(window) = window {
+        if let (true, Some(window)) = (settled, window) {
+            // RM0433 45.3.3, window enabled: writing WINR reloads the counter
+            // from RLR, so it is the last step. A key reload after it would
+            // land with the counter at its reload, above the window, and
+            // reset the chip; the bench measured that within 1 ms of the
+            // start. Like ST's own driver, this leaves register access open:
+            // the first feed closes it. Waiting for WVU means the window is
+            // in force once this returns.
             regs.winr().write(|w| w.set_win(window));
+            if !updated() {
+                return Err(Refused::new(Error::Update, iwdg));
+            }
+            return Ok(Self { timeout_us });
         }
         #[cfg(feature = "iwdg_v1")]
         let _ = window;
-        let mut settled = false;
-        for _ in 0..UPDATE_SPINS {
-            let sr = regs.sr().read();
-            if !sr.pvu() && !sr.rvu() {
-                settled = true;
-                break;
-            }
-        }
+        // No window (RM0433 45.3.3, RM0368 and RM0090's sequence): reload the
+        // counter from the new values. If they never settled, no window has
+        // been written either, so this reload is safe and keeps the watchdog
+        // fed with whatever it had.
         regs.kr().write(|w| w.set_key(Key::RESET));
         if !settled {
             return Err(Refused::new(Error::Update, iwdg));
