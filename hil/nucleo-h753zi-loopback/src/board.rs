@@ -793,6 +793,34 @@ pub struct RunB {
     pub usart3: Usart3B,
 }
 
+// Run W: faults injected on run A's USART6 loopback, same link and streams.
+
+pub struct RunW {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub usart6: Usart6Lucid,
+}
+
+pub fn run_w(p: Peripherals) -> Result<RunW, ClockError> {
+    let mut rcc = p.RCC.freeze(&HSE_CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut b = p.GPIOB.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let led = b.p0.into_push_pull_output(&mut b.ctrl);
+    let (tx6, rx6) = pins(c.p6, c.p7, &mut c.ctrl);
+    Ok(RunW {
+        rcc,
+        led,
+        usart6: Wiring {
+            uart: p.USART6,
+            tx: tx6,
+            rx: rx6,
+            tx_dma: dma1.s6,
+            rx_dma: dma1.s0,
+        },
+    })
+}
+
 pub struct RunC {
     pub rcc: Rcc,
     pub led: Led,

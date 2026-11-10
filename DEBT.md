@@ -4,8 +4,8 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-11-10:
 
-- **F401:** `hil/run-f401.sh` passes its twenty default runs, 283 checks (2026-11-10); the runs, their links and their checks are in `requirements/benches.md`.
-- **H753ZI:** `hil/run-h753.sh` passes its nineteen default runs (2026-11-10); run M, off the list while its CN13 cable powers the Pico, passed 11 of 11 on 2026-11-09.
+- **F401:** `hil/run-f401.sh` passes its twenty-two default runs, 318 checks (2026-11-10); the runs, their links and their checks are in `requirements/benches.md`.
+- **H753ZI:** `hil/run-h753.sh` passes its twenty-one default runs (2026-11-10); run M, off the list while its CN13 cable powers the Pico, passed 11 of 11 on 2026-11-09.
 - **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
 - **H743VI:** `hil/run-lucid.sh` passes 51 of 51 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 592 and 590 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams, its UID and rev V (2026-11-10). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
@@ -77,7 +77,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: the bench isn't on FerroForge yet.** Decided (2026-11-02): no fork is needed, since FerroForge's macros don't depend on a HAL and FerroHAL provides the RTIC device module; only its CLI backends name stm32f4xx-hal and stm32h7xx-hal. When FerroWasp's swap nears, add a FerroHAL backend to the FerroForge CLI and move the bench runs onto FerroForge tasks, which should cut 15-25 % of the run binaries' lines and prove the pair together.
 - **Medium: every driver has requirements, but tracing isn't enforced per file** (`docs/design/requirements-tooling.md`). `every_file_traced` in `reqtool.toml` stays off, because reqtool applies it to the bench crates under `hil/` as well as the library, and calls every file safety-critical. Neither the catalog links nor the diff analysis record is built.
 - **Medium: no requirement covers what's listed elsewhere in this file as missing or untested,** such as DMA double buffering or SPI bit order. A requirement says only what's measured.
-- **Medium: UART faults with no evidence** (`UART-015`, `USART-004`, `UARTDMA-009`). No bench injects noise, trips the USART's own overrun flag, or makes a DMA stream refuse to stop. Parity is measured only on the F401, because a mismatch needs two UARTs cross-wired and the H753's links are all loopbacks, so `usart_v4` has no parity evidence. The owner set these aside until after the swap (2026-11-03): file them under the swap's follow-ups, not as a blocker.
+- **Medium: two UART faults still have no evidence** (`UARTDMA-009`, and v4 parity): no bench makes a DMA stream refuse to stop, and parity is measured only on the F401 — a mismatch needs two UARTs cross-wired and the H753's links are all loopbacks, so `usart_v4` has no parity evidence. The owner set these aside until after the swap (2026-11-03): file them under the swap's follow-ups, not as a blocker.
 - **Low: kernel clock equals bus clock.** True on F4; on H7 only because `freeze` forces the kernel muxes. Add a kernel-clock field to `Info` before offering other muxes.
 
 ### GPIO
@@ -88,7 +88,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Test harness (`hil/`)
 
-- **Medium: some error paths are never exercised:** DMA transfer errors (the spike's `inject-dma-error` wasn't ported), USART-level overrun, noise, stop timeout.
 - **Medium: the H753ZI bench reaches the Zio headers only.** No morpho headers (CN11, CN12): UART8 TX, the Lucid's USART1 RX, PA8, PA9, PB14 and PG9 are unreachable, and UART5's PB13 needs SB7; PA1, PA2, PA11, PA12 need rework.
 - **Low: USART2 on the F401 goes through the ST-LINK,** so break, baud and parity changes aren't checked there; SB13/SB14 off and SB62/SB63 on would allow a direct link.
 - **Low: clock checks are indirect:** `freeze`'s record matching the `const` one, plus working baud rates (and the F401 host echo). Nothing measures MCO.

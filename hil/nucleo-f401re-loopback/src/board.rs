@@ -160,6 +160,57 @@ pub struct RunB {
     pub usart6: Usart6Cross,
 }
 
+// Run W: faults injected on run B's cross-wired pair, same link and same
+// streams.
+
+pub struct RunW {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub usart1: Usart1Cross,
+    pub usart6: Usart6Cross,
+}
+
+pub fn run_w(p: Peripherals) -> Result<RunW, ClockError> {
+    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut gpioa = p.GPIOA.split(&mut rcc);
+    let gpiob = p.GPIOB.split(&mut rcc);
+    let gpioc = p.GPIOC.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = gpioa.p5.into_push_pull_output(&mut gpioa.ctrl);
+    let Parts {
+        ctrl: mut ctrl_b,
+        p6: pb6,
+        p7: pb7,
+        ..
+    } = gpiob;
+    let Parts {
+        ctrl: mut ctrl_c,
+        p6: pc6,
+        p7: pc7,
+        ..
+    } = gpioc;
+    let (tx1, rx1) = uart_pins(pb6, pb7, &mut ctrl_b);
+    let (tx6, rx6) = uart_pins(pc6, pc7, &mut ctrl_c);
+    Ok(RunW {
+        rcc,
+        led,
+        usart1: Wiring {
+            uart: p.USART1,
+            tx: tx1,
+            rx: rx1,
+            tx_dma: dma2.s7,
+            rx_dma: dma2.s5,
+        },
+        usart6: Wiring {
+            uart: p.USART6,
+            tx: tx6,
+            rx: rx6,
+            tx_dma: dma2.s6,
+            rx_dma: dma2.s2,
+        },
+    })
+}
+
 // Run D: USART6 receive-only on PA12, fed over J2 by PA11 as a GPIO.
 
 /// USART6's RX over J2; DMA2 stream 1 receives.

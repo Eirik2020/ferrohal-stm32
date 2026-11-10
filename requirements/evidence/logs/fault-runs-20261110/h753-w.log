@@ -1,0 +1,18 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.05s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-w`
+     [38;5;10m[1mFinished[0m in 2.27s
+[INFO ] run W, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_w src/bin/run_w.rs:295)
+[INFO ] PASS USART6: vectors enabled at one priority [UART-003] (run_w ../common/tests.rs:319)
+[INFO ] USART6 PC6->PC7 loopback: overrun: reader 1, driver counted 1, 4 byte(s) after it, dma 0, sends ok true and true (run_w src/bin/run_w.rs:107)
+[INFO ] PASS USART6 PC6->PC7 loopback: overrun: reported once, by the reader and in Health [UART-015 USART-004] (run_w ../common/tests.rs:319)
+[INFO ] PASS USART6 PC6->PC7 loopback: overrun: A, C, D and E arrive in order, at most B lost [UART-015] (run_w ../common/tests.rs:319)
+[INFO ] PASS USART6 PC6->PC7 loopback: echo after the overrun (run_w ../common/tests.rs:307)
+[INFO ] USART6 PC6->PC7 loopback: dma transfer: reader 1, driver counted 1, restarts 0 -> 1, 0 byte(s) after it, overrun 0, sent true, bytes [] (run_w src/bin/run_w.rs:181)
+[INFO ] PASS USART6 PC6->PC7 loopback: dma transfer: reported once and the ring restarted [UARTDMA-011] (run_w ../common/tests.rs:319)
+[INFO ] PASS USART6 PC6->PC7 loopback: echo after the dma transfer error (run_w ../common/tests.rs:307)
+[INFO ] USART6 PC6->PC7 loopback: timeout: queue true, flush err, timeouts 0 -> 1 (run_w src/bin/run_w.rs:236)
+[INFO ] PASS USART6 PC6->PC7 loopback: timeout: the bound expired, the queue dropped and counted [UARTDMA-011] (run_w ../common/tests.rs:319)
+[INFO ] PASS USART6 PC6->PC7 loopback: the next frame goes out whole (run_w ../common/tests.rs:307)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_w ../common/tests.rs:1355)
+[INFO ] all checks passed (run_w ../common/tests.rs:1363)
+Firmware exited successfully
