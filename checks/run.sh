@@ -8,6 +8,8 @@
 # - the chip glue against stm32-metapac's metadata (tools/check_glue.py);
 # - every firmware crate linking FerroHAL enables `rt` for VTOR
 #   (tools/check_firmware_features.py);
+# - G5's safe API on the sources (tools/check_safe_api.py), and the
+#   register hatches proven closed (checks/no-metapac compile-fail probes);
 # - the pure logic's unit tests, on the host.
 
 set -u
@@ -45,6 +47,8 @@ for chip in "${chips[@]}"; do
 done
 step "glue matches stm32-metapac metadata" python3 -I "$root/tools/check_glue.py"
 step "firmware crates enable rt" python3 -I "$root/tools/check_firmware_features.py"
+step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
+step "no-metapac probes" bash "$root/checks/no-metapac/run.sh"
 step "docs index up to date" python3 -I "$root/tools/docs_index.py" --check
 step "doc size limits" python3 -I "$root/tools/check_docs.py"
 host=$(rustc -vV | sed -n 's/^host: //p')

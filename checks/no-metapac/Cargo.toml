@@ -1,0 +1,17 @@
+[package]
+name = "ferrohal-no-metapac"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+test = false
+bench = false
+
+[dependencies]
+# The H743: the richest surface (DMAMUX, SDMMC), so one chip covers every
+# hatch. The probes are compile-fail; nothing here is ever flashed.
+ferrohal-stm32 = { path = "../..", features = ["rt", "stm32h743vi"] }
+cortex-m-rt = "0.7.6"
+
+[workspace]

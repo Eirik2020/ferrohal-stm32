@@ -31,6 +31,11 @@
 //! Requirements: API-001
 
 #![no_std]
+// G5's enforcement (docs/policies/safety.md): every unsafe block carries a
+// SAFETY comment, and an unsafe fn body wraps its unsafe operations, so the
+// block that proves them is visible at the call site.
+#![deny(unsafe_op_in_unsafe_fn)]
+#![deny(clippy::undocumented_unsafe_blocks)]
 
 #[cfg(not(any(
     feature = "stm32f401re",

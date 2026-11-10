@@ -13,3 +13,7 @@ FerroHAL's own: it knows nothing of what it is used for.
 4. **G4 - Requirement tracing and verification.** Each file states the requirements
    it fulfils and is hashed, and evidence records the hash. One first pass verifies
    everything; after it, only what changed is retested.
+5. **G5 - Safe by default.** The public API exposes no `unsafe fn` and no reachable
+   raw register access: a HAL is the safe abstraction. An exception needs a written
+   rationale, the owner's dated approval, and a default-off feature gate
+   ([safety policy](../docs/policies/safety.md)).

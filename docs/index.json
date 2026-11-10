@@ -3,7 +3,7 @@
  "counts": {
   "documents": 31,
   "agent": 17,
-  "agent_tokens": 9183
+  "agent_tokens": 9210
  },
  "documents": [
   {
@@ -11,8 +11,8 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401re, st",
-   "bytes": 3625,
-   "tokens": 907
+   "bytes": 3641,
+   "tokens": 911
   },
   {
    "path": "DEBT.md",
@@ -203,16 +203,16 @@
    "class": "agent",
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rational",
-   "bytes": 2430,
-   "tokens": 608
+   "bytes": 2521,
+   "tokens": 631
   },
   {
    "path": "ferrohal-architecture.md",
    "class": "human",
    "title": "FerroHAL: architecture brief",
    "purpose": "Architecture only. Implementation details are deci",
-   "bytes": 26005,
-   "tokens": 6502
+   "bytes": 25995,
+   "tokens": 6499
   },
   {
    "path": "hil/WIRING.md",
@@ -243,8 +243,8 @@
    "class": "human",
    "title": "FerroHAL's Goals",
    "purpose": "Every requirement derives from one of these, or fr",
-   "bytes": 916,
-   "tokens": 229
+   "bytes": 1207,
+   "tokens": 302
   },
   {
    "path": "requirements/hil.md",

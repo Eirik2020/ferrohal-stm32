@@ -250,6 +250,9 @@ macro_rules! timer_dma {
 
 macro_rules! timer_dma_impl {
     (UP, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
+        // SAFETY: the update request ID this row names comes from
+        // stm32-metapac 21's metadata, which tools/check_glue.py holds
+        // against the chip file.
         unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::UpdateDma<$tim> for $stream
         $(where
             crate::dma::Dma<$d>: crate::dma::DmaInstance,
@@ -259,6 +262,9 @@ macro_rules! timer_dma_impl {
         }
     };
     ($signal:ident, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
+        // SAFETY: the compare request ID this row names comes from
+        // stm32-metapac 21's metadata, which tools/check_glue.py holds
+        // against the chip file.
         unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::CompareDma<$tim, { timer_channel!($signal) }> for $stream
         $(where
             crate::dma::Dma<$d>: crate::dma::DmaInstance,

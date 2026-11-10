@@ -28,7 +28,7 @@ Public repo. Bench-verified.
 ## Commands
 
 ```
-checks/run.sh                    # clippy x2/chip, no-panic, glue, docs, host tests
+checks/run.sh                    # clippy x2/chip, no-panic, safe-api, no-metapac, glue, docs, host
 python3 -I tools/check_docs.py   # budgets/tokens, decisions, housekeeping due
 python3 -I tools/docs_index.py   # regenerate docs/INDEX.md + docs/index.json
 python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap

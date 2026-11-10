@@ -28,7 +28,7 @@ Normative. Goal **G5** (`requirements/goals.md`). Rationale:
 ## Registers
 
 - Only the token-owning module touches its registers.
-- Metapac imports only in `src/chips/` + 12 drivers: usart_v2, usart_v4, spi_v2, spi_v4, i2c_v1, i2c_v2, adc_v2, adc_v4, gpio_v2, dma_stream, sdmmc_v2, iwdg.
+- Metapac imports only in `src/chips/`, `device.rs` and the IP modules that speak registers: usart_v2, usart_v4, spi_v2, spi_v4, i2c_v1, i2c_v2, adc_v2, adc_v4, gpio_v2, dma_stream, exti, iwdg, timer, timer_pwm, rcc_f4, rcc_h7rm0433, sdmmc_v2.
 - No register type over a `pub` boundary.
 - Non-obvious writes cite document + section beside the code.
 - Do not wrap register writes in `unsafe fn`: metapac `Reg` ops are safe and typed; `unsafe` means a caller memory-safety precondition.
@@ -36,7 +36,7 @@ Normative. Goal **G5** (`requirements/goals.md`). Rationale:
 ## Enforce
 
 - Deny `clippy::undocumented_unsafe_blocks`, `unsafe_op_in_unsafe_fn`.
-- `checks/safe-api.py`: no `pub unsafe fn` outside chip glue beyond the allowlist; allowlist item must carry `#[cfg(feature = "rtic")]`; `default = []`, `rtic = ["rt"]`, nothing implies `rtic`; metapac imports confined.
+- `tools/check_safe_api.py`: no `pub unsafe fn` outside chip glue beyond the allowlist; allowlist item must carry `#[cfg(feature = "rtic")]`; `default = []`, `rtic = ["rt"]`, nothing implies `rtic`; metapac imports confined.
 - `checks/no-metapac`: compile-fail probes for the six accessors + a `ferrohal_stm32::pac` path.
 - New public function -> add to `checks/no-panic`. Requirement **API-001**.
 

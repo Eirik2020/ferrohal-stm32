@@ -67,7 +67,7 @@ TOKENS: list[tuple[str, str, int]] = [
 RATCHET: dict[str, int] = {
     "DEBT.md": 24_033,
     "RESOLVED.md": 36_089,
-    "ferrohal-architecture.md": 26_005,
+    "ferrohal-architecture.md": 25_995,
 }
 
 # Never part of a commit decision: drafts and evidence.

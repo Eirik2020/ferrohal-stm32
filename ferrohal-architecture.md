@@ -57,7 +57,7 @@ and leaves a summary and link behind.
 - **[Decided]** There are no critical sections inside drivers.
 - **[Decided]** Control and flag registers are separate capabilities; design:
   `docs/design/uart-ownership.md`.
-- **[Decided]** Raw register escape hatch: an `unsafe fn` returns the raw metapac register accessor for a peripheral. Past that point the caller owns every invariant and there are no guarantees. metapac must not be reachable through the normal safe public API.
+- **[Decided]** Register access is policy, not an escape hatch: [docs/policies/safety.md](docs/policies/safety.md) (G5 - no public `unsafe fn`, metapac unreachable from the public API, imports confined, every `unsafe` documented and machine-checked).
 - **[Decided]** Instance typing: an `Instance` trait checks routing at construction, after which the instance type is erased. This is the pattern used by embassy-stm32 (a static `Info` reference) and imxrt-hal (`AnyInstance`). One driver type then serves every instance (USART1 to USART6), so one FerroForge task can name a single concrete type.
 
 ## 5. Public API surface
