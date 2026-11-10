@@ -1,7 +1,7 @@
 # Bench Procedures
 
 What each requirement's bench entry runs. The rig itself, what it can prove and what to
-improve next, is [hil.md](hil.md). A run proves the files that declare the
+improve next, is [hil.md](hil/CAPABILITIES.md). A run proves the files that declare the
 requirement it covers, so after the first pass, a change to one file owes only that
 file's requirements a new run.
 
@@ -10,7 +10,7 @@ name, so a log shows which layer each line speaks for. A record's image hash is 
 hash of the manifest beside its logs, which lists every binary of the run by SHA-256.
 
 How the rig is driven, before any procedure here runs — which probe a script flashes
-through, and the `rt` feature every firmware crate needs — is [rig.md](rig.md).
+through, and the `rt` feature every firmware crate needs — is [rig.md](hil/RIG.md).
 
 ## UART on the Nucleo-F401RE
 

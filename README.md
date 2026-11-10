@@ -1,6 +1,6 @@
 # ferrohal-stm32
 
-A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm32-metapac): RTIC-first, never RTIC-only. It's being built as the hardware layer for the FerroWasp flight controller firmware, and is a prototype: not on crates.io, and the API still moves.
+A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm32-metapac): RTIC-first, never RTIC-only. It is the hardware layer of the FerroWasp flight controller firmware, which pins it by exact git revision until it is published; not on crates.io yet, and the API still moves.
 
 ## What it is
 
@@ -30,14 +30,15 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 - **Watchdog:** the independent watchdog, and the reason for the last reset.
 - **USB:** full-speed device for `usb-device` and `usbd-serial`, behind the `usb` feature.
 - **ADC:** one channel at a time or a sequence over DMA, with the internal reference and temperature sensor against their factory calibration.
-- **System:** restarting into the ROM bootloader, and the unique device ID.
+- **SD cards (H7):** a blocking, polled `sdmmc_v2` driver for high-capacity cards at 3.3 V on a 4-bit bus, default speed: one block or many in one command, and no card is an error to retry, not a failure.
+- **System:** restarting into the ROM bootloader, the unique device ID, and the die revision.
 
-Not yet: SDMMC, BDMA, input capture.
+Not yet: BDMA, input capture.
 
 ## Checking it
 
 ```sh
-checks/run.sh        # clippy, no reachable panic, glue against metapac, host tests: all four chips
+checks/run.sh        # clippy, no reachable panic, safe API, no-metapac probes, glue against metapac, host tests: all four chips
 hil/run-f401.sh      # the Nucleo-F401RE bench
 hil/run-h753.sh      # the Nucleo-H753ZI bench
 hil/run-foxeer.sh    # the Foxeer F405 V2 bench, over its USB port

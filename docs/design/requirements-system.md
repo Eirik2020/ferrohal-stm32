@@ -1,0 +1,28 @@
+# The requirements and verification model
+
+Source: ADR-006, [`../decisions/2026-11-10-doc-map-dissolution.md`](../decisions/2026-11-10-doc-map-dissolution.md).
+
+
+The architecture map's section 9's model, dissolved 2026-11-10; decided by the
+owner on 2026-11-03. The catalog half is [requirements-ids.md](requirements-ids.md);
+the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
+
+## The general rule
+
+- **[Decided]** A car consists of an engine, wheels, a chassis and suspension. The car has its own requirements and sets requirements on its components. A first pass verifies that the car works as required. Later a set of wheels can be replaced by another that fulfils the wheel requirements, without reverifying the car.
+- **[Decided]** A layer's interface to the layer below is the requirements it sets there. A change to a part that still fulfils them re-owes only that part. A change to the requirements re-owes the layer that set them.
+- **[Decided]** The layers, each with its own requirements and verification: IP block, engine, chip glue, HAL API.
+- **[Decided]** One first pass tests everything. After it, only what changed is retested: an IP change retests the IP, a glue change retests the glue.
+
+## Files and hashes
+
+- **[Decided]** Things are grouped into files, for example `usart_v2`. The file states its requirements and is hashed. Verification evidence records the hash, and evidence that does not match the hash is flagged as unverified.
+- **[Decided]** Another local file is not part of a file's hash; the requirements cover that link. A consequence: a file serving two IP versions, such as `dma_stream.rs`, has one hash, so changing it re-owes both unless it is split.
+- **[Proposal]** The tool keeps two labels for the flag: `stale` when a pass exists and the hash has changed, `unverified` when none ever passed. Both count as not verified and hold a gate closed.
+- **[Proposal]** A file's evidence also covers the `macro_rules!` definitions it expands, since a macro changes what a file compiles to without changing its hash. `chips/shared/macros.rs` expands in all four chip files. Requirement docs and markers for internal macros go inside the macro body, so each expansion carries them.
+
+## Dependencies
+
+- **[Decided]** Dependencies are pinned. Bumping one breaks the verification of what uses it, and requires a diff analysis or reverification.
+- **[Decided]** Contributors may do a diff analysis. A maintainer must review it. The owner is the only maintainer for now.
+- **[Decided]** The compiler does not count as a pinned dependency. Differences between compiler versions are negligible outside safety assurance, and neither FerroHAL nor FerroWasp counts as safety assurance.

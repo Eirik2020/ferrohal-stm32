@@ -17,7 +17,7 @@ Status as of 2026-11-10:
 | STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
 | STM32H743VI | TBS Lucid H7 | as the H753ZI | HSE crystal to 400 MHz, checked against the host's USB frames. USB CDC on OTG_FS from HSI48. SPI1 on the IMU's pins and DMA1 streams 4 and 5, EXTI2 from its data-ready. |
 
-Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp). **Medium** is a gap someone will hit soon. **Low** is cleanup, or a limit worth knowing. Section numbers (§) refer to `ferrohal-architecture.md`.
+Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp). **Medium** is a gap someone will hit soon. **Low** is cleanup, or a limit worth knowing.
 
 ---
 
@@ -48,7 +48,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: USB sits outside the no-panic proof.** `synopsys-usb-otg` has about 30 panic/unwrap sites and unbounded register spins; behind the `usb` feature, the check covers only FerroHAL's clock and constructor. Flight firmware should keep USB away from critical paths.
 - **Medium: USB is device-mode CDC on OTG_FS, tested on the H753ZI, the Foxeer's F405 and the Lucid's H743.** No OTG_HS, no host mode; the F401's Nucleo has no USB connector.
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
-- **Medium: no timer hand-over to rtic-monotonics** (§7 hook 5, §8 foot-gun 1): `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL token as its monotonic.
+- **Medium: no timer hand-over to rtic-monotonics** (`docs/design/layering.md` hook 5, `docs/design/ferroforge-seam.md` foot-gun 1): `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL token as its monotonic.
 - **Low: only the trigger routes in use are in the glue:** TIM1→TIM3 everywhere, TIM1→TIM8 where TIM8 exists, TIM3→TIM2 on the F4s (run R). `check_glue.py` can't check them (no such metadata table); each follows RM0090 table 94, RM0368 table 54 or RM0433 table 336, and hardware exercises it.
 - **Medium: timer features still missing:** input capture, dead time, the break input (FerroWasp's reply window).
 - **Low: the watchdog's LSI constant is one measurement, and windows are nominal.** `start_with_lsi` scales to a per-board constant, but the LSI drifts with temperature and supply, so the timeout follows; `start_windowed` counts at 32 kHz.
@@ -71,11 +71,11 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Architecture and process
 
-- **Medium: the routing generator doesn't exist** (§5, §10). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs, timers, USB, ADCs, SDMMC, DMA and EXTI vectors: 127 facts on the F401, 173 on the F405, 180 on the H743, 184 on the H753) by reading the rows as text, so their layout must stay as it is. The metadata doesn't hold the USB FIFO depth, endpoint count or core kind, the clock limits or the memory map, so those stay checked by hand against the manuals.
-- **Medium: five source files each serve two IP versions** (§2, §9). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
-- **Medium: the feature hierarchy departs from §2.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
+- **Medium: the routing generator doesn't exist** (`docs/design/api-surface.md`, `docs/design/scope.md`). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs, timers, USB, ADCs, SDMMC, DMA and EXTI vectors: 127 facts on the F401, 173 on the F405, 180 on the H743, 184 on the H753) by reading the rows as text, so their layout must stay as it is. The metadata doesn't hold the USB FIFO depth, endpoint count or core kind, the clock limits or the memory map, so those stay checked by hand against the manuals.
+- **Medium: five source files each serve two IP versions** (`docs/design/structure.md`, `docs/design/requirements-system.md`). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
+- **Medium: the feature hierarchy departs from `docs/design/structure.md`.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Low: the bench isn't on FerroForge yet.** Decided (2026-11-02): no fork is needed, since FerroForge's macros don't depend on a HAL and FerroHAL provides the RTIC device module; only its CLI backends name stm32f4xx-hal and stm32h7xx-hal. When FerroWasp's swap nears, add a FerroHAL backend to the FerroForge CLI and move the bench runs onto FerroForge tasks, which should cut 15-25 % of the run binaries' lines and prove the pair together.
-- **Medium: every driver has requirements, but tracing isn't enforced per file** (§9). `every_file_traced` in `reqtool.toml` stays off, because reqtool applies it to the bench crates under `hil/` as well as the library, and calls every file safety-critical. Neither the catalog links nor the diff analysis record is built.
+- **Medium: every driver has requirements, but tracing isn't enforced per file** (`docs/design/requirements-tooling.md`). `every_file_traced` in `reqtool.toml` stays off, because reqtool applies it to the bench crates under `hil/` as well as the library, and calls every file safety-critical. Neither the catalog links nor the diff analysis record is built.
 - **Medium: no requirement covers what's listed elsewhere in this file as missing or untested,** such as DMA double buffering or SPI bit order. A requirement says only what's measured.
 - **Medium: UART faults with no evidence** (`UART-015`, `USART-004`, `UARTDMA-009`). No bench injects noise, trips the USART's own overrun flag, or makes a DMA stream refuse to stop. Parity is measured only on the F401, because a mismatch needs two UARTs cross-wired and the H753's links are all loopbacks, so `usart_v4` has no parity evidence. The owner set these aside until after the swap (2026-11-03): file them under the swap's follow-ups, not as a blocker.
 - **Low: kernel clock equals bus clock.** True on F4; on H7 only because `freeze` forces the kernel muxes. Add a kernel-clock field to `Info` before offering other muxes.
@@ -155,18 +155,13 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ---
 
-## 6. Open questions carried from the architecture doc
+## 6. Transition items
 
-- **Kill condition for the prototype** (§11): undecided.
-- **How to measure reuse** (§11): the shared UART engine runs unchanged on `usart_v2` and `usart_v4`; the per-IP `Line` is about 150 lines, the engine about 800.
-
-## 7. Transition items
-
-Code that exists only for the move of FerroWasp onto FerroHAL (§15). Each is marked `TRANSITION:` in its documentation and is removed once FerroWasp uses FerroHAL's native model.
+Code that exists only while FerroWasp's transports run through the compatibility adapters (ADR-005). Each is marked `TRANSITION:` in its documentation and is removed once the transports move to FerroHAL's native model.
 
 - FerroWasp's UART and SPI adapters, in its `ferrowasp-stm32-critical`, marked `TRANSITION:` there. They go when its transports move to FerroHAL's native model. FerroHAL itself holds no transition code.
 
-## 8. Deferred: no bench can prove it yet
+## 7. Deferred: no bench can prove it yet
 
 Built, and checked by the compiler, host tests or the no-panic link, but the
 behaviour they change has not run on hardware. They stay open and rank below
