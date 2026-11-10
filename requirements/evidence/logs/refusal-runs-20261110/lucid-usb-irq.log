@@ -1,0 +1,9 @@
+PASS host: port usb-FerroHAL_FerroHAL_bench_lucid-h7-if00
+PASS host: 1 bytes echoed
+PASS host: 63 bytes echoed
+PASS host: 64 bytes echoed
+PASS host: 65 bytes echoed
+PASS host: 128 bytes echoed
+PASS host: 512 bytes echoed
+PASS host: 4096 bytes echoed
+PASS host: 64 KiB echoed at 592 KiB/s
