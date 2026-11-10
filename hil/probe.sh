@@ -24,7 +24,7 @@ probe_for() {
         if [ "$count" -ne 1 ]; then
             echo "probe: set $board_var (or PROBE_RS_PROBE) to one of these," >&2
             echo "probe: as probe-rs list prints it after '--':" >&2
-            printf '  %s\n' "$probes" >&2
+            printf '%s\n' "$probes" | sed 's/^/  /' >&2
             return 1
         fi
         chosen=$probes

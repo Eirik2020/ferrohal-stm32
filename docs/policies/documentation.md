@@ -43,7 +43,7 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 - Agent docs - estimated tokens (4 B/token): `AGENTS.md` 1100; policies 750; decision hub 500;
   decision 750; decision index 400; note 850; housekeeping 500; design topic 750.
 - Human docs - bytes: plans 6000; benches 12000; README/THIRD-PARTY/WIRING 8000.
-- Ratchets (human): `DEBT.md` 24008, `RESOLVED.md` 30644, map 26005. `DEBT.md` and the map
+- Ratchets (human): `DEBT.md` 24033, `RESOLVED.md` 36089, map 26005. `DEBT.md` and the map
   shrink only; `RESOLVED.md` grows by each resolution, raising its ratchet then.
 - Over a limit: **split into a second document**; never compress, never drop a fact.
 - Checker: `tools/check_docs.py` in `checks/run.sh`; workspace:

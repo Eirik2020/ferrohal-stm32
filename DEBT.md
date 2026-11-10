@@ -2,12 +2,12 @@
 
 Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is history and needn't be read to work on the crate.
 
-Status as of 2026-11-06:
+Status as of 2026-11-10:
 
-- **F401:** `hil/run-f401.sh` passes all eighteen runs, 248 checks; the runs, their links and their checks are in `requirements/benches.md`.
-- **H753ZI:** `hil/run-h753.sh` passes all eighteen runs, same detail; run M needs a cable from CN13, and passed 11 of 11 on 2026-11-05.
+- **F401:** `hil/run-f401.sh` passes its twenty default runs, 283 checks (2026-11-10); the runs, their links and their checks are in `requirements/benches.md`.
+- **H753ZI:** `hil/run-h753.sh` passes its nineteen default runs (2026-11-10); run M, off the list while its CN13 cable powers the Pico, passed 11 of 11 on 2026-11-09.
 - **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
-- **H743VI:** `hil/run-lucid.sh` passes 51 of 51 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 572 and 568 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams, its UID and rev V (2026-11-10). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
+- **H743VI:** `hil/run-lucid.sh` passes 51 of 51 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 592 and 590 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams, its UID and rev V (2026-11-10). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
 
 | Chip | Board | IP versions | Hardware-tested |
@@ -59,7 +59,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: some timers share their update vector** (the F4's `TIM1_UP_TIM10`, the H7's `TIM8_UP_TIM13`). `Tick::on_interrupt` returns `false` for another's flag; firmware calls every sharer's handler.
 - **Low: `verify()` can't check task priorities.** It checks a UART's vectors are enabled at one priority; "above every task that uses it" is the application's job.
 - **Low: `set_config` exists only on the whole `Uart`;** after `split()` the frame can't change. `Uart::halves()` lends both halves meanwhile.
-- **Low: parts of the DMA API are untested:** double buffering (`Transfer::double_buffer`, `set_idle_buffer`, `current_target`), FIFO threshold mode, and `Channel::start` used directly.
+- **Low: DMA double buffering and FIFO threshold mode are untested,** and unreachable outside the crate since W6b2 made `Channel::start` internal.
 - **Medium: the ADC is regular conversions by software start only.** No timer trigger, injected channels, watchdogs, oversampling, or differential inputs; ADC2 isn't offered, nor the H7's `_C` pads. An `AdcScan` holds its ADC for good, and one sample time serves every channel.
 - **Low: the H7's ADC runs at a fixed 4 MHz,** per_ck (HSI) over 16, FerroWasp's speed, with BOOST left at its reset value, which suits that clock on both silicon revisions. ES0392 2.9.8 limits ADC3's resolution while the LSE runs; nothing here starts it. The Nucleo's bench reads 16 bits to within a few hundred counts on the rails, with no accuracy figure beyond that.
 - **Medium: the SPI is master, full duplex, 8-bit only.** No slave mode, simplex or half-duplex, 16-bit frames, hardware NSS or CRC. That holds for both `Spi` (DMA) and `BlockingSpi` (polled).
@@ -82,8 +82,9 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### GPIO
 
-- **Medium: `split()` doesn't know the package.** It hands out all 16 pins on every port the register map has, bonded or not (see each chip's package below). Fix: a per-package pin list in the glue.
-- **Low: missing GPIO features:** open-drain, runtime mode switching.
+- **Low: a bonded port still splits into every pin.** `Port::split` hands out all sixteen pins, so an unbonded one (PB11 on the F401's LQFP64, a second PH pin on the H7s) can be split out as GPIO though no routing row may name it; `BONDED` and `check_glue.py` enforce the rows, not the split. A per-package `Parts` would remove the fields.
+- **Medium: an I2C wiring accepts a push-pull pin:** both `into_alternate` forms return the same type ([gpio_v2](src/gpio_v2/mod.rs)), and push-pull NACKs every transfer (RESOLVED, 2026-11-08). Fix: an open-drain type state.
+- **Low: missing GPIO features:** an open-drain output, runtime mode switching.
 
 ### Test harness (`hil/`)
 
@@ -91,9 +92,9 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the H753ZI bench reaches the Zio headers only.** No morpho headers (CN11, CN12): UART8 TX, the Lucid's USART1 RX, PA8, PA9, PB14 and PG9 are unreachable, and UART5's PB13 needs SB7; PA1, PA2, PA11, PA12 need rework.
 - **Low: USART2 on the F401 goes through the ST-LINK,** so break, baud and parity changes aren't checked there; SB13/SB14 off and SB62/SB63 on would allow a direct link.
 - **Low: clock checks are indirect:** `freeze`'s record matching the `const` one, plus working baud rates (and the F401 host echo). Nothing measures MCO.
+- **Low: `hil/run-i2c-sim.sh` with two probes attached needs both `F401_PROBE` and `H753_PROBE`;** `PROBE_RS_PROBE` would send both runs to one probe, as `hil/probe.sh` ranks it first.
 
 ---
-- **Low: a bonded port still splits into every pin.** `Port::split` hands out all sixteen pins, so an unbonded one (PB11 on the F401's LQFP64, a second PH pin on the H7s) can be split out as GPIO though no routing row may name it; `BONDED` and `check_glue.py` enforce the rows, not the split. A per-package `Parts` would remove the fields.
 
 ## 2. STM32F401RE (Nucleo-F401RE)
 
@@ -106,7 +107,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: UART4 and UART5 have never run on `usart_v2`.** The F401 doesn't have them, and the F405 shares its driver with the F401, so no separate F405 UART bench is planned (decided 2026-11-02). Their glue is checked, and UART4 is the Foxeer's MSP port, so the swap's bench run will exercise it.
 - **Low: no frame has reached a Foxeer motor pad.** The motor check runs with outputs off; real DShot on the pads waits (decided 2026-11-02). The same lanes are read back by samplers on the Nucleos.
 - **Low: the bench's NOR commands are its own copy.** They follow FerroWasp's `spi_nor` driver, which compiled unchanged over `BlockingSpi` in a scratch crate but hasn't itself run over FerroHAL. The bench can't depend on it from a public repo. The IMU setup is copied the same way.
-- **Low: FerroWasp's F405 image is exposed to the VTOR trap until the swap.** It doesn't set VTOR, so after a DFU `leave` its USB should fail as the bench's did, until a power cycle. FerroHAL's `rt` feature fixes it for the swap. Seen on the bench's firmware only, not tried on FerroWasp's.
+- **Low: FerroWasp's F405 image hasn't been seen through a DFU `leave`;** since the swap it enables FerroHAL's `rt` (FerroHAL `b6d8e84`), which should clear the VTOR trap.
 - **Low: a Foxeer firmware that fails before USB can't say why.** It restarts into DFU, which shows only that something failed.
 - **Low: prefetch on revision A.** `freeze` sets PRFTEN; ES0182 2.2.1 says revision A doesn't support the prefetch queue. Later revisions are fixed.
 - **Medium: reading a pin on DMA2 while DMA2 also serves APB2 meets ES0182 2.2.19.** The waveform generator can now turn a lane round to read its pin, which is what bidirectional DShot needs, and FerroWasp doesn't use it yet. The Foxeer's motor timers are TIM1 and TIM8 on DMA2, and only DMA2 reaches GPIO on the F4, so reading replies shares DMA2 with anything on APB2, such as SPI1's IMU streams. DMA2 serving both at once can corrupt data. Before bidirectional DShot flies on an F4, the two need keeping apart.
@@ -121,13 +122,13 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Clocks and power (`rcc_h7rm0433`)
 
-- **Medium: no VOS0 (480 MHz).** It exists only on rev V, needs SYSCFG ODEN and its own flash table; the revision isn't read (DBGMCU IDCODE).
-- **Medium: limits are the lowest common denominator:** the wide VCO is capped at 836 MHz (rev Y, DS12117 table 39 / DS12110 table 40) though rev V allows 960 MHz. Detect the revision if the headroom matters.
+- **Medium: no VOS0 (480 MHz).** It exists only on rev V, needs SYSCFG ODEN and its own flash table; `freeze` doesn't read `signature::revision`.
+- **Medium: limits are the lowest common denominator:** the wide VCO is capped at 836 MHz (rev Y, DS12117 table 39 / DS12110 table 40) though rev V allows 960 MHz. `signature::revision` tells, if the headroom matters.
 - **Medium: LDO only, and PWR_CR3 is written once per power-on reset.** If something already locked another configuration, `freeze` returns `SupplyTimeout`.
 - **Medium: much of the clock tree isn't offered:** PLL2, PLL3, fractional mode, CSI, HSI48, HSIDIV other than 1, TIMPRE.
 - **Medium: kernel clock muxes are forced** (USART16910SEL = PCLK2, USART234578SEL = PCLK1, SPI123SEL = PLL1Q, SPI45SEL = PCLK2). SPI1 to SPI3 can't be opened without PLL1's Q output.
 - **Low: no IO compensation cell** (SYSCFG CCCSR); needed for fast GPIO above about 50 MHz.
-- **Medium: HSI48 runs untrimmed for USB.** Full speed asks for 48 MHz to 0.25 %. The CRS can trim HSI48 from USB start-of-frame, but ES0392 2.2.3 says that doesn't work on revision Y, and the silicon revision isn't read. FerroWasp also runs it untrimmed. Enumeration and 64 KiB of echo pass on the bench; add CRS for revision V if a host proves picky.
+- **Medium: HSI48 runs untrimmed for USB.** Full speed asks for 48 MHz to 0.25 %. The CRS can trim HSI48 from USB start-of-frame, but ES0392 2.2.3 says that doesn't work on revision Y, which `signature::revision` tells. FerroWasp also runs it untrimmed. Enumeration and 64 KiB of echo pass on the bench; add CRS for revision V if a host proves picky.
 - **Low: wait-state tables are transcribed** (RM0433 table 17), checked once against embassy and the manual.
 - **Low: HSE with a crystal is untested;** only bypass has run.
 
@@ -141,7 +142,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Errata
 
-- **Medium: ES0392 2.2.10 exposes AXI SRAM DMA reads on rev-Y H7s.** DMA buffers are AXI SRAM (bench: its top 16 KiB; `chip::DMA_RAM`); on revision Y/W a controller delaying acceptance while another read is issued can see corruption (absent on X and V). `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it at a throughput cost and metapac lacks the register. `signature::revision` reports the code: the Lucid is 0x2003, revision V, so 2.2.10 is clear there; the H753ZI's revision is unread, and a Y/W part needs the override. `docs/design/h7-errata.md`.
+- **Medium: ES0392 2.2.10 exposes AXI SRAM DMA reads on rev-Y H7s.** DMA buffers are AXI SRAM (bench: its top 16 KiB; `chip::DMA_RAM`); on revision Y/W a controller delaying acceptance while another read is issued can see corruption (absent on X and V). `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it at a throughput cost and metapac lacks the register. `signature::revision` reports the code: the Lucid and the Nucleo-H753ZI (`DBGMCU_IDC` 0x2003_6450 by probe, 2026-11-10) are both revision V; a Y/W part needs the override. `docs/design/h7-errata.md`.
 - **Low: a flash driver must start from ES0392 2.2.6/2.2.7/2.2.18.** `BFAR` may hold the previous access's address on a double ECC error, so only `FLASH_ECC_FA1R/FA2R` is usable; `FAxR` may miss the second of two consecutive errors (no workaround), and flash CRC is invalid at sector 7's last address. Nothing reads flash status yet.
 
 ## 5. STM32H743VI (TBS Lucid H7)
@@ -149,7 +150,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: SDMMC has run on one card** (a 16 GB SanDisk in the Lucid) and the empty slot, which reports `NoCard`; a CRC failure and a card pulled mid-transfer are untested.
 - **Medium: SDMMC's limits.** Polled through the FIFO (interrupts may preempt, flow control pausing the bus), up to 25 MHz, 4-bit, 3.3 V, high-capacity v2 cards; no DMA, no card-detect pin.
 - **Low: no frame has reached a Lucid motor pad, and its UARTs run only as the H753ZI's.** Same die and driver under the H753ZI's glue, with the H743 routes pinned by a test; UART8 (its ESC telemetry port) has run on neither.
-- **Low: FerroWasp's H7 reboot request is likely lost the same way.** `ferrowasp-stm32h7-critical`'s `system_bootloader` writes one word to AXI SRAM just before the reset, which RM0433 2.4 says a reset loses; the bench measured it on this die. `reboot_to_bootloader` writes the whole doubleword.
 - **Low: state kept across a reset on the H7 should be whole doublewords.** The bootloader bench lost results written as single words beside each other across resets, and passed once each had its own doubleword; why isn't explained beyond RM0433 2.4's rule.
 - Everything in section 4 applies too.
 
@@ -164,7 +164,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 Code that exists only for the move of FerroWasp onto FerroHAL (§15). Each is marked `TRANSITION:` in its documentation and is removed once FerroWasp uses FerroHAL's native model.
 
-- FerroWasp's UART and SPI adapters, in its `ferrowasp-ferrohal-critical`, marked `TRANSITION:` there. They go when its transports move to FerroHAL's native model. FerroHAL itself holds no transition code.
+- FerroWasp's UART and SPI adapters, in its `ferrowasp-stm32-critical`, marked `TRANSITION:` there. They go when its transports move to FerroHAL's native model. FerroHAL itself holds no transition code.
 
 ## 8. Deferred: no bench can prove it yet
 

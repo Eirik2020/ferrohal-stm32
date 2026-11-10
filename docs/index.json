@@ -1,7 +1,7 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 30,
+  "documents": 31,
   "agent": 17,
   "agent_tokens": 9183
  },
@@ -19,8 +19,8 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.m",
-   "bytes": 24203,
-   "tokens": 6051
+   "bytes": 24033,
+   "tokens": 6009
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once do",
-   "bytes": 32447,
-   "tokens": 8112
+   "bytes": 36089,
+   "tokens": 9023
   },
   {
    "path": "THIRD-PARTY.md",
@@ -235,8 +235,8 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The rig ",
-   "bytes": 11671,
-   "tokens": 2918
+   "bytes": 11149,
+   "tokens": 2788
   },
   {
    "path": "requirements/goals.md",
@@ -253,6 +253,14 @@
    "purpose": "The rig turns requirement claims into measurements",
    "bytes": 7901,
    "tokens": 1976
+  },
+  {
+   "path": "requirements/rig.md",
+   "class": "human",
+   "title": "Rig set-up",
+   "purpose": "What every bench script and firmware crate relies ",
+   "bytes": 1577,
+   "tokens": 395
   }
  ]
 }
