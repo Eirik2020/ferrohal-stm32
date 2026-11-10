@@ -32,19 +32,34 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
+        chip::{TIM1, TIM10, TIM11, TIM2, TIM3, TIM4, TIM5, TIM9},
         time::Hertz,
-        timer::{Tick, Timebase},
+        timer::Tick,
     };
 
     use crate::{
         board,
         tests::{self, Fail, Report},
-        timers::{self, TickBench},
+        timers::{self, TickBench, benched_ticks},
     };
+
+    benched_ticks! {
+        /// The timers run H ticks, one at a time. The token stays inside.
+        Benched {
+            Tim1: TIM1,
+            Tim2: TIM2,
+            Tim3: TIM3,
+            Tim4: TIM4,
+            Tim5: TIM5,
+            Tim9: TIM9,
+            Tim10: TIM10,
+            Tim11: TIM11,
+        }
+    }
 
     #[shared]
     struct Shared {
-        bench: TickBench,
+        bench: TickBench<Benched>,
     }
 
     #[local]
@@ -165,24 +180,24 @@ mod app {
         );
 
         macro_rules! tick {
-            ($name:literal, $timer:expr, $rate:expr, $ticks:expr) => {
+            ($name:literal, $variant:ident, $timer:expr, $rate:expr, $ticks:expr) => {
                 match $timer.map(|timer| Tick::new(&mut run.rcc, timer, $rate)) {
                     Some(Ok(tick)) => {
-                        timers::tick_check(&mut report, $name, bench, tick, cpu, $ticks)
+                        timers::tick_check(&mut report, $name, bench, Benched::$variant(tick), cpu, $ticks)
                     }
                     Some(Err(refused)) => report.check($name, "open", Err(Fail::Timer(refused.error()))),
                     None => defmt::unreachable!(),
                 }
             };
         }
-        tick!("TIM1 tick 1 kHz", run.tim1.take(), khz, 50);
-        tick!("TIM2 tick 1 kHz", run.tim2.take(), khz, 50);
-        tick!("TIM3 tick 1 kHz", run.tim3.take(), khz, 50);
-        tick!("TIM4 tick 1 kHz", run.tim4.take(), khz, 50);
-        tick!("TIM5 tick 1 kHz", run.tim5.take(), khz, 50);
-        tick!("TIM9 tick 1 kHz", run.tim9.take(), khz, 50);
-        tick!("TIM10 tick 1 kHz", run.tim10.take(), khz, 50);
-        tick!("TIM11 tick 1 kHz", run.tim11.take(), khz, 50);
+        tick!("TIM1 tick 1 kHz", Tim1, run.tim1.take(), khz, 50);
+        tick!("TIM2 tick 1 kHz", Tim2, run.tim2.take(), khz, 50);
+        tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
+        tick!("TIM4 tick 1 kHz", Tim4, run.tim4.take(), khz, 50);
+        tick!("TIM5 tick 1 kHz", Tim5, run.tim5.take(), khz, 50);
+        tick!("TIM9 tick 1 kHz", Tim9, run.tim9.take(), khz, 50);
+        tick!("TIM10 tick 1 kHz", Tim10, run.tim10.take(), khz, 50);
+        tick!("TIM11 tick 1 kHz", Tim11, run.tim11.take(), khz, 50);
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

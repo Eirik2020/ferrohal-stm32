@@ -7,13 +7,20 @@ h7xx-hal 0.16 has 11 `free(...)` (`free(self) -> ($peripheral, $rec)`); f4xx-hal
 ## Blockers (proven)
 
 - `Pwm<T>` (`src/timer_pwm.rs:131`) keeps `PhantomData<T>` only; `PwmChannel` (`:366`) and `CompareLane` (`:613`) hold register blocks and no borrow -> a safe `Pwm::free()` could run while a lane drives the timer. Lifetime-binding conflicts with `start`/`stage` taking `&mut Pwm` while lanes live -> split handle or lifetime redesign.
-- `Tick`/`Timebase` non-generic, token erased (`hil/common/timers.rs:22`, `:68`) -> must become `Tick<T>`/`Timebase<T>`.
+- ~~`Tick`/`Timebase` non-generic, token erased (`hil/common/timers.rs:22`, `:68`)~~
+  **done (2026-11-10):** `Tick<T>`/`Timebase<T>` carry the token; the bench's
+  `TickBench<E>` holds a per-run enum of benched ticks so the token stays sealed while
+  the vector runs.
 - `I2c` (`src/i2c/mod.rs:256`), `Spi`, `Uart` store `&'static Info`, not tokens -> store ZST tokens.
 - `UartRx`/`UartTx` need a rejoin before `Uart::free()`.
 
 ## Scope
 
 1. Generic handles where needed; `free(self) -> T`, stopping as `Drop` would; document.
+   **Tick/Timebase done 2026-11-10** (own PR): `Tick<T>`/`Timebase<T>` carry the token,
+   `free()` stops the timer and hands it back; the bench's `TickBench<E>` keeps the
+   token sealed in a per-run enum of benched ticks, `Link` reads through a
+   `TimebaseReader`. Remaining: PWM, UART, SPI, I2C.
 2. Lifetime-bind `PwmChannel`/`CompareLane`/`TwoWayLane` (or split `Timer` from `Pwm`); `Pwm::free()`.
 3. `Uart::free()` via half rejoin; `Spi::free()`; `I2c::free()`.
 4. DMA stream/channel handles: `free()` or stay transport-owned - decide.

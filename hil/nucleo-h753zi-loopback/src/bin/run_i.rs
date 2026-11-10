@@ -27,19 +27,43 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [CEC])]
 mod app {
     use ferrohal_stm32::{
+        chip::{
+            TIM1, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7,
+            TIM8,
+        },
         time::Hertz,
-        timer::{Tick, Timebase},
+        timer::Tick,
     };
 
     use crate::{
         board,
         tests::{self, Fail, Report},
-        timers::{self, TickBench},
+        timers::{self, TickBench, benched_ticks},
     };
+
+    benched_ticks! {
+        /// The timers run I ticks, one at a time. The token stays inside.
+        Benched {
+            Tim1: TIM1,
+            Tim2: TIM2,
+            Tim3: TIM3,
+            Tim4: TIM4,
+            Tim5: TIM5,
+            Tim6: TIM6,
+            Tim7: TIM7,
+            Tim8: TIM8,
+            Tim12: TIM12,
+            Tim13: TIM13,
+            Tim14: TIM14,
+            Tim15: TIM15,
+            Tim16: TIM16,
+            Tim17: TIM17,
+        }
+    }
 
     #[shared]
     struct Shared {
-        bench: TickBench,
+        bench: TickBench<Benched>,
     }
 
     #[local]
@@ -142,30 +166,30 @@ mod app {
         let khz = Hertz::khz(1);
 
         macro_rules! tick {
-            ($name:literal, $timer:expr, $rate:expr, $ticks:expr) => {
+            ($name:literal, $variant:ident, $timer:expr, $rate:expr, $ticks:expr) => {
                 match $timer.map(|timer| Tick::new(&mut run.rcc, timer, $rate)) {
                     Some(Ok(tick)) => {
-                        timers::tick_check(&mut report, $name, bench, tick, cpu, $ticks)
+                        timers::tick_check(&mut report, $name, bench, Benched::$variant(tick), cpu, $ticks)
                     }
                     Some(Err(refused)) => report.check($name, "open", Err(Fail::Timer(refused.error()))),
                     None => defmt::unreachable!(),
                 }
             };
         }
-        tick!("TIM1 tick 1 kHz", run.tim1.take(), khz, 50);
-        tick!("TIM2 tick 1 kHz", run.tim2.take(), khz, 50);
-        tick!("TIM3 tick 1 kHz", run.tim3.take(), khz, 50);
-        tick!("TIM4 tick 1 kHz", run.tim4.take(), khz, 50);
-        tick!("TIM5 tick 1 kHz", run.tim5.take(), khz, 50);
-        tick!("TIM6 tick 1 kHz", run.tim6.take(), khz, 50);
-        tick!("TIM7 tick 1 kHz", run.tim7.take(), khz, 50);
-        tick!("TIM8 tick 1 kHz", run.tim8.take(), khz, 50);
-        tick!("TIM12 tick 1 kHz", run.tim12.take(), khz, 50);
-        tick!("TIM13 tick 1 kHz", run.tim13.take(), khz, 50);
-        tick!("TIM14 tick 1 kHz", run.tim14.take(), khz, 50);
-        tick!("TIM15 tick 1 kHz", run.tim15.take(), khz, 50);
-        tick!("TIM16 tick 1 kHz", run.tim16.take(), khz, 50);
-        tick!("TIM17 tick 1 kHz", run.tim17.take(), khz, 50);
+        tick!("TIM1 tick 1 kHz", Tim1, run.tim1.take(), khz, 50);
+        tick!("TIM2 tick 1 kHz", Tim2, run.tim2.take(), khz, 50);
+        tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
+        tick!("TIM4 tick 1 kHz", Tim4, run.tim4.take(), khz, 50);
+        tick!("TIM5 tick 1 kHz", Tim5, run.tim5.take(), khz, 50);
+        tick!("TIM6 tick 1 kHz", Tim6, run.tim6.take(), khz, 50);
+        tick!("TIM7 tick 1 kHz", Tim7, run.tim7.take(), khz, 50);
+        tick!("TIM8 tick 1 kHz", Tim8, run.tim8.take(), khz, 50);
+        tick!("TIM12 tick 1 kHz", Tim12, run.tim12.take(), khz, 50);
+        tick!("TIM13 tick 1 kHz", Tim13, run.tim13.take(), khz, 50);
+        tick!("TIM14 tick 1 kHz", Tim14, run.tim14.take(), khz, 50);
+        tick!("TIM15 tick 1 kHz", Tim15, run.tim15.take(), khz, 50);
+        tick!("TIM16 tick 1 kHz", Tim16, run.tim16.take(), khz, 50);
+        tick!("TIM17 tick 1 kHz", Tim17, run.tim17.take(), khz, 50);
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

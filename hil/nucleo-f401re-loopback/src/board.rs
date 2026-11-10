@@ -509,8 +509,8 @@ pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
 /// FerroWasp's control loop rate, and its microsecond timebase, checked
 /// while compiling on the timers FerroWasp's boards use for them.
 pub const CONTROL_RATE: Hertz = Hertz::khz(8);
-const _: () = assert!(Tick::check::<TIM4>(&CLOCKS, CONTROL_RATE).is_ok());
-const _: () = assert!(Timebase::check::<TIM2>(&CLOCKS, Hertz::mhz(1)).is_ok());
+const _: () = assert!(Tick::<TIM4>::check(&CLOCKS, CONTROL_RATE).is_ok());
+const _: () = assert!(Timebase::<TIM2>::check(&CLOCKS, Hertz::mhz(1)).is_ok());
 
 /// The timers as options, so the checks can take each in turn.
 pub struct RunH {

@@ -3,7 +3,7 @@
  "counts": {
   "documents": 49,
   "agent": 33,
-  "agent_tokens": 16551
+  "agent_tokens": 16640
  },
  "documents": [
   {
@@ -61,8 +61,8 @@
    "class": "agent",
    "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
    "purpose": "ADR-002 - Status: accepted",
-   "bytes": 2157,
-   "tokens": 540,
+   "bytes": 2265,
+   "tokens": 567,
    "adr": "ADR-002",
    "status": "accepted"
   },
@@ -159,8 +159,8 @@
    "class": "agent",
    "title": "`free()`: the teardown the drivers do not have (2026-11-09)",
    "purpose": "There is no Pwm::free, Uart::free or Tick han",
-   "bytes": 1725,
-   "tokens": 432
+   "bytes": 1974,
+   "tokens": 494
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -311,8 +311,8 @@
    "class": "human",
    "title": "Ownership / `free()` redesign (with W14 naming)",
    "purpose": "Next project after the sweep, its own PR. ste",
-   "bytes": 2755,
-   "tokens": 689
+   "bytes": 3203,
+   "tokens": 801
   },
   {
    "path": "docs/plans/2026-11-10-doc-sweep.md",

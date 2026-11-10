@@ -54,7 +54,7 @@ use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
 /// The endpoint memory `usb_bench` gives the driver: the F4's OTG_FS FIFO.
 const EP_WORDS: usize = 320;
 
-const _: () = assert!(Timebase::check::<TIM2>(&CLOCKS, Hertz::mhz(1)).is_ok());
+const _: () = assert!(Timebase::<TIM2>::check(&CLOCKS, Hertz::mhz(1)).is_ok());
 
 /// The IMU's register speed, on the routes FerroWasp's manifest gives it.
 const IMU_SLOW: spi::Config = spi::Config::new(Hertz::mhz(1)).with_mode(spi::MODE_3);
@@ -625,7 +625,7 @@ fn main() -> ! {
     let Ok(usb) = UsbFs::new(&mut rcc, p.USB_OTG_FS, dm, dp) else {
         reboot_to_dfu()
     };
-    let mut link = Link::new(usb, "foxeer-f405-v2", watchdog, clock);
+    let mut link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.reader());
     let mut imu = Imu {
         spi: &mut imu_spi,
         cs: &mut imu_cs,

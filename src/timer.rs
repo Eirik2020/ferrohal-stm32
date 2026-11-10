@@ -7,6 +7,12 @@
 //! - [`Timebase`]: a 32-bit timer counting freely at an exact frequency,
 //!   read from anywhere through a `Copy` [`TimebaseReader`].
 //!
+//! Both handles carry their timer token and hand it back with
+//! [`free`](Tick::free)/[`free`](Timebase::free): a second handle for the
+//! same timer needs the token, so it is a compile error, not a runtime rule.
+//! A rate the clock doesn't divide exactly is refused with the token in the
+//! [`Refused`].
+//!
 //! Both work out the prescaler and reload from the timer's clock with a
 //! `const fn` ([`divider`]), so a board can assert its rates while
 //! compiling. A rate the clock doesn't divide exactly is refused rather
@@ -291,25 +297,24 @@ fn load(core: TimCore, prescaler: u32, reload: u64) {
     clear_update(core);
 }
 
-/// A timer's update interrupt at a fixed rate.
-pub struct Tick {
+/// A timer's update interrupt at a fixed rate. The handle carries the timer
+/// token: [`free`](Self::free) is the only way to build another handle for
+/// the same timer.
+pub struct Tick<T: Instance> {
     core: TimCore,
     rate: Hertz,
     vector: Interrupt,
+    _timer: T,
 }
 
-impl Tick {
+impl<T: Instance> Tick<T> {
     /// Enables and resets the timer, sets it to overflow at `rate` exactly,
     /// enables its update interrupt and starts it. Refuses with the timer
     /// token handed back: the rate is checked before the timer is touched.
-    pub fn new<T: Instance>(
-        rcc: &mut Rcc,
-        _timer: T,
-        rate: Hertz,
-    ) -> Result<Self, Refused<ConfigError, T>> {
+    pub fn new(rcc: &mut Rcc, timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
         let (prescaler, reload) = match divider(rcc.clocks().timer(T::BUS), rate, T::BITS) {
             Ok(parts) => parts,
-            Err(error) => return Err(Refused::new(error, _timer)),
+            Err(error) => return Err(Refused::new(error, timer)),
         };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
@@ -324,12 +329,13 @@ impl Tick {
             core,
             rate,
             vector: T::UPDATE,
+            _timer: timer,
         })
     }
 
     /// Whether `T` can tick at `rate` under `clocks`. A `const fn`, for a
-    /// board's compile-time asserts.
-    pub const fn check<T: Instance>(clocks: &Clocks, rate: Hertz) -> Result<(), ConfigError> {
+    /// board's compile-time asserts: [`Tick::<TIM4>::check`].
+    pub const fn check(clocks: &Clocks, rate: Hertz) -> Result<(), ConfigError> {
         match divider(clocks.timer(T::BUS), rate, T::BITS) {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
@@ -369,16 +375,43 @@ impl Tick {
     pub fn resume(&mut self) {
         self.core.cr1().modify(|w| w.set_cen(true));
     }
+
+    /// Stops the counter, kills its update interrupt and clears its flag:
+    /// what [`free`](Self::free) does before handing the token back.
+    pub fn stop(&mut self) {
+        self.core.cr1().modify(|w| w.set_cen(false));
+        self.core.dier().write_value(DierCore(0));
+        clear_update(self.core);
+    }
+
+    /// Hands the timer token back, stopping the counter and its update
+    /// interrupt: what a `Drop` would do, made explicit so the token can
+    /// move out.
+    pub fn free(self) -> T {
+        let Self {
+            core,
+            rate: _,
+            vector: _,
+            _timer,
+        } = self;
+        core.cr1().modify(|w| w.set_cen(false));
+        core.dier().write_value(DierCore(0));
+        clear_update(core);
+        _timer
+    }
 }
 
 /// A 32-bit timer counting freely at a fixed frequency, from 0 at
-/// [`new`](Self::new), wrapping at 2^32.
-pub struct Timebase {
+/// [`new`](Self::new), wrapping at 2^32. The handle carries the timer token.
+pub struct Timebase<T: Instance32> {
+    core: TimCore,
     reader: TimebaseReader,
+    _timer: T,
 }
 
 /// Reads a [`Timebase`]: one register read, so `Copy` and usable from any
-/// context.
+/// context. A reader keeps reading the counter after the timebase is freed —
+/// a freed timebase stops, and the reader reports the frozen count.
 #[derive(Clone, Copy)]
 pub struct TimebaseReader {
     counter: TimGp32,
@@ -391,19 +424,15 @@ unsafe impl Send for TimebaseReader {}
 // SAFETY: as above.
 unsafe impl Sync for TimebaseReader {}
 
-impl Timebase {
+impl<T: Instance32> Timebase<T> {
     /// Enables and resets the timer and starts it counting at `frequency`
     /// exactly, over its whole 32-bit range. Refuses with the timer token
     /// handed back: the rate is checked before the timer is touched.
-    pub fn new<T: Instance32>(
-        rcc: &mut Rcc,
-        _timer: T,
-        frequency: Hertz,
-    ) -> Result<Self, Refused<ConfigError, T>> {
+    pub fn new(rcc: &mut Rcc, timer: T, frequency: Hertz) -> Result<Self, Refused<ConfigError, T>> {
         let clock = rcc.clocks().timer(T::BUS);
         let prescaler = match Self::prescaler(clock, frequency) {
             Ok(prescaler) => prescaler,
-            Err(error) => return Err(Refused::new(error, _timer)),
+            Err(error) => return Err(Refused::new(error, timer)),
         };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
@@ -411,18 +440,18 @@ impl Timebase {
         load(core, prescaler, 1 << 32);
         core.cr1().modify(|w| w.set_cen(true));
         Ok(Self {
+            core,
             reader: TimebaseReader {
                 counter: T::gp32(),
                 frequency,
             },
+            _timer: timer,
         })
     }
 
-    /// Whether `T` can count at `frequency` under `clocks`.
-    pub const fn check<T: Instance32>(
-        clocks: &Clocks,
-        frequency: Hertz,
-    ) -> Result<(), ConfigError> {
+    /// Whether `T` can count at `frequency` under `clocks`. A `const fn`,
+    /// for a board's compile-time asserts: [`Timebase::<TIM2>::check`].
+    pub const fn check(clocks: &Clocks, frequency: Hertz) -> Result<(), ConfigError> {
         match Self::prescaler(clocks.timer(T::BUS), frequency) {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
@@ -446,6 +475,13 @@ impl Timebase {
 
     pub fn reader(&self) -> TimebaseReader {
         self.reader
+    }
+
+    /// Hands the timer token back, stopping the counter: what a `Drop`
+    /// would do, made explicit so the token can move out.
+    pub fn free(self) -> T {
+        self.core.cr1().modify(|w| w.set_cen(false));
+        self._timer
     }
 }
 

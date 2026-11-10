@@ -12,8 +12,11 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 - `PwmChannel<T, C>` and `CompareLane<T, C>` hold neither the token nor a borrow of the
   PWM; after the PWM is freed, one can still write the same compare register through its
   own copy of the register block.
-- `Tick` and `Timebase` are not generic: the token is erased when they are built, so there
-  is nothing to return.
+- ~~`Tick` and `Timebase` are not generic~~ **done (2026-11-10):** both carry their
+  token (`Tick<T>`/`Timebase<T>`) and hand it back with `free()`. The bench shares a
+  running tick through a per-run enum of benched ticks (`hil/common/timers.rs`), which
+  keeps the token sealed while the vector is bound; `Link` reads the timebase through a
+  `TimebaseReader`.
 
 ## What the redesign must establish
 

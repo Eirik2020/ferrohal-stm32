@@ -26,7 +26,7 @@ use ferrohal_stm32::{
     iwdg::Watchdog,
     reset::{self, ResetCause},
     signature,
-    timer::Timebase,
+    timer::TimebaseReader,
     usb::{
         UsbBus, UsbFs,
         usb_device::{
@@ -80,11 +80,15 @@ unsafe fn HardFault(_: &ExceptionFrame) -> ! {
 }
 
 /// The USB port and what has to keep running while anything else waits.
+///
+/// The clock is a [`TimebaseReader`]: the link only reads it, and the run
+/// keeps the `Timebase` itself — keep it alive, for a freed timebase stops
+/// and the reader reports the frozen count.
 pub struct Link {
     device: UsbDevice<'static, UsbBus>,
     serial: SerialPort<'static, UsbBus>,
     watchdog: Watchdog,
-    clock: Timebase,
+    clock: TimebaseReader,
 }
 
 impl Link {
@@ -94,7 +98,7 @@ impl Link {
         usb: UsbFs,
         serial_number: &'static str,
         watchdog: Watchdog,
-        clock: Timebase,
+        clock: TimebaseReader,
     ) -> Self {
         // SAFETY: called once, and these are the only references.
         let bus: &'static UsbBusAllocator<UsbBus> = unsafe {
