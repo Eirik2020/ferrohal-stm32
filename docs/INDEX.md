@@ -1,6 +1,6 @@
 # Document index (generated)
 
-Metadata only - read a document after choosing it, not before. 47 documents, ~16553 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read a document after choosing it, not before. 48 documents, ~16553 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -37,17 +37,18 @@ Metadata only - read a document after choosing it, not before. 47 documents, ~16
 | a | docs/policies/agent-docs.md | 289 tok | Agent docs = AGENTS.md + docs/{policies,decisions, |
 | a | docs/policies/documentation.md | 788 tok | Normative. Two classes: |
 | a | docs/policies/safety.md | 631 tok | Normative. Goal G5 requirements/goals.md. Rational |
-| h | DEBT.md | 23943 B | Open items only. Finished work moves to RESOLVED.m |
+| h | DEBT.md | 23562 B | Open items only. Finished work moves to RESOLVED.m |
 | h | README.md | 4883 B | A scheduler-agnostic STM32 HAL on stm32-metapachtt |
-| h | RESOLVED.md | 36834 B | History: items moved out of DEBT.mdDEBT.md once do |
+| h | RESOLVED.md | 36813 B | History: items moved out of DEBT.mdDEBT.md once do |
 | h | THIRD-PARTY.md | 3045 B | FerroHAL is licensed under MIT OR Apache-2.0 LICEN |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 2997 B | Part of the plan2026-11-08-debt-sweep.md. |
 | h | docs/plans/2026-11-08-debt-sweep.md | 4343 B | Status: in progress - W1-W7 done watchdog debug fr |
 | h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. steal go |
 | h | docs/plans/2026-11-10-doc-sweep.md | 3413 B | Owner-ordered, after W12 merged #29: the README is |
-| h | hil/CAPABILITIES.md | 7917 B | The rig turns requirement claims into measurements |
+| h | hil/CAPABILITIES.md | 7979 B | The rig turns requirement claims into measurements |
 | h | hil/RIG.md | 1593 B | What every bench script and firmware crate relies  |
 | h | hil/WIRING.md | 4765 B | The two Nucleo benches prove FerroHAL's I2C master |
 | h | hil/pico-i2c-sim/README.md | 1483 B | A Raspberry Pi Pico 1 RP2040 standing in for the I |
-| h | requirements/benches.md | 11166 B | What each requirement's bench entry runs. The rig  |
+| h | requirements/benches-refusals.md | 2693 B | The refusal runs of benches.mdbenches.md, split ou |
+| h | requirements/benches.md | 11820 B | What each requirement's bench entry runs. The rig  |
 | h | requirements/goals.md | 1207 B | Every requirement derives from one of these, or fr |
