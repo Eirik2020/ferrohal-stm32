@@ -1,7 +1,7 @@
-# Bench Procedures: the injected faults
+# Bench Procedures: the injected faults and the cache matrix
 
-The fault-injection runs of [benches.md](benches.md), split out to keep that
-file in its budget; the same rules apply.
+The fault-injection and cache-matrix runs of [benches.md](benches.md), split
+out to keep that file in its budget; the same rules apply.
 
 ## Fault injection on the Nucleo-F401RE
 
@@ -46,3 +46,26 @@ the ring on its own buffer, and an echo after the gap succeeds. Timeout:
 USART6's DMA transmit request is disconnected before a 128-byte frame is
 queued; the bound expires, the queue is dropped and counted, and the next
 frame goes out whole. Pass: every check passes and the script exits zero.
+
+## The cache and MPU matrix on the Nucleo-H753ZI
+
+`hil/run-h753.sh x`, no links needed. Run X holds both caches on throughout
+and programs three MPU regions: region 0 the non-cacheable DMA block, region
+1 a 32 KiB write-through block and region 2 a 32 KiB write-back block, both
+in free AXI SRAM. The driver's verdicts per shape: a buffer in the
+write-through region and in the write-back region is refused
+(`BufferCacheable`), a buffer in the non-cacheable block is taken, and with
+the MPU off a buffer in plain cached RAM is refused again. ES0392 2.1.1's
+sequence — a store, a linefill to another line of the same set, a second
+store, a load, all in write-through memory — runs 500 rounds and the load
+must read the second store every time; the same sequence under write-back
+runs clean as the control. ES0392 2.1.5's sequence — a `DCCIMVAC` of the
+line, then a write-through store with and without an intervening DMB, then
+four linefills to the same set to evict the line, then the load — must read
+the store with the DMB in every round; without it the cache-side stale count
+goes to the log (whether that race fires is the silicon's timing), while the
+store reaching SRAM is pinned after a clean-invalidate of the line, the
+invariant the erratum itself grants. With the MPU off the default map
+governs and its SRAM is write-back, so neither write-through hazard can
+fire; the control loop runs there before the regions come back. Pass: every
+check passes and the script exits zero.

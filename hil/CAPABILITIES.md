@@ -64,6 +64,13 @@ and the Lucid's CN13 with its DFU runs.
 - **Injected faults**: the USART's own overrun flag, noise, a DMA transfer
   error and a transmit timeout, injected on hardware and survived, both
   USART IP versions (benches-faults.md).
+- **Cache and MPU shapes**: write-through and write-back regions under both
+  caches, the invalidate-then-store sequence with and without the DMB
+  (ES0392 2.1.1, 2.1.5), and the driver's refusals in every shape — the
+  answer to "is it safe for FerroWasp to enable caches?" is a run
+  (benches-faults.md).
+- **UART4 and UART5**: run B drives both on the H753ZI, TX to RX, through
+  the same transmit engine whose `clear_tc` the reserved-CTS fix changed.
 - **Host-only proofs**: the no-panic link per chip, glue against metapac,
   feature guards, doc budgets, host unit tests. These need no board and are not
   counted as hardware evidence.
@@ -75,16 +82,12 @@ Grouped by why; each is a candidate for the queue below.
 - **Bondout and package facts**: one package per die runs here, and that is
   enough for digital behaviour — the same RTL sits behind every bondout, so a
   second package would add no firmware evidence. What a package does change is
-  read, not run: which pins are bonded (UART4/5 below), and package-scoped facts
+  read, not run: which pins are bonded, and package-scoped facts
   such as the TFBGA100 having no VDDLDO supply or VREF+ pin.
-- **Cache and MPU shapes**: one configuration (off, or on with one non-cacheable
-  window). Write-through memory, MPU-off-with-caches-on, invalidate-then-store
-  and DEBR locking are not exercised, so the ES0392 cache rules are inspection.
 - **SysTick clock source**: every firmware uses rtic-monotonics' `Core` source;
   the HCLK/8 (`External`) path never runs.
 - **WWDG, flash ECC, option bytes/RDP**: no driver and no run; their errata are
   firmware rules only.
-- **UART4/5 on the F405**: not wired, so the reserved-CTS-bit fix is inspection.
 - **USB beyond CDC**: no OTG_HS, no host mode, no VBUS/data fault injection.
 - **Electrical**: no rail margining, no current measurement, no scope on edges;
   timing claims are read back through the chip, not measured on the wire.
@@ -99,21 +102,13 @@ Grouped by why; each is a candidate for the queue below.
 In order; each names what it unlocks. Cheap ones first, then the ones that
 unblock a claim.
 
-1. **A cache/MPU matrix.** Write-through region, MPU off with caches on, an
-   invalidate followed by a store with and without a DMB. Proves the ES0392
-   firmware rules and answers "is it safe for FerroWasp to enable caches?" with
-   a run instead of an argument.
-2. **UART4/5 on the F405** (or move that check to the H753): closes an
-   inspection-only fix.
-3. **DFU without a hand on BOOT.** Keep a DFU requester on the host, or a boot
-   image that always accepts `reboot dfu`.
-4. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
+1. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
-5. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
+2. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
    the drift and lock-up classes a 300 s run cannot.
-6. **Environmental corners.** Temperature and supply extremes only where a
+3. **Environmental corners.** Temperature and supply extremes only where a
    flight-relevant claim needs them.
-7. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
+4. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
    claims get tight enough that read-back is not enough.
 
 ## Using it

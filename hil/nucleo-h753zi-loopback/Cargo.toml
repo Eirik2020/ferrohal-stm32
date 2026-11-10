@@ -131,6 +131,12 @@ test = false
 bench = false
 
 [[bin]]
+name = "run-x"
+path = "src/bin/run_x.rs"
+test = false
+bench = false
+
+[[bin]]
 name = "run-w"
 path = "src/bin/run_w.rs"
 test = false

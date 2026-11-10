@@ -12,15 +12,15 @@ Source: ADR-001, [`../decisions/2026-11-08-g5-safe-by-default.md`](../decisions/
 
 | § | Verdict | Note |
 |---|---|---|
-| 2.1.1 write-through D-cache | FW | No workaround: use write-back. The bench's region 0 is non-cacheable, ordinary memory write-back, `check_dma_buffer` refuses cacheable DMA buffers. |
+| 2.1.1 write-through D-cache | FW | No workaround: use write-back. `check_dma_buffer` refuses cacheable buffers; run X holds under a write-through region (benches-faults.md). |
 | 2.1.2 PLD linefill | FW | Needs the MPU on with the default map off: keep `PRIVDEFENA` (the bench does) or map region 0 as 4 GB no-access. |
 | 2.1.3 MBIST ICACHE | HAL | MBIST is never started. |
 | 2.1.4 locked DEBRs | FW | Never lock DEBR0 and DEBR1 together. |
-| 2.1.5 invalidate then store | FW | Put a DMB after any invalidate that a store follows; `reboot_to_bootloader` cleans after its stores. |
-| 2.2.1 CPU1/2-only watchdog reset | FW | The scope bit is the WWDG's, and no WWDG driver exists; one must set `RCC_GCR.WW1RSC` first. IWDG1 resets the full domain (RM0433 §8.4.4). |
+| 2.1.5 invalidate then store | FW | A DMB after any invalidate a store follows; `reboot_to_bootloader` cleans after its stores; run X holds with the DMB (benches-faults.md). |
+| 2.2.1 CPU1/2-only watchdog reset | FW | The scope bit is the WWDG's and no WWDG driver exists; set `RCC_GCR.WW1RSC` first. IWDG1 resets the full domain (RM0433 §8.4.4). |
 | 2.2.2 timer system breaks | FW | No break API yet; when one lands, system break sources do not reach TIM1/8 (the pin input does). |
 | 2.2.3 CRS with USB SOF | DEBT | HSI48 runs untrimmed; already recorded. |
-| 2.2.4 SysTick external clock | FW | `SystClkSource::External` is HCLK, not HCLK/8: select Core (rtic-monotonics 2.1 does, so FerroWasp is clear) or multiply the reload by 8. |
+| 2.2.4 SysTick external clock | FW | `SystClkSource::External` is HCLK, not HCLK/8: select Core (rtic-monotonics 2.1 does) or multiply the reload by 8. |
 | 2.2.6/2.2.7 flash ECC | DEBT | `FLASH_ECC_FAxR` is the only usable address; 2.2.7 has no workaround. |
 | 2.2.5 option-byte waits, 2.2.8 PCROP, 2.2.9 bank swap, 2.2.17 RDP regressions, 2.2.18 flash CRC | FW | Provisioning: target wait states for an option-byte load, RDP 2 for PCROP, no bank swap, a spare backup-SRAM access before a second RDP regression, no flash CRC. |
 | 2.2.10 AXI SRAM reads, rev Y/W | DEBT | DMA buffers are AXI SRAM here; `READ_ISS_OVERRIDE` caps read issuing at 1. |

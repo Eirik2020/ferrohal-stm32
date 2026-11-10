@@ -5,7 +5,7 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 Status as of 2026-11-10:
 
 - **F401:** `hil/run-f401.sh` passes its twenty-two default runs, 318 checks (2026-11-10); the runs, their links and their checks are in `requirements/benches.md`.
-- **H753ZI:** `hil/run-h753.sh` passes its twenty-one default runs (2026-11-10); run M, off the list while its CN13 cable powers the Pico, passed 11 of 11 on 2026-11-09.
+- **H753ZI:** `hil/run-h753.sh` passes its twenty-two default runs (2026-11-10); run M, off the list while its CN13 cable powers the Pico, passed 11 of 11 on 2026-11-09.
 - **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
 - **H743VI:** `hil/run-lucid.sh` passes 51 of 51 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 592 and 590 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams, its UID and rev V (2026-11-10). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
@@ -52,7 +52,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: only the trigger routes in use are in the glue:** TIM1→TIM3 everywhere, TIM1→TIM8 where TIM8 exists, TIM3→TIM2 on the F4s (run R). `check_glue.py` can't check them (no such metadata table); each follows RM0090 table 94, RM0368 table 54 or RM0433 table 336, and hardware exercises it.
 - **Medium: timer features still missing:** input capture, dead time, the break input (FerroWasp's reply window).
 - **Low: the watchdog's LSI constant is one measurement, and windows are nominal.** `start_with_lsi` scales to a per-board constant, but the LSI drifts with temperature and supply, so the timeout follows; `start_windowed` counts at 32 kHz.
-- **Low: the watchdog bench run needs reset catch off.** probe-rs halts a core it sees reset, so `hil/run-*.sh` pass `--no-catch-reset`; the second boot waits so the host finds RTT again.
+
 - **Low: arming and staging lanes takes time.** 14 µs for two lanes on the F401 at 84 MHz; a frame scheduler must allow for it.
 - **Low: sampler rates.** The bench samples at about 12 times the DShot600 bit rate (7 MHz on the F401, 7.1 MHz on the H753) without loss; faster rates are untested.
 - **Low: a tick or timebase rate must divide the timer clock exactly.** `Tick` and `Timebase` refuse a rate they would have to round (`ConfigError::Inexact`) rather than drift.
@@ -149,7 +149,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: SDMMC has run on one card** (a 16 GB SanDisk in the Lucid) and the empty slot, which reports `NoCard`; a CRC failure and a card pulled mid-transfer are untested.
 - **Medium: SDMMC's limits.** Polled through the FIFO (interrupts may preempt, flow control pausing the bus), up to 25 MHz, 4-bit, 3.3 V, high-capacity v2 cards; no DMA, no card-detect pin.
 - **Low: no frame has reached a Lucid motor pad, and its UARTs run only as the H753ZI's.** Same die and driver under the H753ZI's glue, with the H743 routes pinned by a test; UART8 (its ESC telemetry port) has run on neither.
-- **Low: state kept across a reset on the H7 should be whole doublewords.** The bootloader bench lost results written as single words beside each other across resets, and passed once each had its own doubleword; why isn't explained beyond RM0433 2.4's rule.
+
 - Everything in section 4 applies too.
 
 ---
@@ -166,5 +166,4 @@ Built, and checked by the compiler, host tests or the no-panic link, but the
 behaviour they change has not run on hardware. They stay open and rank below
 every testable item above.
 
-- **Lowest: UART4/5's reserved CTS bit is changed but not exercised.** `clear_tc` now writes 0 at SR bit 9 on UART4/5 (CTS is reserved there, RM0090 30.6.1); no run uses UART4 or UART5, because the F405 bench doesn't wire them.
-- **Lowest: the rig cannot vary the conditions several ES0392 rules depend on.** One MPU/cache shape, one package and one silicon revision per chip: write-through memory, the HCLK/8 SysTick path, WWDG, option-byte/RDP flows and flash ECC go untested, so those errata stay firmware rules, not bench facts. Add a write-through run, when cache guidance is needed.
+- **Lowest: the rig cannot vary the conditions several ES0392 rules depend on.** One MPU/cache shape beyond the matrix, one package and one silicon revision per chip: the HCLK/8 SysTick path, WWDG, option-byte/RDP flows and flash ECC go untested, so those errata stay firmware rules, not bench facts.
