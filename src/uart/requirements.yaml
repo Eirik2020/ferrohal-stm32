@@ -491,15 +491,33 @@ requirements:
             test: ferrohal_stm32::uart::tx_ring::tests::refuses_empty_and_oversized_frames
 
   - id: UARTDMA-011
-    title: A faulted or stalled transfer reaches the reader
+    title: A DMA transfer error reaches the reader
     statement: >-
-      A DMA transfer error shall reach the reader and the ring restart on
-      its own buffer, and a transmit queue that cannot drain within its
-      bound shall be stopped, dropped and counted.
+      A DMA transfer error shall reach the reader, with the receive ring
+      restarted on the driver's own buffer.
     rationale: >-
       A bus error that passes silently loses bytes looking good, and a
-      queue that never drains would hold the caller forever.
+      stream left stopped would lose every byte after it.
     derived_from: [UART-002, UART-012]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches-faults.md#Fault injection on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI
+
+  - id: UARTDMA-012
+    title: A transmit queue that cannot drain is stopped and counted
+    statement: >-
+      A transmit queue that cannot drain within its bound shall be
+      stopped, dropped and counted.
+    rationale: >-
+      A queue that never drains would hold the caller forever.
+    derived_from: [UART-012]
     verification:
       entries:
         - level: target
