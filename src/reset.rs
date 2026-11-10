@@ -1,6 +1,12 @@
 //! Why the chip last reset, as `Rcc::reset_cause` reads it, and restarting
 //! into the ROM bootloader.
 //!
+//! State that crosses a reset lives in whole doublewords: the H7's SRAM ECC
+//! protects 64 bits at a time and drops an incomplete write across a reset
+//! (RM0433 2.4), which the bootloader bench measured — a lone word written
+//! beside another was lost, a whole doubleword or a further write kept. The
+//! F4's RAM has no ECC and never showed it.
+//!
 //! The bootloader wants the chip as reset left it, so getting there takes a
 //! reset: [`reboot_to_bootloader`] leaves a request in RAM and resets, and
 //! the next boot, first thing in `main`, checks [`bootloader_requested`] and

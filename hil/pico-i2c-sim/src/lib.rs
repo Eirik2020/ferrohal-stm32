@@ -25,6 +25,22 @@
 //! what the wire did, the master counts what it asked for, and the runs
 //! compare. CLEAR lets each run start from zero without power-cycling the
 //! Pico, so one firmware serves every bench run idempotently.
+//!
+//! The DW `apb_i2c` underneath has three behaviours the bench found and the
+//! runs and this simulator are built around:
+//!
+//! - **An I2C pin must be `into_alternate_open_drain`.** A push-pull
+//!   alternate drives SDA high through every acknowledge and NACKs every
+//!   transfer to a live slave. Every flight board wired its barometer bus
+//!   push-pull until the bench found it.
+//! - **A `TX_ABORT` flushes both FIFOs and holds them until `IC_CLR_TX_ABRT`
+//!   is read**, so a second `respond_to_read` after an abort would push into
+//!   a stopped bus: one call per read is this simulator's contract, and the
+//!   driver's.
+//! - **The DW never delivers a NACKed receive byte**, so a data-phase
+//!   refusal is invisible on the wire; the simulator spends its one-shot
+//!   arm on a timed warden instead, and the driver reports the refusal from
+//!   the absence of bytes, not from a flag.
 
 #![no_std]
 

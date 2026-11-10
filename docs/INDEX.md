@@ -1,6 +1,6 @@
 # Document index (generated)
 
-Metadata only - read after choosing. 49 documents, ~16553 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read after choosing. 49 documents, ~16551 agent tokens. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -18,7 +18,7 @@ Metadata only - read after choosing. 49 documents, ~16553 agent tokens. Regenera
 | a | docs/design/execution-model.md | 195 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ferroforge-seam.md | 521 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/free.md | 432 tok | There is no Pwm::free, Uart::free or Tick han |
-| a | docs/design/h7-errata.md | 749 tok | W11 of the debt sweep. Read against ES0392 Re |
+| a | docs/design/h7-errata.md | 747 tok | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 409 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ownership.md | 508 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-ids.md | 448 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
@@ -37,19 +37,19 @@ Metadata only - read after choosing. 49 documents, ~16553 agent tokens. Regenera
 | a | docs/policies/agent-docs.md | 289 tok | Agent docs = AGENTS.md + docs/{policies,decis |
 | a | docs/policies/documentation.md | 788 tok | Normative. Two classes: |
 | a | docs/policies/safety.md | 631 tok | Normative. Goal G5 requirements/goals.md. Rat |
-| h | DEBT.md | 23243 B | Open items only. Finished work moves to RESOL |
+| h | DEBT.md | 22511 B | Open items only. Finished work moves to RESOL |
 | h | README.md | 4883 B | A scheduler-agnostic STM32 HAL on stm32-metap |
-| h | RESOLVED.md | 38015 B | History: items moved out of DEBT.mdDEBT.md on |
+| h | RESOLVED.md | 39326 B | History: items moved out of DEBT.mdDEBT.md on |
 | h | THIRD-PARTY.md | 3045 B | FerroHAL is licensed under MIT OR Apache-2.0  |
 | h | docs/plans/2026-11-08-debt-sweep-gates.md | 2997 B | Part of the plan2026-11-08-debt-sweep.md. |
-| h | docs/plans/2026-11-08-debt-sweep.md | 4343 B | Status: in progress - W1-W7 done watchdog deb |
+| h | docs/plans/2026-11-08-debt-sweep.md | 4484 B | Status: done - W1-W7 watchdog debug freeze, w |
 | h | docs/plans/2026-11-08-free-redesign.md | 2755 B | Next project after the sweep, its own PR. ste |
 | h | docs/plans/2026-11-10-doc-sweep.md | 3413 B | Owner-ordered, after W12 merged #29: the READ |
-| h | hil/CAPABILITIES.md | 7601 B | The rig turns requirement claims into measure |
-| h | hil/RIG.md | 2250 B | What every bench script and firmware crate re |
+| h | hil/CAPABILITIES.md | 7239 B | The rig turns requirement claims into measure |
+| h | hil/RIG.md | 2575 B | What every bench script and firmware crate re |
 | h | hil/WIRING.md | 4765 B | The two Nucleo benches prove FerroHAL's I2C m |
 | h | hil/pico-i2c-sim/README.md | 1483 B | A Raspberry Pi Pico 1 RP2040 standing in for  |
-| h | requirements/benches-faults.md | 3010 B | The fault-injection runs of benches.mdbenches |
+| h | requirements/benches-faults.md | 4543 B | The fault-injection and cache-matrix runs of  |
 | h | requirements/benches-refusals.md | 2594 B | The refusal runs of benches.mdbenches.md, spl |
 | h | requirements/benches.md | 11928 B | What each requirement's bench entry runs. The |
 | h | requirements/goals.md | 1207 B | Every requirement derives from one of these,  |

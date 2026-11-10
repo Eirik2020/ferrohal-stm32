@@ -27,6 +27,13 @@ probe flash resets the chip and hides the fault, so tests can't rely on how the
 image arrived. Pass: it exits zero, naming the five firmware crates and the
 simulator it skips.
 
+## Reset catch
+
+probe-rs halts a core it sees reset, which would stop a run's second boot from
+ever running. The scripts pass `--no-catch-reset` for the runs that reset on
+purpose — the watchdog runs J and K, the bootloader run L, and the refusal run
+V — and those runs wait after the reset so the host finds RTT again.
+
 ## The fitted parts
 
 Every run's log ends with the identity pair — `device_uid` and the die

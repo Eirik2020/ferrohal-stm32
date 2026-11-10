@@ -1,5 +1,11 @@
 //! The I2C master every chip offers, independent of the hardware underneath.
 //!
+//! A held line differs by IP: the F4's `i2c_v1` reports `Error::Busy` for a
+//! slave holding SDA low, and its nine-clock recovery frees it; the H7's
+//! `i2c_v2` recovery clears `ISR.BUSY`, so the driver cannot see the hold
+//! and reports a bounded `Timeout` instead — the live-path runs accept
+//! exactly that.
+//!
 //! This module is chip-neutral. It defines what an I2C driver takes and
 //! reports; each IP version (`i2c_v1` on F4, `i2c_v2` on H7) supplies the
 //! register operations under one driver of the same shape:
