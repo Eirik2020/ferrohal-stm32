@@ -19,8 +19,8 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOLVED.m",
-   "bytes": 24203,
-   "tokens": 6051
+   "bytes": 24180,
+   "tokens": 6045
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md once do",
-   "bytes": 33716,
-   "tokens": 8429
+   "bytes": 34279,
+   "tokens": 8570
   },
   {
    "path": "THIRD-PARTY.md",
