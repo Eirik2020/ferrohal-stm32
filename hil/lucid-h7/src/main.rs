@@ -352,7 +352,7 @@ fn main() -> ! {
         }
         Ok(_) => reboot_to_dfu(),
     };
-    let (Ok(mut tim3), Ok(mut tim5)) = (
+    let (Ok(tim3), Ok(tim5)) = (
         Pwm::new(&mut rcc, tim3, Hertz::khz(600)),
         // A different rate on purpose, for the waveform generator's refusal.
         Pwm::new(&mut rcc, p.TIM5, Hertz::khz(300)),

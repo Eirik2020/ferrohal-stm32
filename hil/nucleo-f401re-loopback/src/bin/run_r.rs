@@ -34,7 +34,7 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
-        chip::{TIM2, TIM3},
+        chip::{TIM1, TIM2, TIM3},
         time::Hertz,
         timer::{CompareLane, Pwm, Sampler},
     };
@@ -105,7 +105,7 @@ mod app {
         lane23: &mut CompareLane<TIM2, 3>,
         lane22: &mut CompareLane<TIM2, 2>,
         patterns: (u16, u16, u16, u16),
-        sampler: &mut Sampler,
+        sampler: &mut Sampler<TIM1>,
         linked: bool,
         active_low: bool,
         cpu: Hertz,
@@ -115,16 +115,16 @@ mod app {
         let count = (per_bit16 as usize * (BITS + 8)) / 16;
         let result = (|| -> Result<(), Fail> {
             lane3
-                .arm(&pwm::duties(patterns.0, period))
+                .arm(pwm3, &pwm::duties(patterns.0, period))
                 .map_err(|_| Fail::Count { expected: BITS as u32, got: 0 })?;
             lane4
-                .arm(&pwm::duties(patterns.1, period))
+                .arm(pwm3, &pwm::duties(patterns.1, period))
                 .map_err(|_| Fail::Count { expected: BITS as u32, got: 0 })?;
             lane23
-                .arm(&pwm::duties(patterns.2, period))
+                .arm(pwm2, &pwm::duties(patterns.2, period))
                 .map_err(|_| Fail::Count { expected: BITS as u32, got: 0 })?;
             lane22
-                .arm(&pwm::duties(patterns.3, period))
+                .arm(pwm2, &pwm::duties(patterns.3, period))
                 .map_err(|_| Fail::Count { expected: BITS as u32, got: 0 })?;
             sampler.start(count).map_err(|_| Fail::Count {
                 expected: count as u32,
@@ -151,10 +151,10 @@ mod app {
                 .filter(|done| matches!(done, Some(Ok(()))))
                 .count();
             if finished != 4 {
-                lane3.abort();
-                lane4.abort();
-                lane23.abort();
-                lane22.abort();
+                lane3.abort(pwm3);
+                lane4.abort(pwm3);
+                lane23.abort(pwm2);
+                lane22.abort(pwm2);
                 return Err(Fail::Count {
                     expected: 4,
                     got: finished as u32,
@@ -226,7 +226,7 @@ mod app {
         ) else {
             defmt::panic!("motor lanes")
         };
-        let Ok(mut sampler) = Sampler::new::<_, _, 'B'>(
+        let Ok(mut sampler) = Sampler::new::<_, 'B'>(
             &mut run.rcc,
             run.tim1,
             run.sampler,
