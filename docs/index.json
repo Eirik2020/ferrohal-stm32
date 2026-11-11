@@ -3,7 +3,7 @@
  "counts": {
   "documents": 49,
   "agent": 33,
-  "agent_tokens": 16640
+  "agent_tokens": 16775
  },
  "documents": [
   {
@@ -159,8 +159,8 @@
    "class": "agent",
    "title": "`free()`: the teardown the drivers do not have (2026-11-09)",
    "purpose": "There is no Pwm::free, Uart::free or Tick han",
-   "bytes": 1974,
-   "tokens": 494
+   "bytes": 2513,
+   "tokens": 629
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -311,8 +311,8 @@
    "class": "human",
    "title": "Ownership / `free()` redesign (with W14 naming)",
    "purpose": "Next project after the sweep, its own PR. ste",
-   "bytes": 3203,
-   "tokens": 801
+   "bytes": 3363,
+   "tokens": 841
   },
   {
    "path": "docs/plans/2026-11-10-doc-sweep.md",
