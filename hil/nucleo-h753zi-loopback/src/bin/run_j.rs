@@ -88,14 +88,14 @@ mod app {
             defmt::unreachable!()
         };
         let [b0, b1, a0, a3] = lanes.each_mut();
-        let sampler_b = Sampler::new::<_, _, 'B'>(
+        let sampler_b = Sampler::new::<_, 'B'>(
             &mut run.rcc,
             run.tim8,
             run.port_b,
             Hertz::mhz(1),
             core::mem::take(cx.local.port_b),
         );
-        let sampler_a = Sampler::new::<_, _, 'A'>(
+        let sampler_a = Sampler::new::<_, 'A'>(
             &mut run.rcc,
             run.tim2,
             run.port_a,

@@ -40,24 +40,25 @@ pub trait Lanes<T: ChannelTimer> {
     const COUNT: usize;
     /// Lane `index`'s channel, numbered from 1. 0 past the last lane.
     fn channel(index: usize) -> u8;
-    /// Loads lane `index`; see [`CompareLane::arm`].
-    fn arm(&mut self, index: usize, samples: &[u32]) -> Result<(), Error>;
+    /// Loads lane `index`; see [`CompareLane::arm`]. The timer handle goes
+    /// along, for the compare write.
+    fn arm(&mut self, index: usize, pwm: &Pwm<T>, samples: &[u32]) -> Result<(), Error>;
     /// Serves lane `index`'s stream; see [`CompareLane::on_interrupt`].
     fn serve(&mut self, index: usize) -> Option<Result<(), Error>>;
     /// Stops every lane, with its output at duty 0.
-    fn abort_all(&mut self);
+    fn abort_all(&mut self, pwm: &Pwm<T>);
     /// Lane `index`'s stream vector.
     fn vector(&self, index: usize) -> Option<Interrupt>;
     /// Turns every lane's output on or off.
-    fn set_outputs(pwm: &mut Pwm<T>, on: bool);
+    fn set_outputs(pwm: &Pwm<T>, on: bool);
     /// Makes every lane's output active low, or active high.
-    fn set_active_low(pwm: &mut Pwm<T>, low: bool);
+    fn set_active_low(pwm: &Pwm<T>, low: bool);
     /// Turns every lane's stream to read; see [`CompareLane::listen`].
-    fn listen(&mut self, count: usize, duty: u32) -> Result<(), Error>;
+    fn listen(&mut self, pwm: &Pwm<T>, count: usize, duty: u32) -> Result<(), Error>;
     /// What lane `index` last read.
     fn samples(&self, index: usize) -> &[u16];
     /// Sets every lane's duty to 0, its inactive level.
-    fn park(&mut self);
+    fn park(&mut self, pwm: &Pwm<T>);
 }
 
 impl<T: ChannelTimer> Lanes<T> for () {
@@ -65,25 +66,25 @@ impl<T: ChannelTimer> Lanes<T> for () {
     fn channel(_index: usize) -> u8 {
         0
     }
-    fn arm(&mut self, _index: usize, _samples: &[u32]) -> Result<(), Error> {
+    fn arm(&mut self, _index: usize, _pwm: &Pwm<T>, _samples: &[u32]) -> Result<(), Error> {
         Err(Error::Empty)
     }
     fn serve(&mut self, _index: usize) -> Option<Result<(), Error>> {
         None
     }
-    fn abort_all(&mut self) {}
+    fn abort_all(&mut self, _pwm: &Pwm<T>) {}
     fn vector(&self, _index: usize) -> Option<Interrupt> {
         None
     }
-    fn set_outputs(_pwm: &mut Pwm<T>, _on: bool) {}
-    fn set_active_low(_pwm: &mut Pwm<T>, _low: bool) {}
-    fn listen(&mut self, _count: usize, _duty: u32) -> Result<(), Error> {
+    fn set_outputs(_pwm: &Pwm<T>, _on: bool) {}
+    fn set_active_low(_pwm: &Pwm<T>, _low: bool) {}
+    fn listen(&mut self, _pwm: &Pwm<T>, _count: usize, _duty: u32) -> Result<(), Error> {
         Ok(())
     }
     fn samples(&self, _index: usize) -> &[u16] {
         &[]
     }
-    fn park(&mut self) {}
+    fn park(&mut self, _pwm: &Pwm<T>) {}
 }
 
 macro_rules! lanes {
@@ -96,9 +97,9 @@ macro_rules! lanes {
                     _ => 0,
                 }
             }
-            fn arm(&mut self, index: usize, samples: &[u32]) -> Result<(), Error> {
+            fn arm(&mut self, index: usize, pwm: &Pwm<T>, samples: &[u32]) -> Result<(), Error> {
                 match index {
-                    $($index => self.$index.arm(samples),)+
+                    $($index => self.$index.arm(pwm, samples),)+
                     _ => Err(Error::Empty),
                 }
             }
@@ -108,8 +109,8 @@ macro_rules! lanes {
                     _ => None,
                 }
             }
-            fn abort_all(&mut self) {
-                $(self.$index.abort();)+
+            fn abort_all(&mut self, pwm: &Pwm<T>) {
+                $(self.$index.abort(pwm);)+
             }
             fn vector(&self, index: usize) -> Option<Interrupt> {
                 match index {
@@ -117,14 +118,14 @@ macro_rules! lanes {
                     _ => None,
                 }
             }
-            fn set_outputs(pwm: &mut Pwm<T>, on: bool) {
+            fn set_outputs(pwm: &Pwm<T>, on: bool) {
                 $(pwm.set_output::<$C>(on);)+
             }
-            fn set_active_low(pwm: &mut Pwm<T>, low: bool) {
+            fn set_active_low(pwm: &Pwm<T>, low: bool) {
                 $(pwm.set_active_low::<$C>(low);)+
             }
-            fn listen(&mut self, count: usize, duty: u32) -> Result<(), Error> {
-                $(self.$index.listen(count, duty)?;)+
+            fn listen(&mut self, pwm: &Pwm<T>, count: usize, duty: u32) -> Result<(), Error> {
+                $(self.$index.listen(pwm, count, duty)?;)+
                 Ok(())
             }
             fn samples(&self, index: usize) -> &[u16] {
@@ -133,8 +134,8 @@ macro_rules! lanes {
                     _ => &[],
                 }
             }
-            fn park(&mut self) {
-                $(self.$index.channel().set_duty(0);)+
+            fn park(&mut self, pwm: &Pwm<T>) {
+                $(pwm.set_duty::<$C>(0);)+
             }
         }
     };
@@ -212,8 +213,8 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// timers at different periods, with both timers and both lane groups
     /// handed back.
     pub fn linked(
-        mut first: Pwm<A>,
-        mut second: Pwm<B>,
+        first: Pwm<A>,
+        second: Pwm<B>,
         first_lanes: LA,
         second_lanes: LB,
     ) -> Result<Self, AwgRefused<A, B, LA, LB>>
@@ -286,8 +287,8 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// Turns every lane's output on or off. Off, a pin falls to its inactive
     /// level.
     pub fn set_outputs(&mut self, on: bool) {
-        LA::set_outputs(&mut self.first, on);
-        if let Some(second) = self.second.as_mut() {
+        LA::set_outputs(&self.first, on);
+        if let Some(second) = self.second.as_ref() {
             LB::set_outputs(second, on);
         }
     }
@@ -295,8 +296,8 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// Makes every lane's output active low, or active high. Active low, a line
     /// idles high: duty 0 holds it high, and a sample's pulse pulls it low.
     pub fn set_active_low(&mut self, low: bool) {
-        LA::set_active_low(&mut self.first, low);
-        if let Some(second) = self.second.as_mut() {
+        LA::set_active_low(&self.first, low);
+        if let Some(second) = self.second.as_ref() {
             LB::set_active_low(second, low);
         }
     }
@@ -317,9 +318,11 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             _ => return Err(Error::Empty),
         };
         if lane < LA::COUNT {
-            self.first_lanes.arm(lane, samples)?;
+            self.first_lanes.arm(lane, &self.first, samples)?;
+        } else if let Some(second) = self.second.as_ref() {
+            self.second_lanes.arm(lane - LA::COUNT, second, samples)?;
         } else {
-            self.second_lanes.arm(lane - LA::COUNT, samples)?;
+            return Err(Error::Empty);
         }
         self.state.active |= bit;
         Ok(())
@@ -374,9 +377,16 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             }
         };
         // A compare event once a period, wherever in the period it falls.
-        let first = self.first_lanes.listen(count, self.first.period() / 2);
-        let second_duty = self.second.as_ref().map_or(0, |timer| timer.period() / 2);
-        let listening = first.and_then(|()| self.second_lanes.listen(count, second_duty));
+        let first = self
+            .first_lanes
+            .listen(&self.first, count, self.first.period() / 2);
+        let listening = match self.second.as_ref() {
+            Some(second) => {
+                let duty = second.period() / 2;
+                first.and_then(|()| self.second_lanes.listen(second, count, duty))
+            }
+            None => first,
+        };
         if let Err(error) = listening {
             self.abort();
             return Err(error);
@@ -416,8 +426,10 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
         self.state.listening = false;
         let rate = self.sample_rate;
-        self.first_lanes.park();
-        self.second_lanes.park();
+        self.first_lanes.park(&self.first);
+        if let Some(second) = self.second.as_ref() {
+            self.second_lanes.park(second);
+        }
         self.retime(rate)?;
         self.set_outputs(true);
         Ok(())
@@ -467,8 +479,10 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
 
     /// Stops everything, with every output at duty 0, ready to load again.
     pub fn abort(&mut self) {
-        self.first_lanes.abort_all();
-        self.second_lanes.abort_all();
+        self.first_lanes.abort_all(&self.first);
+        if let Some(second) = self.second.as_ref() {
+            self.second_lanes.abort_all(second);
+        }
         self.halt();
         self.state.active = 0;
         if self.state.listening {

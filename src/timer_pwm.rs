@@ -61,14 +61,21 @@ const STOP_SPINS: u32 = 10_000;
 
 /// What [`PwmChannel::into_lane`](PwmChannel::into_lane) hands back when it
 /// refuses: the reason, and the channel, stream and buffer it took.
-pub type IntoLaneRefused<T, const C: u8, S> =
-    crate::resource::Refused<crate::uart::ConfigError, (PwmChannel<T, C>, S, &'static mut [u32])>;
+pub type IntoLaneRefused<'a, T, const C: u8, S> = crate::resource::Refused<
+    crate::uart::ConfigError,
+    (PwmChannel<'a, T, C>, S, &'static mut [u32]),
+>;
 
 /// What [`PwmChannel::into_two_way_lane`](PwmChannel::into_two_way_lane)
 /// hands back: the reason, and the channel, stream and both buffers.
-pub type IntoTwoWayLaneRefused<T, const C: u8, S> = crate::resource::Refused<
+pub type IntoTwoWayLaneRefused<'a, T, const C: u8, S> = crate::resource::Refused<
     crate::uart::ConfigError,
-    (PwmChannel<T, C>, S, &'static mut [u32], &'static mut [u16]),
+    (
+        PwmChannel<'a, T, C>,
+        S,
+        &'static mut [u32],
+        &'static mut [u16],
+    ),
 >;
 
 /// What [`Sampler::new`](Sampler::new) hands back: the reason, and the
@@ -127,13 +134,16 @@ pub const fn nearest(
 }
 
 /// Duty values are compare counts, 0 to [`Pwm::period`]: the output is
-/// active while the counter is below the duty (PWM mode 1).
+/// active while the counter is below the duty (PWM mode 1). The handle
+/// carries the timer token: [`free`](Self::free) is the only way to build
+/// another handle for the same timer, and a [`PwmChannel`] borrows the
+/// handle, so no channel or lane can outlive it.
 pub struct Pwm<T> {
     gp: TimGp16,
     clock: Hertz,
     period: u32,
     frequency: Hertz,
-    _timer: PhantomData<T>,
+    _timer: T,
 }
 
 impl<T: ChannelTimer> Pwm<T> {
@@ -142,11 +152,11 @@ impl<T: ChannelTimer> Pwm<T> {
     /// got), with every channel off. Stopped until [`start`](Self::start).
     /// Refuses with the timer token handed back: the rate is checked before
     /// the timer is touched.
-    pub fn new(rcc: &mut Rcc, _timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
+    pub fn new(rcc: &mut Rcc, timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
         let clock = rcc.clocks().timer(T::BUS);
         let (prescaler, reload, frequency) = match nearest(clock, rate, T::BITS) {
             Ok(parts) => parts,
-            Err(error) => return Err(Refused::new(error, _timer)),
+            Err(error) => return Err(Refused::new(error, timer)),
         };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
@@ -166,8 +176,29 @@ impl<T: ChannelTimer> Pwm<T> {
             clock,
             period: reload as u32,
             frequency,
-            _timer: PhantomData,
+            _timer: timer,
         })
+    }
+
+    /// Hands the timer token back, stopping the counter and closing every
+    /// compare request: what a `Drop` would do, made explicit so the token
+    /// can move out. A channel or lane still borrowing the handle keeps
+    /// this from compiling.
+    pub fn free(self) -> T {
+        let Self {
+            gp,
+            clock: _,
+            period: _,
+            frequency: _,
+            _timer,
+        } = self;
+        gp.cr1().modify(|w| w.set_cen(false));
+        gp.dier().modify(|w| {
+            for index in 0..4 {
+                w.set_ccde(index, false);
+            }
+        });
+        _timer
     }
 
     /// Stops the timer and sets it to count at `rate`, as near as the
@@ -214,35 +245,35 @@ impl<T: ChannelTimer> Pwm<T> {
     }
 
     /// Channel `C` in PWM mode 1 with its compare preloaded, at duty 0,
-    /// its output enabled. `pin` proves the channel reaches a pin.
-    pub fn channel<const C: u8, P: ChannelPin<T, C>>(&mut self, _pin: P) -> PwmChannel<T, C> {
+    /// its output enabled. `pin` proves the channel reaches a pin. The
+    /// channel borrows the handle, so it cannot outlive
+    /// [`free`](Self::free); several channels can be live at once, and the
+    /// timer's controls stay callable through the shared borrow.
+    pub fn channel<'a, const C: u8, P: ChannelPin<T, C>>(
+        &'a self,
+        _pin: P,
+    ) -> PwmChannel<'a, T, C> {
         self.setup::<C>();
         self.gp
             .ccer()
             .modify(|w| w.set_cce(usize::from((C - 1) & 3), true));
-        PwmChannel {
-            gp: self.gp,
-            _timer: PhantomData,
-        }
+        PwmChannel { pwm: self }
     }
 
     /// Channel `C` driving its complementary output (CHxN) instead, at duty
     /// 0. Only timers with a break unit have one.
-    pub fn complementary<const C: u8, P: ComplementaryPin<T, C>>(
-        &mut self,
+    pub fn complementary<'a, const C: u8, P: ComplementaryPin<T, C>>(
+        &'a self,
         _pin: P,
-    ) -> PwmChannel<T, C> {
+    ) -> PwmChannel<'a, T, C> {
         self.setup::<C>();
         Self::adv()
             .ccer()
             .modify(|w| w.set_ccne(usize::from((C - 1) % 3), true));
-        PwmChannel {
-            gp: self.gp,
-            _timer: PhantomData,
-        }
+        PwmChannel { pwm: self }
     }
 
-    fn setup<const C: u8>(&mut self) {
+    fn setup<const C: u8>(&self) {
         const { assert!(C >= 1 && C <= 4, "channels are 1 to 4") };
         let index = usize::from((C - 1) & 3);
         self.gp
@@ -254,9 +285,23 @@ impl<T: ChannelTimer> Pwm<T> {
         });
     }
 
+    /// Channel `C`'s compare register, for a duty set outside a transfer:
+    /// what [`PwmChannel::set_duty`](Self::set_duty) does, for lanes and
+    /// generators that hold no channel.
+    pub fn set_duty<const C: u8>(&self, duty: u32) {
+        self.gp
+            .ccr(usize::from((C - 1) & 3))
+            .write_value(stm32_metapac::timer::regs::Ccr1ch(duty));
+    }
+
+    /// Channel `C`'s compare register's value.
+    pub fn duty<const C: u8>(&self) -> u32 {
+        self.gp.ccr(usize::from((C - 1) & 3)).read().0
+    }
+
     /// Makes channel `C`'s output active low: duty 0 then holds it high, and a
     /// pulse pulls it low. Its complementary output too, on a timer with one.
-    pub fn set_active_low<const C: u8>(&mut self, low: bool) {
+    pub fn set_active_low<const C: u8>(&self, low: bool) {
         let index = usize::from((C - 1) & 3);
         self.gp.ccer().modify(|w| w.set_ccp(index, low));
         if T::BREAK && index < 3 {
@@ -266,7 +311,7 @@ impl<T: ChannelTimer> Pwm<T> {
 
     /// Turns channel `C`'s outputs (CHx and CHxN) off or back on. Off, the
     /// pin falls to its inactive level.
-    pub fn set_output<const C: u8>(&mut self, on: bool) {
+    pub fn set_output<const C: u8>(&self, on: bool) {
         let index = usize::from((C - 1) & 3);
         if T::BREAK && index < 3 {
             let ccer = Self::adv().ccer();
@@ -284,7 +329,7 @@ impl<T: ChannelTimer> Pwm<T> {
 
     /// Makes this timer the one others start from: its trigger output pulses
     /// when its counter is enabled. See [`follow`](Self::follow).
-    pub fn lead(&mut self) {
+    pub fn lead(&self) {
         self.gp.cr2().modify(|w| w.set_mms(Mms::ENABLE));
     }
 
@@ -292,7 +337,7 @@ impl<T: ChannelTimer> Pwm<T> {
     /// so both begin on one edge. Don't `start` this one yourself. `stop`,
     /// `stage` and the rest work as ever; the next master start starts it
     /// again. `master` has to have called [`lead`](Self::lead).
-    pub fn follow<M: ChannelTimer>(&mut self, _master: &Pwm<M>)
+    pub fn follow<M: ChannelTimer>(&self, _master: &Pwm<M>)
     where
         T: TriggeredBy<M>,
     {
@@ -317,7 +362,7 @@ impl<T: ChannelTimer> Pwm<T> {
     /// its reload value (so the first count after `start` is an update that
     /// latches each channel's preloaded duty) and opens the compare
     /// requests of `channels` (bit 0 = channel 1).
-    pub fn stage(&mut self, channels: u8) {
+    pub fn stage(&self, channels: u8) {
         self.stop();
         self.gp.dier().modify(|w| {
             for index in 0..4 {
@@ -346,7 +391,7 @@ impl<T: ChannelTimer> Pwm<T> {
     }
 
     /// Closes every compare request.
-    pub fn close_requests(&mut self) {
+    pub fn close_requests(&self) {
         self.gp.dier().modify(|w| {
             for index in 0..4 {
                 w.set_ccde(index, false);
@@ -357,7 +402,7 @@ impl<T: ChannelTimer> Pwm<T> {
     /// Starts the counter and clears one-pulse mode: a timer left in it by
     /// [`start_one_pulse`](Self::start_one_pulse) would stop after one
     /// period again.
-    pub fn start(&mut self) {
+    pub fn start(&self) {
         self.gp.cr1().modify(|w| {
             w.set_opm(false);
             w.set_cen(true);
@@ -369,7 +414,7 @@ impl<T: ChannelTimer> Pwm<T> {
     /// and no more. With PWM mode 1 the stopped counter leaves the output
     /// active; a caller that needs the pin idle must
     /// [`set_output`](Self::set_output) it false afterwards.
-    pub fn start_one_pulse(&mut self) {
+    pub fn start_one_pulse(&self) {
         // A staged counter sits at its reload value, so its next update is
         // one tick away: with one-pulse mode already on, that update would
         // stop the counter before a period ran. Latch the preloaded duties
@@ -385,26 +430,28 @@ impl<T: ChannelTimer> Pwm<T> {
         });
     }
 
-    pub fn stop(&mut self) {
+    pub fn stop(&self) {
         self.gp.cr1().modify(|w| w.set_cen(false));
     }
 }
 
-/// One PWM channel's compare register.
-pub struct PwmChannel<T, const C: u8> {
-    gp: TimGp16,
-    _timer: PhantomData<T>,
+/// One PWM channel's compare register, borrowed from its [`Pwm`]: the
+/// channel writes only its own compare register, through the handle that
+/// holds the token, and cannot outlive it.
+pub struct PwmChannel<'a, T, const C: u8> {
+    pwm: &'a Pwm<T>,
 }
 
-// SAFETY: a channel writes only its own compare register.
-unsafe impl<T, const C: u8> Send for PwmChannel<T, C> {}
+// SAFETY: the channel writes only its own compare register, through the
+// shared handle; other channels write other registers of the same block.
+unsafe impl<T, const C: u8> Send for PwmChannel<'_, T, C> {}
 
-impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
+impl<'a, T: ChannelTimer, const C: u8> PwmChannel<'a, T, C> {
     fn ccr(
         &self,
     ) -> stm32_metapac::common::Reg<stm32_metapac::timer::regs::Ccr1ch, stm32_metapac::common::RW>
     {
-        self.gp.ccr(usize::from((C - 1) & 3))
+        self.pwm.gp.ccr(usize::from((C - 1) & 3))
     }
 
     /// The duty from the next period on (the compare is preloaded).
@@ -420,12 +467,15 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
     /// Feeds this channel's compare register from `stream`, out of `buffer`.
     /// Refuses with the channel, the stream and the buffer handed back: the
     /// buffer is checked and the stream stopped through a second owner
-    /// beside its token, so nothing is consumed until it succeeds.
+    /// beside its token, so nothing is consumed until it succeeds. The lane
+    /// holds no borrow of the timer: its compare writes go through a
+    /// `&Pwm` per call, so it can move into an [`Awg`](super::Awg) with the
+    /// timer.
     pub fn into_lane<S: CompareDma<T, C>>(
         self,
         stream: S,
         buffer: &'static mut [u32],
-    ) -> Result<CompareLane<T, C>, IntoLaneRefused<T, C, S>> {
+    ) -> Result<CompareLane<T, C>, IntoLaneRefused<'a, T, C, S>> {
         if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
             return Err(Refused::new(error, (self, stream, buffer)));
         }
@@ -438,13 +488,13 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
         }
         dma.clear_flags(Flags::ALL);
         Ok(CompareLane {
-            channel: self,
             dma,
             request: S::REQUEST,
             vector: S::INTERRUPT,
             buffer,
             running: false,
             input: None,
+            _timer: PhantomData,
         })
     }
 
@@ -457,7 +507,7 @@ impl<T: ChannelTimer, const C: u8> PwmChannel<T, C> {
         stream: S,
         buffer: &'static mut [u32],
         samples: &'static mut [u16],
-    ) -> Result<CompareLane<T, C>, IntoTwoWayLaneRefused<T, C, S>>
+    ) -> Result<CompareLane<T, C>, IntoTwoWayLaneRefused<'a, T, C, S>>
     where
         S: CompareDma<T, C> + GpioDma,
         Port<P>: PortInstance,
@@ -495,7 +545,7 @@ where
     /// where DMA can't reach; the pin and stream come back untouched.
     pub fn assemble(
         self,
-        pwm: &mut Pwm<T>,
+        pwm: &Pwm<T>,
         buffer: &'static mut [u32],
     ) -> Result<
         CompareLane<T, C>,
@@ -514,15 +564,15 @@ where
             ));
         }
         dma.clear_flags(Flags::ALL);
-        let channel = pwm.channel::<C, _>(self.pin);
+        pwm.channel::<C, _>(self.pin);
         Ok(CompareLane {
-            channel,
             dma,
             request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
             vector: <crate::dma::Stream<CD, SN> as StreamInterrupt>::INTERRUPT,
             buffer,
             running: false,
             input: None,
+            _timer: PhantomData,
         })
     }
 
@@ -531,7 +581,7 @@ where
     /// `samples` takes what it reads. Everything comes back in the refusal.
     pub fn assemble_two_way<const PORT: char>(
         self,
-        pwm: &mut Pwm<T>,
+        pwm: &Pwm<T>,
         buffer: &'static mut [u32],
         samples: &'static mut [u16],
     ) -> super::TwoWayLaneAssembly<T, C, Pin, crate::dma::Stream<CD, SN>>
@@ -553,15 +603,15 @@ where
             ));
         }
         dma.clear_flags(Flags::ALL);
-        let channel = pwm.channel::<C, _>(self.pin);
+        pwm.channel::<C, _>(self.pin);
         let mut lane = CompareLane {
-            channel,
             dma,
             request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
             vector: <crate::dma::Stream<CD, SN> as StreamInterrupt>::INTERRUPT,
             buffer,
             running: false,
             input: None,
+            _timer: PhantomData,
         };
         lane.input = Some(LaneInput {
             port: <Port<PORT> as PortRegisters>::regs().idr().as_ptr() as u32,
@@ -583,7 +633,7 @@ where
     /// [`assemble`](super::LaneWiring::assemble) does for a channel lane.
     pub fn assemble(
         self,
-        pwm: &mut Pwm<T>,
+        pwm: &Pwm<T>,
         buffer: &'static mut [u32],
     ) -> Result<
         CompareLane<T, C>,
@@ -600,15 +650,15 @@ where
             ));
         }
         dma.clear_flags(Flags::ALL);
-        let channel = pwm.complementary::<C, _>(self.pin);
+        pwm.complementary::<C, _>(self.pin);
         Ok(CompareLane {
-            channel,
             dma,
             request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
             vector: <crate::dma::Stream<CD, SN> as StreamInterrupt>::INTERRUPT,
             buffer,
             running: false,
             input: None,
+            _timer: PhantomData,
         })
     }
 }
@@ -637,15 +687,18 @@ fn as_bytes(words: &[u32]) -> &[u8] {
 }
 
 /// A channel whose compare register a DMA stream feeds, one duty per
-/// period, paced by the channel's own compare request.
+/// period, paced by the channel's own compare request. The lane holds no
+/// borrow of the timer: its compare writes take a `&Pwm` per call, so it
+/// can move into an [`Awg`](super::Awg) with the timer, and it cannot touch
+/// the timer without one.
 pub struct CompareLane<T, const C: u8> {
-    channel: PwmChannel<T, C>,
     dma: Channel,
     request: u8,
     vector: Interrupt,
     buffer: &'static mut [u32],
     running: bool,
     input: Option<LaneInput>,
+    _timer: PhantomData<fn() -> T>,
 }
 
 impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
@@ -653,7 +706,7 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
     /// with the rest, then a 0 that holds the output low afterwards. The
     /// timer's `stage` and `start` set it going. At most the buffer's
     /// length, less one for the 0.
-    pub fn arm(&mut self, duties: &[u32]) -> Result<(), Error> {
+    pub fn arm(&mut self, pwm: &Pwm<T>, duties: &[u32]) -> Result<(), Error> {
         if self.running {
             return Err(Error::Busy);
         }
@@ -665,13 +718,13 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
             head.copy_from_slice(rest);
             *last = 0;
         }
-        self.channel.set_duty(*first);
+        pwm.set_duty::<C>(*first);
         let transfer = Transfer {
             request: self.request,
             #[cfg(feature = "dma_v1")]
             bufferable: false,
             direction: Direction::MemoryToPeripheral,
-            peripheral: self.channel.ccr().as_ptr() as u32,
+            peripheral: pwm.gp.ccr(usize::from((C - 1) & 3)).as_ptr() as u32,
             memory: self.buffer.as_ptr() as u32,
             double_buffer: None,
             len,
@@ -697,7 +750,7 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
     /// Turns the stream to read `count` whole port samples into the lane's input,
     /// one per compare request of the channel, at `duty` in the timer's period.
     /// Nothing runs until the requests open. The caller releases the pin first.
-    pub fn listen(&mut self, count: usize, duty: u32) -> Result<(), Error> {
+    pub fn listen(&mut self, pwm: &Pwm<T>, count: usize, duty: u32) -> Result<(), Error> {
         if self.running {
             return Err(Error::Busy);
         }
@@ -731,7 +784,7 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
                 ..Interrupts::default()
             },
         };
-        self.channel.set_duty(duty);
+        pwm.set_duty::<C>(duty);
         // SAFETY: the samples are the lane's own for its life and hold `len`
         // words; the address is a GPIO port's input register, read-only and
         // without side effects, which this channel's compare request paces.
@@ -763,7 +816,7 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
         }
         let flags = self.dma.flags();
         if flags.transfer_error || flags.direct_mode_error {
-            self.abort();
+            self.stop_stream();
             return Some(Err(Error::Dma));
         }
         if !flags.complete {
@@ -784,11 +837,18 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
     }
 
     /// Stops the stream and drops the output to duty 0.
-    pub fn abort(&mut self) {
+    pub fn abort(&mut self, pwm: &Pwm<T>) {
+        self.stop_stream();
+        pwm.set_duty::<C>(0);
+    }
+
+    /// Stops the stream, leaving the output at its last duty: what the
+    /// stream's error path does, where no timer handle is at hand. Park the
+    /// channel through [`abort`](Self::abort) or [`Pwm::set_duty`].
+    fn stop_stream(&mut self) {
         let _ = self.dma.stop(STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
-        self.channel.set_duty(0);
         self.running = false;
     }
 
@@ -801,9 +861,16 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
         crate::resource::verify_vectors([self.vector].into_iter())
     }
 
-    /// The channel, for a duty outside a transfer.
-    pub fn channel(&mut self) -> &mut PwmChannel<T, C> {
-        &mut self.channel
+    /// The channel's duty, for outside a transfer: the register read goes
+    /// through the timer handle.
+    pub fn duty(&self, pwm: &Pwm<T>) -> u32 {
+        pwm.duty::<C>()
+    }
+
+    /// Sets the channel's duty, for outside a transfer: the register write
+    /// goes through the timer handle.
+    pub fn set_duty(&self, pwm: &Pwm<T>, duty: u32) {
+        pwm.set_duty::<C>(duty)
     }
 }
 
@@ -814,10 +881,9 @@ impl<T: ChannelTimer, const C: u8> CompareLane<T, C> {
 /// reaches GPIO. ES0299 2.2.11 and ES0182 2.2.19: DMA2 can corrupt data when
 /// it serves an AHB peripheral (this sampler) and an APB2 peripheral at the
 /// same time; keep APB2 traffic off DMA2 while sampling.
-pub struct Sampler {
+pub struct Sampler<T> {
     timer: TimGp16,
     clock: Hertz,
-    bits: u8,
     dma: Channel,
     request: u8,
     vector: Interrupt,
@@ -825,6 +891,7 @@ pub struct Sampler {
     buffer: &'static mut [u16],
     rate: Hertz,
     state: SampleState,
+    _timer: T,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -834,14 +901,15 @@ enum SampleState {
     Done(u16),
 }
 
-impl Sampler {
+impl<T: Instance> Sampler<T> {
     /// Enables and resets `timer` to update at `rate` (as near as the clock
     /// allows; [`rate`](Self::rate) says what it got), and points `stream`
     /// at port `P`'s input register. Nothing runs until
-    /// [`start`](Self::start).
-    pub fn new<T, S, const P: char>(
+    /// [`start`](Self::start). The sampler carries the timer token and hands
+    /// it back with [`free`](Self::free).
+    pub fn new<S, const P: char>(
         rcc: &mut Rcc,
-        _timer: T,
+        timer: T,
         stream: S,
         rate: Hertz,
         buffer: &'static mut [u16],
@@ -857,12 +925,12 @@ impl Sampler {
             Err(_) => {
                 return Err(Refused::new(
                     crate::uart::ConfigError::Unsupported,
-                    (_timer, stream, buffer),
+                    (timer, stream, buffer),
                 ));
             }
         };
         if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(buffer)) {
-            return Err(Refused::new(error, (_timer, stream, buffer)));
+            return Err(Refused::new(error, (timer, stream, buffer)));
         }
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
@@ -871,7 +939,7 @@ impl Sampler {
         if dma.stop(STOP_SPINS).is_err() {
             return Err(Refused::new(
                 crate::uart::ConfigError::DmaBusy,
-                (_timer, stream, buffer),
+                (timer, stream, buffer),
             ));
         }
         dma.clear_flags(Flags::ALL);
@@ -880,7 +948,6 @@ impl Sampler {
             // where the general-purpose layout has them on every timer.
             timer: unsafe { TimGp16::from_ptr(T::core().as_ptr()) },
             clock,
-            bits: T::BITS,
             dma,
             request: S::REQUEST,
             vector: S::INTERRUPT,
@@ -888,7 +955,16 @@ impl Sampler {
             buffer,
             rate,
             state: SampleState::Idle,
+            _timer: timer,
         })
+    }
+
+    /// Hands the timer token back, stopping the timer and the stream: what
+    /// a `Drop` would do, made explicit so the token can move out.
+    pub fn free(self) -> T {
+        let mut sampler = self;
+        sampler.stop();
+        sampler._timer
     }
 
     pub fn rate(&self) -> Hertz {
@@ -898,7 +974,7 @@ impl Sampler {
     /// Stops sampling and sets the timer to update at `rate`, as near as
     /// the clock allows.
     pub fn set_rate(&mut self, rate: Hertz) -> Result<Hertz, ConfigError> {
-        let (prescaler, reload, rate) = nearest(self.clock, rate, self.bits)?;
+        let (prescaler, reload, rate) = nearest(self.clock, rate, T::BITS)?;
         self.stop();
         reload_counter(self.timer, prescaler, reload);
         self.rate = rate;
@@ -1009,7 +1085,7 @@ fn u16_bytes(words: &[u16]) -> &[u8] {
 }
 
 // SAFETY: a sampler owns its timer and stream; the buffer is its own.
-unsafe impl Send for Sampler {}
+unsafe impl<T: Instance> Send for Sampler<T> {}
 
 #[cfg(test)]
 mod tests {

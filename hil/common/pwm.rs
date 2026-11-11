@@ -134,14 +134,14 @@ pub fn wait<R>(cycles: u32, mut poll: impl FnMut() -> Option<R>) -> Option<R> {
 /// Two lanes of one timer send `patterns` from the same update, while
 /// `sampler` records their port; each lane's pin must carry its pattern.
 #[allow(clippy::too_many_arguments)]
-pub fn lane_pair_check<T: ChannelTimer, const A: u8, const B: u8>(
+pub fn lane_pair_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u8, const B: u8>(
     report: &mut Report,
     name: &str,
     pwm: &mut Pwm<T>,
     lanes: (&mut CompareLane<T, A>, &mut CompareLane<T, B>),
     pins: (u8, u8),
     patterns: (u16, u16),
-    sampler: &mut Sampler,
+    sampler: &mut Sampler<U>,
     cpu: Hertz,
 ) {
     let period = pwm.period();
@@ -152,14 +152,14 @@ pub fn lane_pair_check<T: ChannelTimer, const A: u8, const B: u8>(
     let result = (|| {
         lanes
             .0
-            .arm(&duties(patterns.0, period))
+            .arm(pwm, &duties(patterns.0, period))
             .map_err(|_| Fail::Count {
                 expected: BITS as u32,
                 got: 0,
             })?;
         lanes
             .1
-            .arm(&duties(patterns.1, period))
+            .arm(pwm, &duties(patterns.1, period))
             .map_err(|_| Fail::Count {
                 expected: BITS as u32,
                 got: 0,
@@ -179,8 +179,8 @@ pub fn lane_pair_check<T: ChannelTimer, const A: u8, const B: u8>(
         pwm.stop();
         pwm.close_requests();
         if !matches!(first, Some(Ok(()))) || !matches!(second, Some(Ok(()))) {
-            lanes.0.abort();
-            lanes.1.abort();
+            lanes.0.abort(pwm);
+            lanes.1.abort(pwm);
             return Err(Fail::Count {
                 expected: 2,
                 got: u32::from(first.is_some()) + u32::from(second.is_some()),
@@ -214,12 +214,12 @@ pub fn lane_pair_check<T: ChannelTimer, const A: u8, const B: u8>(
 
 /// The waveform generator on two lanes of one timer, read back by `sampler`:
 /// each lane's own samples, a ramp, one lane alone, and what it refuses.
-pub fn awg_check<T: ChannelTimer, const A: u8, const B: u8>(
+pub fn awg_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u8, const B: u8>(
     report: &mut Report,
     name: &str,
     awg: &mut Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>,
     pins: (u8, u8),
-    sampler: &mut Sampler,
+    sampler: &mut Sampler<U>,
     cpu: Hertz,
 ) {
     let period = awg.period();
@@ -230,7 +230,7 @@ pub fn awg_check<T: ChannelTimer, const A: u8, const B: u8>(
 
     // Plays what's loaded, sampling it; `Err` if anything didn't finish.
     let play = |awg: &mut Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>,
-                    sampler: &mut Sampler,
+                    sampler: &mut Sampler<U>,
                     lanes: u8|
      -> Result<(), Fail> {
         let unfinished = Fail::Count {
@@ -390,11 +390,11 @@ fn play_one<T: ChannelTimer, const C: u8>(
 
 /// Out over a wire: `awg`'s lane plays, and `sampler` reads the far end of the
 /// wire, on bit `far_pin` of its port.
-pub fn awg_wire_out_check<T: ChannelTimer, const C: u8>(
+pub fn awg_wire_out_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const C: u8>(
     report: &mut Report,
     name: &str,
     awg: &mut Awg<T, T, (CompareLane<T, C>,), ()>,
-    sampler: &mut Sampler,
+    sampler: &mut Sampler<U>,
     far_pin: u8,
     cpu: Hertz,
 ) {
@@ -558,10 +558,10 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
 
 /// A running PWM output's duty, read from `samples` of its pin: high for
 /// `sixteenths`/16 of the time, to within 1/16.
-pub fn duty_check(
+pub fn duty_check<T: ferrohal_stm32::timer::Instance>(
     report: &mut Report,
     name: &str,
-    sampler: &mut Sampler,
+    sampler: &mut Sampler<T>,
     pin: u8,
     sixteenths: u32,
     cpu: Hertz,
@@ -597,13 +597,13 @@ pub fn duty_check(
 
 /// One period from `Pwm::start_one_pulse`: the first period carries the set
 /// duty, then the line holds still and the counter has stopped itself.
-pub fn one_pulse_check<T: ChannelTimer>(
+pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance>(
     report: &mut Report,
     name: &str,
     pwm: &mut Pwm<T>,
     pin: u8,
     sixteenths: u32,
-    sampler: &mut Sampler,
+    sampler: &mut Sampler<U>,
     cpu: Hertz,
 ) {
     let per_period = (u64::from(sampler.rate().0) / u64::from(pwm.frequency().0)).max(1) as usize;

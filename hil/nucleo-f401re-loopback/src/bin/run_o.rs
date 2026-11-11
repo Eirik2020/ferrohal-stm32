@@ -76,7 +76,7 @@ mod app {
         let lane = pwm
             .channel::<1, _>(run.pb6)
             .into_lane(run.lane, core::mem::take(cx.local.lane));
-        let sampler = Sampler::new::<_, _, 'C'>(
+        let sampler = Sampler::new::<_, 'C'>(
             &mut run.rcc,
             run.tim1,
             run.sampler,

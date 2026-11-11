@@ -88,7 +88,7 @@ mod app {
         let lane4 = pwm
             .channel::<4, _>(run.ch4)
             .into_lane(run.lane4, core::mem::take(cx.local.lane4));
-        let sampler = Sampler::new::<_, _, 'B'>(
+        let sampler = Sampler::new::<_, 'B'>(
             &mut run.rcc,
             run.tim1,
             run.sampler,

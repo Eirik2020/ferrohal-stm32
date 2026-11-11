@@ -368,8 +368,8 @@ pub fn exercise_into_lane<T, P, const CD: u8, const SN: u8>(
             }
         }
     };
-    keep(lane.arm(black_box(&[1, 2, 3][..])));
-    lane.abort();
+    keep(lane.arm(&pwm, black_box(&[1, 2, 3][..])));
+    lane.abort(&pwm);
 }
 
 /// PWM with a compare lane on channel 1, through every operation.
@@ -401,20 +401,20 @@ where
         );
     // SAFETY: as TX and RX in `main`.
     let buffer = black_box(unsafe { &mut *addr_of_mut!(LANE) });
-    let mut lane = match wiring.assemble(&mut pwm, buffer) {
+    let mut lane = match wiring.assemble(&pwm, buffer) {
         Ok(lane) => lane,
         Err(refused) => {
             keep(refused.error());
             let (wiring, buffer) = refused.into_parts();
-            match wiring.assemble(&mut pwm, buffer) {
+            match wiring.assemble(&pwm, buffer) {
                 Ok(lane) => lane,
                 Err(_) => park(),
             }
         }
     };
-    lane.channel().set_duty(black_box(70));
-    keep(lane.channel().duty());
-    keep(lane.arm(black_box(&[1, 2, 3][..])));
+    lane.set_duty(&pwm, black_box(70));
+    keep(lane.duty(&pwm));
+    keep(lane.arm(&pwm, black_box(&[1, 2, 3][..])));
         pwm.stage(black_box(1));
         pwm.start();
         keep(lane.on_interrupt());
@@ -422,8 +422,8 @@ where
         keep(lane.is_busy());
         keep(lane.interrupt());
         keep(lane.verify());
-        lane.channel().set_duty(black_box(0));
-        lane.abort();
+        lane.set_duty(&pwm, black_box(0));
+        lane.abort(&pwm);
         pwm.close_requests();
         pwm.stop();
         // The generator over the same lane.
@@ -478,20 +478,20 @@ where
         );
     // SAFETY: as TX and RX in `main`.
     let (buffer, reads) = black_box(unsafe { (&mut *addr_of_mut!(TWO_WAY), &mut *addr_of_mut!(TWO_WAY_READS)) });
-    let mut lane = match wiring.assemble_two_way::<PORT>(&mut pwm, buffer, reads) {
+    let mut lane = match wiring.assemble_two_way::<PORT>(&pwm, buffer, reads) {
         Ok(lane) => lane,
         Err(refused) => {
             keep(refused.error());
             let (wiring, (buffer, reads)) = refused.into_parts();
-            match wiring.assemble_two_way::<PORT>(&mut pwm, buffer, reads) {
+            match wiring.assemble_two_way::<PORT>(&pwm, buffer, reads) {
                 Ok(lane) => lane,
                 Err(_) => park(),
             }
         }
     };
-    keep(lane.listen(black_box(4), black_box(10)));
+    keep(lane.listen(&pwm, black_box(4), black_box(10)));
     keep(lane.samples().len());
-    lane.abort();
+    lane.abort(&pwm);
 }
 
 /// A complementary output (CH1N) of a timer with a break unit, assembled
@@ -527,7 +527,7 @@ where
             }
         }
     };
-    lane.channel().set_duty(black_box(10));
+    lane.set_duty(&pwm, black_box(10));
     pwm.set_output::<1>(black_box(false));
     pwm.set_output::<1>(black_box(true));
     pwm.start();
@@ -543,13 +543,13 @@ where
     // SAFETY: as TX and RX in `main`.
     let samples = black_box(unsafe { &mut *addr_of_mut!(SAMPLES) });
     let mut sampler = match
-        ferrohal_stm32::timer::Sampler::new::<U, S, 'B'>(rcc, timer, stream, black_box(Hertz::mhz(4)), samples)
+        ferrohal_stm32::timer::Sampler::new::<S, 'B'>(rcc, timer, stream, black_box(Hertz::mhz(4)), samples)
     {
         Ok(sampler) => sampler,
         Err(refused) => {
             keep(refused.error());
             let (timer, stream, samples) = refused.into_parts();
-            match ferrohal_stm32::timer::Sampler::new::<U, S, 'B'>(
+            match ferrohal_stm32::timer::Sampler::new::<S, 'B'>(
                 rcc,
                 timer,
                 stream,

@@ -21,7 +21,9 @@ h7xx-hal 0.16 has 11 `free(...)` (`free(self) -> ($peripheral, $rec)`); f4xx-hal
    `free()` stops the timer and hands it back; the bench's `TickBench<E>` keeps the
    token sealed in a per-run enum of benched ticks, `Link` reads through a
    `TimebaseReader`. Remaining: PWM, UART, SPI, I2C.
-2. Lifetime-bind `PwmChannel`/`CompareLane`/`TwoWayLane` (or split `Timer` from `Pwm`); `Pwm::free()`.
+2. Lifetime-bind `PwmChannel`/`CompareLane`/`TwoWayLane` (or split `Timer` from `Pwm`);
+   `Pwm::free()`. **Done 2026-11-10** (own PR): channels borrow the handle; lanes hold
+   no timer access and take a `&Pwm` per compare write, so the `Awg` keeps owning both.
 3. `Uart::free()` via half rejoin; `Spi::free()`; `I2c::free()`.
 4. DMA stream/channel handles: `free()` or stay transport-owned - decide.
 5. Migrate the six second-use bench checks back to token reuse (fresh-boot runs stay valid).

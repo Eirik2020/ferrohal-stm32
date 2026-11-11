@@ -430,7 +430,7 @@ mod app {
         );
 
         // Sampler: a 0 rate refuses; the timer, stream and buffer come back.
-        let (mut sampler, sampler_refusal) = match Sampler::new::<_, _, 'B'>(
+        let (mut sampler, sampler_refusal) = match Sampler::new::<_, 'B'>(
             &mut run.rcc,
             run.tim8,
             run.sampler_stream,
@@ -441,7 +441,7 @@ mod app {
             Err(refused) => {
                 let error = refused.error();
                 let (tim8, stream, buffer) = refused.into_parts();
-                match Sampler::new::<_, _, 'B'>(
+                match Sampler::new::<_, 'B'>(
                     &mut run.rcc,
                     tim8,
                     stream,
@@ -475,7 +475,7 @@ mod app {
                 (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.frequency().0)) as u32;
             let count = (per_bit16 as usize * (16 + 8)) / 16;
             lane3
-                .arm(&pwm::duties(pattern, pwm3.period()))
+                .arm(&pwm3, &pwm::duties(pattern, pwm3.period()))
                 .map_err(|_| Fail::Count { expected: 16, got: 0 })?;
             sampler
                 .start(count)
