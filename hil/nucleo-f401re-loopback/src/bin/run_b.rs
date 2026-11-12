@@ -134,7 +134,12 @@ fn watch(usart: Usart, rx: St) {
 /// error, and PE was seen, counted and reported once. A fourth, naming no
 /// requirement, restores 8N1. `rx` is the receiver's stream, a circular
 /// ring of `ring` bytes.
-fn pe_clear(report: &mut Report, cross: &mut Cross, rx: St, ring: u32) {
+fn pe_clear<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+    report: &mut Report,
+    cross: &mut Cross<'_, U, V>,
+    rx: St,
+    ring: u32,
+) {
     let name = cross.name;
     let frames = cross
         .from
@@ -295,9 +300,57 @@ fn pe_clear(report: &mut Report, cross: &mut Cross, rx: St, ring: u32) {
     );
 }
 
+/// One direction of the USART1 <-> USART6 cross: every check it can take.
+/// The two directions are different types (`Cross<USART1, USART6>` and the
+/// reverse), so a loop over one `cross` cannot typecheck; this does each.
+fn cross_checks<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+    report: &mut Report,
+    cross: &mut Cross<'_, U, V>,
+    receiver: St,
+    ring: u32,
+) {
+    let name = cross.name;
+    // The receiving USART's stream, as `board::run_b` wires it.
+    tests::drain(cross);
+    report.check_for(
+        name,
+        "UART-001 UART-002 USART-001",
+        "echo",
+        tests::echo(cross, b"hello across\n"),
+    );
+    report.check_for(
+        name,
+        "UART-002",
+        "stream 8 KiB",
+        tests::stream(cross, 8 * 1024),
+    );
+    report.check_for(
+        name,
+        "UART-005 UART-013 USART-002 USART-003",
+        "break reported",
+        tests::line_break(cross),
+    );
+    report.check_for(
+        name,
+        "UART-005 USART-002",
+        "half baud rate reported as framing error",
+        tests::framing_mismatch(cross),
+    );
+    report.check_for(
+        name,
+        "UART-014",
+        "even into odd reported as parity error",
+        tests::parity_mismatch(cross),
+    );
+    crate::pe_clear(report, cross, receiver, ring);
+}
+
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
+    use ferrohal_stm32::{
+        chip::{USART1, USART6},
+        uart::{Buffers, Config, Uart, UartInterrupts, UartIrq},
+    };
 
     use crate::{
         board,
@@ -317,8 +370,8 @@ mod app {
 
     #[local]
     struct Local {
-        usart1: Uart,
-        usart6: Uart,
+        usart1: Uart<USART1>,
+        usart6: Uart<USART6>,
         vectors1: UartInterrupts,
         vectors6: UartInterrupts,
         led: board::Led,
@@ -428,56 +481,31 @@ mod app {
             tests::vectors_verified(cx.local.vectors6),
         );
         let (usart1, usart6) = (cx.local.usart1, cx.local.usart6);
-
-        for forward in [true, false] {
-            let mut cross = if forward {
-                Cross {
-                    name: "USART1 PB6->USART6 PC7",
-                    from: &mut *usart1,
-                    to: &mut *usart6,
-                }
-            } else {
-                Cross {
-                    name: "USART6 PC6->USART1 PB7",
-                    from: &mut *usart6,
-                    to: &mut *usart1,
-                }
+        {
+            let mut cross = Cross {
+                name: "USART1 PB6->USART6 PC7",
+                from: &mut *usart1,
+                to: &mut *usart6,
             };
-            let name = cross.name;
-            // The receiving USART's stream, as `board::run_b` wires it.
-            let receiver = stm32_metapac::DMA2.st(if forward { 2 } else { 5 });
-            tests::drain(&mut cross);
-            report.check_for(
-                name,
-                "UART-001 UART-002 USART-001",
-                "echo",
-                tests::echo(&mut cross, b"hello across\n"),
+            crate::cross_checks(
+                &mut report,
+                &mut cross,
+                stm32_metapac::DMA2.st(2),
+                RX_RING as u32,
             );
-            report.check_for(
-                name,
-                "UART-002",
-                "stream 8 KiB",
-                tests::stream(&mut cross, 8 * 1024),
+        }
+        {
+            let mut cross = Cross {
+                name: "USART6 PC6->USART1 PB7",
+                from: &mut *usart6,
+                to: &mut *usart1,
+            };
+            crate::cross_checks(
+                &mut report,
+                &mut cross,
+                stm32_metapac::DMA2.st(5),
+                RX_RING as u32,
             );
-            report.check_for(
-                name,
-                "UART-005 UART-013 USART-002 USART-003",
-                "break reported",
-                tests::line_break(&mut cross),
-            );
-            report.check_for(
-                name,
-                "UART-005 USART-002",
-                "half baud rate reported as framing error",
-                tests::framing_mismatch(&mut cross),
-            );
-            report.check_for(
-                name,
-                "UART-014",
-                "even into odd reported as parity error",
-                tests::parity_mismatch(&mut cross),
-            );
-            crate::pe_clear(&mut report, &mut cross, receiver, RX_RING as u32);
         }
 
         let (line1, tx1, rx1) = usart1.halves();

@@ -44,7 +44,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 - **Low: the flight boards' I2C has carried bytes only on the Lucid.** Its barometer answers at `0x76` on I2C2 (PB10/PB11); the SpeedyBee's SPA06-001 and the Foxeer's I2C1 wiring use the same open-drain pins, but nothing has answered.
 - **Low: the I2C scope is master, 7-bit, no SMBus, no DMA.** SMBA isn't routed; slave mode or 10-bit addressing isn't asked for. A held-low line is [`Error::Busy`], not repaired: nine-clock recovery is firmware's.
-- **Medium: there's no `release()`/`free()`;** a driver can't be torn down. A safe `free()` is unsound in today's shapes; `docs/design/free.md` has the brief.
+- **Medium: `Spi` and `I2c` have no `free()`;** `Pwm`, `Tick`/`Timebase` and `Uart` do. The rules a `free()` must meet are collected in `docs/design/free.md`.
 - **Medium: USB sits outside the no-panic proof.** `synopsys-usb-otg` has about 30 panic/unwrap sites and unbounded register spins; behind the `usb` feature, the check covers only FerroHAL's clock and constructor. Flight firmware should keep USB away from critical paths.
 - **Medium: USB is device-mode CDC on OTG_FS, tested on the H753ZI, the Foxeer's F405 and the Lucid's H743.** No OTG_HS, no host mode; the F401's Nucleo has no USB connector.
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.

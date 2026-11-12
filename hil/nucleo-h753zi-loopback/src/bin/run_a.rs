@@ -38,8 +38,7 @@ use panic_probe as _;
 mod app {
     use cortex_m::peripheral::{CPUID, SCB};
     use ferrohal_stm32::{
-        chip::check_dma_buffer,
-        device::Interrupt,
+        chip::{check_dma_buffer, Interrupt, USART1, USART2, USART3, USART6},
         uart::{Config, ConfigError, Parity, StopBits, Uart, UartInterrupts, UartIrq},
     };
 
@@ -73,13 +72,13 @@ mod app {
 
     #[local]
     struct Local {
-        usart6: Uart,
+        usart6: Uart<USART6>,
         vectors_usart6: UartInterrupts,
-        usart1: Uart,
+        usart1: Uart<USART1>,
         vectors_usart1: UartInterrupts,
-        usart3: Uart,
+        usart3: Uart<USART3>,
         vectors_usart3: UartInterrupts,
-        usart2: Uart,
+        usart2: Uart<USART2>,
         vectors_usart2: UartInterrupts,
         led: board::Led,
         scb: SCB,

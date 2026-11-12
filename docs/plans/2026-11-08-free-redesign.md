@@ -11,8 +11,11 @@ h7xx-hal 0.16 has 11 `free(...)` (`free(self) -> ($peripheral, $rec)`); f4xx-hal
   **done (2026-11-10):** `Tick<T>`/`Timebase<T>` carry the token; the bench's
   `TickBench<E>` holds a per-run enum of benched ticks so the token stays sealed while
   the vector runs.
-- `I2c` (`src/i2c/mod.rs:256`), `Spi`, `Uart` store `&'static Info`, not tokens -> store ZST tokens.
-- `UartRx`/`UartTx` need a rejoin before `Uart::free()`.
+- ~~`I2c` (`src/i2c/mod.rs:256`), `Spi`, `Uart` store `&'static Info`, not tokens -> store ZST tokens.~~
+  **Uart done (2026-11-11):** the token rides in `Line<U>`. `Spi`/`I2c` remain.
+- ~~`UartRx`/`UartTx` need a rejoin before `Uart::free()`.~~ **done (2026-11-11):**
+  `split`/`join` pair added; `free()` takes the whole `Uart` (or the line, for a
+  receive-only `UartRx::free`).
 
 ## Scope
 
@@ -24,7 +27,13 @@ h7xx-hal 0.16 has 11 `free(...)` (`free(self) -> ($peripheral, $rec)`); f4xx-hal
 2. Lifetime-bind `PwmChannel`/`CompareLane`/`TwoWayLane` (or split `Timer` from `Pwm`);
    `Pwm::free()`. **Done 2026-11-10** (own PR): channels borrow the handle; lanes hold
    no timer access and take a `&Pwm` per compare write, so the `Awg` keeps owning both.
-3. `Uart::free()` via half rejoin; `Spi::free()`; `I2c::free()`.
+3. `Uart::free()` via half rejoin; `Spi::free()`; `I2c::free()`. **Uart done 2026-11-11**
+   (this PR): `Uart<U>` keeps the token in its `Line<U>` handle; `split()` ->
+   `(Line<U>, UartTx, UartRx)` and `join()` back; `free()` stops both streams, closes
+   the line and returns the token; a receive-only `UartRx::free(self, line)` returns it
+   too. The bench's `Link`/`Loop`/`HostEcho`/`Cross`/`Pair` are generic over the
+   instances; `Line::set_config`/`send_break` borrow the transmit half. Remaining:
+   `Spi`, `I2c`.
 4. DMA stream/channel handles: `free()` or stay transport-owned - decide.
 5. Migrate the six second-use bench checks back to token reuse (fresh-boot runs stay valid).
 6. Update `DEBT.md` (pointer) and driver module docs.

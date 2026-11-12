@@ -72,7 +72,10 @@ fn stop_stream(st: St) {
 
 /// One fault's worth of reading: the bytes, the overrun, noise and DMA
 /// errors, and anything else. Stops at a silent line.
-fn collect(cross: &mut Cross, cap: usize) -> (usize, [u8; 64], u32, u32, u32, Option<Error>) {
+fn collect<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+    cross: &mut Cross<'_, U, V>,
+    cap: usize,
+) -> (usize, [u8; 64], u32, u32, u32, Option<Error>) {
     let (mut len, mut overrun, mut noise, mut dma, mut other) = (0, 0, 0, 0, None);
     let mut got = [0; 64];
     let patience = cross.patience();
@@ -132,7 +135,10 @@ fn expect_tail(len: usize, got: &[u8; 64], before: Option<u8>, want: &[u8]) -> R
 }
 
 /// Overrun: two frames with the receiver's DMA request disconnected.
-fn inject_overrun(report: &mut Report, cross: &mut Cross) {
+fn inject_overrun<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+    report: &mut Report,
+    cross: &mut Cross<'_, U, V>,
+) {
     let name = cross.name;
     tests::drain(cross);
     let before = cross.to.rx().health().overrun;
@@ -199,7 +205,10 @@ fn inject_overrun(report: &mut Report, cross: &mut Cross) {
 }
 
 /// Noise: the sender 5.5 % fast, 8N2 into 8N1.
-fn inject_noise(report: &mut Report, cross: &mut Cross) {
+fn inject_noise<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+    report: &mut Report,
+    cross: &mut Cross<'_, U, V>,
+) {
     let name = cross.name;
     let set = cross
         .from
@@ -258,7 +267,10 @@ fn inject_noise(report: &mut Report, cross: &mut Cross) {
 }
 
 /// DMA transfer error: the receive stream re-pointed at unmapped memory.
-fn inject_dma_transfer(report: &mut Report, cross: &mut Cross) {
+fn inject_dma_transfer<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+    report: &mut Report,
+    cross: &mut Cross<'_, U, V>,
+) {
     let name = cross.name;
     tests::drain(cross);
     let health = cross.to.rx().health();
@@ -322,7 +334,10 @@ fn inject_dma_transfer(report: &mut Report, cross: &mut Cross) {
 }
 
 /// Timeout: the sender's DMA request disconnected before a frame is queued.
-fn inject_timeout(report: &mut Report, cross: &mut Cross) {
+fn inject_timeout<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+    report: &mut Report,
+    cross: &mut Cross<'_, U, V>,
+) {
     let name = cross.name;
     tests::drain(cross);
     let before = cross.from.tx().health().timeouts;
@@ -359,7 +374,10 @@ fn inject_timeout(report: &mut Report, cross: &mut Cross) {
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
+    use ferrohal_stm32::{
+        chip::{USART1, USART6},
+        uart::{Buffers, Config, Uart, UartInterrupts, UartIrq},
+    };
 
     use crate::{
         board,
@@ -379,8 +397,8 @@ mod app {
 
     #[local]
     struct Local {
-        usart1: Uart,
-        usart6: Uart,
+        usart1: Uart<USART1>,
+        usart6: Uart<USART6>,
         vectors1: UartInterrupts,
         vectors6: UartInterrupts,
         led: board::Led,

@@ -141,9 +141,9 @@ pub const SBUS: uart::Config = uart::Config::new(100_000)
     .with_stop_bits(StopBits::Two)
     .with_inverted_rx(true);
 pub const MSP: uart::Config = uart::Config::new(115_200);
-const _: () = assert!(Uart::check::<USART6>(&CLOCKS, &CRSF).is_ok());
-const _: () = assert!(Uart::check::<USART1>(&CLOCKS, &SBUS).is_ok());
-const _: () = assert!(Uart::check::<USART3>(&CLOCKS, &MSP).is_ok());
+const _: () = assert!(Uart::<USART6>::check(&CLOCKS, &CRSF).is_ok());
+const _: () = assert!(Uart::<USART1>::check(&CLOCKS, &SBUS).is_ok());
+const _: () = assert!(Uart::<USART3>::check(&CLOCKS, &MSP).is_ok());
 
 // Run A: the Lucid's ports, on its DMA streams. USART6 is on the Lucid's
 // pins; USART1 and USART3 are on pins the Zio headers carry.
@@ -757,7 +757,10 @@ pub fn open<U, TxP, RxP, TxD, RxD>(
     wiring: Wiring<U, TxP, RxP, TxD, RxD>,
     config: &ferrohal_stm32::uart::Config,
     buffers: DmaBuffers,
-) -> (ferrohal_stm32::uart::Uart, ferrohal_stm32::uart::UartIrq)
+) -> (
+    ferrohal_stm32::uart::Uart<U>,
+    ferrohal_stm32::uart::UartIrq,
+)
 where
     U: ferrohal_stm32::usart_v4::Instance,
     TxP: ferrohal_stm32::usart_v4::TxPin<U>,

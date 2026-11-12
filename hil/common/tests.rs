@@ -16,8 +16,8 @@ use core::sync::atomic::{AtomicU32, Ordering};
 
 use embedded_io::Write;
 use ferrohal_stm32::uart::{
-    Chunk, ChunkEnd, Config, ConfigError, Error, IrqError, Line, Parity, SendError, StopBits, Uart,
-    UartInterrupts, UartRx, UartTx,
+    Chunk, ChunkEnd, Config, ConfigError, Error, Instance, IrqError, Line, Parity, SendError,
+    StopBits, Uart, UartInterrupts, UartRx, UartTx,
 };
 
 /// Frames to wait for the next byte before calling the line silent.
@@ -152,12 +152,12 @@ pub trait Configurable: Link {
 }
 
 /// One UART, TX jumpered to its own RX.
-pub struct Loop<'a> {
+pub struct Loop<'a, U> {
     pub name: &'static str,
-    pub uart: &'a mut Uart,
+    pub uart: &'a mut Uart<U>,
 }
 
-impl Link for Loop<'_> {
+impl<U: Instance> Link for Loop<'_, U> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -172,7 +172,7 @@ impl Link for Loop<'_> {
     }
 }
 
-impl Configurable for Loop<'_> {
+impl<U: Instance> Configurable for Loop<'_, U> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.uart.set_config(config)
     }
@@ -180,12 +180,12 @@ impl Configurable for Loop<'_> {
 
 /// One UART whose bytes the host sends back, through the ST-LINK's virtual
 /// COM port (`hil/vcp_echo.py`). USB adds milliseconds each way.
-pub struct HostEcho<'a> {
+pub struct HostEcho<'a, U> {
     pub name: &'static str,
-    pub uart: &'a mut Uart,
+    pub uart: &'a mut Uart<U>,
 }
 
-impl Link for HostEcho<'_> {
+impl<U: Instance> Link for HostEcho<'_, U> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -207,20 +207,20 @@ impl Link for HostEcho<'_> {
     }
 }
 
-impl Configurable for HostEcho<'_> {
+impl<U: Instance> Configurable for HostEcho<'_, U> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.uart.set_config(config)
     }
 }
 
 /// Two UARTs: `from`'s TX wired to `to`'s RX.
-pub struct Cross<'a> {
+pub struct Cross<'a, U, V> {
     pub name: &'static str,
-    pub from: &'a mut Uart,
-    pub to: &'a mut Uart,
+    pub from: &'a mut Uart<U>,
+    pub to: &'a mut Uart<V>,
 }
 
-impl Link for Cross<'_> {
+impl<U: Instance, V: Instance> Link for Cross<'_, U, V> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -235,7 +235,7 @@ impl Link for Cross<'_> {
     }
 }
 
-impl Configurable for Cross<'_> {
+impl<U: Instance, V: Instance> Configurable for Cross<'_, U, V> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.from.set_config(config)?;
         self.to.set_config(config)
@@ -244,15 +244,15 @@ impl Configurable for Cross<'_> {
 
 /// Borrowed halves of two UARTs: `tx`'s line wired to `rx`'s. It cannot
 /// change the frame, so it streams only.
-pub struct Pair<'a> {
+pub struct Pair<'a, U> {
     pub name: &'static str,
     /// The transmitting side's line.
-    pub line: &'a mut Line,
+    pub line: &'a mut Line<U>,
     pub tx: &'a mut UartTx,
     pub rx: &'a mut UartRx,
 }
 
-impl Link for Pair<'_> {
+impl<U: Instance> Link for Pair<'_, U> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -274,7 +274,7 @@ pub trait Maskable: Link {
     fn unmask(&mut self);
 }
 
-impl Maskable for Loop<'_> {
+impl<U: Instance> Maskable for Loop<'_, U> {
     fn mask(&mut self) {
         self.uart.line().mask();
     }
@@ -283,7 +283,7 @@ impl Maskable for Loop<'_> {
     }
 }
 
-impl Maskable for HostEcho<'_> {
+impl<U: Instance> Maskable for HostEcho<'_, U> {
     fn mask(&mut self) {
         self.uart.line().mask();
     }
@@ -915,7 +915,7 @@ pub fn reconfigured(link: &mut dyn Configurable, config: &Config) -> Result<(), 
 
 /// The sender runs at half the receiver's baud rate and sends zeros: each
 /// one holds the line low past the receiver's stop bit, a framing error.
-pub fn framing_mismatch(cross: &mut Cross) -> Result<(), Fail> {
+pub fn framing_mismatch<U: Instance, V: Instance>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
     cross.from.set_config(&Config::new(57_600))?;
     cross.to.set_config(&Config::new(115_200))?;
     drain(cross);
@@ -929,7 +929,7 @@ pub fn framing_mismatch(cross: &mut Cross) -> Result<(), Fail> {
 /// Even parity into a receiver expecting odd: every byte is a parity
 /// error. The receiver is not transmitting, so ES0299 2.10.2 (PE cleared by
 /// a write to DR) cannot hide it.
-pub fn parity_mismatch(cross: &mut Cross) -> Result<(), Fail> {
+pub fn parity_mismatch<U: Instance, V: Instance>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
     let with = |parity| Config::new(115_200).with_parity(parity);
     cross.from.set_config(&with(Parity::Even))?;
     cross.to.set_config(&with(Parity::Odd))?;
@@ -942,7 +942,7 @@ pub fn parity_mismatch(cross: &mut Cross) -> Result<(), Fail> {
 }
 
 /// Both ends back to 115200 8N1, and a line through to prove it.
-fn restore(cross: &mut Cross) -> Result<(), Fail> {
+fn restore<U: Instance, V: Instance>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
     cross.set_config(&Config::new(115_200))?;
     drain(cross);
     echo(cross, b"restored")

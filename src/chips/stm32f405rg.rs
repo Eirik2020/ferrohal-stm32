@@ -720,15 +720,15 @@ mod tests {
         let one_and_half = half.with_stop_bits(StopBits::OneAndHalf);
         let two = half.with_stop_bits(StopBits::Two);
         assert_eq!(
-            Uart::check::<UART4>(&clocks, &half),
+            Uart::<UART4>::check(&clocks, &half),
             Err(ConfigError::Unsupported)
         );
         assert_eq!(
-            Uart::check::<UART5>(&clocks, &one_and_half),
+            Uart::<UART5>::check(&clocks, &one_and_half),
             Err(ConfigError::Unsupported)
         );
-        assert_eq!(Uart::check::<UART4>(&clocks, &two), Ok(()));
-        assert_eq!(Uart::check::<USART3>(&clocks, &half), Ok(()));
+        assert_eq!(Uart::<UART4>::check(&clocks, &two), Ok(()));
+        assert_eq!(Uart::<USART3>::check(&clocks, &half), Ok(()));
     }
 
     #[test]

@@ -1,7 +1,8 @@
 # `free()`: the teardown the drivers do not have (2026-11-09)
 
-There is no `Pwm::free`, `Uart::free` or `Tick` hand-back. This is the brief for adding
-them, and the reason the obvious safe signature is unsound today.
+~~There is no `Pwm::free`, `Uart::free` or `Tick` hand-back.~~ **done 2026-11-11:** `Pwm`,
+`Tick`/`Timebase` and `Uart` (plus receive-only `UartRx::free`) hand their tokens back;
+`Spi` and `I2c` remain. The redesign brief and the unsound-before shapes:
 
 Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions/2026-11-08-free-teardown-brief.md).
 
@@ -23,6 +24,11 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
   running tick through a per-run enum of benched ticks (`hil/common/timers.rs`), which
   keeps the token sealed while the vector is bound; `Link` reads the timebase through a
   `TimebaseReader`.
+- ~~`Uart`/`UartRx` store `&'static Info`, not tokens; the halves need a rejoin before
+  `Uart::free()`~~ **done (2026-11-11):** the token rides in `Line<U>`;
+  `split()`/`join()` pair; `free()` — the whole `Uart`, or `UartRx::free(self, line)` —
+  returns it. `UartTx`/`UartIrq` are instance-typed by construction only, so the
+  `dyn Link` bench harness still compiles.
 
 ## What the redesign must establish
 

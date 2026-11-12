@@ -3,7 +3,7 @@
  "counts": {
   "documents": 49,
   "agent": 33,
-  "agent_tokens": 16775
+  "agent_tokens": 16918
  },
  "documents": [
   {
@@ -11,8 +11,8 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 3684,
-   "tokens": 921
+   "bytes": 3766,
+   "tokens": 942
   },
   {
    "path": "DEBT.md",
@@ -158,9 +158,9 @@
    "path": "docs/design/free.md",
    "class": "agent",
    "title": "`free()`: the teardown the drivers do not have (2026-11-09)",
-   "purpose": "There is no Pwm::free, Uart::free or Tick han",
-   "bytes": 2513,
-   "tokens": 629
+   "purpose": "~~There is no Pwm::free, Uart::free or Tick h",
+   "bytes": 2987,
+   "tokens": 747
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -311,8 +311,8 @@
    "class": "human",
    "title": "Ownership / `free()` redesign (with W14 naming)",
    "purpose": "Next project after the sweep, its own PR. ste",
-   "bytes": 3363,
-   "tokens": 841
+   "bytes": 4045,
+   "tokens": 1012
   },
   {
    "path": "docs/plans/2026-11-10-doc-sweep.md",
@@ -335,8 +335,8 @@
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 3150,
-   "tokens": 788
+   "bytes": 3167,
+   "tokens": 792
   },
   {
    "path": "docs/policies/safety.md",
