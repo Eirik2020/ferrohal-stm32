@@ -19,9 +19,10 @@ Public repo. Bench-verified.
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
 | plan work | `docs/plans/2026-11-08-debt-sweep.md` (+`-gates`), `docs/plans/2026-11-08-free-redesign.md` |
 | naming/catalogs | `docs/decisions/README.md` (ADR-003), `docs/notes/2026-11-08-naming-audit.md` |
+| API shape/renames/reuse | `docs/notes/2026-11-11-api-review.md` (hub) |
 | unsafe/registers | `docs/policies/safety.md`, `docs/decisions/README.md`, `docs/notes/2026-11-08-rtic-and-hal-comparison.md` |
 | record/find decision | `docs/decisions/README.md` -> `docs/decisions/index/<year>.md` |
-| find a document | `docs/INDEX.md` (generated; `docs/index.json` for tools) |
+| find a document | `docs/index/README.md` -> `docs/index/<area>.md` (generated; `index.json` for tools) |
 | change design | `docs/design/<topic>.md`, decisions hub |
 | after housekeeping date | `docs/housekeeping/README.md`, `state.md`, `tools/housekeeping.py` |
 
@@ -30,7 +31,7 @@ Public repo. Bench-verified.
 ```
 checks/run.sh                    # clippy x2/chip, no-panic, safe-api, no-metapac, glue, docs, host
 python3 -I tools/check_docs.py   # budgets/tokens, decisions, housekeeping due
-python3 -I tools/docs_index.py   # regenerate docs/INDEX.md + docs/index.json
+python3 -I tools/docs_index.py   # regenerate docs/index/
 python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap
 python3 -I tools/housekeeping.py # the review report
 hil/run-f401.sh [runs]           # Nucleo-F401RE

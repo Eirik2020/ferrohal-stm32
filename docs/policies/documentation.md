@@ -48,7 +48,7 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 - Over a limit: **split into a second document**; never compress, never drop a fact.
 - Checker: `tools/check_docs.py` in `checks/run.sh`; workspace:
   `agent-memory/tools/check_agent_docs.py`.
-- Generated `docs/index.json` + `docs/INDEX.md`: `tools/docs_index.py` (`--check` fails stale).
+- Generated `docs/index/` (hub, one file per area, `index.json`): `tools/docs_index.py` (`--check` fails stale).
   Section reads: `tools/docs_read.py <path> [section]`, 400 tokens.
 
 ## Housekeeping

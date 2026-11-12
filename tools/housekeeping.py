@@ -32,7 +32,6 @@ ENTRY = {
     "README.md",
     "DEBT.md",
     "RESOLVED.md",
-    "docs/INDEX.md",
     "docs/decisions/README.md",
     "docs/housekeeping/README.md",
     "docs/housekeeping/state.md",
@@ -64,13 +63,19 @@ def age(path: Path) -> str:
 
 
 def collect() -> dict:
-    docs = check_docs.documents()
+    # The generated index is not a document, and it names every path: left in, it
+    # would count as a link to each of them and no document could be an orphan.
+    docs = [
+        path
+        for path in check_docs.documents()
+        if not check_docs.GENERATED.search(path.relative_to(ROOT).as_posix())
+    ]
     corpus = []
     for path in sorted(ROOT.rglob("*")):
         if path.suffix not in (".md", ".yaml", ".rs") or not path.is_file():
             continue
         relative = path.relative_to(ROOT).as_posix()
-        if relative.startswith(("target/", "requirements/evidence/")):
+        if relative.startswith(("target/", "requirements/evidence/", "docs/index/")):
             continue
         corpus.append((path, path.read_text(encoding="utf-8", errors="ignore")))
 

@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 49,
-  "agent": 33,
-  "agent_tokens": 16918
+  "documents": 58,
+  "agent": 42,
+  "agent_tokens": 23373
  },
  "documents": [
   {
@@ -19,8 +19,8 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 22511,
-   "tokens": 5628
+   "bytes": 22364,
+   "tokens": 5591
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 39326,
-   "tokens": 9832
+   "bytes": 40027,
+   "tokens": 10007
   },
   {
    "path": "THIRD-PARTY.md",
@@ -61,8 +61,8 @@
    "class": "agent",
    "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
    "purpose": "ADR-002 - Status: accepted",
-   "bytes": 2265,
-   "tokens": 567,
+   "bytes": 2519,
+   "tokens": 630,
    "adr": "ADR-002",
    "status": "accepted"
   },
@@ -158,9 +158,9 @@
    "path": "docs/design/free.md",
    "class": "agent",
    "title": "`free()`: the teardown the drivers do not have (2026-11-09)",
-   "purpose": "~~There is no Pwm::free, Uart::free or Tick h",
-   "bytes": 2987,
-   "tokens": 747
+   "purpose": "~~There was no token hand-back.~~ done 2026-1",
+   "bytes": 2998,
+   "tokens": 750
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -255,8 +255,8 @@
    "class": "agent",
    "title": "Housekeeping state",
    "purpose": "Cadence: monthly, or immediately when more th",
-   "bytes": 1131,
-   "tokens": 283
+   "bytes": 1720,
+   "tokens": 430
   },
   {
    "path": "docs/notes/2026-11-08-naming-audit.md",
@@ -291,6 +291,78 @@
    "tokens": 267
   },
   {
+   "path": "docs/notes/2026-11-11-api-review-bench.md",
+   "class": "agent",
+   "title": "Bench runs and baseline, B1-B3 (API review)",
+   "purpose": "Baseline 2026-11-11; run letters per bench. H",
+   "bytes": 1906,
+   "tokens": 477
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-docs.md",
+   "class": "agent",
+   "title": "Docs against code, K1-K8 (API review)",
+   "purpose": "Docs and code that disagree; ADR-003 gaps. Hu",
+   "bytes": 2805,
+   "tokens": 702
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-driver-behaviour.md",
+   "class": "agent",
+   "title": "Errors, waits and vectors, D6-D13 (API review)",
+   "purpose": "Error types, refusals, waits, vectors. Hub: 2",
+   "bytes": 2701,
+   "tokens": 676
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-driver-traits.md",
+   "class": "agent",
+   "title": "Driver traits, D1-D5 (API review)",
+   "purpose": "Instance traits, kernel clock, exposure. Hub:",
+   "bytes": 3278,
+   "tokens": 820
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-naming-drift.md",
+   "class": "agent",
+   "title": "One concept, several names, N6-N19 (API review)",
+   "purpose": "One concept, several names; small items. Hub:",
+   "bytes": 3155,
+   "tokens": 789
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-naming.md",
+   "class": "agent",
+   "title": "Naming rules, N1-N5 (API review)",
+   "purpose": "ADR-003 rule 5 against the code. Hub: 2026-11",
+   "bytes": 2923,
+   "tokens": 731
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-reuse.md",
+   "class": "agent",
+   "title": "Duplication and reuse, U1-U11 (API review)",
+   "purpose": "What repeats, with measured counts. Hub: 2026",
+   "bytes": 2709,
+   "tokens": 678
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-structure.md",
+   "class": "agent",
+   "title": "Files, modules and tests, S1-S7 (API review)",
+   "purpose": "File placement, glue sharing, tests. Hub: 202",
+   "bytes": 2608,
+   "tokens": 652
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review.md",
+   "class": "agent",
+   "title": "API review: consistency, naming, structure, reuse (hub)",
+   "purpose": "Merged 2026-11-11, every fact re-measured at ",
+   "bytes": 2866,
+   "tokens": 717
+  },
+  {
    "path": "docs/plans/2026-11-08-debt-sweep-gates.md",
    "class": "human",
    "title": "Debt sweep: detail, gates, cross-repo",
@@ -311,8 +383,8 @@
    "class": "human",
    "title": "Ownership / `free()` redesign (with W14 naming)",
    "purpose": "Next project after the sweep, its own PR. ste",
-   "bytes": 4045,
-   "tokens": 1012
+   "bytes": 6000,
+   "tokens": 1500
   },
   {
    "path": "docs/plans/2026-11-10-doc-sweep.md",
@@ -399,8 +471,8 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 11928,
-   "tokens": 2982
+   "bytes": 11978,
+   "tokens": 2995
   },
   {
    "path": "requirements/goals.md",
