@@ -24,7 +24,7 @@
 //! second's. The firmware binds each lane's stream vector, or polls, and calls
 //! [`Awg::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
 //!
-//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, AWG-012
+//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, AWG-012, API-002
 
 use super::pwm::{CompareLane, Error, Pwm};
 use super::{ChannelTimer, ConfigError, TriggeredBy};
@@ -484,6 +484,12 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             self.second_lanes.abort_all(second);
         }
         self.halt();
+        // The lanes wrote duty 0 into the preload; the stopped timers make no
+        // update to load it, so an output stopped mid-pulse would stay high.
+        self.first.latch();
+        if let Some(second) = self.second.as_ref() {
+            second.latch();
+        }
         self.state.active = 0;
         if self.state.listening {
             self.state.listening = false;

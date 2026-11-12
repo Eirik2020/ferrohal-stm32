@@ -21,7 +21,7 @@
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
 //!
-//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007
+//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, API-002
 
 use core::{
     marker::PhantomData,
@@ -180,10 +180,10 @@ impl<T: ChannelTimer> Pwm<T> {
         })
     }
 
-    /// Hands the timer token back, stopping the counter and closing every
-    /// compare request: what a `Drop` would do, made explicit so the token
-    /// can move out. A channel or lane still borrowing the handle keeps
-    /// this from compiling.
+    /// Hands the timer token back, stopping the counter, closing every
+    /// compare request and leaving every output at its inactive level: what
+    /// a `Drop` would do, made explicit so the token can move out. A channel
+    /// or lane still borrowing the handle keeps this from compiling.
     pub fn free(self) -> T {
         let Self {
             gp,
@@ -198,7 +198,23 @@ impl<T: ChannelTimer> Pwm<T> {
                 w.set_ccde(index, false);
             }
         });
+        for index in 0..4 {
+            gp.ccr(index)
+                .write_value(stm32_metapac::timer::regs::Ccr1ch(0));
+        }
+        // The duties are preloaded, and a stopped counter makes no update to
+        // load them: without one, each output would hold the level it
+        // stopped at, high mid-pulse. See `latch`.
+        latch(gp);
         _timer
+    }
+
+    /// Loads the preloaded duties now, the counter left at 0: what the next
+    /// update would do, for a stopped timer that makes none. A duty of 0 then
+    /// holds its output inactive at once. Sets no flag (URS is counter-only)
+    /// and pulses no trigger output (`lead` triggers on enable).
+    pub(crate) fn latch(&self) {
+        latch(self.gp);
     }
 
     /// Stops the timer and sets it to count at `rate`, as near as the
@@ -669,6 +685,11 @@ struct LaneInput {
     samples: &'static mut [u16],
     /// How many samples the last listen asked for.
     len: u16,
+}
+
+/// The update event alone: preloaded registers load, the counter goes to 0.
+fn latch(gp: TimGp16) {
+    gp.egr().write(|w| w.set_ug(true));
 }
 
 /// New PSC and ARR, loaded at once through an update event that sets no

@@ -382,10 +382,11 @@ pub fn awg_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u
     );
 }
 
-/// Frees a two-lane generator with a waveform playing, then reopens its timer
-/// from the token `free` handed back. Both lines must go quiet - every lane at
-/// duty 0 and the timer stopped, so nothing high reaches the sampler - and the
-/// token must open the timer again at the generator's rate, with its period.
+/// Stops a two-lane generator mid-waveform, by `abort` and then by `free`,
+/// and reopens its timer from the token `free` handed back. Each stop must
+/// leave both lines quiet at once - every lane at duty 0, latched though the
+/// timer is stopped - so nothing high reaches the sampler; and the token must
+/// open the timer again at the generator's rate, with its period.
 pub fn awg_free_check<
     T: ChannelTimer,
     U: ferrohal_stm32::timer::Instance,
@@ -403,45 +404,59 @@ pub fn awg_free_check<
     let mut awg = awg;
     let period = awg.period();
     let rate = awg.sample_rate();
-    let loaded = awg.load(0, &duties(0xffff, period)).is_ok()
-        && awg.load(1, &duties(0xffff, period)).is_ok()
-        && awg.play().is_ok();
+    let mask = (1u16 << pins.0) | (1u16 << pins.1);
+    // Every bit a 1, so each period is mostly high: a stop lands mid-pulse.
+    let start = |awg: &mut Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>| {
+        awg.load(0, &duties(0xffff, period)).is_ok()
+            && awg.load(1, &duties(0xffff, period)).is_ok()
+            && awg.play().is_ok()
+    };
+    let quiet = |sampler: &mut Sampler<U>, started: bool| -> Result<(), Fail> {
+        if !started {
+            return Err(Fail::Count {
+                expected: 2,
+                got: 0,
+            });
+        }
+        sampler.start(1000).map_err(|_| Fail::Count {
+            expected: 1000,
+            got: 0,
+        })?;
+        if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
+            sampler.stop();
+            return Err(Fail::Count {
+                expected: 1000,
+                got: 0,
+            });
+        }
+        let high = sampler.samples().iter().filter(|s| *s & mask != 0).count() as u32;
+        if high != 0 {
+            return Err(Fail::Count {
+                expected: 0,
+                got: high,
+            });
+        }
+        Ok(())
+    };
+
+    let started = start(&mut awg);
+    awg.abort();
+    report.check(
+        name,
+        "AWG: abort mid-waveform holds both lines low [AWG-007]",
+        quiet(sampler, started),
+    );
+
+    let started = start(&mut awg);
     let (token, _) = awg.free();
     report.check(
         name,
-        "AWG: free stops a playing generator, both lines held low",
-        (|| {
-            if !loaded {
-                return Err(Fail::Count {
-                    expected: 2,
-                    got: 0,
-                });
-            }
-            sampler.start(1000).map_err(|_| Fail::Count {
-                expected: 1000,
-                got: 0,
-            })?;
-            if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
-                sampler.stop();
-                return Err(Fail::Count {
-                    expected: 1000,
-                    got: 0,
-                });
-            }
-            let mask = (1u16 << pins.0) | (1u16 << pins.1);
-            let high = sampler.samples().iter().filter(|s| *s & mask != 0).count() as u32;
-            if high != 0 {
-                return Err(Fail::Count {
-                    expected: 0,
-                    got: high,
-                });
-            }
-            Ok(())
-        })(),
+        "AWG: free mid-waveform holds both lines low [API-002]",
+        quiet(sampler, started),
     );
     report.check(
         name,
-        "the freed token opens the timer again, at the generator's period",
+        "the freed token opens the timer again, at the generator's period [API-002]",
         match Pwm::new(rcc, token, rate) {
             Ok(pwm) if pwm.period() == period => {
                 let _ = pwm.free();
