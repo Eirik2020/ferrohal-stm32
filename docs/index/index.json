@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 58,
-  "agent": 42,
-  "agent_tokens": 23373
+  "documents": 60,
+  "agent": 43,
+  "agent_tokens": 23925
  },
  "documents": [
   {
@@ -11,16 +11,16 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 3766,
-   "tokens": 942
+   "bytes": 3867,
+   "tokens": 967
   },
   {
    "path": "DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 22364,
-   "tokens": 5591
+   "bytes": 22340,
+   "tokens": 5585
   },
   {
    "path": "README.md",
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 40027,
-   "tokens": 10007
+   "bytes": 40456,
+   "tokens": 10114
   },
   {
    "path": "THIRD-PARTY.md",
@@ -61,8 +61,8 @@
    "class": "agent",
    "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
    "purpose": "ADR-002 - Status: accepted",
-   "bytes": 2519,
-   "tokens": 630,
+   "bytes": 2685,
+   "tokens": 672,
    "adr": "ADR-002",
    "status": "accepted"
   },
@@ -81,8 +81,8 @@
    "class": "agent",
    "title": "Decision: naming scheme (2026-11-08)",
    "purpose": "ADR-003 - Status: accepted",
-   "bytes": 2788,
-   "tokens": 697,
+   "bytes": 2898,
+   "tokens": 725,
    "adr": "ADR-003",
    "status": "accepted"
   },
@@ -155,12 +155,20 @@
    "tokens": 521
   },
   {
+   "path": "docs/design/free-shapes.md",
+   "class": "agent",
+   "title": "`free()`: the landed shapes, driver by driver",
+   "purpose": "What blocked each driver's teardown, and the ",
+   "bytes": 2301,
+   "tokens": 576
+  },
+  {
    "path": "docs/design/free.md",
    "class": "agent",
-   "title": "`free()`: the teardown the drivers do not have (2026-11-09)",
-   "purpose": "~~There was no token hand-back.~~ done 2026-1",
-   "bytes": 2998,
-   "tokens": 750
+   "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
+   "purpose": "Every driver handle that owns a peripheral to",
+   "bytes": 2521,
+   "tokens": 631
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -381,10 +389,18 @@
   {
    "path": "docs/plans/2026-11-08-free-redesign.md",
    "class": "human",
-   "title": "Ownership / `free()` redesign (with W14 naming)",
+   "title": "Ownership / `free()` redesign",
    "purpose": "Next project after the sweep, its own PR. ste",
-   "bytes": 6000,
-   "tokens": 1500
+   "bytes": 5002,
+   "tokens": 1251
+  },
+  {
+   "path": "docs/plans/2026-11-08-w14-naming.md",
+   "class": "human",
+   "title": "W14: naming normalisation (ADR-003)",
+   "purpose": "Split out of the free redesign plan2026-11-08",
+   "bytes": 1593,
+   "tokens": 399
   },
   {
    "path": "docs/plans/2026-11-10-doc-sweep.md",

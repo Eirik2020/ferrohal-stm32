@@ -1,15 +1,15 @@
 # Document index (generated)
 
-Metadata only - read after choosing. 58 documents, ~23373 agent tokens. One file per area, in this directory; `index.json` for tools. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read after choosing. 60 documents, ~23925 agent tokens. One file per area, in this directory; `index.json` for tools. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | area | file | documents | covers |
 |---|---|---|---|
 | decisions | [decisions.md](decisions.md) | 8 | docs/decisions/ |
-| design | [design.md](design.md) | 15 | docs/design/ |
+| design | [design.md](design.md) | 16 | docs/design/ |
 | hil | [hil.md](hil.md) | 4 | hil/ |
 | housekeeping | [housekeeping.md](housekeeping.md) | 2 | docs/housekeeping/ |
 | notes | [notes.md](notes.md) | 13 | docs/notes/ |
-| plans | [plans.md](plans.md) | 4 | docs/plans/ |
+| plans | [plans.md](plans.md) | 5 | docs/plans/ |
 | policies | [policies.md](policies.md) | 3 | docs/policies/ |
 | requirements | [requirements.md](requirements.md) | 4 | requirements/ |
 | root | [root.md](root.md) | 5 | top-level files |

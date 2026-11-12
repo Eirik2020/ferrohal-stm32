@@ -4,6 +4,22 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
 
 ## Crate-wide
 
+- **`Spi`, `BlockingSpi` and `I2c` hand their tokens back** (2026-11-12). DEBT's
+  "`Spi` and `I2c` have no `free()`" closed the `free()` redesign
+  ([ADR-002](docs/decisions/2026-11-08-free-teardown-brief.md)): `Spi<U>`,
+  `BlockingSpi<U>` and `I2c<U>` carry the instance token; `free()` stops the
+  streams (SPI) or closes the unit (I2C, polled SPI) and returns it; a
+  constructor refusal hands the token back with the wiring; and `Spi::check`
+  reads the instance from the type (`Spi::<SPI1>::check`), as `Uart` already
+  did. The bench's six second-use timer checks folded back into runs H and I
+  from the freed tokens, so the fresh-boot runs U and T are gone and no token
+  is stolen anywhere.
+- **A split UART's frame can change** (2026-11-11). DEBT's "`set_config` exists only
+  on the whole `Uart`" went stale when the token moved into the line:
+  `Line::set_config` and `Line::send_break` borrow the transmit half, and
+  `Uart::set_config` is that same call on the whole UART, so the benches' frame
+  changes run it. Since 2026-11-13 the halves carry their instance, so only the
+  line's own transmit half compiles in.
 - **FerroWasp adopted FerroHAL; the prototype's open questions are closed** (2026-11-10). DEBT §6 carried the map's two: the kill condition, undecided, and how to measure reuse. The swap landed - FerroWasp's `main` pins FerroHAL `b6d8e84` with `rt`, and the Foxeer's and the Lucid's images run on it - so the kill condition is moot: FerroHAL is the hardware layer, pinned by exact revision until it is published ([ADR-005](docs/decisions/2026-10-31-ferrowasp-integration.md)). Reuse has its standing measurement: the shared UART engine runs unchanged on `usart_v2` and `usart_v4` - the per-IP `Line` is about 150 lines, the engine about 800 - measured as it shipped.
 - **`hil/run-dfu.sh` refuses an ambiguous DFU pick and checks the download** (2026-11-10). It flashed whichever DFU device first matched the flash layout - the H743VI and H753ZI both list `16*128Kg` - and ran on after `dfu-util`'s trailing `get_status` error, which also hides a failed download (inferred from the script; found in review). More than one matching device now lists them and stops, `<BOARD>_DFU_SERIAL` pins the pick, and a flash must show `File downloaded successfully`; matches count per device (`devnum`), because one device lists a line per alt setting - a first pin version counted lines and refused the one Lucid it was meant to pick. Measured: a stub listing is refused at three devices on the layout and at two devices sharing one serial, a serial matching one device's two alt settings passes the guard, and a download without the success line fails the flash; the Lucid's bench then passes 51 of 51 with `LUCID_H7_DFU_SERIAL` set. Its H7 prints its IDCODE as the DFU serial (`200364500000`) and the H753ZI's IDCODE measured the same, so the count guard, not the pin, tells that pair apart.
 - **Every boot's watchdog checks reach the exit status** (2026-11-10). Runs J and K printed boot 1's fresh-start and debug-freeze checks, but only the last boot set the run's exit status, so a failure there passed the run. `hil/common/watchdog.rs` now stakes the starving boot's failure count in a third whole doubleword of `.uninit` RAM beside its magic-tagged marker - whole doublewords, because the H7's SRAM ECC drops an incomplete one across a reset (RM0433 2.4) - and the next boot's `after_reset` reports it; run K's window marker already carried boot 2. Measured: `run-h753.sh k` passes 10 of 10 and `run-f401.sh j` 7 of 7, both with `the starvation boot passed its checks` (2026-11-10).

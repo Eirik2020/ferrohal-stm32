@@ -17,7 +17,7 @@ Public repo. Bench-verified.
 | fix limitation/close debt | `DEBT.md`, `RESOLVED.md` (indexes) -> owning file |
 | touch IP driver | `src/<ip>_vN/mod.rs` + its `requirements.yaml` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `docs/plans/2026-11-08-debt-sweep.md` (+`-gates`), `docs/plans/2026-11-08-free-redesign.md` |
+| plan work | `docs/plans/2026-11-08-w14-naming.md` (next), `docs/plans/2026-11-08-free-redesign.md`, `docs/plans/2026-11-08-debt-sweep.md` (+`-gates`) |
 | naming/catalogs | `docs/decisions/README.md` (ADR-003), `docs/notes/2026-11-08-naming-audit.md` |
 | API shape/renames/reuse | `docs/notes/2026-11-11-api-review.md` (hub) |
 | unsafe/registers | `docs/policies/safety.md`, `docs/decisions/README.md`, `docs/notes/2026-11-08-rtic-and-hal-comparison.md` |
@@ -60,11 +60,12 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - Don't touch `flash-backups/`, `requirements/evidence/`. `ferrosmith-board-schema.md` stays untracked.
 - Workspace habits: `../agent-memory/MEMORY.md`.
 
-## State 2026-11-10
+## State 2026-11-13
 
-Debt sweep W1-W12 done (#29); the architecture map dissolved into `docs/design/`
-topics, notes and ADR-005; the rig docs live in `hil/`. Next: the refusal runs, W13,
-then the `free()` redesign. Details `docs/plans/`.
+Debt sweep W1-W13 done (#29); refusal runs (#31) and fault injection (#33) landed. The
+`free()` redesign is done: every token-owning handle hands its token back
+(`docs/design/free.md`), on branch `free-redesign-close`. Next: W14 naming, its own PR.
+Details `docs/plans/`.
 
 ## Style
 
