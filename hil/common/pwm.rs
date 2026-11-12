@@ -382,6 +382,84 @@ pub fn awg_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u
     );
 }
 
+/// Frees a two-lane generator with a waveform playing, then reopens its timer
+/// from the token `free` handed back. Both lines must go quiet - every lane at
+/// duty 0 and the timer stopped, so nothing high reaches the sampler - and the
+/// token must open the timer again at the generator's rate, with its period.
+pub fn awg_free_check<
+    T: ChannelTimer,
+    U: ferrohal_stm32::timer::Instance,
+    const A: u8,
+    const B: u8,
+>(
+    report: &mut Report,
+    name: &str,
+    awg: Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>,
+    pins: (u8, u8),
+    sampler: &mut Sampler<U>,
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    cpu: Hertz,
+) {
+    let mut awg = awg;
+    let period = awg.period();
+    let rate = awg.sample_rate();
+    let loaded = awg.load(0, &duties(0xffff, period)).is_ok()
+        && awg.load(1, &duties(0xffff, period)).is_ok()
+        && awg.play().is_ok();
+    let (token, _) = awg.free();
+    report.check(
+        name,
+        "AWG: free stops a playing generator, both lines held low",
+        (|| {
+            if !loaded {
+                return Err(Fail::Count {
+                    expected: 2,
+                    got: 0,
+                });
+            }
+            sampler.start(1000).map_err(|_| Fail::Count {
+                expected: 1000,
+                got: 0,
+            })?;
+            if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
+                sampler.stop();
+                return Err(Fail::Count {
+                    expected: 1000,
+                    got: 0,
+                });
+            }
+            let mask = (1u16 << pins.0) | (1u16 << pins.1);
+            let high = sampler.samples().iter().filter(|s| *s & mask != 0).count() as u32;
+            if high != 0 {
+                return Err(Fail::Count {
+                    expected: 0,
+                    got: high,
+                });
+            }
+            Ok(())
+        })(),
+    );
+    report.check(
+        name,
+        "the freed token opens the timer again, at the generator's period",
+        match Pwm::new(rcc, token, rate) {
+            Ok(pwm) if pwm.period() == period => {
+                let _ = pwm.free();
+                Ok(())
+            }
+            Ok(pwm) => {
+                let got = pwm.period();
+                let _ = pwm.free();
+                Err(Fail::Count {
+                    expected: period,
+                    got,
+                })
+            }
+            Err(refused) => Err(Fail::Timer(refused.error())),
+        },
+    );
+}
+
 /// The waveform the loopback checks send: duties in sixteenths of full scale, with
 /// a 0 in the middle. It has to start with a pulse, since time runs from there.
 const WAVE: [u32; 8] = [8, 4, 12, 0, 14, 2, 10, 6];

@@ -492,6 +492,20 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
     }
 
+    /// Stops everything and hands the timer tokens back: [`abort`](Self::abort)'s
+    /// sequence (every lane at duty 0 with its stream stopped, the timers stopped,
+    /// their compare requests closed), then each [`Pwm::free`]. The lanes end
+    /// here, their streams released with them and their pins kept: the DMA stream
+    /// tokens stay transport-owned (`docs/design/free.md`). The second token is
+    /// `None` on a generator built with [`single`](Awg::single). A reopen runs
+    /// `Pwm::new` again, whose reset clears the second timer's slave mode.
+    pub fn free(self) -> (A, Option<B>) {
+        let mut awg = self;
+        awg.abort();
+        let Self { first, second, .. } = awg;
+        (first.free(), second.map(Pwm::free))
+    }
+
     fn halt(&mut self) {
         self.first.stop();
         self.first.close_requests();

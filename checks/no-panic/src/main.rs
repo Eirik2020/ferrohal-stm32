@@ -491,6 +491,7 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
         black_box(100),
         &mut out,
     ));
+    keep(awg.free());
 }
 
 /// A lane that reads as well, on channel 1.

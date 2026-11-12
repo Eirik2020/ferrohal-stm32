@@ -196,6 +196,15 @@ mod app {
             &mut sampler_b,
             cpu,
         );
+        pwm::awg_free_check(
+            &mut report,
+            "TIM3 CH3/CH4 PB0/PB1 (Lucid), freed",
+            awg3,
+            (0, 1),
+            &mut sampler_b,
+            &mut run.rcc,
+            cpu,
+        );
         let mut awg5 = Awg::single(tim5, (ch1, ch4_5));
         pwm::awg_check(
             &mut report,
