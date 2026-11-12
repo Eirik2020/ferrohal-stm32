@@ -1,0 +1,424 @@
+{
+  "schema_version": 5,
+  "run_id": "20261112T235300Z__timers-on-the-nucleo-f401re__nucleo-f401re-loopback__01",
+  "recorded_at_utc": "2026-11-12T23:53:00Z",
+  "board": "nucleo-f401re-loopback",
+  "revision": "3ded06039d439f891ed2591e8cbbeb105cf188ca",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "nucleo-f401re-loopback",
+    "features": [],
+    "files": {
+      "hil/nucleo-f401re-loopback/.cargo/config.toml": "2fb6c8648a6ca90449e9b35fb962adec336a248a30bd53ae7fa67fcbb13ab0fd",
+      "hil/nucleo-f401re-loopback/Cargo.toml": "9beb5ebe073794355d682733408b1bebb935dc1114ad657b3bba40b3e9618621",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/adc.rs": "956b164e3214b6faf2f84c14c72639c008631b1d5b328285c1cf46bd0cd1bab0",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/bootloader.rs": "825e93002eebd43291952f6af09532b4342806fbf0c78efae6f5c720cc2c91ed",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/i2c.rs": "de1c4c0fbdc8268cbfdb18a69e9ace819071765a00b0abc9d725c7b445686efd",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/i2c_live.rs": "7fa37ac97f709f125b4fd73baabba8ebdbd73d94d1e8ab909e7f89cd508e4476",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/pwm.rs": "c3dbb1c24e9227a404738ef6de4759f430edd354e128a7f68c5cdb1b1378e396",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/spi_exti.rs": "70a2d14fbdb74ce56b81c09e057c21ee141512d720708722e0b2ffb84a941353",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/tests.rs": "bd877ea04508d4c2008a33a93884869c28b278719dd5bd33f0c3f01ec19f41e3",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/timers.rs": "a2a1fa9a6bfdb301fbb9c2b094b242f04ccaf7ef3fc57711076f94a9184c33b5",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/watchdog.rs": "c4a0ab924fa63267f604b750f24b176269be67a91d8be61377e6dd2157ba59a8",
+      "hil/nucleo-f401re-loopback/src/bin/../board.rs": "76731ced1b4c401ed6881dacf54e8269d26da07bc1b78c07bd6a7d4d50651ce7",
+      "hil/nucleo-f401re-loopback/src/bin/run_a.rs": "e9c7f42a527291e1271c136fc0d6cb1bdbb0b40c197a438303fdc1faf84ce951",
+      "hil/nucleo-f401re-loopback/src/bin/run_b.rs": "9e201f7e48fe28f8e07be6ff6ad988e5672163fdab34955bf90e4be4edf0f657",
+      "hil/nucleo-f401re-loopback/src/bin/run_c.rs": "dcecae5ea30b91ba849cc2f5cdf32e7046568138257a78ee04910ffb41c2b06f",
+      "hil/nucleo-f401re-loopback/src/bin/run_d.rs": "5d2ab2394a1ee42c91c24be82d2b585f2f71da5f1d98d0fd81885b1aad3533b8",
+      "hil/nucleo-f401re-loopback/src/bin/run_e.rs": "8168256a12beb524a3b0e4593386439a1342e1870e2227e6f7c795c9724d8668",
+      "hil/nucleo-f401re-loopback/src/bin/run_f.rs": "69c22690b476cdf200cd96101f3329894446777c94a256b16905c23d907e0055",
+      "hil/nucleo-f401re-loopback/src/bin/run_g.rs": "15924fae8f60e580cd4ddda17e12a5c2b1e4022158d5d7dcae53821a6217ffd6",
+      "hil/nucleo-f401re-loopback/src/bin/run_h.rs": "6ade81d1ee8d8c2250a98b61a29ed88e66ad96b3d681750f385ff8aad863b9a1",
+      "hil/nucleo-f401re-loopback/src/bin/run_i.rs": "9cb73b21c3f553f5237023a6aee08dc8c0c3921a8ea55c476f1bb21e35d420c0",
+      "hil/nucleo-f401re-loopback/src/bin/run_j.rs": "304c18321578be1ef554e29917b9929a0e6fe5bb1b929936d07ade2c2720bf47",
+      "hil/nucleo-f401re-loopback/src/bin/run_k.rs": "365877de8f7041fccecbd5882e1663e3df0114e45b703fbf60374059b1139451",
+      "hil/nucleo-f401re-loopback/src/bin/run_l.rs": "351ff9712b316e2f362766efb006e548c152a7428650bd64c9ab6a51984f5643",
+      "hil/nucleo-f401re-loopback/src/bin/run_m.rs": "1845a91a3a4f11bf184fec706cbfb94f5d17a31c123c1a8d291e1e736d012101",
+      "hil/nucleo-f401re-loopback/src/bin/run_n.rs": "6da3341fbc0edc7cbce062e52f997ed57f3c0def5cda39272f44c9b94b702af9",
+      "hil/nucleo-f401re-loopback/src/bin/run_o.rs": "040289503ede6d99c3e7633545655f0baadeb2d5a51ad8e665f947e200bd60ff",
+      "hil/nucleo-f401re-loopback/src/bin/run_p.rs": "2a5e8cf2b0ec259761aba8f614e2e9fabcb756c14ceb03a164786892f98e75eb",
+      "hil/nucleo-f401re-loopback/src/bin/run_q.rs": "e4c35196e2e65028952faa428503444eee6ae28dff15dfe947388e49902130f7",
+      "hil/nucleo-f401re-loopback/src/bin/run_r.rs": "4973e3a959c40dbdba37030c150c0023a6f77020282074565c8b6f558515862a",
+      "hil/nucleo-f401re-loopback/src/bin/run_s.rs": "c69954c457152f7615e90c691133e36c1ee613cd186e9436e5c2a97ebce53168",
+      "hil/nucleo-f401re-loopback/src/bin/run_t.rs": "7a377f3866984c4cac52009304d9c8a1cae3f24bfa372fec3d3d27b702a87e21",
+      "hil/nucleo-f401re-loopback/src/bin/run_v.rs": "4a50c7360da35cc92d8f17746636937973760dbec6e522edc11ab6d50ab1f50c",
+      "hil/nucleo-f401re-loopback/src/bin/run_w.rs": "2340e83cb42435fc23a4c2d488a441d0cd85004d77920c0e8be203dc4ea92496",
+      "src/adc/mod.rs": "744e0e7d354811d86ce8081892f9c921cf48ea7d9285ba1a5df7c92b365874e9",
+      "src/adc_v2/mod.rs": "63d8da380a40883c1fa08ace773570005dd5a66332ff39a15534a6cfa0c5bf06",
+      "src/chips/shared/macros.rs": "f5efa9a3af3f408bbd6392ba4cc8b0d0de13e99b4df9f2d9c26e8606ad533e45",
+      "src/chips/stm32f401re.rs": "00d3117c73bc7dae30145bba1aff43de8ac8f3776a297ca255bbae1f59dcb099",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma_stream.rs": "b00885beb50627b0ecca5c3947666b3dafdc69fa4ef0cf8524be1e53834c06d0",
+      "src/exti.rs": "149cced8cf0459865a3dc39ac43eb60d1d8dd795d218c833818b69c54970c5cd",
+      "src/gpio_v2/mod.rs": "52fe7e4799fdab2bf7bb35bb50e94f01f7d49d2069fabdd7daa3c6eb5df6753f",
+      "src/i2c/mod.rs": "a7e0442c0323efadacf3661c9abb1970edaa71e7d8c396b4720189877310cac6",
+      "src/i2c_v1/mod.rs": "747c3734d7308b90d0962928f28e3e7990a8f0e2930a92d868598c4cb06df8fc",
+      "src/iwdg.rs": "912cb70a7931f0ae9b048e2ad284296b05be47d38e95813e12daa3e34fa388b2",
+      "src/lib.rs": "51e89f682fe69b4322d263c35421bc716bb7a57a204cd06f85412293d783bc49",
+      "src/rcc_f4/mod.rs": "31603ad0bb3706192a47f3b66d633aacf5dcc897d58b84ed52aa7339d47e2943",
+      "src/reset.rs": "620f0afa3cb661bc0f609a921a68d8f9f0ede80a0fd10d1a7141474734f73a3f",
+      "src/resource.rs": "f7b5a325a2e4c025da1418063138e3865fe3f9b9cd53d54a387ac66d5611fbc6",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/mod.rs": "35ffe5eb2e37b058b3dce5b13c184e4d1485653209ae0fcf21349819ec25dc47",
+      "src/spi/polled.rs": "760d83e99ecb82e8b58b539b3489886cd3512fa70613441da63cf1c7cce574a5",
+      "src/spi/stream_dma.rs": "3e5b8a39bab77c99ddf71f9cb5abd3b1b443cf3ea5ab88924204aeb386a31440",
+      "src/spi_v2/mod.rs": "e3f6a46ca70302fac256c843aa3aa94c18c38a590b3f112f99e8bf9c6b6d966f",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer.rs": "94fec1bc3be18c3fe06dad5bffe6802ca75909ce40400cebc21559bfe00438b5",
+      "src/timer_awg.rs": "f86e34c81e5a7aa2802072e595542fdac1b7ad238ebc1739f0f65f651a088243",
+      "src/timer_pwm.rs": "2525612b6ac11cfe1cc1de99a51c3dbd73a78fb5194c68b72f2681713244a8a5",
+      "src/uart/mod.rs": "5d0b11e5c3dd5f1d6c386a2094c72f583adf6d110fd11d0110f137b5b8841c6f",
+      "src/uart/ring.rs": "6e93c664a105cc570e3893309c131294e5975244b044401f1cc85402433328bc",
+      "src/uart/stream_dma.rs": "ee2f6cf380d687dc64f27ab085681e25ffdece8c74a1b9edb79b1cb449802704",
+      "src/uart/tx_ring.rs": "8e75e58d60f7da72902bebca74f88ee9b974ea0acfe22e825f97c56308ae8b05",
+      "src/usart_v2/mod.rs": "6708e046c3a8666fde76853e10086e3737649255ff330c10e5aeb3366dce0f91",
+      "src/usb.rs": "4639d398be8390652fd0a9ea21dc04f0558309ebe230389ad446a72db75a4c21",
+      "src/wait.rs": "9f62d55f6c02ccb3e72ad35b181e8f5add4efb3bbf2a56d1c80cb0959e07a76b"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "bitflags": "1.3.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "cortex-m-semihosting": "0.5.0",
+      "critical-section": "1.2.0",
+      "defmt": "0.3.101, 1.2.0",
+      "defmt-macros": "1.2.0",
+      "defmt-parser": "1.1.0",
+      "defmt-rtt": "1.3.1",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "panic-probe": "1.0.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.9",
+      "synopsys-usb-otg": "0.4.0",
+      "thiserror": "2.0.21",
+      "thiserror-impl": "2.0.21",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "DEFMT_LOG": "info"
+    }
+  },
+  "results": [
+    {
+      "requirement": "API-002",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "43037c8276e3a2cece7a34aa70b23048fa30b8206423f4b163e69d940892402c",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-001",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "84399315e2fa2967878ee31e682e2b164b8507d7976596475db74b4cd4cf65e0",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-002",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "7596cba146ee04a3aaf9ac8c7ff6933f8693c74649f382ef284783f3ec0915be",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-003",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "c019276c6d4f8d701057b3d0b525782430c6bf10c77310ffc985a3ce9e1a1ed6",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-004",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "b02d3b528b9959cae54c28b3ce49ff73424d048d5d75c42a3e6aca57065ab86d",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-007",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "4da34fecf814a8ece437c79bc8d38e64081209584fc0fdf27ed82ce98608d920",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-008",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "bd01477ed350524f0cf8ffd08aef20a9818a63220e010fec311413e5ac09f904",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-009",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "dd4b5f3deac9cf965fa0a36670644fe3870275fbb8ce7bafabbaeb384c54ae3d",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-011",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "61ef05f09cb77036349c71cb0a89500a9b99b2bde26ce9f2a02fb096f30fb157",
+      "result": "pass"
+    },
+    {
+      "requirement": "PWM-001",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "ec40269659d4299bacb684f163ea708de1c149d536c13cfa9c371a293bc89284",
+      "result": "pass"
+    },
+    {
+      "requirement": "PWM-002",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "01c1584345391209d51f7e3e3b3a069535f295652fccb796756810e36391fad6",
+      "result": "pass"
+    },
+    {
+      "requirement": "PWM-003",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "614be109feca0f908d66c94a979dccd1fa76dcfb08e74ba7ada9f770a732c054",
+      "result": "pass"
+    },
+    {
+      "requirement": "PWM-004",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "a2453c907dd54e75d09b02dea0067db325e20ba393a882f9376bcfa85a899d37",
+      "result": "pass"
+    },
+    {
+      "requirement": "PWM-005",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "ee61fc5fca4fc7a2161b7c0dfc998b47b86d1e4ee8171ecdbc3559a4548548a4",
+      "result": "pass"
+    },
+    {
+      "requirement": "RCC-002",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "86da2adc385afeb8ac274856cfaebbf123853887a41f9a61e9229d0851adf4b7",
+      "result": "pass"
+    },
+    {
+      "requirement": "RCC-003",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "9b99b512e011dc7f590ddc27de8423afa1f03e9a22d9270ef51cffaf4860a657",
+      "result": "pass"
+    },
+    {
+      "requirement": "TIMER-001",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "d6c1f3a5c486f5e36cc50acbafd0509f6d4e87e080da1980309188b02450f8ed",
+      "result": "pass"
+    },
+    {
+      "requirement": "TIMER-002",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "277b3c3cbfd37d725c3fe5b3f1d53519b57857415b1228649b8582b566c14344",
+      "result": "pass"
+    },
+    {
+      "requirement": "TIMER-003",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "ba23a56fa393158151780f126cd7804b6910eb1b704c9b1a2c62397d709f6a20",
+      "result": "pass"
+    },
+    {
+      "requirement": "TIMER-005",
+      "method": {
+        "procedure": "requirements/benches.md#Timers on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "ac7d3e0b0e6f6028a27dcacc718f86eb36fe2314c12bb092c7116712f52a7287",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "8496c0d2a4f061b78abcd196e8825afeaead4318a718c8d9178f558554a19b5c",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-f401.sh h i n o p r",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "nucleo-f401re-loopback-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/free-redesign-20261113-timers/nucleo-f401re-loopback-images.sha256",
+        "bytes": 1512,
+        "sha256": "8496c0d2a4f061b78abcd196e8825afeaead4318a718c8d9178f558554a19b5c"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-h",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-timers/nucleo-f401re-loopback-run-h.log",
+        "bytes": 4305,
+        "sha256": "cc25c733b4478e03ca478a02a7f2d6ad388ca0dc7c5511f4296fd209fb605171"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-i",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-timers/nucleo-f401re-loopback-run-i.log",
+        "bytes": 3260,
+        "sha256": "31d6f6c446858730f8aed28efbca56e4f62d5793c989a3a56c017dfb3b1c0e49"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-n",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-timers/nucleo-f401re-loopback-run-n.log",
+        "bytes": 945,
+        "sha256": "cdbc855c19a5791f201cbad39fb63df4430aa13774bbc5763308d8576ba8b07b"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-o",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-timers/nucleo-f401re-loopback-run-o.log",
+        "bytes": 789,
+        "sha256": "4f0dd9cba7e7e901239ed75d47245624d0abd9364742a5bc3cb7e98e1ca62933"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-p",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-timers/nucleo-f401re-loopback-run-p.log",
+        "bytes": 814,
+        "sha256": "0f378570418b21045f74a22ae1ddb05590c69ef9777ed9faec040db9e3dfffd3"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-r",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-timers/nucleo-f401re-loopback-run-r.log",
+        "bytes": 3718,
+        "sha256": "de467a835350b96b478dcdcdf6e6d2616fe50e7a53e3df28e8e27a610bff5dc8"
+      }
+    ],
+    "observations": [
+      "Every check in every run of the subset passed (PASS lines in the logs; no FAIL). The runs were part of one full default-suite pass of the board."
+    ]
+  }
+}
