@@ -70,7 +70,7 @@ mod app {
         let Some(mut run) = cx.local.run.take() else {
             defmt::unreachable!()
         };
-        let Ok(mut pwm) = Pwm::new(&mut run.rcc, run.tim4, Hertz::khz(150)) else {
+        let Ok(pwm) = Pwm::new(&mut run.rcc, run.tim4, Hertz::khz(150)) else {
             defmt::panic!("TIM4 PWM")
         };
         let lane = pwm
@@ -87,7 +87,14 @@ mod app {
             defmt::panic!("the TIM4 lane or the TIM1 sampler")
         };
         let mut awg = Awg::single(pwm, (lane,));
-        pwm::awg_wire_out_check(&mut report, "TIM4 CH1 PB6 -> J3 -> PC7", &mut awg, &mut sampler, 7, cpu);
+        pwm::awg_wire_out_check(
+            &mut report,
+            "TIM4 CH1 PB6 -> J3 -> PC7",
+            &mut awg,
+            &mut sampler,
+            7,
+            cpu,
+        );
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

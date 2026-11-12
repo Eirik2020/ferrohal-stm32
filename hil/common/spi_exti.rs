@@ -30,8 +30,8 @@ use crate::tests::{Fail, Report};
 const PASS_FLOOR: u32 = 112;
 
 /// What the handlers share with the checks task.
-pub struct Bus {
-    pub spi: Option<Spi>,
+pub struct Bus<U> {
+    pub spi: Option<Spi<U>>,
     /// The last transfer the receive stream's handler ended.
     pub done: Option<Result<usize, Error>>,
     /// The line whose edges the EXTI handler counts.
@@ -39,7 +39,7 @@ pub struct Bus {
     pub edges: u32,
 }
 
-impl Bus {
+impl<U: spi::Instance> Bus<U> {
     pub const fn new() -> Self {
         Self {
             spi: None,
@@ -102,7 +102,10 @@ fn spin(cycles: u32) {
 /// Waits for the receive stream's handler to end the transfer: at most
 /// `cycles` of the DWT counter. A transfer still running then is aborted,
 /// so one failed check leaves the bus ready for the next.
-fn wait_done<B: Mutex<T = Bus>>(bus: &mut B, cycles: u32) -> Result<usize, Fail> {
+fn wait_done<U: spi::Instance, B: Mutex<T = Bus<U>>>(
+    bus: &mut B,
+    cycles: u32,
+) -> Result<usize, Fail> {
     let start = DWT::cycle_count();
     loop {
         if let Some(result) = bus.lock(|b| b.done.take()) {
@@ -116,13 +119,17 @@ fn wait_done<B: Mutex<T = Bus>>(bus: &mut B, cycles: u32) -> Result<usize, Fail>
 }
 
 /// CPU cycles `len` bytes take on the wire at the bus's SCK.
-fn wire_cycles<B: Mutex<T = Bus>>(bus: &mut B, cpu: Hertz, len: usize) -> u32 {
+fn wire_cycles<U: spi::Instance, B: Mutex<T = Bus<U>>>(bus: &mut B, cpu: Hertz, len: usize) -> u32 {
     let sck = bus.lock(|b| b.spi.as_ref().map_or(1, |s| s.frequency().0.max(1)));
     (u64::from(cpu.0) * 8 * len as u64 / u64::from(sck)) as u32
 }
 
 /// One transfer by interrupt: start, wait for the handler, compare.
-fn by_interrupt<B: Mutex<T = Bus>>(bus: &mut B, cpu: Hertz, sent: &[u8]) -> Result<(), Fail> {
+fn by_interrupt<U: spi::Instance, B: Mutex<T = Bus<U>>>(
+    bus: &mut B,
+    cpu: Hertz,
+    sent: &[u8],
+) -> Result<(), Fail> {
     bus.lock(|b| {
         b.done = None;
         b.spi.as_mut().map_or(Ok(()), |s| s.start(sent))
@@ -141,14 +148,17 @@ fn by_interrupt<B: Mutex<T = Bus>>(bus: &mut B, cpu: Hertz, sent: &[u8]) -> Resu
     bus.lock(|b| compare(sent, b.spi.as_ref().map_or(&[][..], |s| s.received())))
 }
 
-fn set_config<B: Mutex<T = Bus>>(bus: &mut B, config: &spi::Config) -> Result<Hertz, Fail> {
+fn set_config<U: spi::Instance, B: Mutex<T = Bus<U>>>(
+    bus: &mut B,
+    config: &spi::Config,
+) -> Result<Hertz, Fail> {
     bus.lock(|b| b.spi.as_mut().map(|s| s.set_config(config)))
         .unwrap_or(Err(spi::ConfigError::Busy))
         .map_err(Fail::SpiConfig)
 }
 
 /// The slowest SCK this SPI offers: the kernel clock over 256.
-fn slowest<B: Mutex<T = Bus>>(bus: &mut B) -> Result<spi::Config, Fail> {
+fn slowest<U: spi::Instance, B: Mutex<T = Bus<U>>>(bus: &mut B) -> Result<spi::Config, Fail> {
     let fastest = set_config(bus, &spi::Config::new(Hertz::mhz(1_000)))?;
     Ok(spi::Config::new(Hertz(fastest.0 / 128)))
 }
@@ -158,7 +168,7 @@ fn slowest<B: Mutex<T = Bus>>(bus: &mut B) -> Result<spi::Config, Fail> {
 /// while its edges are counted: lines 5 to 15 share vectors, and a line left
 /// unmasked with nothing clearing it would fire for ever.
 #[allow(clippy::too_many_arguments)]
-pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
+pub fn spi_suite<U: spi::Instance, B: Mutex<T = Bus<U>>, const P: char, const N: u8>(
     report: &mut Report,
     name: &str,
     bus: &mut B,
@@ -459,7 +469,14 @@ pub fn spi_suite<B: Mutex<T = Bus>, const P: char, const N: u8>(
 }
 
 /// The EXTI checks on a GPIO output wired to a line's pin.
-pub fn exti_suite<B: Mutex<T = Bus>, const OP: char, const ON: u8, const P: char, const N: u8>(
+pub fn exti_suite<
+    U,
+    B: Mutex<T = Bus<U>>,
+    const OP: char,
+    const ON: u8,
+    const P: char,
+    const N: u8,
+>(
     report: &mut Report,
     name: &str,
     bus: &mut B,
@@ -594,10 +611,10 @@ pub fn exti_suite<B: Mutex<T = Bus>, const OP: char, const ON: u8, const P: char
 
 /// The polled SPI's checks on one MOSI-to-MISO link: no DMA, no
 /// interrupts. `sck` is the SCK pin's EXTI line, only read for its level.
-pub fn blocking_suite<const P: char, const N: u8>(
+pub fn blocking_suite<U: ferrohal_stm32::spi::Instance, const P: char, const N: u8>(
     report: &mut Report,
     name: &str,
-    spi: &mut ferrohal_stm32::spi::BlockingSpi,
+    spi: &mut ferrohal_stm32::spi::BlockingSpi<U>,
     config: &spi::Config,
     cpu: Hertz,
     sck: &mut Exti<P, N>,

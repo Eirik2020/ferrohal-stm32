@@ -22,7 +22,7 @@
 use cortex_m::peripheral::DWT;
 use embedded_hal::i2c::I2c as HalI2c;
 use ferrohal_stm32::{
-    i2c::{Error, I2c},
+    i2c::{Error, I2c, Instance},
     time::Hertz,
 };
 
@@ -81,8 +81,8 @@ fn spin(cpu: Hertz, ms: u32) {
 /// One live bus against the simulator. Every transfer the checks make
 /// goes through here, so the transactions the master started can be
 /// compared with the ones the simulator says it saw.
-struct Live<'a> {
-    bus: &'a mut I2c,
+struct Live<'a, U> {
+    bus: &'a mut I2c<U>,
     /// Transactions that reached the wire: what the simulator must
     /// count. A transfer refused before the wire moved (a Busy) never
     /// got there, so it is not counted; a refused data byte got as far
@@ -92,7 +92,7 @@ struct Live<'a> {
     done: u32,
 }
 
-impl Live<'_> {
+impl<U: Instance> Live<'_, U> {
     /// One write transaction: the register, then its payload.
     fn write(&mut self, reg: u8, payload: &[u8]) -> Result<(), Fail> {
         let mut frame = [reg; 33];
@@ -147,7 +147,14 @@ impl Live<'_> {
 /// `recover_cycles` allowance is what the driver's bounded recovery can
 /// add past its deadline while the simulator still holds the line: the
 /// F401's v1 spins on BUSY, the H7's v2 clears and returns.
-pub fn suite(report: &mut Report, link: &str, bus: &mut I2c, cpu: Hertz, tag: u8, recover_cycles: u32) {
+pub fn suite<U: Instance>(
+    report: &mut Report,
+    link: &str,
+    bus: &mut I2c<U>,
+    cpu: Hertz,
+    tag: u8,
+    recover_cycles: u32,
+) {
     let speed = bus.frequency();
     let baseline = bus.health();
     let mut live = Live {
@@ -486,7 +493,10 @@ pub fn suite(report: &mut Report, link: &str, bus: &mut I2c, cpu: Hertz, tag: u8
             live.read(REG_TRANS, &mut trans)?;
             let got = u32::from_le_bytes(trans);
             if got != live.trans {
-                Err(Fail::Count { expected: live.trans, got })
+                Err(Fail::Count {
+                    expected: live.trans,
+                    got,
+                })
             } else {
                 Ok(())
             }
@@ -533,9 +543,7 @@ pub fn suite(report: &mut Report, link: &str, bus: &mut I2c, cpu: Hertz, tag: u8
             {
                 Err(Fail::I2cHealth {
                     field: "bus errors, arbitrations or overruns",
-                    expected: baseline.bus_errors
-                        + baseline.arbitration_lost
-                        + baseline.overruns,
+                    expected: baseline.bus_errors + baseline.arbitration_lost + baseline.overruns,
                     got: health.bus_errors + health.arbitration_lost + health.overruns,
                 })
             } else {
@@ -574,4 +582,3 @@ pub fn suite(report: &mut Report, link: &str, bus: &mut I2c, cpu: Hertz, tag: u8
         })(),
     );
 }
-

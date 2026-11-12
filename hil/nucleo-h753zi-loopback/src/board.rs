@@ -56,9 +56,9 @@ use core::{
 
 use ferrohal_stm32::{
     chip::{
-        I2C3, I2C4, Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5,
-        TIM6, TIM7, TIM8, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1,
-        USART2, USART3, USART6,
+        I2C3, I2C4, Peripherals, SPI1, SPI2, SPI3, SPI4, SPI5, TIM1, TIM2, TIM3, TIM4, TIM5, TIM6,
+        TIM7, TIM8, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, UART4, UART5, UART7, USART1, USART2,
+        USART3, USART6,
     },
     dma::Stream,
     exti,
@@ -199,7 +199,10 @@ pub struct RunE {
 }
 
 pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
@@ -236,11 +239,11 @@ pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
 /// (SPI1 to SPI3 from PLL1Q at 100 MHz, SPI4 and SPI5 from PCLK2, / 16).
 pub const SPI: spi::Config = spi::Config::new(Hertz::mhz(10));
 const _: () = assert!(matches!(
-    Spi::check::<SPI1>(&CLOCKS, &SPI),
+    Spi::<SPI1>::check(&CLOCKS, &SPI),
     Ok(Hertz(6_250_000))
 ));
 const _: () = assert!(matches!(
-    Spi::check::<SPI4>(&CLOCKS, &SPI),
+    Spi::<SPI4>::check(&CLOCKS, &SPI),
     Ok(Hertz(6_250_000))
 ));
 
@@ -302,7 +305,10 @@ pub struct RunH {
 }
 
 pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
@@ -358,7 +364,10 @@ pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
 }
 
 pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
@@ -388,7 +397,10 @@ pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
 }
 
 pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
@@ -448,7 +460,10 @@ pub struct RunI {
 }
 
 pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunI {
@@ -498,7 +513,10 @@ pub struct RunJ {
 }
 
 pub fn run_j(p: Peripherals) -> Result<RunJ, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
@@ -538,7 +556,10 @@ pub struct RunQ {
 }
 
 pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut c = p.GPIOC.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
     let mut pc6: Pin<'C', 6, Alternate<2>> = sck(c.p6, &mut c.ctrl);
@@ -569,7 +590,10 @@ pub struct RunR {
 }
 
 pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
@@ -599,7 +623,10 @@ pub struct RunK {
 }
 
 pub fn run_k(p: Peripherals) -> Result<RunK, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunK {
@@ -620,7 +647,10 @@ pub struct RunL {
 }
 
 pub fn run_l(p: Peripherals) -> Result<RunL, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
@@ -664,7 +694,10 @@ pub struct RunO {
 }
 
 pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
@@ -702,7 +735,10 @@ pub struct RunM {
 }
 
 pub fn run_m(p: Peripherals) -> Result<RunM, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
@@ -757,10 +793,7 @@ pub fn open<U, TxP, RxP, TxD, RxD>(
     wiring: Wiring<U, TxP, RxP, TxD, RxD>,
     config: &ferrohal_stm32::uart::Config,
     buffers: DmaBuffers,
-) -> (
-    ferrohal_stm32::uart::Uart<U>,
-    ferrohal_stm32::uart::UartIrq,
-)
+) -> (ferrohal_stm32::uart::Uart<U>, ferrohal_stm32::uart::UartIrq)
 where
     U: ferrohal_stm32::usart_v4::Instance,
     TxP: ferrohal_stm32::usart_v4::TxPin<U>,
@@ -805,7 +838,10 @@ pub struct RunW {
 }
 
 pub fn run_w(p: Peripherals) -> Result<RunW, ClockError> {
-    let mut rcc = p.RCC.freeze(&HSE_CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&HSE_CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
@@ -877,7 +913,10 @@ where
 }
 
 pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
-    let mut rcc = p.RCC.freeze(&HSE_CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&HSE_CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
@@ -923,7 +962,10 @@ pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
 }
 
 pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
@@ -971,7 +1013,10 @@ pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
 }
 
 pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut b = p.GPIOB.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
@@ -1001,7 +1046,10 @@ pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
 }
 
 pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
@@ -1129,7 +1177,10 @@ pub struct RunS {
 }
 
 pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
-    let mut rcc = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())?;
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut d = p.GPIOD.split(&mut rcc);
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
@@ -1177,11 +1228,9 @@ const _: () = assert!(matches!(
 /// USART6 over Z2, DMA1 stream 6 transmitting, stream 1 receiving (stream 0
 /// is the TIM8 port-B sampler this run also needs; through DMAMUX any
 /// stream serves any UART).
-pub type Usart6Z2S1 =
-    Wiring<USART6, Af<'C', 6, 7>, Af<'C', 7, 7>, Stream<1, 6>, Stream<1, 1>>;
+pub type Usart6Z2S1 = Wiring<USART6, Af<'C', 6, 7>, Af<'C', 7, 7>, Stream<1, 6>, Stream<1, 1>>;
 /// SPI2 polled over S3, run L's wiring.
-pub type Spi2PolledS3 =
-    spi::BlockingWiring<SPI2, Af5<'B', 10>, Af5<'C', 2>, Af5<'C', 3>>;
+pub type Spi2PolledS3 = spi::BlockingWiring<SPI2, Af5<'B', 10>, Af5<'C', 2>, Af5<'C', 3>>;
 
 pub struct RunU {
     pub rcc: Rcc,
@@ -1239,48 +1288,50 @@ pub fn run_u(p: Peripherals) -> Result<(RunU, ClockError), ClockError> {
     scl.set_pull(&mut a.ctrl, Pull::Up);
     let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
     sda.set_pull(&mut c.ctrl, Pull::Up);
-    Ok((RunU {
-        rcc,
-        usart6: Wiring {
-            uart: p.USART6,
-            tx: tx6,
-            rx: rx6,
-            tx_dma: dma1.s6,
-            rx_dma: dma1.s1,
+    Ok((
+        RunU {
+            rcc,
+            usart6: Wiring {
+                uart: p.USART6,
+                tx: tx6,
+                rx: rx6,
+                tx_dma: dma1.s6,
+                rx_dma: dma1.s1,
+            },
+            spi1: spi::Wiring {
+                spi: p.SPI1,
+                sck: sck(a.p5, &mut a.ctrl),
+                miso: miso(a.p6, &mut a.ctrl),
+                mosi: sck(d.p7, &mut d.ctrl),
+                tx_dma: dma1.s5,
+                rx_dma: dma1.s4,
+            },
+            spi2_polled: spi::BlockingWiring {
+                spi: p.SPI2,
+                sck: sck(b.p10, &mut b.ctrl),
+                miso: miso(c.p2, &mut c.ctrl),
+                mosi: sck(c.p3, &mut c.ctrl),
+            },
+            i2c3: i2c::Wiring {
+                i2c: p.I2C3,
+                scl,
+                sda,
+            },
+            adc1: p.ADC1,
+            analog1,
+            scan_stream: dma1.s7,
+            tim3: p.TIM3,
+            pb0: sck(b.p0, &mut b.ctrl),
+            lane3_stream: dma2.s0,
+            tim5: p.TIM5,
+            pa0: sck(a.p0, &mut a.ctrl),
+            lane5_stream: dma2.s2,
+            tim8: p.TIM8,
+            sampler_stream: dma1.s0,
+            tim15: p.TIM15,
+            tim2: p.TIM2,
+            iwdg: p.IWDG1,
         },
-        spi1: spi::Wiring {
-            spi: p.SPI1,
-            sck: sck(a.p5, &mut a.ctrl),
-            miso: miso(a.p6, &mut a.ctrl),
-            mosi: sck(d.p7, &mut d.ctrl),
-            tx_dma: dma1.s5,
-            rx_dma: dma1.s4,
-        },
-        spi2_polled: spi::BlockingWiring {
-            spi: p.SPI2,
-            sck: sck(b.p10, &mut b.ctrl),
-            miso: miso(c.p2, &mut c.ctrl),
-            mosi: sck(c.p3, &mut c.ctrl),
-        },
-        i2c3: i2c::Wiring {
-            i2c: p.I2C3,
-            scl,
-            sda,
-        },
-        adc1: p.ADC1,
-        analog1,
-        scan_stream: dma1.s7,
-        tim3: p.TIM3,
-        pb0: sck(b.p0, &mut b.ctrl),
-        lane3_stream: dma2.s0,
-        tim5: p.TIM5,
-        pa0: sck(a.p0, &mut a.ctrl),
-        lane5_stream: dma2.s2,
-        tim8: p.TIM8,
-        sampler_stream: dma1.s0,
-        tim15: p.TIM15,
-        tim2: p.TIM2,
-        iwdg: p.IWDG1,
-    }, refusal))
+        refusal,
+    ))
 }
-

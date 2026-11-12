@@ -164,6 +164,14 @@ impl Unit {
         regs.trise().write(|w| w.set_trise(timing.trise));
     }
 
+    /// Closes the I2C: PE off. Only a teardown (`I2c::free`) calls this —
+    /// the driver keeps PE on for its life. A reopen runs `new` again,
+    /// whose `apply` writes with PE clear first, as RM0368 §27.6.13
+    /// requires.
+    pub(crate) fn disable(self) {
+        self.0.cr1().modify(|w| w.set_pe(false));
+    }
+
     /// SR2's BUSY, which clears once the stop has been out (RM0368
     /// §27.6.8).
     pub(crate) fn busy(self) -> bool {

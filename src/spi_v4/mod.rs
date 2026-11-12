@@ -136,6 +136,16 @@ impl Unit {
         self.end();
     }
 
+    /// Closes the SPI: SPE off. Only a teardown (`Spi::free`) calls this —
+    /// between transfers the driver keeps SPE on (see the v2 module
+    /// header's note, which applies here too), so a disable here may land
+    /// mid-frame if a transfer was running. A reopen starts from
+    /// `configure`, which writes CFG1/CFG2 with SPE clear first, as
+    /// RM0433 requires.
+    pub(crate) fn disable(self) {
+        self.0.cr1().modify(|w| w.set_spe(false));
+    }
+
     /// Overrun and mode fault; `end` clears them.
     pub(crate) fn take_errors(self) -> (bool, bool) {
         let sr = self.0.sr().read();

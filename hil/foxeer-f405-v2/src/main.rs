@@ -19,9 +19,9 @@
 #[macro_use]
 #[path = "../../common/usb_bench.rs"]
 mod usb_bench;
-mod clocks;
 #[path = "../../common/board_adc.rs"]
 mod board_adc;
+mod clocks;
 #[path = "../../common/imu.rs"]
 mod imu;
 #[path = "../../common/motor_lanes.rs"]
@@ -47,7 +47,7 @@ use ferrohal_stm32::{
     usb::UsbFs,
 };
 
-use clocks::{CLOCKS, CLOCK_CONFIG, REFUSAL_CONFIG};
+use clocks::{CLOCK_CONFIG, CLOCKS, REFUSAL_CONFIG};
 use imu::Imu;
 use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
 
@@ -63,15 +63,15 @@ const NOR_BUS: spi::Config = spi::Config::new(Hertz::mhz(11));
 /// A config no clock can make: 0 Hz, for the constructor refusals.
 const SPI_ZERO: spi::Config = spi::Config::new(Hertz(0));
 const _: () = assert!(matches!(
-    Spi::check::<SPI1>(&CLOCKS, &IMU_SLOW),
+    Spi::<SPI1>::check(&CLOCKS, &IMU_SLOW),
     Ok(Hertz(656_250))
 ));
 const _: () = assert!(matches!(
-    Spi::check::<SPI1>(&CLOCKS, &IMU_FAST),
+    Spi::<SPI1>::check(&CLOCKS, &IMU_FAST),
     Ok(Hertz(10_500_000))
 ));
 const _: () = assert!(matches!(
-    Spi::check::<SPI2>(&CLOCKS, &NOR_BUS),
+    Spi::<SPI2>::check(&CLOCKS, &NOR_BUS),
     Ok(Hertz(10_500_000))
 ));
 
@@ -142,12 +142,27 @@ where
 /// have left it; without that, the readback couldn't show `freeze` wrote it.
 fn rcc_suite(report: &mut Report, link: &mut Link) {
     // SAFETY: reads of RCC's status registers.
-    let (cr, pllcfgr, cfgr) =
-        unsafe { (read_volatile(RCC_CR), read_volatile(RCC_PLLCFGR), read_volatile(RCC_CFGR)) };
+    let (cr, pllcfgr, cfgr) = unsafe {
+        (
+            read_volatile(RCC_CR),
+            read_volatile(RCC_PLLCFGR),
+            read_volatile(RCC_CFGR),
+        )
+    };
     check!(report, link, cr & (1 << 17) != 0, "clocks: HSE ready");
     check!(report, link, cr & (1 << 25) != 0, "clocks: PLL locked");
-    check!(report, link, pllcfgr & (1 << 22) != 0, "clocks: PLL fed from HSE");
-    check!(report, link, (cfgr >> 2) & 0b11 == 0b10, "clocks: SYSCLK is the PLL");
+    check!(
+        report,
+        link,
+        pllcfgr & (1 << 22) != 0,
+        "clocks: PLL fed from HSE"
+    );
+    check!(
+        report,
+        link,
+        (cfgr >> 2) & 0b11 == 0b10,
+        "clocks: SYSCLK is the PLL"
+    );
     let before = VOS_BEFORE_FREEZE.load(Ordering::Relaxed);
     check!(
         report,
@@ -192,7 +207,7 @@ impl From<spi::Error> for NorFail {
 
 /// The JEDEC commands FerroWasp's NOR driver sends, over the polled SPI.
 struct Nor {
-    spi: BlockingSpi,
+    spi: BlockingSpi<SPI2>,
     cs: Pin<'B', 12, Output>,
 }
 
@@ -287,7 +302,10 @@ impl Nor {
 }
 
 fn pattern(index: usize, seed: u32) -> u8 {
-    ((index as u32).wrapping_mul(2_654_435_761).wrapping_add(seed) >> 24) as u8
+    ((index as u32)
+        .wrapping_mul(2_654_435_761)
+        .wrapping_add(seed)
+        >> 24) as u8
 }
 
 fn nor_suite(report: &mut Report, link: &mut Link, nor: &mut Nor) {
@@ -330,9 +348,23 @@ fn nor_suite(report: &mut Report, link: &mut Link, nor: &mut Nor) {
     neighbours_read &= nor.read(upper, &mut upper_before).is_ok();
 
     let erased = nor.erase_sector(link, NOR_SCRATCH);
-    check!(report, link, erased.is_ok(), "{}: sector erased in {:?} us", name, erased);
+    check!(
+        report,
+        link,
+        erased.is_ok(),
+        "{}: sector erased in {:?} us",
+        name,
+        erased
+    );
     let blank = nor.verify(link, |_| 0xFF);
-    check!(report, link, blank == Ok(None), "{}: reads blank, first difference {:?}", name, blank);
+    check!(
+        report,
+        link,
+        blank == Ok(None),
+        "{}: reads blank, first difference {:?}",
+        name,
+        blank
+    );
 
     // Different on every run, so old contents can't pass for a new write.
     let seed = DWT::cycle_count();
@@ -347,20 +379,57 @@ fn nor_suite(report: &mut Report, link: &mut Link, nor: &mut Nor) {
             Err(error) => slowest = Err(error),
         }
     }
-    check!(report, link, slowest.is_ok(), "{}: 16 pages programmed, slowest {:?} us", name, slowest);
+    check!(
+        report,
+        link,
+        slowest.is_ok(),
+        "{}: 16 pages programmed, slowest {:?} us",
+        name,
+        slowest
+    );
     let written = nor.verify(link, |index| pattern(index, seed));
-    check!(report, link, written == Ok(None), "{}: reads back, first difference {:?}", name, written);
+    check!(
+        report,
+        link,
+        written == Ok(None),
+        "{}: reads back, first difference {:?}",
+        name,
+        written
+    );
 
     let mut across = [0u8; 12];
     let at = NOR_PAGE - 6;
     let read = nor.read(NOR_SCRATCH + at as u32, &mut across).is_ok();
-    let matches = across.iter().enumerate().all(|(i, &byte)| byte == pattern(at + i, seed));
-    check!(report, link, read && matches, "{}: a read across a page boundary", name);
+    let matches = across
+        .iter()
+        .enumerate()
+        .all(|(i, &byte)| byte == pattern(at + i, seed));
+    check!(
+        report,
+        link,
+        read && matches,
+        "{}: a read across a page boundary",
+        name
+    );
 
     let erased = nor.erase_sector(link, NOR_SCRATCH);
-    check!(report, link, erased.is_ok(), "{}: erased again in {:?} us", name, erased);
+    check!(
+        report,
+        link,
+        erased.is_ok(),
+        "{}: erased again in {:?} us",
+        name,
+        erased
+    );
     let blank = nor.verify(link, |_| 0xFF);
-    check!(report, link, blank == Ok(None), "{}: left blank, first difference {:?}", name, blank);
+    check!(
+        report,
+        link,
+        blank == Ok(None),
+        "{}: left blank, first difference {:?}",
+        name,
+        blank
+    );
 
     neighbours_read &= nor.read(lower, &mut after).is_ok();
     let lower_same = after == before;
@@ -401,7 +470,10 @@ fn main() -> ! {
             let refused_plls = matches!(refused.error(), ClockError::PllNotConfigured);
             // The refused token is the one that freezes the bench's clocks.
             let token = refused.into_parts();
-            match token.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error()) {
+            match token
+                .freeze(&CLOCK_CONFIG)
+                .map_err(|refused| refused.error())
+            {
                 Ok(rcc) => (refused_plls, rcc),
                 Err(_) => reboot_to_dfu(),
             }
@@ -411,8 +483,7 @@ fn main() -> ! {
     let cause = usb_bench::cause_text(rcc.reset_cause());
     let (watchdog_refused, iwdg) = match Watchdog::start(p.IWDG, 1) {
         Err(refused) => {
-            let refused_timeout =
-                matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
+            let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
             (refused_timeout, refused.into_parts())
         }
         Ok(_) => reboot_to_dfu(),
@@ -460,15 +531,15 @@ fn main() -> ! {
             rx: &mut *addr_of_mut!(IMU_RX),
         }
     };
-    let (spi_refused, imu_wiring, buffers) = match Spi::new(&mut rcc, imu_wiring, &SPI_ZERO, buffers)
-    {
-        Err(refused) => {
-            let refused_zero = matches!(refused.error(), spi::ConfigError::Frequency);
-            let (wiring, buffers) = refused.into_parts();
-            (refused_zero, wiring, buffers)
-        }
-        Ok(_) => reboot_to_dfu(),
-    };
+    let (spi_refused, imu_wiring, buffers) =
+        match Spi::new(&mut rcc, imu_wiring, &SPI_ZERO, buffers) {
+            Err(refused) => {
+                let refused_zero = matches!(refused.error(), spi::ConfigError::Frequency);
+                let (wiring, buffers) = refused.into_parts();
+                (refused_zero, wiring, buffers)
+            }
+            Ok(_) => reboot_to_dfu(),
+        };
     let Ok(mut imu_spi) = Spi::new(&mut rcc, imu_wiring, &IMU_SLOW, buffers) else {
         reboot_to_dfu()
     };
@@ -515,13 +586,16 @@ fn main() -> ! {
     let current = c.p1.into_analog(&mut c.ctrl);
     let vdda_mv = adc.vdda_millivolts();
     let die_tenths = adc.temperature_decidegrees();
-    let channels = [adc.temperature_channel(), adc.channel(&voltage), adc.channel(&current)];
+    let channels = [
+        adc.temperature_channel(),
+        adc.channel(&voltage),
+        adc.channel(&current),
+    ];
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
     let (scan_refused, adc1, scan_stream, samples) = match adc.into_scan(dma2.s4, &[], samples) {
         Err(refused) => {
-            let refused_empty =
-                matches!(refused.error(), ferrohal_stm32::adc::Error::Sequence);
+            let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::Error::Sequence);
             let (adc1, stream, samples) = refused.into_parts();
             (refused_empty, adc1, stream, samples)
         }
@@ -706,8 +780,26 @@ fn main() -> ! {
         motor_lanes::suite(report, link, &mut motors);
         motor_lanes::listen_suite(report, link, &mut motors);
         let vdda = vdda_mv.unwrap_or(0);
-        check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
-        check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);
-        board_adc::suite(report, link, &mut scan, &["temperature", "voltage PC0", "current PC1"], vdda);
+        check!(
+            report,
+            link,
+            (3000..=3600).contains(&vdda),
+            "adc: VDDA is {} mV",
+            vdda
+        );
+        check!(
+            report,
+            link,
+            matches!(die_tenths, Ok(100..=800)),
+            "adc: die {:?} tenths of a degree",
+            die_tenths
+        );
+        board_adc::suite(
+            report,
+            link,
+            &mut scan,
+            &["temperature", "voltage PC0", "current PC1"],
+            vdda,
+        );
     })
 }

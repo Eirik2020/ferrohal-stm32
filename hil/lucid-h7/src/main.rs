@@ -26,9 +26,9 @@
 #[macro_use]
 #[path = "../../common/usb_bench.rs"]
 mod usb_bench;
-mod clocks;
 #[path = "../../common/board_adc.rs"]
 mod board_adc;
+mod clocks;
 #[path = "../../common/imu.rs"]
 mod imu;
 #[path = "../../common/motor_lanes.rs"]
@@ -53,7 +53,7 @@ use ferrohal_stm32::{
     usb::UsbFs,
 };
 
-use clocks::{CLOCKS, CLOCK_CONFIG, REFUSAL_CONFIG};
+use clocks::{CLOCK_CONFIG, CLOCKS, REFUSAL_CONFIG};
 use imu::Imu;
 use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
 
@@ -68,11 +68,11 @@ const IMU_FAST: spi::Config = spi::Config::new(Hertz::mhz(24)).with_mode(spi::MO
 /// A config no clock can make: 0 Hz, for the constructor refusals.
 const SPI_ZERO: spi::Config = spi::Config::new(Hertz(0));
 const _: () = assert!(matches!(
-    Spi::check::<SPI1>(&CLOCKS, &IMU_SLOW),
+    Spi::<SPI1>::check(&CLOCKS, &IMU_SLOW),
     Ok(Hertz(781_250))
 ));
 const _: () = assert!(matches!(
-    Spi::check::<SPI1>(&CLOCKS, &IMU_FAST),
+    Spi::<SPI1>::check(&CLOCKS, &IMU_FAST),
     Ok(Hertz(12_500_000))
 ));
 
@@ -107,7 +107,9 @@ fn sd_suite(report: &mut Report, link: &mut Link, sd: &mut Sdmmc) {
     let card = match sd.init_card() {
         Ok(card) => card,
         Err(sdmmc::Error::NoCard) => {
-            link.line(format_args!("INFO sd: no card in the slot; nothing to check"));
+            link.line(format_args!(
+                "INFO sd: no card in the slot; nothing to check"
+            ));
             return;
         }
         Err(error) => {
@@ -139,7 +141,13 @@ fn sd_suite(report: &mut Report, link: &mut Link, sd: &mut Sdmmc) {
     };
     link.service();
     let result = sd.read_blocks(scratch, &mut saved[..]);
-    check!(report, link, result.is_ok(), "sd: saved 17 blocks: {:?}", result);
+    check!(
+        report,
+        link,
+        result.is_ok(),
+        "sd: saved 17 blocks: {:?}",
+        result
+    );
     if result.is_err() {
         return;
     }
@@ -224,7 +232,10 @@ fn sd_suite(report: &mut Report, link: &mut Link, sd: &mut Sdmmc) {
 }
 
 fn pattern(index: usize, seed: u32) -> u8 {
-    ((index as u32).wrapping_mul(2_654_435_761).wrapping_add(seed) >> 24) as u8
+    ((index as u32)
+        .wrapping_mul(2_654_435_761)
+        .wrapping_add(seed)
+        >> 24) as u8
 }
 
 /// RCC's own view: the crystal really runs the chip.
@@ -239,8 +250,18 @@ fn rcc_suite(report: &mut Report, link: &mut Link) {
     };
     check!(report, link, cr & (1 << 17) != 0, "clocks: HSE ready");
     check!(report, link, cr & (1 << 25) != 0, "clocks: PLL1 locked");
-    check!(report, link, pllckselr & 0b11 == 0b10, "clocks: PLLs fed from HSE");
-    check!(report, link, (cfgr >> 3) & 0b111 == 0b011, "clocks: SYSCLK is PLL1");
+    check!(
+        report,
+        link,
+        pllckselr & 0b11 == 0b10,
+        "clocks: PLLs fed from HSE"
+    );
+    check!(
+        report,
+        link,
+        (cfgr >> 3) & 0b111 == 0b011,
+        "clocks: SYSCLK is PLL1"
+    );
 }
 
 #[entry]
@@ -260,7 +281,10 @@ fn main() -> ! {
             let refused_pll1 = matches!(refused.error(), ClockError::PllNotConfigured);
             // The refused token is the one that freezes the bench's clocks.
             let token = refused.into_parts();
-            match token.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error()) {
+            match token
+                .freeze(&CLOCK_CONFIG)
+                .map_err(|refused| refused.error())
+            {
                 Ok(rcc) => (refused_pll1, rcc),
                 Err(_) => reboot_to_dfu(),
             }
@@ -270,8 +294,7 @@ fn main() -> ! {
     let cause = usb_bench::cause_text(rcc.reset_cause());
     let (watchdog_refused, iwdg) = match Watchdog::start(p.IWDG1, 1) {
         Err(refused) => {
-            let refused_timeout =
-                matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
+            let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
             (refused_timeout, refused.into_parts())
         }
         Ok(_) => reboot_to_dfu(),
@@ -439,16 +462,14 @@ fn main() -> ! {
     let channels = [adc1.channel(&voltage), adc1.channel(&current)];
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
-    let (scan_refused, adc1, scan_stream, samples) =
-        match adc1.into_scan(dma2.s5, &[], samples) {
-            Err(refused) => {
-                let refused_empty =
-                    matches!(refused.error(), ferrohal_stm32::adc::Error::Sequence);
-                let (adc1, stream, samples) = refused.into_parts();
-                (refused_empty, adc1, stream, samples)
-            }
-            Ok(_) => reboot_to_dfu(),
-        };
+    let (scan_refused, adc1, scan_stream, samples) = match adc1.into_scan(dma2.s5, &[], samples) {
+        Err(refused) => {
+            let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::Error::Sequence);
+            let (adc1, stream, samples) = refused.into_parts();
+            (refused_empty, adc1, stream, samples)
+        }
+        Ok(_) => reboot_to_dfu(),
+    };
     let Ok(mut scan) = adc1.into_scan(scan_stream, &channels, samples) else {
         reboot_to_dfu()
     };
@@ -488,11 +509,7 @@ fn main() -> ! {
             }
             Ok(_) => reboot_to_dfu(),
         };
-    let Ok(mut sd) = Sdmmc::new(
-        &mut rcc,
-        sd_wiring,
-        &sdmmc::Config::new(Hertz::mhz(25)),
-    ) else {
+    let Ok(mut sd) = Sdmmc::new(&mut rcc, sd_wiring, &sdmmc::Config::new(Hertz::mhz(25))) else {
         reboot_to_dfu()
     };
 
@@ -572,9 +589,27 @@ fn main() -> ! {
         usb_bench::revision_suite(report, link);
         imu.suite(report, link);
         let vdda = vdda_mv.unwrap_or(0);
-        check!(report, link, (3000..=3600).contains(&vdda), "adc: VDDA is {} mV", vdda);
-        check!(report, link, matches!(die_tenths, Ok(100..=800)), "adc: die {:?} tenths of a degree", die_tenths);
-        board_adc::suite(report, link, &mut scan, &["voltage PC0", "current PC1"], vdda);
+        check!(
+            report,
+            link,
+            (3000..=3600).contains(&vdda),
+            "adc: VDDA is {} mV",
+            vdda
+        );
+        check!(
+            report,
+            link,
+            matches!(die_tenths, Ok(100..=800)),
+            "adc: die {:?} tenths of a degree",
+            die_tenths
+        );
+        board_adc::suite(
+            report,
+            link,
+            &mut scan,
+            &["voltage PC0", "current PC1"],
+            vdda,
+        );
         sd_suite(report, link, &mut sd);
         motor_lanes::suite(report, link, &mut motors);
         motor_lanes::listen_suite(report, link, &mut motors);

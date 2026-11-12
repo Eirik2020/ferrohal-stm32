@@ -31,6 +31,7 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [CEC])]
 mod app {
     use ferrohal_stm32::{
+        chip::{SPI1, SPI2, SPI4, SPI5},
         device::Interrupt,
         exti::{Ctrl, Edge, Exti},
         gpio::{Output, Pin},
@@ -45,17 +46,20 @@ mod app {
 
     #[shared]
     struct Shared {
-        bus: Bus,
+        bus1: Bus<SPI1>,
+        bus2: Bus<SPI2>,
+        bus4: Bus<SPI4>,
+        bus5: Bus<SPI5>,
     }
 
     #[local]
     struct Local {
         ctrl: Ctrl,
         led: board::Led,
-        spi1: Option<Spi>,
-        spi2: Option<Spi>,
-        spi4: Option<Spi>,
-        spi5: Option<Spi>,
+        spi1: Option<Spi<SPI1>>,
+        spi2: Option<Spi<SPI2>>,
+        spi4: Option<Spi<SPI4>>,
+        spi5: Option<Spi<SPI5>>,
         sck1: Exti<'A', 5>,
         sck2: Exti<'B', 10>,
         sck4: Exti<'E', 12>,
@@ -124,7 +128,12 @@ mod app {
         sense.unlisten(&mut ctrl);
         checks::spawn().ok();
         (
-            Shared { bus: Bus::new() },
+            Shared {
+                bus1: Bus::new(),
+                bus2: Bus::new(),
+                bus4: Bus::new(),
+                bus5: Bus::new(),
+            },
             Local {
                 ctrl,
                 led: run.led,
@@ -142,93 +151,102 @@ mod app {
         )
     }
 
-    #[task(binds = DMA1_STREAM4, priority = 2, shared = [bus])]
+    #[task(binds = DMA1_STREAM4, priority = 2, shared = [bus1])]
     fn spi1_rx(mut cx: spi1_rx::Context) {
-        cx.shared.bus.lock(Bus::on_dma);
+        cx.shared.bus1.lock(Bus::on_dma);
     }
 
-    #[task(binds = DMA2_STREAM1, priority = 2, shared = [bus])]
+    #[task(binds = DMA2_STREAM1, priority = 2, shared = [bus2])]
     fn spi2_rx(mut cx: spi2_rx::Context) {
-        cx.shared.bus.lock(Bus::on_dma);
+        cx.shared.bus2.lock(Bus::on_dma);
     }
 
-    #[task(binds = DMA2_STREAM3, priority = 2, shared = [bus])]
+    #[task(binds = DMA2_STREAM3, priority = 2, shared = [bus4])]
     fn spi4_rx(mut cx: spi4_rx::Context) {
-        cx.shared.bus.lock(Bus::on_dma);
+        cx.shared.bus4.lock(Bus::on_dma);
     }
 
-    #[task(binds = DMA2_STREAM5, priority = 2, shared = [bus])]
+    #[task(binds = DMA2_STREAM5, priority = 2, shared = [bus5])]
     fn spi5_rx(mut cx: spi5_rx::Context) {
-        cx.shared.bus.lock(Bus::on_dma);
+        cx.shared.bus5.lock(Bus::on_dma);
     }
 
-    #[task(binds = EXTI9_5, priority = 2, shared = [bus])]
+    #[task(binds = EXTI9_5, priority = 2, shared = [bus1, bus2, bus4, bus5])]
     fn exti_5_9(mut cx: exti_5_9::Context) {
-        cx.shared.bus.lock(Bus::on_exti);
+        cx.shared.bus1.lock(Bus::on_exti);
+        cx.shared.bus2.lock(Bus::on_exti);
+        cx.shared.bus4.lock(Bus::on_exti);
+        cx.shared.bus5.lock(Bus::on_exti);
     }
 
-    #[task(binds = EXTI15_10, priority = 2, shared = [bus])]
+    #[task(binds = EXTI15_10, priority = 2, shared = [bus1, bus2, bus4, bus5])]
     fn exti_10_15(mut cx: exti_10_15::Context) {
-        cx.shared.bus.lock(Bus::on_exti);
+        cx.shared.bus1.lock(Bus::on_exti);
+        cx.shared.bus2.lock(Bus::on_exti);
+        cx.shared.bus4.lock(Bus::on_exti);
+        cx.shared.bus5.lock(Bus::on_exti);
     }
 
-    #[task(priority = 1, shared = [bus], local = [ctrl, led, spi1, spi2, spi4, spi5, sck1, sck2, sck4, sck5, sense, feed])]
+    #[task(priority = 1, shared = [bus1, bus2, bus4, bus5], local = [ctrl, led, spi1, spi2, spi4, spi5, sck1, sck2, sck4, sck5, sense, feed])]
     async fn checks(mut cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         let cpu = board::CLOCKS.cpu;
         let l = cx.local;
-        let bus = &mut cx.shared.bus;
+        let bus1 = &mut cx.shared.bus1;
+        let bus2 = &mut cx.shared.bus2;
+        let bus4 = &mut cx.shared.bus4;
+        let bus5 = &mut cx.shared.bus5;
 
-        bus.lock(|b| b.spi = l.spi1.take());
+        bus1.lock(|b| b.spi = l.spi1.take());
         spi_exti::spi_suite(
             &mut report,
             "SPI1 PA5/PA6/PD7 (Lucid), DMA1 S5/S4",
-            bus,
+            bus1,
             &board::SPI,
             cpu,
             Interrupt::DMA1_STREAM4,
             l.sck1,
             l.ctrl,
         );
-        bus.lock(|b| b.spi = l.spi2.take());
+        bus2.lock(|b| b.spi = l.spi2.take());
         spi_exti::spi_suite(
             &mut report,
             "SPI2 PB10/PC2/PC3, DMA2 S0/S1",
-            bus,
+            bus2,
             &board::SPI,
             cpu,
             Interrupt::DMA2_STREAM1,
             l.sck2,
             l.ctrl,
         );
-        bus.lock(|b| b.spi = l.spi4.take());
+        bus4.lock(|b| b.spi = l.spi4.take());
         spi_exti::spi_suite(
             &mut report,
             "SPI4 PE12/PE13/PE14, DMA2 S2/S3",
-            bus,
+            bus4,
             &board::SPI,
             cpu,
             Interrupt::DMA2_STREAM3,
             l.sck4,
             l.ctrl,
         );
-        bus.lock(|b| b.spi = l.spi5.take());
+        bus5.lock(|b| b.spi = l.spi5.take());
         spi_exti::spi_suite(
             &mut report,
             "SPI5 PF7/PF8/PF9, DMA2 S4/S5",
-            bus,
+            bus5,
             &board::SPI,
             cpu,
             Interrupt::DMA2_STREAM5,
             l.sck5,
             l.ctrl,
         );
-        bus.lock(|b| b.spi = None);
+        bus5.lock(|b| b.spi = None);
         spi_exti::exti_suite(
             &mut report,
             "EXTI6 PD6 <- PD5 (Z1)",
-            bus,
+            bus5,
             l.feed,
             l.sense,
             l.ctrl,

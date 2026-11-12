@@ -128,8 +128,10 @@ enum State {
     Done(u16),
 }
 
-/// An SPI master, full duplex over two DMA streams.
-pub struct Spi {
+/// An SPI master, full duplex over two DMA streams. It carries the
+/// instance token: [`free`](Self::free) hands it back, so the same
+/// instance can open again.
+pub struct Spi<U> {
     info: &'static Info,
     tx: Channel,
     rx: Channel,
@@ -148,9 +150,10 @@ pub struct Spi {
     clock: Option<&'static dyn CycleClock>,
     vector: Interrupt,
     health: Health,
+    token: U,
 }
 
-impl Spi {
+impl<U: Instance> Spi<U> {
     /// Opens `wiring` with `config`: enables and resets the SPI, claims
     /// both streams and configures the bus as a master. Chip select is the
     /// firmware's GPIO. Returns the SCK in use through
@@ -165,15 +168,17 @@ impl Spi {
     /// enabled and reset in RCC, with its registers at their reset values.
     /// If the receive stream is the one, the transmit stream has stopped; if
     /// the transmit stream is, the receive stream is as it was left.
+    ///
+    /// On success the instance token moves into the handle;
+    /// [`free`](Self::free) returns it.
     #[allow(clippy::type_complexity)]
-    pub fn new<U, Sck, Miso, Mosi, TxD, RxD>(
+    pub fn new<Sck, Miso, Mosi, TxD, RxD>(
         rcc: &mut Rcc,
         wiring: Wiring<U, Sck, Miso, Mosi, TxD, RxD>,
         config: &Config,
         mut buffers: Buffers,
     ) -> Result<Self, Refused<ConfigError, (Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers)>>
     where
-        U: Instance,
         Sck: SckPin<U>,
         Miso: MisoPin<U>,
         Mosi: MosiPin<U>,
@@ -182,40 +187,68 @@ impl Spi {
     {
         // `open` only borrows the parts, so a refusal can hand them back. On
         // success it has taken the buffers, and the tokens end here.
-        match Self::open::<U, TxD, RxD>(rcc, &wiring.tx_dma, &wiring.rx_dma, config, &mut buffers) {
-            Ok(spi) => Ok(spi),
-            Err(error) => Err(Refused::new(error, (wiring, buffers))),
+        let Wiring {
+            spi,
+            sck,
+            miso,
+            mosi,
+            tx_dma,
+            rx_dma,
+        } = wiring;
+        match Self::open::<TxD, RxD>(rcc, spi, &tx_dma, &rx_dma, config, &mut buffers) {
+            Ok(handle) => Ok(handle),
+            Err((error, spi)) => Err(Refused::new(
+                error,
+                (
+                    Wiring {
+                        spi,
+                        sck,
+                        miso,
+                        mosi,
+                        tx_dma,
+                        rx_dma,
+                    },
+                    buffers,
+                ),
+            )),
         }
     }
 
-    fn open<U, TxD, RxD>(
+    fn open<TxD, RxD>(
         rcc: &mut Rcc,
+        spi: U,
         tx_dma: &TxD,
         rx_dma: &RxD,
         config: &Config,
         buffers: &mut Buffers,
-    ) -> Result<Self, ConfigError>
+    ) -> Result<Self, (ConfigError, U)>
     where
-        U: Instance,
         TxD: SpiTxDma<U>,
         RxD: SpiRxDma<U>,
     {
-        let info = U::info();
-        let clocks = rcc.clocks();
-        let kernel_clock = U::KERNEL
-            .frequency(&clocks)
-            .ok_or(ConfigError::KernelClock)?;
-        let code = config.divider(kernel_clock)?;
-        let tx_len = u16::try_from(buffers.tx.len())
-            .ok()
-            .filter(|&len| len > 0)
-            .ok_or(ConfigError::TxBuffer)?;
-        let rx_len = u16::try_from(buffers.rx.len())
-            .ok()
-            .filter(|&len| len > 0)
-            .ok_or(ConfigError::RxBuffer)?;
-        crate::chip::check_dma_buffer(buffers.tx)?;
-        crate::chip::check_dma_buffer(buffers.rx)?;
+        // One bundled check phase, so the token comes back on any refusal.
+        let (info, clocks, kernel_clock, code, tx_len, rx_len) = match (|| {
+            let info = U::info();
+            let clocks = rcc.clocks();
+            let kernel_clock = U::KERNEL
+                .frequency(&clocks)
+                .ok_or(ConfigError::KernelClock)?;
+            let code = config.divider(kernel_clock)?;
+            let tx_len = u16::try_from(buffers.tx.len())
+                .ok()
+                .filter(|&len| len > 0)
+                .ok_or(ConfigError::TxBuffer)?;
+            let rx_len = u16::try_from(buffers.rx.len())
+                .ok()
+                .filter(|&len| len > 0)
+                .ok_or(ConfigError::RxBuffer)?;
+            crate::chip::check_dma_buffer(buffers.tx)?;
+            crate::chip::check_dma_buffer(buffers.rx)?;
+            Ok((info, clocks, kernel_clock, code, tx_len, rx_len))
+        })() {
+            Ok(checked) => checked,
+            Err(error) => return Err((error, spi)),
+        };
 
         rcc.enable(info.enable);
         rcc.reset(info.enable);
@@ -223,8 +256,12 @@ impl Spi {
         let mut rx = crate::dma::claim_channel(rx_dma);
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
-        tx.stop(STOP_SPINS).map_err(|_| ConfigError::DmaBusy)?;
-        rx.stop(STOP_SPINS).map_err(|_| ConfigError::DmaBusy)?;
+        if tx.stop(STOP_SPINS).is_err() {
+            return Err((ConfigError::DmaBusy, spi));
+        }
+        if rx.stop(STOP_SPINS).is_err() {
+            return Err((ConfigError::DmaBusy, spi));
+        }
         tx.clear_flags(Flags::ALL);
         rx.clear_flags(Flags::ALL);
         info.unit.configure(code, config);
@@ -248,15 +285,14 @@ impl Spi {
             clock: None,
             vector: RxD::INTERRUPT,
             health: Health::default(),
+            token: spi,
         })
     }
 
-    /// The SCK `config` would give on `U` under `clocks`. A `const fn`, so
-    /// a board can assert its buses while compiling.
-    pub const fn check<U: Instance>(
-        clocks: &crate::rcc::Clocks,
-        config: &Config,
-    ) -> Result<Hertz, ConfigError> {
+    /// The SCK `config` would give on this instance under `clocks`. A
+    /// `const fn`, so a board can assert its buses while compiling:
+    /// `const _: () = assert!(Spi::<SPI1>::check(&CLOCKS, &BUS).is_ok());`.
+    pub const fn check(clocks: &crate::rcc::Clocks, config: &Config) -> Result<Hertz, ConfigError> {
         match U::KERNEL.frequency(clocks) {
             Some(kernel_clock) => config.check(kernel_clock),
             None => Err(ConfigError::KernelClock),
@@ -288,6 +324,23 @@ impl Spi {
     /// Measures blocking waits with `clock` instead of counting passes.
     pub fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
         self.clock = clock;
+    }
+
+    /// Stops both streams and closes the SPI, and hands the instance token
+    /// back: what a `Drop` would do, made explicit so the token can move
+    /// out. The buffers' memory and the DMA channels end with the handle.
+    /// A transfer still running is abandoned mid-frame: the streams stop
+    /// and SPE drops, with ES0299 2.11.1 / ES0182 2.12.1's BSY caveat on
+    /// the dead peripheral, and the vector finds an idle, disabled SPI
+    /// that raises nothing. A reopen runs `Spi::new` again, from the same
+    /// token and fresh stream tokens.
+    pub fn free(mut self) -> U {
+        let _ = self.tx.stop(STOP_SPINS);
+        let _ = self.rx.stop(STOP_SPINS);
+        self.tx.clear_flags(Flags::ALL);
+        self.rx.clear_flags(Flags::ALL);
+        self.info.unit.disable();
+        self.token
     }
 
     /// The vector to bind to [`on_interrupt`](Self::on_interrupt).
@@ -544,14 +597,14 @@ fn copy(dst: &mut [u8], src: &[u8]) {
     }
 }
 
-impl embedded_hal::spi::ErrorType for Spi {
+impl<U: Instance> embedded_hal::spi::ErrorType for Spi<U> {
     type Error = Error;
 }
 
 /// Bounded: every operation is split into transfers of at most
 /// [`capacity`](Spi::capacity) bytes, each waited for within its bound.
 /// The bytes sent while reading are 0x00.
-impl embedded_hal::spi::SpiBus<u8> for Spi {
+impl<U: Instance> embedded_hal::spi::SpiBus<u8> for Spi<U> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Error> {
         let chunk = self.chunk();
         for part in words.chunks_mut(chunk) {

@@ -217,11 +217,9 @@ mod app {
                 tim1.set_output::<3>(false);
                 tim1.stop();
             }
-            Err(refused) => report.check(
-                name,
-                "timer at the rate",
-                Err(Fail::Timer(refused.error())),
-            ),
+            Err(refused) => {
+                report.check(name, "timer at the rate", Err(Fail::Timer(refused.error())))
+            }
         }
         tests::finish(&report, || {});
     }

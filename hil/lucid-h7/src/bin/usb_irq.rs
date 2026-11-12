@@ -19,13 +19,7 @@ const EP_WORDS: usize = 1024;
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true)]
 mod app {
-    use ferrohal_stm32::{
-        gpio::Speed,
-        iwdg::Watchdog,
-        time::Hertz,
-        timer::Timebase,
-        usb::UsbFs,
-    };
+    use ferrohal_stm32::{gpio::Speed, iwdg::Watchdog, time::Hertz, timer::Timebase, usb::UsbFs};
 
     use crate::{
         clocks::CLOCK_CONFIG,
@@ -47,7 +41,11 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local) {
         usb_bench::enter_bootloader_if_requested();
         let p = cx.device;
-        let Ok(mut rcc) = p.RCC.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error()) else {
+        let Ok(mut rcc) = p
+            .RCC
+            .freeze(&CLOCK_CONFIG)
+            .map_err(|refused| refused.error())
+        else {
             reboot_to_dfu()
         };
         let _ = rcc.reset_cause();

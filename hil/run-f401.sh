@@ -21,7 +21,7 @@ trap 'kill "$echo_pid" 2>/dev/null; wait "$echo_pid" 2>/dev/null' EXIT
 sleep 0.5
 
 status=0
-for run in ${*:-a b c d e f g h i j k l m n o p q r s u v w}; do
+for run in ${*:-a b c d e f g h i j k l m n o p q r s v w}; do
     log="$here/logs/f401-run-$run.log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
     # catch that reset, or the second boot never runs. Run V's own watchdog

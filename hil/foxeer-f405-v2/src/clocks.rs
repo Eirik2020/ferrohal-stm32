@@ -50,4 +50,3 @@ const _: () = assert!(matches!(
     REFUSAL_CONFIG.validate(),
     Err(ClockError::PllNotConfigured)
 ));
-

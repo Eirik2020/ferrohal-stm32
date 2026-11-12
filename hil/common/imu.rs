@@ -7,7 +7,7 @@ use core::convert::Infallible;
 use embedded_hal::digital::OutputPin;
 use ferrohal_stm32::{
     exti::ExtiHandle,
-    spi::{self, Spi},
+    spi::{self, Instance, Spi},
 };
 
 use crate::usb_bench::{Link, Report};
@@ -19,8 +19,8 @@ const MPU6500: u8 = 0x70;
 const MPU6000: u8 = 0x68;
 
 /// The IMU's bus, chip select and data-ready line.
-pub struct Imu<'a, Cs> {
-    pub spi: &'a mut Spi,
+pub struct Imu<'a, U, Cs> {
+    pub spi: &'a mut Spi<U>,
     pub cs: &'a mut Cs,
     /// Routed and listening in EXTI, with its NVIC vector off, so the flag
     /// latches.
@@ -31,7 +31,7 @@ pub struct Imu<'a, Cs> {
     pub fast: spi::Config,
 }
 
-impl<Cs: OutputPin<Error = Infallible>> Imu<'_, Cs> {
+impl<U: Instance, Cs: OutputPin<Error = Infallible>> Imu<'_, U, Cs> {
     /// One read of WHO_AM_I over DMA, finished by polling.
     fn who_am_i(&mut self, link: &mut Link) -> Result<u8, spi::Error> {
         let _ = self.cs.set_low();
@@ -116,7 +116,9 @@ impl<Cs: OutputPin<Error = Infallible>> Imu<'_, Cs> {
             self.data_suite(report, link);
             let _ = self.spi.set_config(&self.slow);
         } else {
-            link.line(format_args!("INFO imu: not an ICM-42688-P, data path not run"));
+            link.line(format_args!(
+                "INFO imu: not an ICM-42688-P, data path not run"
+            ));
         }
         let health = self.spi.health();
         check!(
@@ -175,7 +177,12 @@ impl<Cs: OutputPin<Error = Infallible>> Imu<'_, Cs> {
         written &= self.write(INT_CONFIG1, 0);
         written &= self.write(INT_SOURCE0, 1 << 3);
         link.settle(49_000);
-        check!(report, link, written, "imu: configured for 2 kHz data ready on INT1");
+        check!(
+            report,
+            link,
+            written,
+            "imu: configured for 2 kHz data ready on INT1"
+        );
 
         // The rate, with nothing else in the way.
         self.ready.clear();
@@ -271,7 +278,13 @@ impl<Cs: OutputPin<Error = Infallible>> Imu<'_, Cs> {
         );
         // The datasheet: 25 C + raw / 132.48.
         let celsius = 25 + temperature * 100 / 13248;
-        check!(report, link, (0..=90).contains(&celsius), "imu: {} C inside", celsius);
+        check!(
+            report,
+            link,
+            (0..=90).contains(&celsius),
+            "imu: {} C inside",
+            celsius
+        );
 
         let _ = self.write(DEVICE_CONFIG, 1);
         link.settle(2_000);

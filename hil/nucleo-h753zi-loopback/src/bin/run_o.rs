@@ -49,7 +49,10 @@ fn main() -> ! {
         if uid != [0; 12] && uid != [0xFF; 12] {
             Ok(())
         } else {
-            Err(Fail::Count { expected: 1, got: 0 })
+            Err(Fail::Count {
+                expected: 1,
+                got: 0,
+            })
         },
     );
 
@@ -60,7 +63,11 @@ fn main() -> ! {
     let pin = adc1.channel(&run.analog1);
     let link = &mut run.drive1;
     adc::rails(&mut report, "ADC1 PA6", &mut adc1, pin, SETTLE, |high| {
-        if high { link.set_high() } else { link.set_low() }
+        if high {
+            link.set_high()
+        } else {
+            link.set_low()
+        }
     });
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(SAMPLES1) };
@@ -75,7 +82,11 @@ fn main() -> ! {
         SETTLE,
         BOUND,
         |high| {
-            if high { link.set_high() } else { link.set_low() }
+            if high {
+                link.set_high()
+            } else {
+                link.set_low()
+            }
         },
         |samples, high, max| {
             samples.len() == 2
@@ -96,7 +107,11 @@ fn main() -> ! {
     let pin = adc3.channel(&run.analog3);
     let link = &mut run.drive3;
     adc::rails(&mut report, "ADC3 PF6", &mut adc3, pin, SETTLE, |high| {
-        if high { link.set_high() } else { link.set_low() }
+        if high {
+            link.set_high()
+        } else {
+            link.set_low()
+        }
     });
     adc::internal(&mut report, "ADC3 internal", &mut adc3);
     let channels = [pin, adc3.vrefint_channel(), adc3.temperature_channel()];
@@ -113,7 +128,11 @@ fn main() -> ! {
         SETTLE,
         BOUND,
         |high| {
-            if high { link.set_high() } else { link.set_low() }
+            if high {
+                link.set_high()
+            } else {
+                link.set_low()
+            }
         },
         |samples, high, max| {
             let [pin, reference, _] = samples else {

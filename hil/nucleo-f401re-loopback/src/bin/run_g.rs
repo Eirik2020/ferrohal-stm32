@@ -25,6 +25,7 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
+        chip::SPI3,
         device::Interrupt,
         exti::{Ctrl, Edge, Exti},
         spi::{Buffers, Spi},
@@ -40,13 +41,13 @@ mod app {
 
     #[shared]
     struct Shared {
-        bus: Bus,
+        bus: Bus<SPI3>,
     }
 
     #[local]
     struct Local {
         ctrl: Ctrl,
-        spi3: Option<Spi>,
+        spi3: Option<Spi<SPI3>>,
         sck3: Exti<'B', 3>,
         led: board::Led,
     }

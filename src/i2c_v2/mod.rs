@@ -174,6 +174,14 @@ impl Unit {
         });
     }
 
+    /// Closes the I2C: PE off. Only a teardown (`I2c::free`) calls this —
+    /// the driver keeps PE on for its life. A reopen runs `new` again,
+    /// whose `apply` writes with PE clear first, as RM0433 §47.4.6's flow
+    /// requires.
+    pub(crate) fn disable(self) {
+        self.0.cr1().modify(|w| w.set_pe(false));
+    }
+
     /// ISR's BUSY (RM0433 §47.6.9).
     pub(crate) fn busy(self) -> bool {
         self.0.isr().read().busy()

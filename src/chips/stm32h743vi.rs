@@ -744,11 +744,11 @@ mod tests {
         .unwrap();
         assert_eq!(reset.pll1_q, None);
         assert_eq!(
-            Spi::check::<SPI1>(&reset, &imu),
+            Spi::<SPI1>::check(&reset, &imu),
             Err(spi::ConfigError::KernelClock)
         );
         // SPI4 runs from PCLK2: 64 MHz at reset, so 16 MHz.
-        assert_eq!(Spi::check::<SPI4>(&reset, &imu), Ok(Hertz::mhz(16)));
+        assert_eq!(Spi::<SPI4>::check(&reset, &imu), Ok(Hertz::mhz(16)));
     }
 
     #[test]

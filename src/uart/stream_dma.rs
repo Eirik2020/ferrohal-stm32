@@ -624,7 +624,7 @@ impl<U: Instance> Uart<U> {
 
     /// Whether instance `U` can take `config` under `clocks`; see
     /// [`Config::check`]. A `const fn`, so a board can assert it while
-    /// compiling: `const _: () = assert!(Uart::check::<USART6>(&CLOCKS,
+    /// compiling: `const _: () = assert!(Uart::<USART6>::check(&CLOCKS,
     /// &CRSF).is_ok());`.
     pub const fn check(clocks: &Clocks, config: &Config) -> Result<(), ConfigError> {
         match config.divider(clocks.bus(U::KERNEL), U::FRACTIONAL_STOP_BITS) {

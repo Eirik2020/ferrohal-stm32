@@ -40,14 +40,9 @@ fn main() -> ! {
     if !watchdog::after_reset(&mut report, name, cause, (17, 47), (47_500, 52_500)) {
         let frozen = Watchdog::is_frozen_on_halt();
         match Watchdog::start_with_lsi(run.iwdg, watchdog::TIMEOUT_US, board::LSI_HZ) {
-            Ok(dog) => watchdog::feed_then_starve(
-                &mut report,
-                name,
-                cause,
-                dog,
-                board::CLOCKS.cpu,
-                frozen,
-            ),
+            Ok(dog) => {
+                watchdog::feed_then_starve(&mut report, name, cause, dog, board::CLOCKS.cpu, frozen)
+            }
             Err(refused) => report.check(
                 name,
                 "start",

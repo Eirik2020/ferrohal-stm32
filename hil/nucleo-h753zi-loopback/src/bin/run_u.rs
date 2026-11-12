@@ -130,16 +130,18 @@ mod app {
 
     #[task(priority = 1, local = [run, rcc_refusal], shared = [irq6])]
     async fn checks(mut cx: checks::Context) {
+        use embedded_hal::i2c::I2c as _;
+        use embedded_hal::spi::SpiBus as _;
         use ferrohal_stm32::{
             adc::{Adc, Config as AdcConfig, Error as AdcError},
             i2c::{Config as I2cConfig, ConfigError as I2cConfigError, Error as I2cError, I2c},
             iwdg::Watchdog,
-            spi::{self, Buffers as SpiBuffers, Config as SpiConfig, ConfigError as SpiConfigError},
+            spi::{
+                self, Buffers as SpiBuffers, Config as SpiConfig, ConfigError as SpiConfigError,
+            },
             time::Hertz,
             timer::{Awg, ConfigError as TimerConfigError, Pwm, Sampler, Tick, Timebase},
         };
-        use embedded_hal::i2c::I2c as _;
-        use embedded_hal::spi::SpiBus as _;
 
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
@@ -151,7 +153,13 @@ mod app {
         // watchdog's own reset at the end of the first, reports the bite
         // and ends cleanly; the first runs the refusals.
         let cause = run.rcc.reset_cause();
-        if watchdog::after_reset(&mut report, "IWDG1 50 ms", cause, (29, 34), (47_500, 52_500)) {
+        if watchdog::after_reset(
+            &mut report,
+            "IWDG1 50 ms",
+            cause,
+            (29, 34),
+            (47_500, 52_500),
+        ) {
             tests::finish(&report, || {});
         }
         static mut SPI_TX: [u8; 64] = [0; 64];
@@ -183,7 +191,10 @@ mod app {
                     expected: ClockError::PllNotConfigured as u32,
                     got: other as u32,
                 }),
-                None => Err(Fail::Count { expected: 1, got: 0 }),
+                None => Err(Fail::Count {
+                    expected: 1,
+                    got: 0,
+                }),
             },
         );
 
@@ -192,8 +203,12 @@ mod app {
         static mut TX: [u8; 256] = [0; 256];
         static mut RX: [u8; 256] = [0; 256];
         // SAFETY: as above.
-        let (tx, rx): (&'static mut [u8], &'static mut [u8]) =
-            unsafe { (&mut *core::ptr::addr_of_mut!(TX), &mut *core::ptr::addr_of_mut!(RX)) };
+        let (tx, rx): (&'static mut [u8], &'static mut [u8]) = unsafe {
+            (
+                &mut *core::ptr::addr_of_mut!(TX),
+                &mut *core::ptr::addr_of_mut!(RX),
+            )
+        };
         let (usart6, uart_refusal) = match Uart::new(
             &mut run.rcc,
             run.usart6,
@@ -342,7 +357,10 @@ mod app {
                         let Ok(mut scan) = adc.into_scan(stream, &[pin, pin], buffer) else {
                             defmt::panic!("the scan")
                         };
-                        let mut result = Err(Fail::Count { expected: 1, got: 0 });
+                        let mut result = Err(Fail::Count {
+                            expected: 1,
+                            got: 0,
+                        });
                         if scan.start().is_ok() {
                             let mut spins = cpu.0 / 8;
                             loop {
@@ -372,7 +390,7 @@ mod app {
         );
 
         // PWM: a 0 rate refuses; the timer comes back at 500 kHz.
-        let (mut pwm3, pwm3_refusal) = match Pwm::new(&mut run.rcc, run.tim3, Hertz(0)) {
+        let (pwm3, pwm3_refusal) = match Pwm::new(&mut run.rcc, run.tim3, Hertz(0)) {
             Ok(_) => defmt::panic!("a 0-rate PWM config was accepted"),
             Err(refused) => {
                 let error = refused.error();
@@ -441,13 +459,7 @@ mod app {
             Err(refused) => {
                 let error = refused.error();
                 let (tim8, stream, buffer) = refused.into_parts();
-                match Sampler::new::<_, 'B'>(
-                    &mut run.rcc,
-                    tim8,
-                    stream,
-                    Hertz::mhz(1),
-                    buffer,
-                ) {
+                match Sampler::new::<_, 'B'>(&mut run.rcc, tim8, stream, Hertz::mhz(1), buffer) {
                     Ok(sampler) => (sampler, Some(error)),
                     Err(refused) => defmt::panic!("the TIM8 sampler: {}", refused.error()),
                 }
@@ -476,10 +488,14 @@ mod app {
             let count = (per_bit16 as usize * (16 + 8)) / 16;
             lane3
                 .arm(&pwm3, &pwm::duties(pattern, pwm3.period()))
-                .map_err(|_| Fail::Count { expected: 16, got: 0 })?;
-            sampler
-                .start(count)
-                .map_err(|_| Fail::Count { expected: count as u32, got: 0 })?;
+                .map_err(|_| Fail::Count {
+                    expected: 16,
+                    got: 0,
+                })?;
+            sampler.start(count).map_err(|_| Fail::Count {
+                expected: count as u32,
+                got: 0,
+            })?;
             pwm3.stage(0b0100);
             pwm3.start();
             let done = pwm::wait(budget, || lane3.poll());
@@ -487,7 +503,10 @@ mod app {
             pwm3.stop();
             pwm3.close_requests();
             if !matches!(done, Some(Ok(()))) || !matches!(sampled, Some(Ok(_))) {
-                return Err(Fail::Count { expected: 2, got: 0 });
+                return Err(Fail::Count {
+                    expected: 2,
+                    got: 0,
+                });
             }
             pwm::decode(sampler.samples(), 0, pattern, per_bit16, false)
         })();
@@ -499,7 +518,7 @@ mod app {
 
         // AWG: two timers at different periods refuse; both PWMs and both
         // lanes come back, the second re-rated, and the pair plays PB0.
-        let mut pwm5 = match Pwm::new(&mut run.rcc, run.tim5, Hertz::khz(100)) {
+        let pwm5 = match Pwm::new(&mut run.rcc, run.tim5, Hertz::khz(100)) {
             Ok(pwm) => pwm,
             Err(refused) => defmt::panic!("TIM5 PWM: {}", refused.error()),
         };
@@ -534,23 +553,36 @@ mod app {
                 .map_err(Fail::Timer)?;
             let period = awg.period();
             if awg.load(0, &pwm::duties(awg_pattern, period)).is_err() {
-                return Err(Fail::Count { expected: 16, got: 0 });
+                return Err(Fail::Count {
+                    expected: 16,
+                    got: 0,
+                });
             }
             let awg_per_bit16 =
                 (u64::from(sampler.rate().0) * 16 / u64::from(awg.sample_rate().0)) as u32;
             let count = (awg_per_bit16 as usize * (16 + 8)) / 16;
-            sampler
-                .start(count)
-                .map_err(|_| Fail::Count { expected: count as u32, got: 0 })?;
+            sampler.start(count).map_err(|_| Fail::Count {
+                expected: count as u32,
+                got: 0,
+            })?;
             if awg.play().is_err() {
-                return Err(Fail::Count { expected: 1, got: 0 });
+                return Err(Fail::Count {
+                    expected: 1,
+                    got: 0,
+                });
             }
             if !matches!(pwm::wait(budget, || awg.poll(0)), Some(Ok(()))) {
-                return Err(Fail::Count { expected: count as u32, got: 0 });
+                return Err(Fail::Count {
+                    expected: count as u32,
+                    got: 0,
+                });
             }
             let sampled = pwm::wait(budget, || sampler.poll());
             if !matches!(sampled, Some(Ok(_))) {
-                return Err(Fail::Count { expected: count as u32, got: 0 });
+                return Err(Fail::Count {
+                    expected: count as u32,
+                    got: 0,
+                });
             }
             pwm::decode(sampler.samples(), 0, awg_pattern, awg_per_bit16, false)
         })();

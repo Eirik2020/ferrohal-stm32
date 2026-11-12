@@ -95,11 +95,7 @@ pub enum Fail {
         got: u32,
     },
     /// A live I2C device returned a byte other than the check expected.
-    I2cData {
-        at: usize,
-        sent: u8,
-        got: u8,
-    },
+    I2cData { at: usize, sent: u8, got: u8 },
     /// A timeout the check provokes never came, or came back as another
     /// error.
     I2cNotTimeout(Option<ferrohal_stm32::i2c::Error>),

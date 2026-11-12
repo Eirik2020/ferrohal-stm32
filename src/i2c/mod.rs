@@ -258,8 +258,9 @@ impl Health {
 }
 
 /// An I2C master, blocking and bounded, for the `embedded-hal` bus trait
-/// the device drivers take.
-pub struct I2c {
+/// the device drivers take. It carries the instance token:
+/// [`free`](Self::free) hands it back, so the same instance can open again.
+pub struct I2c<U> {
     info: &'static Info,
     kernel_clock: Hertz,
     speed: Hertz,
@@ -268,9 +269,10 @@ pub struct I2c {
     clock: Option<&'static dyn CycleClock>,
     name: &'static str,
     health: Health,
+    token: U,
 }
 
-impl I2c {
+impl<U: Instance> I2c<U> {
     /// Opens `wiring` with `config`: enables and resets the I2C and
     /// computes its timing registers. Returns the SCL in use through
     /// [`frequency`](Self::frequency).
@@ -278,13 +280,15 @@ impl I2c {
     /// A refusal hands back `wiring` with the reason, to retry or use
     /// elsewhere. Every refusal comes before anything is written to
     /// hardware.
-    pub fn new<U, Scl, Sda>(
+    ///
+    /// On success the instance token moves into the handle;
+    /// [`free`](Self::free) returns it.
+    pub fn new<Scl, Sda>(
         rcc: &mut Rcc,
         wiring: Wiring<U, Scl, Sda>,
         config: &Config,
     ) -> Result<Self, Refused<ConfigError, Wiring<U, Scl, Sda>>>
     where
-        U: Instance,
         Scl: SclPin<U> + AltPin,
         Sda: SdaPin<U> + AltPin,
     {
@@ -302,6 +306,7 @@ impl I2c {
         let speed = timing.speed();
         // Past the last refusal: the wiring's tokens end when `new`
         // returns.
+        let Wiring { i2c, .. } = wiring;
         rcc.enable(info.enable());
         rcc.reset(info.enable());
         info.unit().apply(&timing);
@@ -313,7 +318,18 @@ impl I2c {
             clock: None,
             name: U::NAME,
             health: Health::default(),
+            token: i2c,
         })
+    }
+
+    /// Closes the I2C, and hands the instance token back: what a `Drop`
+    /// would do, made explicit so the token can move out. The bus is idle
+    /// between blocking transfers, so PE drops with nothing in flight; a
+    /// slave mid-byte sees a stop-like silence. A reopen runs `I2c::new`
+    /// again, from the same token.
+    pub fn free(self) -> U {
+        self.info.unit().disable();
+        self.token
     }
 
     /// The SCL in use.
@@ -514,11 +530,11 @@ impl I2c {
     }
 }
 
-impl embedded_hal::i2c::ErrorType for I2c {
+impl<U: Instance> embedded_hal::i2c::ErrorType for I2c<U> {
     type Error = Error;
 }
 
-impl embedded_hal::i2c::I2c for I2c {
+impl<U: Instance> embedded_hal::i2c::I2c for I2c<U> {
     fn transaction(
         &mut self,
         address: embedded_hal::i2c::SevenBitAddress,
