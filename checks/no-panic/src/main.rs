@@ -96,7 +96,7 @@ fn main() -> ! {
     keep(Uart::<chip::RxUart>::check(&black_box(rcc.clocks()), &sbus));
     // SAFETY: as TX and RX above.
     let ring = black_box(unsafe { &mut *addr_of_mut!(RX2) });
-    let (_rx_line, mut rx_only, mut rx_irq) = match UartRx::new(&mut rcc, rx_wiring, &sbus, ring) {
+    let (rx_line, mut rx_only, mut rx_irq) = match UartRx::new(&mut rcc, rx_wiring, &sbus, ring) {
         Ok(opened) => opened,
         Err(refused) => {
             keep(refused.error());
@@ -164,6 +164,7 @@ fn main() -> ! {
     };
     if let Ok(mut bus) = spi {
         exercise_spi(&mut bus);
+        keep(bus.free());
     }
 
     // I2C: the timing check, then every operation of the bus trait.
@@ -207,6 +208,12 @@ fn main() -> ! {
     keep(handle.flags());
     handle.clear(black_box(Flags::default()));
     keep(handle.remaining());
+
+    // The teardowns: each stops what it ran and hands the token back.
+    let (line, tx, rx) = uart.split();
+    keep(Uart::join(line, tx, rx).free());
+    keep(rx_only.free(rx_line));
+    keep(i2c.free());
     park()
 }
 
@@ -565,6 +572,8 @@ pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
     pwm.set_output::<1>(black_box(true));
     pwm.start();
     pwm.start_one_pulse();
+    lane.abort(&pwm);
+    keep(pwm.free());
 }
 
 /// A sampler of port B through every operation.
@@ -712,6 +721,7 @@ pub fn exercise_blocking<U, K, I, O>(
     keep(bus.name());
     bus.set_clock(Some(&CLOCK));
     keep(SpiBus::write(&mut bus, data));
+    keep(bus.free());
 }
 
 /// The I2C through every operation of the bus trait, and the empty
