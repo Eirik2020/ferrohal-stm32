@@ -668,7 +668,7 @@ requirements:
         - level: analysis
           environment: host
           method:
-            procedure: requirements/benches.md#Chip glue against metapac
+            procedure: requirements/benches-analysis.md#Chip glue against metapac
 
   - id: GLUE-002
     title: A wiring describes itself

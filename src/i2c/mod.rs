@@ -32,7 +32,7 @@
 //!   covers only a device that answers within it). No DMA: an I2C
 //!   exchange is a few bytes.
 //!
-//! Requirements: I2C-001, I2C-002, I2C-003, I2C-004, I2C-005, I2C-006
+//! Requirements: I2C-001, I2C-002, I2C-003, I2C-004, I2C-005, I2C-006, API-002
 
 pub use crate::resource::{Refused, Resource, Signal};
 pub use crate::time::CycleClock;

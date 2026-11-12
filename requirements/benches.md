@@ -12,7 +12,8 @@ hash of the manifest beside its logs, which lists every binary of the run by SHA
 How the rig is driven, before any procedure here runs — which probe a script flashes
 through, and the `rt` feature every firmware crate needs — is [rig.md](hil/RIG.md).
 The injected faults, split out to keep this file in its budget, are
-[benches-faults.md](benches-faults.md).
+[benches-faults.md](benches-faults.md); the host analyses (no reachable panic, the
+chip glue) are [benches-analysis.md](benches-analysis.md).
 
 ## UART on the Nucleo-F401RE
 
@@ -44,20 +45,6 @@ is not spent compiling, and the host opens only a port that appeared after the o
 a previous image left had gone: a rerun cannot talk to the image it is about to
 replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
-## No reachable panic
-
-`checks/run.sh`'s `no reachable panic` step builds `checks/no-panic` per chip in
-release. It calls every public function with optimiser-opaque inputs, and its
-panic handler calls an undefined symbol, so the image links only if no panic
-path survives. Pass: the step passes for every chip. A new public function is
-added to that crate [API-001].
-
-## Chip glue against metapac
-
-`python3 -I tools/check_glue.py`, which compares each chip's routing rows with
-stm32-metapac's metadata. Pass: it exits zero. It reads the rows as text, so their
-layout must stay as it is.
-
 ## SPI and EXTI on the Nucleo-F401RE
 
 `hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
@@ -68,11 +55,11 @@ layout must stay as it is.
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run I stops its TIM3 generator mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the generator's period [AWG-007 API-002]. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 
-`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 generator as run I does on the F401 [AWG-007 API-002]. Pass: every check in every run passes and the script exits zero.
 
 ## Watchdog on the Nucleo-F401RE
 

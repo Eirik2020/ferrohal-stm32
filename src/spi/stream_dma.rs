@@ -29,7 +29,7 @@
 //! a chip with a data cache, memory the MPU marks non-cacheable. `Spi::new`
 //! checks both with `chip::check_dma_buffer`.
 //!
-//! Requirements: SPI-002, SPI-003, SPI-004, SPI-005, SPI-006, SPI-007, SPI-008
+//! Requirements: SPI-002, SPI-003, SPI-004, SPI-005, SPI-006, SPI-007, SPI-008, API-002
 
 use core::sync::atomic::{Ordering, fence};
 

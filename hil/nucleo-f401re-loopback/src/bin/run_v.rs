@@ -48,6 +48,29 @@ mod watchdog;
 use defmt_rtt as _;
 use panic_probe as _;
 
+/// What a `free` must leave: the handle freed at all (`handed_back`), the
+/// peripheral off (`off`, read from its enable bit) and every one of its DMA
+/// streams stopped. Counts what is still on.
+fn freed(
+    handed_back: bool,
+    off: bool,
+    streams: &[(stm32_metapac::dma::Dma, usize)],
+) -> Result<(), tests::Fail> {
+    let running = streams
+        .iter()
+        .filter(|(dma, stream)| dma.st(*stream).cr().read().en())
+        .count() as u32;
+    let on = u32::from(!handed_back) + u32::from(!off) + running;
+    if on == 0 {
+        Ok(())
+    } else {
+        Err(tests::Fail::Count {
+            expected: 0,
+            got: on,
+        })
+    }
+}
+
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
@@ -283,10 +306,22 @@ mod app {
             "the handed-back wiring echoes a frame [API-001]",
             tests::echo(&mut loop1, b"refusal\n"),
         );
+        // `free` stops the line and both streams, and hands the token back.
+        let _token = usart1.free();
+        report.check(
+            "USART1 PA9->PA10",
+            "free leaves the USART off and both streams stopped [API-002]",
+            crate::freed(
+                true,
+                !stm32_metapac::USART1.cr1().read().ue(),
+                &[(stm32_metapac::DMA2, 7), (stm32_metapac::DMA2, 2)],
+            ),
+        );
 
         // SPI: a 0 Hz config refuses for the stream and the polled driver,
         // and the handed-back wirings transfer over S1 and S3.
         let sent = b"refusal run";
+        let mut spi_freed = false;
         report.check(
             "SPI3 PC10/PC11/PC12",
             "a 0 Hz config refuses; the wiring transfers over S5 [API-001]",
@@ -306,20 +341,35 @@ mod app {
                     } else {
                         let (wiring, buffers) = refused.into_parts();
                         match spi::Spi::new(&mut run.rcc, wiring, &board::SPI, buffers) {
-                            Ok(mut spi) => match spi.transfer(sent) {
-                                Ok(got) if got == sent => Ok(()),
-                                Ok(_) => Err(Fail::Count {
-                                    expected: sent.len() as u32,
-                                    got: 0,
-                                }),
-                                Err(error) => Err(Fail::Spi(error)),
-                            },
+                            Ok(mut spi) => {
+                                let echoed = match spi.transfer(sent) {
+                                    Ok(got) if got == sent => Ok(()),
+                                    Ok(_) => Err(Fail::Count {
+                                        expected: sent.len() as u32,
+                                        got: 0,
+                                    }),
+                                    Err(error) => Err(Fail::Spi(error)),
+                                };
+                                let _token = spi.free();
+                                spi_freed = true;
+                                echoed
+                            }
                             Err(refused) => Err(Fail::SpiConfig(refused.error())),
                         }
                     }
                 }
             },
         );
+        report.check(
+            "SPI3 PC10/PC11/PC12",
+            "free leaves the SPI off and both streams stopped [API-002]",
+            crate::freed(
+                spi_freed,
+                !stm32_metapac::SPI3.cr1().read().spe(),
+                &[(stm32_metapac::DMA1, 5), (stm32_metapac::DMA1, 2)],
+            ),
+        );
+        let mut polled_freed = false;
         report.check(
             "SPI2 PB13/PB14/PB15 (polled)",
             "a 0 Hz config refuses; the wiring writes over S3 [API-001]",
@@ -331,10 +381,12 @@ mod app {
                     } else {
                         let wiring = refused.into_parts();
                         match spi::BlockingSpi::new(&mut run.rcc, wiring, &board::SPI) {
-                            Ok(mut spi) => match spi.write(sent) {
-                                Ok(()) => Ok(()),
-                                Err(error) => Err(Fail::Spi(error)),
-                            },
+                            Ok(mut spi) => {
+                                let written = spi.write(sent).map_err(Fail::Spi);
+                                let _token = spi.free();
+                                polled_freed = true;
+                                written
+                            }
                             Err(refused) => Err(Fail::SpiConfig(refused.error())),
                         }
                     }
@@ -344,6 +396,12 @@ mod app {
 
         // I2C: an out-of-range speed refuses; the wiring opens the bus,
         // which NACKs a vacant address all by itself.
+        report.check(
+            "SPI2 PB13/PB14/PB15 (polled)",
+            "free leaves the SPI off [API-002]",
+            crate::freed(polled_freed, !stm32_metapac::SPI2.cr1().read().spe(), &[]),
+        );
+        let mut i2c_freed = false;
         report.check(
             "I2C3 PA8/PC9",
             "an out-of-range speed refuses; the bus NACKs a vacant address [API-001]",
@@ -355,16 +413,27 @@ mod app {
                     } else {
                         let wiring = refused.into_parts();
                         match I2c::new(&mut run.rcc, wiring, &I2cConfig::new(Hertz::khz(50))) {
-                            Ok(mut bus) => match bus.write(0x1E, &[0xA5]) {
-                                Err(I2cError::Nack) => Ok(()),
-                                Err(error) => Err(Fail::I2c(error)),
-                                Ok(()) => Err(Fail::I2cNotNack(None)),
-                            },
+                            Ok(mut bus) => {
+                                let nacked = match bus.write(0x1E, &[0xA5]) {
+                                    Err(I2cError::Nack) => Ok(()),
+                                    Err(error) => Err(Fail::I2c(error)),
+                                    Ok(()) => Err(Fail::I2cNotNack(None)),
+                                };
+                                let _token = bus.free();
+                                i2c_freed = true;
+                                nacked
+                            }
                             Err(refused) => Err(Fail::I2cConfig(refused.error())),
                         }
                     }
                 }
             },
+        );
+
+        report.check(
+            "I2C3 PA8/PC9",
+            "free leaves the I2C off [API-002]",
+            crate::freed(i2c_freed, !stm32_metapac::I2C3.cr1().read().pe(), &[]),
         );
 
         // ADC: an empty sequence refuses; the converter, stream and buffer

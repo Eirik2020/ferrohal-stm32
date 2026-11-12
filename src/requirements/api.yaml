@@ -14,7 +14,7 @@ requirements:
         - level: analysis
           environment: host
           method:
-            procedure: requirements/benches.md#No reachable panic
+            procedure: requirements/benches-analysis.md#No reachable panic
         - level: target
           environment: development
           method:
@@ -31,3 +31,32 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#The TBS Lucid H7 board bench
+  - id: API-002
+    title: A freed handle stops and hands its token back
+    statement: >-
+      Every handle that owns a peripheral's instance token shall, when
+      freed, stop what it ran and return that token.
+    rationale: >-
+      Firmware needs one peripheral in a second role, and G5 removed the
+      stolen token that served it. Leaving the peripheral running, or an
+      output held at the level it stopped at, would hand the next owner a
+      busy unit; a token that never comes back strands it.
+    derived_from: [G5]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
