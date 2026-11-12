@@ -13,6 +13,8 @@ the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
 - **[Decided]** A layer's interface to the layer below is the requirements it sets there. A change to a part that still fulfils them re-owes only that part. A change to the requirements re-owes the layer that set them.
 - **[Decided]** The layers, each with its own requirements and verification: IP block, engine, chip glue, HAL API.
 - **[Decided]** One first pass tests everything. After it, only what changed is retested: an IP change retests the IP, a glue change retests the glue.
+- **[Decided 2026-11-13]** The car rule across chips. IP versions are separate from chip families, so an IP version proven on one chip is proven for every family that uses it, and glue a family shares is proven on one chip of that family. Only glue particular to one chip needs that chip. A second chip proving the same layer is exhaustive testing, which is forbidden unless a rationale is presented to the owner and accepted.
+- **[Decided 2026-11-13]** Evidence follows files, not images. A requirement verified on a bench stands while the files that bench exercised for it are unchanged; another file added to the image, another run's code, or a rebuilt binary does not re-owe it. reqtool keys board evidence on the whole configuration today (any compiled path, all bench source), which breaks this: open in reqtool.
 
 ## Files and hashes
 

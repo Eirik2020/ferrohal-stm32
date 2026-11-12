@@ -3,7 +3,7 @@
  "counts": {
   "documents": 62,
   "agent": 43,
-  "bytes": 222706
+  "bytes": 223747
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 3932
+   "bytes": 4154
   },
   {
    "path": "DEBT.md",
@@ -191,7 +191,7 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2734
+   "bytes": 3553
   },
   {
    "path": "docs/design/requirements-tooling.md",

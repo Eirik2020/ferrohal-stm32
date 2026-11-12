@@ -47,6 +47,7 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 
 ## Rules
 
+- Car rule (`docs/design/requirements-system.md`): one chip proves an IP version for every family, one chip a family's shared glue; exhaustive tests need the owner's accepted rationale. Evidence follows files, not images.
 - Evidence: a debt item leaves `DEBT.md` only when hardware proves the fix. A fix no
   bench can reach stays open as Deferred (`DEBT.md` §7), ranked below every testable
   item.
