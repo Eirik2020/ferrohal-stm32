@@ -67,11 +67,11 @@ Moved to its own plan, [`2026-11-08-w14-naming.md`](2026-11-08-w14-naming.md), o
 
 ## Gates
 
-`checks/run.sh` **passes 2026-11-13** (no `check_names` step: that is W14's). Both
-Nucleo suites ran green at this branch's code the same day: F401 21 runs / 318 checks,
-H753 21 runs / 532 checks; the Foxeer (49) and the Lucid (42, card fitted) through DFU
-and USB. reqtool, recorded at `08e2c25`: **118 verified, 0 stale, 2 unverified** —
+`checks/run.sh` **passes 2026-11-13** (no `check_names` step: that is W14's). With
+API-002, the `Awg` teardown and the latch fix, all four benches ran green the same day:
+F401 21 runs / 325 checks, H753 21 runs / 539 checks, the Foxeer (49) and the Lucid
+(42, card fitted) through DFU and USB. reqtool: **119 of 121 verified, 0 stale** —
 `SDMMC-003` wants a Lucid run with the slot empty, and `UARTDMA-009` has no method (its
-DEBT item stands). H753 run M (CN13 cable) was not rerun. Evidence:
-`requirements/evidence/logs/free-redesign-20261113/`.
-FerroWasp pins `b6d8e84`; its bump meets `Spi::<SPIx>::check` (five board asserts).
+DEBT item stands). H753 run M (CN13 cable) was not rerun. FerroWasp pins `b6d8e84`; its
+bump meets `Spi::<SPIx>::check` (five board asserts). Evidence:
+`requirements/evidence/logs/free-redesign-20261113-api002/`.
