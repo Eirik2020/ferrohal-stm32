@@ -1,0 +1,26 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-o`
+     [38;5;10m[1mFinished[0m in 2.22s
+[INFO ] run O, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_o src/bin/run_o.rs:41)
+[INFO ] unique ID: [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34] (run_o src/bin/run_o.rs:45)
+[INFO ] PASS unique ID: isn't blank [SIG-001] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC1 PA6: a driven low reads near 0 [ADC-001 ADC-002] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC1 PA6: a driven high reads near full scale [ADC-002] (run_o ../common/tests.rs:367)
+[INFO ] ADC1 PA6: low 90, high 65470 of 65535 (run_o ../common/adc.rs:85)
+[INFO ] PASS ADC1 PA6: it follows the pin back down [ADC-002] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC1 scan: 64 sequences over DMA follow the pin [ADC-004] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC1 scan: a second start while running is refused [ADC-005] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC3 PF6: a driven low reads near 0 [ADC-001 ADC-002] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC3 PF6: a driven high reads near full scale [ADC-002] (run_o ../common/tests.rs:367)
+[INFO ] ADC3 PF6: low 74, high 65480 of 65535 (run_o ../common/adc.rs:85)
+[INFO ] PASS ADC3 PF6: it follows the pin back down [ADC-002] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC3 internal: VDDA from the internal reference is about 3.3 V [ADC-003] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC3 internal: the reference holds still, within 1 percent of scale [ADC-003] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC3 internal: the reference reads about 1.2 V [ADC-003] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC3 internal: the die is between 10 and 70 C [ADC-003] (run_o ../common/tests.rs:367)
+[INFO ] ADC3 internal: VDDA 3306 mV, reference 1221 mV, die 273 tenths of a degree (run_o ../common/adc.rs:147)
+[INFO ] PASS ADC3 scan: 64 sequences over DMA follow the pin [ADC-004] (run_o ../common/tests.rs:367)
+[INFO ] PASS ADC3 scan: a second start while running is refused [ADC-005] (run_o ../common/tests.rs:367)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_o ../common/tests.rs:1415)
+[INFO ] all checks passed (run_o ../common/tests.rs:1423)
+Firmware exited successfully

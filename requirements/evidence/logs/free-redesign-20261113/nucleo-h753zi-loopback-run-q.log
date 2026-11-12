@@ -1,0 +1,9 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-q`
+     [38;5;10m[1mFinished[0m in 2.24s
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG out over the wire: the far lane reads the samples [AWG-008 AWG-009] (run_q ../common/tests.rs:367)
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG in over the wire: the near lane reads the reply on its own pin [AWG-009] (run_q ../common/tests.rs:367)
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG: with the output off, nothing crosses the wire [AWG-011] (run_q ../common/tests.rs:367)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_q ../common/tests.rs:1415)
+[INFO ] all checks passed (run_q ../common/tests.rs:1423)
+Firmware exited successfully

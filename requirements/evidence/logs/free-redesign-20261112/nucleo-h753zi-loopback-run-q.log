@@ -1,0 +1,29 @@
+   Compiling nucleo-h753zi-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-h753zi-loopback)
+warning: variable does not need to be mutable
+  --> src/bin/run_q.rs:82:17
+   |
+82 |         let (Ok(mut tim3), Ok(mut tim8)) = (
+   |                 ----^^^^
+   |                 |
+   |                 help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> src/bin/run_q.rs:82:31
+   |
+82 |         let (Ok(mut tim3), Ok(mut tim8)) = (
+   |                               ----^^^^
+   |                               |
+   |                               help: remove this `mut`
+
+warning: `nucleo-h753zi-loopback` (bin "run-q") generated 2 warnings (run `cargo fix --bin "run-q" -p nucleo-h753zi-loopback` to apply 2 suggestions)
+    Finished `release` profile [optimized + debuginfo] target(s) in 2.67s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-q`
+     [38;5;10m[1mFinished[0m in 2.27s
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG out over the wire: the far lane reads the samples [AWG-008 AWG-009] (run_q ../common/tests.rs:303)
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG in over the wire: the near lane reads the reply on its own pin [AWG-009] (run_q ../common/tests.rs:303)
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG: with the output off, nothing crosses the wire [AWG-011] (run_q ../common/tests.rs:303)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_q ../common/tests.rs:1351)
+[INFO ] all checks passed (run_q ../common/tests.rs:1359)
+Firmware exited successfully

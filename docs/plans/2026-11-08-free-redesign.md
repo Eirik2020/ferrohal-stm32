@@ -69,6 +69,9 @@ Moved to its own plan, [`2026-11-08-w14-naming.md`](2026-11-08-w14-naming.md), o
 
 `checks/run.sh` **passes 2026-11-13** (no `check_names` step: that is W14's). Both
 Nucleo suites ran green at this branch's code the same day: F401 21 runs / 318 checks,
-H753 21 runs / 532 checks. The rest is flight-board hardware not on today's rig — Foxeer
-and Lucid, USB run M, DFU; `UARTDMA-009` still has no method (its DEBT item stands).
+H753 21 runs / 532 checks; the Foxeer (49) and the Lucid (42, card fitted) through DFU
+and USB. reqtool, recorded at `08e2c25`: **118 verified, 0 stale, 2 unverified** —
+`SDMMC-003` wants a Lucid run with the slot empty, and `UARTDMA-009` has no method (its
+DEBT item stands). H753 run M (CN13 cable) was not rerun. Evidence:
+`requirements/evidence/logs/free-redesign-20261113/`.
 FerroWasp pins `b6d8e84`; its bump meets `Spi::<SPIx>::check` (five board asserts).
