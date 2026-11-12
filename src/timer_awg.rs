@@ -24,7 +24,7 @@
 //! second's. The firmware binds each lane's stream vector, or polls, and calls
 //! [`Awg::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
 //!
-//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, AWG-012, API-002
+//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, API-002
 
 use super::pwm::{CompareLane, Error, Pwm};
 use super::{ChannelTimer, ConfigError, TriggeredBy};

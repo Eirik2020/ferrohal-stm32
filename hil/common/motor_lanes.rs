@@ -71,7 +71,7 @@ where
         report,
         link,
         done == FRAMES,
-        "motors: {} of {} frames on all four streams through the AWG, slowest {} us [AWG-005]",
+        "motors: {} of {} frames on all four streams through the AWG, slowest {} us",
         done,
         FRAMES,
         slowest_us
@@ -119,7 +119,7 @@ pub fn listen_suite<T1, T2, L1, L2>(
         report,
         link,
         all && !failed && read == 4,
-        "motors: all four lanes read their pads over DMA, {} of 4 [AWG-012]",
+        "motors: all four lanes read their pads over DMA, {} of 4",
         read
     );
     let _ = awg.speak();

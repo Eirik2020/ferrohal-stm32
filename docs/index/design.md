@@ -14,7 +14,7 @@
 | a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ownership.md | 2029 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-ids.md | 1789 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/requirements-system.md | 3553 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/requirements-system.md | 3815 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-tooling.md | 2325 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/scope.md | 2527 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/structure.md | 1497 B | Source: ADR-006, ../decisions/2026-11-10-doc- |

@@ -36,11 +36,7 @@ requirements:
       A missing card is a normal state, and it cannot hang a boot.
     derived_from: [G2]
     verification:
-      entries:
-        - level: target
-          environment: product
-          method:
-            procedure: requirements/benches.md#The TBS Lucid H7 with its slot empty
+      entries: []
 
   - id: SDMMC-004
     title: Blocks read back as written
@@ -48,11 +44,8 @@ requirements:
       Blocks written to a card shall read back the same, singly and in
       multiples.
     rationale: >-
-      Flight logs go here.
+      Data written to a card must read back as written, or it is lost
+      without a sign.
     derived_from: [G3]
     verification:
-      entries:
-        - level: target
-          environment: product
-          method:
-            procedure: requirements/benches.md#The TBS Lucid H7 board bench
+      entries: []

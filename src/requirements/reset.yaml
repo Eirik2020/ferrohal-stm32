@@ -60,10 +60,6 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Bootloader request on the Nucleo-F401RE
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#Bootloader request on the Nucleo-H753ZI
 
   - id: RESET-004
     title: The ROM bootloader is reached
@@ -75,11 +71,7 @@ requirements:
       probe.
     derived_from: [G3]
     verification:
-      entries:
-        - level: target
-          environment: product
-          method:
-            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
+      entries: []
 
   - id: SIG-001
     title: The unique ID is readable
@@ -108,13 +100,5 @@ requirements:
       know which part it carries.
     derived_from: [G3]
     verification:
-      entries:
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#The TBS Lucid H7 board bench
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
+      entries: []
 

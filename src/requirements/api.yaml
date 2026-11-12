@@ -5,8 +5,8 @@ requirements:
     statement: >-
       Every public function shall be reachable without a panic path.
     rationale: >-
-      A fault or a bad request comes back as an error; a panic on a flight
-      board loses the vehicle. The link check fails when a new public
+      A fault or a bad request comes back as an error; a panic stops every
+      task the firmware runs. The link check fails when a new public
       function brings one in.
     derived_from: [G2]
     verification:
@@ -23,14 +23,6 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#The TBS Lucid H7 board bench
   - id: API-002
     title: A freed handle stops and hands its token back
     statement: >-

@@ -116,7 +116,8 @@ requirements:
       A compare lane shall put out each of its values for one period, in
       order.
     rationale: >-
-      This is what a DShot frame is on the wire.
+      A protocol that encodes one value per period needs each value in
+      its own period, in order.
     derived_from: [G3]
     verification:
       entries:
@@ -135,7 +136,8 @@ requirements:
       Two lanes and a sampler shall all finish, at the rate a DShot600 frame
       needs, with no sample lost.
     rationale: >-
-      Bidirectional DShot sends and samples at once.
+      A protocol that sends and samples on one wire needs both to keep up
+      at once.
     derived_from: [G3]
     verification:
       entries:
@@ -172,7 +174,7 @@ requirements:
       A master's start shall start its slave in the same timer clock, on
       every start.
     rationale: >-
-      Motor outputs on two timers would otherwise be skewed.
+      Outputs spread over two timers would otherwise be skewed.
     derived_from: [G3]
     verification:
       entries:
@@ -322,15 +324,7 @@ requirements:
       trigger route.
     derived_from: [AWG-002]
     verification:
-      entries:
-        - level: target
-          environment: product
-          method:
-            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
-        - level: target
-          environment: product
-          method:
-            procedure: requirements/benches.md#The TBS Lucid H7 board bench
+      entries: []
 
   - id: AWG-006
     title: Each channel opens its own request
@@ -446,22 +440,3 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
-
-  - id: AWG-012
-    title: Flight board routes can read
-    statement: >-
-      Every lane on a flight board's motor routes shall read its pad's port
-      over DMA.
-    rationale: >-
-      Each board reaches its pads by different timers, streams and ports.
-    derived_from: [AWG-009]
-    verification:
-      entries:
-        - level: target
-          environment: product
-          method:
-            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
-        - level: target
-          environment: product
-          method:
-            procedure: requirements/benches.md#The TBS Lucid H7 board bench

@@ -9,7 +9,7 @@
 //! stay high if the SPI is disabled mid-frame): SPE only drops in
 //! `configure`, with the bus idle.
 //!
-//! Requirements: SPIV2-001
+//! Requirements: SPIV2-001, SPIPOLL-001, SPIPOLL-002
 
 use stm32_metapac::spi::vals::{Br, Cpha, Cpol, Dff, Lsbfirst, Mstr};
 

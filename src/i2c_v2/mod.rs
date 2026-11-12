@@ -15,7 +15,7 @@
 //! releases the lines while the timing register keeps its value
 //! (RM0433 §47.4.6).
 //!
-//! Requirements: I2C-005, I2CV2-001
+//! Requirements: I2C-005, I2CV2-001, I2C-002, I2C-003, I2C-004, I2C-006
 
 use stm32_metapac::i2c::I2c as Regs;
 
