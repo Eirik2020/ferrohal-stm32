@@ -1,0 +1,18 @@
+   Compiling nucleo-h753zi-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-h753zi-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.00s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-x`
+     [38;5;10m[1mFinished[0m in 2.13s
+[INFO ] run X, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } }, I-cache true, D-cache true (run_x src/bin/run_x.rs:240)
+[INFO ] PASS cache matrix: buffer in the write-through region refused [GLUE-003] (run_x ../common/tests.rs:379)
+[INFO ] PASS cache matrix: buffer in the write-back region refused [GLUE-003] (run_x ../common/tests.rs:379)
+[INFO ] PASS cache matrix: buffer in the non-cacheable DMA block taken [GLUE-003] (run_x ../common/tests.rs:379)
+[INFO ] PASS cache matrix: write-through: the load reads the last store, 500 rounds [ES0392 2.1.1] (run_x ../common/tests.rs:379)
+[INFO ] PASS cache matrix: write-back control: the same sequence clean [ES0392 2.1.1] (run_x ../common/tests.rs:379)
+[INFO ] PASS cache matrix: with the DMB: the load always reads the store, 500 rounds [ES0392 2.1.5] (run_x ../common/tests.rs:379)
+[INFO ] 2.1.5 without the DMB: 0 stale load(s) in 500 rounds; whether the race fires is the silicon's timing (run_x src/bin/run_x.rs:305)
+[INFO ] PASS cache matrix: without the DMB: every store still reaches SRAM (run_x ../common/tests.rs:367)
+[INFO ] PASS cache matrix: MPU off: a buffer in cached RAM refused [GLUE-003] (run_x ../common/tests.rs:379)
+[INFO ] PASS cache matrix: MPU off: the default map's write-back SRAM, the same sequence clean [ES0392 2.1.1] (run_x ../common/tests.rs:379)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_x ../common/tests.rs:1415)
+[INFO ] all checks passed (run_x ../common/tests.rs:1423)
+Firmware exited successfully

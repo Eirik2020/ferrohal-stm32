@@ -1,0 +1,16 @@
+   Compiling nucleo-h753zi-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-h753zi-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.47s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-l`
+     [38;5;10m[1mFinished[0m in 2.23s
+[INFO ] run L, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_l src/bin/run_l.rs:36)
+[INFO ] PASS SPI2 polled PB10/PC2/PC3: SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (run_l ../common/tests.rs:367)
+[INFO ] PASS SPI2 polled PB10/PC2/PC3: every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPIV2-001 SPIV4-001] (run_l ../common/tests.rs:367)
+[INFO ] SPI2 polled PB10/PC2/PC3: 64 bytes in 55071 cycles, 32768 on the wire (run_l ../common/spi_exti.rs:682)
+[INFO ] PASS SPI2 polled PB10/PC2/PC3: 64 bytes take at least their time on the wire [SPIPOLL-002] (run_l ../common/tests.rs:367)
+[INFO ] PASS SPI4 polled PE12/PE13/PE14: SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (run_l ../common/tests.rs:367)
+[INFO ] PASS SPI4 polled PE12/PE13/PE14: every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPIV2-001 SPIV4-001] (run_l ../common/tests.rs:367)
+[INFO ] SPI4 polled PE12/PE13/PE14: 64 bytes in 54092 cycles, 32768 on the wire (run_l ../common/spi_exti.rs:682)
+[INFO ] PASS SPI4 polled PE12/PE13/PE14: 64 bytes take at least their time on the wire [SPIPOLL-002] (run_l ../common/tests.rs:367)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_l ../common/tests.rs:1415)
+[INFO ] all checks passed (run_l ../common/tests.rs:1423)
+Firmware exited successfully
