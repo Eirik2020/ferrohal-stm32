@@ -15,8 +15,9 @@ see `documentation.md`.
 
 ## Budget
 
-- Estimator: 4 bytes/token. Caps in `documentation.md`; enforced by `tools/check_docs.py`.
-- Over cap -> rewrite terser, or split into a second document. Never drop a fact.
+- Byte caps in `documentation.md`; enforced by `tools/check_docs.py`.
+- Over cap -> split into a second document, linked from the first. Never compress,
+  never drop a fact.
 
 ## Human docs stay human
 

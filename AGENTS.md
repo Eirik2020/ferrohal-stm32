@@ -30,7 +30,7 @@ Public repo. Bench-verified.
 
 ```
 checks/run.sh                    # clippy x2/chip, no-panic, safe-api, no-metapac, glue, docs, host
-python3 -I tools/check_docs.py   # budgets/tokens, decisions, housekeeping due
+python3 -I tools/check_docs.py   # byte budgets, orphans, decisions, housekeeping due
 python3 -I tools/docs_index.py   # regenerate docs/index/
 python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap
 python3 -I tools/housekeeping.py # the review report
@@ -55,7 +55,7 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - One `shall` per requirement; module trailer names its IDs.
 - `DEBT.md`/`RESOLVED.md` = pointer indexes, no prose.
 - Nothing documented only in commit/PR/chat.
-- Docs: human vs agent classes + budgets/tokens per `docs/policies/documentation.md`; split, never compress.
+- Docs: human vs agent classes; 20000 B always-loaded, 40000 B otherwise (`docs/policies/documentation.md`); split, never compress; a split is linked, never orphaned.
 - Housekeeping forced: `state.md` due date or +10 docs -> `tools/housekeeping.py`, record pass.
 - Don't touch `flash-backups/`, `requirements/evidence/`. `ferrosmith-board-schema.md` stays untracked.
 - Workspace habits: `../agent-memory/MEMORY.md`.

@@ -19,8 +19,9 @@ when stale). Then run `python3 -I tools/housekeeping.py` and work through its re
    supersede what changed, archive what is settled. Keep the active set under 20.
 4. **Plans and notes** - a plan whose work merged becomes a `RESOLVED.md` line; a note
    whose facts moved into a module doc is deleted; anything still useful is re-linked.
-5. **Budgets and ratchets** - fix every checker failure by **moving prose** (split the
-   document, move a chapter to a topic document), never by compressing it.
+5. **Budgets and orphans** - fix every checker failure by **moving prose** (split the
+   document, move a chapter to a topic document), never by compressing it; link
+   the split-off part from where it came, so it is never an orphan.
 6. **Workspace pass** - `agent-memory/MEMORY.md`, stale state notes, and
    `python3 -I agent-memory/tools/check_agent_docs.py`.
 

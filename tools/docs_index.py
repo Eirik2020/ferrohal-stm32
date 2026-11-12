@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import check_docs  # noqa: E402  (budgets, token caps and exemptions in one place)
+import check_docs  # noqa: E402  (budgets, classes and exemptions in one place)
 
 ROOT = check_docs.ROOT
 INDEX_DIR = ROOT / "docs/index"
@@ -56,9 +56,7 @@ def describe() -> dict:
             # The generated index excludes itself: listing it would make every write
             # change the files it is compared against.
             continue
-        agent = any(
-            re.search(pattern, relative) for pattern, _, _ in check_docs.TOKENS
-        )
+        agent = any(re.search(pattern, relative) for pattern in check_docs.AGENT_FACING)
         title = TITLE.search(path.read_text(encoding="utf-8"))
         size = path.stat().st_size
         entry = {
@@ -67,7 +65,6 @@ def describe() -> dict:
             "title": title.group(1).strip() if title else path.stem,
             "purpose": purpose(path),
             "bytes": size,
-            "tokens": (size + 3) // 4,
         }
         status = STATUS.search(path.read_text(encoding="utf-8"))
         if status:
@@ -80,9 +77,7 @@ def describe() -> dict:
         "counts": {
             "documents": len(documents),
             "agent": sum(1 for doc in documents if doc["class"] == "agent"),
-            "agent_tokens": sum(
-                doc["tokens"] for doc in documents if doc["class"] == "agent"
-            ),
+            "bytes": sum(doc["bytes"] for doc in documents),
         },
         "documents": documents,
     }
@@ -107,8 +102,7 @@ def covers(name: str) -> str:
 
 
 def row(doc: dict) -> str:
-    size = f"{doc['tokens']} tok" if doc["class"] == "agent" else f"{doc['bytes']} B"
-    return f"| {doc['class'][0]} | {doc['path']} | {size} | {doc['purpose']} |"
+    return f"| {doc['class'][0]} | {doc['path']} | {doc['bytes']} B | {doc['purpose']} |"
 
 
 def pages(data: dict) -> dict[str, str]:
@@ -122,7 +116,7 @@ def pages(data: dict) -> dict[str, str]:
         "",
         "Metadata only - read after choosing. "
         f"{data['counts']['documents']} documents, "
-        f"~{data['counts']['agent_tokens']} agent tokens. "
+        f"{data['counts']['bytes']} B. "
         "One file per area, in this directory; `index.json` for tools. "
         "Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.",
         "",
@@ -189,7 +183,7 @@ def main() -> int:
     print(
         f"wrote docs/index/ ({len(wanted) - 1} areas, "
         f"{data['counts']['documents']} documents, "
-        f"~{data['counts']['agent_tokens']} agent tokens)"
+        f"{data['counts']['bytes']} B)"
     )
     return 0
 
