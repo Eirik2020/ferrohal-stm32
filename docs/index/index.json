@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 60,
+  "documents": 61,
   "agent": 43,
-  "agent_tokens": 23925
+  "agent_tokens": 24018
  },
  "documents": [
   {
@@ -19,7 +19,7 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 22340,
+   "bytes": 22339,
    "tokens": 5585
   },
   {
@@ -35,8 +35,8 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 40456,
-   "tokens": 10114
+   "bytes": 41018,
+   "tokens": 10255
   },
   {
    "path": "THIRD-PARTY.md",
@@ -159,15 +159,15 @@
    "class": "agent",
    "title": "`free()`: the landed shapes, driver by driver",
    "purpose": "What blocked each driver's teardown, and the ",
-   "bytes": 2301,
-   "tokens": 576
+   "bytes": 2674,
+   "tokens": 669
   },
   {
    "path": "docs/design/free.md",
    "class": "agent",
    "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 2521,
+   "bytes": 2524,
    "tokens": 631
   },
   {
@@ -467,6 +467,14 @@
    "tokens": 371
   },
   {
+   "path": "requirements/benches-analysis.md",
+   "class": "human",
+   "title": "Bench Procedures: the host analyses",
+   "purpose": "The checks of benches.mdbenches.md that run o",
+   "bytes": 767,
+   "tokens": 192
+  },
+  {
    "path": "requirements/benches-faults.md",
    "class": "human",
    "title": "Bench Procedures: the injected faults and the cache matrix",
@@ -479,16 +487,16 @@
    "class": "human",
    "title": "Bench Procedures: the constructor refusals",
    "purpose": "The refusal runs of benches.mdbenches.md, spl",
-   "bytes": 2594,
-   "tokens": 649
+   "bytes": 2858,
+   "tokens": 715
   },
   {
    "path": "requirements/benches.md",
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 11978,
-   "tokens": 2995
+   "bytes": 11770,
+   "tokens": 2943
   },
   {
    "path": "requirements/goals.md",

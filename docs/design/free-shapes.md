@@ -27,6 +27,11 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
   cannot free the line under a live `UartTx`. `UartIrq` stays untyped: it is inert
   after a free. The bench's `dyn Link` reaches the halves through `TxHalf`/`RxHalf`
   (`hil/common/tests.rs`).
+- ~~An `Awg` kept its `Pwm`s and lanes for good~~ **done (2026-11-13):**
+  `Awg::free(self) -> (A, Option<B>)` runs `abort` and frees each `Pwm`; the lanes
+  end with it. Testing it found a stopped timer holds each output at the level it
+  stopped at, since the duties are preloaded: `abort` and `Pwm::free` now latch
+  them (an update event), so the lines go low at once.
 - ~~`Spi`/`I2c` stored `&'static Info`~~ **done (2026-11-12):** `Spi<U>`,
   `BlockingSpi<U>` and `I2c<U>` carry the token; `free()` stops the streams (SPI) or
   closes the unit (I2C, polled SPI) and returns it, and a refusal hands the token back

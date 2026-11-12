@@ -14,6 +14,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. Limits a fix left behi
   did. The bench's six second-use timer checks folded back into runs H and I
   from the freed tokens, so the fresh-boot runs U and T are gone and no token
   is stolen anywhere.
+- **An `Awg` frees its timers, and a stop holds the lines low** (2026-11-13).
+  DEBT's "an `Awg` has no teardown" closed: `Awg::free` runs `abort` and hands
+  both timer tokens back. Its bench check found a worse fault: a stopped timer
+  makes no update, so the duty 0 that `abort` and `Pwm::free` wrote never loaded
+  and an output stopped mid-pulse stayed high. Both now latch the duties. Measured
+  on TIM3 PB0/PB1, F401 run I and H753 run J: after `abort` and after `free`, no
+  sample of 1000 high, and the freed token reopens TIM3 at its period [API-002].
 - **A split UART's frame can change** (2026-11-11). DEBT's "`set_config` exists only
   on the whole `Uart`" went stale when the token moved into the line:
   `Line::set_config` and `Line::send_break` borrow the transmit half, and

@@ -8,7 +8,7 @@
 | a | docs/design/clocks.md | 240 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/execution-model.md | 195 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ferroforge-seam.md | 521 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/free-shapes.md | 576 tok | What blocked each driver's teardown, and the  |
+| a | docs/design/free-shapes.md | 669 tok | What blocked each driver's teardown, and the  |
 | a | docs/design/free.md | 631 tok | Every driver handle that owns a peripheral to |
 | a | docs/design/h7-errata.md | 747 tok | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 409 tok | Source: ADR-006, ../decisions/2026-11-10-doc- |
