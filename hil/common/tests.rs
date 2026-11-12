@@ -15,10 +15,74 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use embedded_io::Write;
-use ferrohal_stm32::uart::{
-    Chunk, ChunkEnd, Config, ConfigError, Error, Instance, IrqError, Line, Parity, SendError,
-    StopBits, Uart, UartInterrupts, UartRx, UartTx,
+use ferrohal_stm32::{
+    time::CycleClock,
+    uart::{
+        Chunk, ChunkEnd, Config, ConfigError, Error, Health, Instance, IrqError, Line, Parity,
+        SendError, StopBits, TxHealth, Uart, UartInterrupts, UartRx, UartTx,
+    },
 };
+
+/// What the checks ask of a transmit half, whatever its instance. The
+/// driver's halves are typed by instance; a [`Link`] erases that here, so
+/// one check runs over any UART. Each method forwards to the driver's own.
+pub trait TxHalf: Write<Error = Error> {
+    fn try_send(&mut self, frame: &[u8]) -> Result<(), SendError>;
+    fn is_idle(&mut self) -> Result<bool, Error>;
+    fn queued(&self) -> usize;
+    fn health(&self) -> TxHealth;
+}
+
+impl<U> TxHalf for UartTx<U> {
+    fn try_send(&mut self, frame: &[u8]) -> Result<(), SendError> {
+        UartTx::try_send(self, frame)
+    }
+    fn is_idle(&mut self) -> Result<bool, Error> {
+        UartTx::is_idle(self)
+    }
+    fn queued(&self) -> usize {
+        UartTx::queued(self)
+    }
+    fn health(&self) -> TxHealth {
+        UartTx::health(self)
+    }
+}
+
+/// What the checks ask of a receive half, whatever its instance; see
+/// [`TxHalf`].
+pub trait RxHalf {
+    fn try_read(&mut self, buf: &mut [u8]) -> Result<usize, Error>;
+    fn read_chunk(&mut self, buf: &mut [u8]) -> Result<Option<Chunk>, Error>;
+    fn read_within(&mut self, buf: &mut [u8], frames: u32) -> Result<usize, Error>;
+    fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>);
+    fn available(&mut self) -> Result<u16, Error>;
+    fn generation(&self) -> u32;
+    fn health(&self) -> Health;
+}
+
+impl<U> RxHalf for UartRx<U> {
+    fn try_read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        UartRx::try_read(self, buf)
+    }
+    fn read_chunk(&mut self, buf: &mut [u8]) -> Result<Option<Chunk>, Error> {
+        UartRx::read_chunk(self, buf)
+    }
+    fn read_within(&mut self, buf: &mut [u8], frames: u32) -> Result<usize, Error> {
+        UartRx::read_within(self, buf, frames)
+    }
+    fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
+        UartRx::set_clock(self, clock)
+    }
+    fn available(&mut self) -> Result<u16, Error> {
+        UartRx::available(self)
+    }
+    fn generation(&self) -> u32 {
+        UartRx::generation(self)
+    }
+    fn health(&self) -> Health {
+        UartRx::health(self)
+    }
+}
 
 /// Frames to wait for the next byte before calling the line silent.
 const PATIENCE: u32 = 200;
@@ -128,8 +192,8 @@ impl From<ConfigError> for Fail {
 /// A transmit half and the receive half that hears it.
 pub trait Link {
     fn name(&self) -> &'static str;
-    fn tx(&mut self) -> &mut UartTx;
-    fn rx(&mut self) -> &mut UartRx;
+    fn tx(&mut self) -> &mut dyn TxHalf;
+    fn rx(&mut self) -> &mut dyn RxHalf;
     /// Sends a break from the transmitting side's line.
     fn send_break(&mut self) -> Result<(), Error>;
     /// Frames to wait for the next byte before calling the line silent.
@@ -157,10 +221,10 @@ impl<U: Instance> Link for Loop<'_, U> {
     fn name(&self) -> &'static str {
         self.name
     }
-    fn tx(&mut self) -> &mut UartTx {
+    fn tx(&mut self) -> &mut dyn TxHalf {
         self.uart.tx()
     }
-    fn rx(&mut self) -> &mut UartRx {
+    fn rx(&mut self) -> &mut dyn RxHalf {
         self.uart.rx()
     }
     fn send_break(&mut self) -> Result<(), Error> {
@@ -185,10 +249,10 @@ impl<U: Instance> Link for HostEcho<'_, U> {
     fn name(&self) -> &'static str {
         self.name
     }
-    fn tx(&mut self) -> &mut UartTx {
+    fn tx(&mut self) -> &mut dyn TxHalf {
         self.uart.tx()
     }
-    fn rx(&mut self) -> &mut UartRx {
+    fn rx(&mut self) -> &mut dyn RxHalf {
         self.uart.rx()
     }
     fn send_break(&mut self) -> Result<(), Error> {
@@ -220,10 +284,10 @@ impl<U: Instance, V: Instance> Link for Cross<'_, U, V> {
     fn name(&self) -> &'static str {
         self.name
     }
-    fn tx(&mut self) -> &mut UartTx {
+    fn tx(&mut self) -> &mut dyn TxHalf {
         self.from.tx()
     }
-    fn rx(&mut self) -> &mut UartRx {
+    fn rx(&mut self) -> &mut dyn RxHalf {
         self.to.rx()
     }
     fn send_break(&mut self) -> Result<(), Error> {
@@ -238,24 +302,24 @@ impl<U: Instance, V: Instance> Configurable for Cross<'_, U, V> {
     }
 }
 
-/// Borrowed halves of two UARTs: `tx`'s line wired to `rx`'s. It cannot
-/// change the frame, so it streams only.
-pub struct Pair<'a, U> {
+/// Borrowed halves of two UARTs: `U`'s transmit half wired to `V`'s
+/// receive half. It cannot change the frame, so it streams only.
+pub struct Pair<'a, U, V> {
     pub name: &'static str,
     /// The transmitting side's line.
     pub line: &'a mut Line<U>,
-    pub tx: &'a mut UartTx,
-    pub rx: &'a mut UartRx,
+    pub tx: &'a mut UartTx<U>,
+    pub rx: &'a mut UartRx<V>,
 }
 
-impl<U: Instance> Link for Pair<'_, U> {
+impl<U: Instance, V: Instance> Link for Pair<'_, U, V> {
     fn name(&self) -> &'static str {
         self.name
     }
-    fn tx(&mut self) -> &mut UartTx {
+    fn tx(&mut self) -> &mut dyn TxHalf {
         self.tx
     }
-    fn rx(&mut self) -> &mut UartRx {
+    fn rx(&mut self) -> &mut dyn RxHalf {
         self.rx
     }
     fn send_break(&mut self) -> Result<(), Error> {
@@ -1259,7 +1323,7 @@ pub fn bitbang<P: embedded_hal::digital::OutputPin>(pin: &mut P, bytes: &[u8], c
 /// link: frames of `len` bytes with pauses between them must come out as
 /// one idle-ended chunk each, in one generation.
 pub fn receive_only<P: embedded_hal::digital::OutputPin>(
-    rx: &mut UartRx,
+    rx: &mut dyn RxHalf,
     feed: &mut P,
     config: &Config,
     len: usize,

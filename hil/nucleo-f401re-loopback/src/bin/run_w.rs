@@ -41,7 +41,6 @@ mod tests;
 use defmt_rtt as _;
 use panic_probe as _;
 
-use embedded_io::Write;
 use ferrohal_stm32::uart::{Config, Error, StopBits};
 use stm32_metapac::dma::St;
 
@@ -143,7 +142,10 @@ fn inject_overrun<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::In
     tests::drain(cross);
     let before = cross.to.rx().health().overrun;
     stm32_metapac::USART6.cr3().modify(|w| w.set_dmar(false));
-    let first = cross.tx().write_all(b"AB").and_then(|()| cross.tx().flush());
+    let first = cross
+        .tx()
+        .write_all(b"AB")
+        .and_then(|()| cross.tx().flush());
     // The flag fires within an interrupt latency of the second frame's
     // completion; wait until the driver has counted it before the request
     // returns, so the restore cannot race the flag and swallow the fault.
@@ -154,7 +156,10 @@ fn inject_overrun<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::In
         tests::delay_ms(1);
     }
     stm32_metapac::USART6.cr3().modify(|w| w.set_dmar(true));
-    let second = cross.tx().write_all(b"CDE").and_then(|()| cross.tx().flush());
+    let second = cross
+        .tx()
+        .write_all(b"CDE")
+        .and_then(|()| cross.tx().flush());
     let (len, got, overrun, noise, dma, other) = collect(cross, 8);
     let counted = cross.to.rx().health().overrun.wrapping_sub(before);
     defmt::info!(
@@ -220,7 +225,10 @@ fn inject_noise<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Inst
     }
     tests::drain(cross);
     let before = cross.to.rx().health().noise;
-    let sent = cross.tx().write_all(&NOISY).and_then(|()| cross.tx().flush());
+    let sent = cross
+        .tx()
+        .write_all(&NOISY)
+        .and_then(|()| cross.tx().flush());
     let (len, got, overrun, noise, dma, other) = collect(cross, 32);
     let counted = cross.to.rx().health().noise.wrapping_sub(before);
     defmt::info!(
@@ -280,7 +288,10 @@ fn inject_dma_transfer<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uar
     rx.m0ar().write(|w| *w = UNMAPPED);
     rx.cr().modify(|w| w.set_en(true));
     let first = cross.tx().write_all(b"X").and_then(|()| cross.tx().flush());
-    let second = cross.tx().write_all(b"YZ").and_then(|()| cross.tx().flush());
+    let second = cross
+        .tx()
+        .write_all(b"YZ")
+        .and_then(|()| cross.tx().flush());
     let (len, got, overrun, noise, dma, other) = collect(cross, 8);
     let after = cross.to.rx().health();
     defmt::info!(

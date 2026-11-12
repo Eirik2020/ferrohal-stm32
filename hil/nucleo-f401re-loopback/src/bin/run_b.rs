@@ -39,7 +39,6 @@ use panic_probe as _;
 
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
-use embedded_io::Write;
 use ferrohal_stm32::uart::{Config, Error, Parity, StopBits, UartIrq};
 use stm32_metapac::{dma::St, usart::Usart};
 

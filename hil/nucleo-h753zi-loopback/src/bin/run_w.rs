@@ -38,7 +38,6 @@ mod tests;
 use defmt_rtt as _;
 use panic_probe as _;
 
-use embedded_io::Write;
 use ferrohal_stm32::uart::Error;
 use stm32_metapac::dma::St;
 
@@ -93,7 +92,10 @@ fn inject_overrun<U: ferrohal_stm32::uart::Instance>(report: &mut Report, loop_:
     tests::drain(loop_);
     let before = loop_.rx().health().overrun;
     stm32_metapac::USART6.cr3().modify(|w| w.set_dmar(false));
-    let first = loop_.tx().write_all(b"AB").and_then(|()| loop_.tx().flush());
+    let first = loop_
+        .tx()
+        .write_all(b"AB")
+        .and_then(|()| loop_.tx().flush());
     // The flag fires within an interrupt latency of the second frame's
     // completion; wait until the driver has counted it before the request
     // returns, so the restore cannot race the flag and swallow the fault.
@@ -104,7 +106,10 @@ fn inject_overrun<U: ferrohal_stm32::uart::Instance>(report: &mut Report, loop_:
         tests::delay_ms(1);
     }
     stm32_metapac::USART6.cr3().modify(|w| w.set_dmar(true));
-    let second = loop_.tx().write_all(b"CDE").and_then(|()| loop_.tx().flush());
+    let second = loop_
+        .tx()
+        .write_all(b"CDE")
+        .and_then(|()| loop_.tx().flush());
     let (len, got, overrun, dma, other) = collect(loop_, 8);
     let counted = loop_.rx().health().overrun.wrapping_sub(before);
     defmt::info!(

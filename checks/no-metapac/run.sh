@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Compile-fail probes for G5 (docs/policies/safety.md): every bin in src/bin/
-# names a register hatch that must stay closed. A probe must FAIL to compile
-# with the error code its doc names (`Expects: EXXXX`): a probe that compiles
-# means a hatch is open again, and a probe that fails with another error means
-# the probe itself rotted. Exits non-zero naming the probe.
+# Compile-fail probes for G5 (docs/policies/safety.md) and the free() ownership
+# rules (docs/design/free.md): every bin in src/bin/ names a register hatch or
+# an ownership misuse that must stay closed. A probe must FAIL to compile with
+# the error code its doc names (`Expects: EXXXX`): a probe that compiles means
+# a hatch is open again, and a probe that fails with another error means the
+# probe itself rotted. Exits non-zero naming the probe.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 status=0
