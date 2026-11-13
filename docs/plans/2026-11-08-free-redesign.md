@@ -67,11 +67,14 @@ Moved to its own plan, [`2026-11-08-w14-naming.md`](2026-11-08-w14-naming.md), o
 
 ## Gates
 
-`checks/run.sh` **passes 2026-11-13** (no `check_names` step: that is W14's). With
-API-002, the `Awg` teardown and the latch fix, all four benches ran green the same day:
-F401 21 runs / 325 checks, H753 21 runs / 539 checks, the Foxeer (49) and the Lucid
-(42, card fitted) through DFU and USB. reqtool: **119 of 121 verified, 0 stale** —
-`SDMMC-003` wants a Lucid run with the slot empty, and `UARTDMA-009` has no method (its
-DEBT item stands). H753 run M (CN13 cable) was not rerun. FerroWasp pins `b6d8e84`; its
-bump meets `Spi::<SPIx>::check` (five board asserts). Evidence:
-`requirements/evidence/logs/free-redesign-20261113-api002/`.
+`checks/run.sh` **passes 2026-11-13** (no `check_names` step: that is W14's). After the
+requirements cleanup (the car rule: one chip per IP version, the flight boards smoke
+tests only), reqtool with board evidence following files and every declaring file
+covered (reqtool PR #4): **117 of 122 verified, 0 stale**, from the owed procedures
+rerun on their own chips - F401 UART, Timers, ADC, Bootloader, Refusals (13 runs, 208
+checks); H753 UART (with run Y), Timers, ADC, I2C, Bootloader, Refusals, USB (16 runs,
+439 checks) - and the host tests and analyses. The five unverified have no method
+until the rig grows (`hil/CAPABILITIES.md` queue 1 to 3): RESET-004, SDMMC-003/004,
+USBF4-001; UARTDMA-009 has no method (DEBT). FerroWasp pins `b6d8e84`; its bump meets
+`Spi::<SPIx>::check` (five board asserts). Evidence:
+`requirements/evidence/logs/free-redesign-20261113-coverage/` and `-usb/`.

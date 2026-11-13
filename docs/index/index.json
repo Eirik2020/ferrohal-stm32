@@ -3,7 +3,7 @@
  "counts": {
   "documents": 62,
   "agent": 43,
-  "bytes": 227386
+  "bytes": 227637
  },
  "documents": [
   {
@@ -352,7 +352,7 @@
    "class": "human",
    "title": "Ownership / `free()` redesign",
    "purpose": "Next project after the sweep, its own PR. ste",
-   "bytes": 5213
+   "bytes": 5464
   },
   {
    "path": "docs/plans/2026-11-08-w14-naming.md",
