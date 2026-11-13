@@ -2,9 +2,10 @@
 //! links.
 //!
 //! Each timer ticks at 1 kHz and must keep that rate to 0.05 %, then stop
-//! when paused. Run T takes the second use of TIM4 (8 kHz, the Lucid's
-//! control loop rate) and of TIM2 and TIM5 (1 MHz timebases; TIM2 is the
-//! Lucid's) on a fresh boot, so no token is stolen.
+//! when paused. The run then frees TIM4 and reopens it at 8 kHz, the Lucid's
+//! control loop rate, and frees TIM2 and TIM5 to reopen them as 1 MHz
+//! timebases (TIM2 is the Lucid's) — each measured again, from the token
+//! `free` hands back.
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
@@ -28,11 +29,11 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         chip::{
-            TIM1, TIM12, TIM13, TIM14, TIM15, TIM16, TIM17, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7,
-            TIM8,
+            TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7, TIM8, TIM12, TIM13, TIM14, TIM15, TIM16,
+            TIM17,
         },
         time::Hertz,
-        timer::Tick,
+        timer::{Tick, Timebase},
     };
 
     use crate::{
@@ -168,28 +169,73 @@ mod app {
         macro_rules! tick {
             ($name:literal, $variant:ident, $timer:expr, $rate:expr, $ticks:expr) => {
                 match $timer.map(|timer| Tick::new(&mut run.rcc, timer, $rate)) {
-                    Some(Ok(tick)) => {
-                        timers::tick_check(&mut report, $name, bench, Benched::$variant(tick), cpu, $ticks)
+                    Some(Ok(tick)) => Ok(timers::tick_check(
+                        &mut report,
+                        $name,
+                        bench,
+                        Benched::$variant(tick),
+                        cpu,
+                        $ticks,
+                    )),
+                    Some(Err(refused)) => {
+                        report.check($name, "open", Err(Fail::Timer(refused.error())));
+                        Err(())
                     }
-                    Some(Err(refused)) => report.check($name, "open", Err(Fail::Timer(refused.error()))),
                     None => defmt::unreachable!(),
                 }
             };
         }
-        tick!("TIM1 tick 1 kHz", Tim1, run.tim1.take(), khz, 50);
-        tick!("TIM2 tick 1 kHz", Tim2, run.tim2.take(), khz, 50);
-        tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
-        tick!("TIM4 tick 1 kHz", Tim4, run.tim4.take(), khz, 50);
-        tick!("TIM5 tick 1 kHz", Tim5, run.tim5.take(), khz, 50);
-        tick!("TIM6 tick 1 kHz", Tim6, run.tim6.take(), khz, 50);
-        tick!("TIM7 tick 1 kHz", Tim7, run.tim7.take(), khz, 50);
-        tick!("TIM8 tick 1 kHz", Tim8, run.tim8.take(), khz, 50);
-        tick!("TIM12 tick 1 kHz", Tim12, run.tim12.take(), khz, 50);
-        tick!("TIM13 tick 1 kHz", Tim13, run.tim13.take(), khz, 50);
-        tick!("TIM14 tick 1 kHz", Tim14, run.tim14.take(), khz, 50);
-        tick!("TIM15 tick 1 kHz", Tim15, run.tim15.take(), khz, 50);
-        tick!("TIM16 tick 1 kHz", Tim16, run.tim16.take(), khz, 50);
-        tick!("TIM17 tick 1 kHz", Tim17, run.tim17.take(), khz, 50);
+        let _ = tick!("TIM1 tick 1 kHz", Tim1, run.tim1.take(), khz, 50);
+        let tim2 = tick!("TIM2 tick 1 kHz", Tim2, run.tim2.take(), khz, 50);
+        let _ = tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
+        let tim4 = tick!("TIM4 tick 1 kHz", Tim4, run.tim4.take(), khz, 50);
+        let tim5 = tick!("TIM5 tick 1 kHz", Tim5, run.tim5.take(), khz, 50);
+        let _ = tick!("TIM6 tick 1 kHz", Tim6, run.tim6.take(), khz, 50);
+        let _ = tick!("TIM7 tick 1 kHz", Tim7, run.tim7.take(), khz, 50);
+        let _ = tick!("TIM8 tick 1 kHz", Tim8, run.tim8.take(), khz, 50);
+        let _ = tick!("TIM12 tick 1 kHz", Tim12, run.tim12.take(), khz, 50);
+        let _ = tick!("TIM13 tick 1 kHz", Tim13, run.tim13.take(), khz, 50);
+        let _ = tick!("TIM14 tick 1 kHz", Tim14, run.tim14.take(), khz, 50);
+        let _ = tick!("TIM15 tick 1 kHz", Tim15, run.tim15.take(), khz, 50);
+        let _ = tick!("TIM16 tick 1 kHz", Tim16, run.tim16.take(), khz, 50);
+        let _ = tick!("TIM17 tick 1 kHz", Tim17, run.tim17.take(), khz, 50);
+
+        // The second use, from the token `free` hands back: nothing is
+        // stolen, and no fresh boot is needed. A first use that was refused
+        // lost its token with its refusal, so it reports and stops here.
+        if let Ok(Benched::Tim4(tick)) = tim4 {
+            let token = tick.free();
+            match Tick::new(&mut run.rcc, token, board::CONTROL_RATE) {
+                Ok(tick) => {
+                    let _ = timers::tick_check(
+                        &mut report,
+                        "TIM4 tick 8 kHz",
+                        bench,
+                        Benched::Tim4(tick),
+                        cpu,
+                        400,
+                    );
+                }
+                Err(refused) => {
+                    report.check("TIM4 tick 8 kHz", "open", Err(Fail::Timer(refused.error())))
+                }
+            }
+        }
+        macro_rules! base {
+            ($name:literal, $second:expr, $variant:ident) => {
+                if let Ok(Benched::$variant(tick)) = $second {
+                    let token = tick.free();
+                    match Timebase::new(&mut run.rcc, token, Hertz::mhz(1)) {
+                        Ok(base) => timers::timebase_check(&mut report, $name, &base, cpu),
+                        Err(refused) => {
+                            report.check($name, "open", Err(Fail::Timer(refused.error())))
+                        }
+                    }
+                }
+            };
+        }
+        base!("TIM2 timebase 1 MHz", tim2, Tim2);
+        base!("TIM5 timebase 1 MHz", tim5, Tim5);
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

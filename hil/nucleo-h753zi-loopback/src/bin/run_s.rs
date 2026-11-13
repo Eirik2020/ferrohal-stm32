@@ -21,7 +21,11 @@ mod tests;
 
 use cortex_m_rt::entry;
 use defmt_rtt as _;
-use ferrohal_stm32::{chip::Peripherals, i2c::{Config, ConfigError, I2c}, time::Hertz};
+use ferrohal_stm32::{
+    chip::Peripherals,
+    i2c::{Config, ConfigError, I2c},
+    time::Hertz,
+};
 use panic_probe as _;
 use stm32_metapac as pac;
 

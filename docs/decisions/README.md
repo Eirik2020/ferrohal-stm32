@@ -18,7 +18,7 @@ Index: `index/<year>.md`. Policies: `../policies/`. Plans: `../plans/`.
 
 ## Checker
 
-`tools/check_docs.py`: hub/index token caps, status line, promoted target, unique ADR IDs,
+`tools/check_docs.py`: byte budgets, no orphans, status line, promoted target, unique ADR IDs,
 archive placement, index agreement both ways, active cap, no dated record in `AGENTS.md`,
 every relative `.md` link in `docs/` and `AGENTS.md` resolves.
 

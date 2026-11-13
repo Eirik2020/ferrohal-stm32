@@ -17,11 +17,12 @@ Public repo. Bench-verified.
 | fix limitation/close debt | `DEBT.md`, `RESOLVED.md` (indexes) -> owning file |
 | touch IP driver | `src/<ip>_vN/mod.rs` + its `requirements.yaml` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `docs/plans/2026-11-08-debt-sweep.md` (+`-gates`), `docs/plans/2026-11-08-free-redesign.md` |
+| plan work | `docs/plans/2026-11-08-w14-naming.md` (next), `docs/plans/2026-11-08-free-redesign.md`, `docs/plans/2026-11-08-debt-sweep.md` (+`-gates`) |
 | naming/catalogs | `docs/decisions/README.md` (ADR-003), `docs/notes/2026-11-08-naming-audit.md` |
+| API shape/renames/reuse | `docs/notes/2026-11-11-api-review.md` (hub) |
 | unsafe/registers | `docs/policies/safety.md`, `docs/decisions/README.md`, `docs/notes/2026-11-08-rtic-and-hal-comparison.md` |
 | record/find decision | `docs/decisions/README.md` -> `docs/decisions/index/<year>.md` |
-| find a document | `docs/INDEX.md` (generated; `docs/index.json` for tools) |
+| find a document | `docs/index/README.md` -> `docs/index/<area>.md` (generated; `index.json` for tools) |
 | change design | `docs/design/<topic>.md`, decisions hub |
 | after housekeeping date | `docs/housekeeping/README.md`, `state.md`, `tools/housekeeping.py` |
 
@@ -29,8 +30,8 @@ Public repo. Bench-verified.
 
 ```
 checks/run.sh                    # clippy x2/chip, no-panic, safe-api, no-metapac, glue, docs, host
-python3 -I tools/check_docs.py   # budgets/tokens, decisions, housekeeping due
-python3 -I tools/docs_index.py   # regenerate docs/INDEX.md + docs/index.json
+python3 -I tools/check_docs.py   # byte budgets, orphans, decisions, housekeeping due
+python3 -I tools/docs_index.py   # regenerate docs/index/
 python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap
 python3 -I tools/housekeeping.py # the review report
 hil/run-f401.sh [runs]           # Nucleo-F401RE
@@ -46,6 +47,7 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 
 ## Rules
 
+- Car rule (`docs/design/requirements-system.md`): one chip proves an IP version for every family, one chip a family's shared glue; exhaustive tests need the owner's accepted rationale. Evidence follows files, not images.
 - Evidence: a debt item leaves `DEBT.md` only when hardware proves the fix. A fix no
   bench can reach stays open as Deferred (`DEBT.md` §7), ranked below every testable
   item.
@@ -54,16 +56,17 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - One `shall` per requirement; module trailer names its IDs.
 - `DEBT.md`/`RESOLVED.md` = pointer indexes, no prose.
 - Nothing documented only in commit/PR/chat.
-- Docs: human vs agent classes + budgets/tokens per `docs/policies/documentation.md`; split, never compress.
+- Docs: human vs agent classes; 20000 B always-loaded, 40000 B otherwise (`docs/policies/documentation.md`); split, never compress; a split is linked, never orphaned.
 - Housekeeping forced: `state.md` due date or +10 docs -> `tools/housekeeping.py`, record pass.
 - Don't touch `flash-backups/`, `requirements/evidence/`. `ferrosmith-board-schema.md` stays untracked.
 - Workspace habits: `../agent-memory/MEMORY.md`.
 
-## State 2026-11-10
+## State 2026-11-13
 
-Debt sweep W1-W12 done (#29); the architecture map dissolved into `docs/design/`
-topics, notes and ADR-005; the rig docs live in `hil/`. Next: the refusal runs, W13,
-then the `free()` redesign. Details `docs/plans/`.
+Debt sweep W1-W13 done (#29); refusal runs (#31) and fault injection (#33) landed. The
+`free()` redesign is done: every token-owning handle hands its token back
+(`docs/design/free.md`), on branch `free-redesign-close`. Next: W14 naming, its own PR.
+Details `docs/plans/`.
 
 ## Style
 

@@ -5,9 +5,9 @@ Normative. Two classes:
 - **Human-readable** (prose, citations, people read them): `requirements/**` (`goals.md`,
   `benches.md`, `evidence/`), `src/**/requirements.yaml`,
   `DEBT.md`, `RESOLVED.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
-- Agent-facing (token-optimised, `agent-docs.md` style): `AGENTS.md`,
+- Agent-facing (token-optimised, [agent-docs.md](agent-docs.md) style): `AGENTS.md`,
   `docs/{policies,decisions,notes,housekeeping,design}/**`.
-- **Plans are human-readable**: `docs/plans/**` uses prose and the byte budget below.
+- **Plans are human-readable**: `docs/plans/**` uses prose.
 
 ## Where behaviour lives
 
@@ -40,15 +40,16 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 
 ## Limits
 
-- Agent docs - estimated tokens (4 B/token): `AGENTS.md` 1100; policies 750; decision hub 500;
-  decision 750; decision index 400; note 850; housekeeping 500; design topic 750.
-- Human docs - bytes: plans 6000; benches 12000; README/THIRD-PARTY/WIRING 8000.
-- Ratchets (human): `DEBT.md` 23943, `RESOLVED.md` 36834. `DEBT.md`
-  shrinks only; `RESOLVED.md` grows by each resolution, raising its ratchet then.
-- Over a limit: **split into a second document**; never compress, never drop a fact.
-- Checker: `tools/check_docs.py` in `checks/run.sh`; workspace:
-  `agent-memory/tools/check_agent_docs.py`.
-- Generated `docs/index.json` + `docs/INDEX.md`: `tools/docs_index.py` (`--check` fails stale).
+- Bytes only, set by the owner 2026-11-13: always-loaded files (`AGENTS.md`) 20000 B;
+  every other document 40000 B. No line or token caps, no ratchets.
+- Over a limit: **split into a second document**, linked from the first; never
+  compress, never drop a fact.
+- No orphans: every document is linked, or named by its path, from another document,
+  the code or a requirement file; entries (`AGENTS.md`, `README.md`, `DEBT.md`,
+  `RESOLVED.md`, the decision and housekeeping hubs) and the decision indexes aside.
+- Checker: `tools/check_docs.py` in `checks/run.sh` (sizes and orphans, both fail);
+  workspace: `agent-memory/tools/check_agent_docs.py`.
+- Generated `docs/index/` (hub, one file per area, `index.json`): `tools/docs_index.py` (`--check` fails stale).
   Section reads: `tools/docs_read.py <path> [section]`, 400 tokens.
 
 ## Housekeeping

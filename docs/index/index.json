@@ -1,0 +1,456 @@
+{
+ "docs_schema": 1,
+ "counts": {
+  "documents": 62,
+  "agent": 43,
+  "bytes": 224265
+ },
+ "documents": [
+  {
+   "path": "AGENTS.md",
+   "class": "agent",
+   "title": "FerroHAL - agent entry",
+   "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
+   "bytes": 4154
+  },
+  {
+   "path": "DEBT.md",
+   "class": "human",
+   "title": "FerroHAL: open debt and issues",
+   "purpose": "Open items only. Finished work moves to RESOL",
+   "bytes": 22339
+  },
+  {
+   "path": "README.md",
+   "class": "human",
+   "title": "ferrohal-stm32",
+   "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
+   "bytes": 4883
+  },
+  {
+   "path": "RESOLVED-chips-and-features.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, by chip and feature",
+   "purpose": "The chip and feature sections of RESOLVED.mdR",
+   "bytes": 8495
+  },
+  {
+   "path": "RESOLVED.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt",
+   "purpose": "History: items moved out of DEBT.mdDEBT.md on",
+   "bytes": 32860
+  },
+  {
+   "path": "THIRD-PARTY.md",
+   "class": "human",
+   "title": "Third-party code",
+   "purpose": "FerroHAL is licensed under MIT OR Apache-2.0 ",
+   "bytes": 3045
+  },
+  {
+   "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
+   "class": "agent",
+   "title": "ADR-005: FerroWasp integration and scope (2026-10-31)",
+   "purpose": "ADR-005 - Status: accepted",
+   "bytes": 2935,
+   "adr": "ADR-005",
+   "status": "accepted"
+  },
+  {
+   "path": "docs/decisions/2026-11-08-free-teardown-brief.md",
+   "class": "agent",
+   "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
+   "purpose": "ADR-002 - Status: accepted",
+   "bytes": 2685,
+   "adr": "ADR-002",
+   "status": "accepted"
+  },
+  {
+   "path": "docs/decisions/2026-11-08-g5-safe-by-default.md",
+   "class": "agent",
+   "title": "ADR-001: G5, safe by default (2026-11-08)",
+   "purpose": "ADR-001 - Status: promoted",
+   "bytes": 2409,
+   "adr": "ADR-001",
+   "status": "promoted"
+  },
+  {
+   "path": "docs/decisions/2026-11-08-naming-scheme.md",
+   "class": "agent",
+   "title": "Decision: naming scheme (2026-11-08)",
+   "purpose": "ADR-003 - Status: accepted",
+   "bytes": 2898,
+   "adr": "ADR-003",
+   "status": "accepted"
+  },
+  {
+   "path": "docs/decisions/2026-11-09-uart-capabilities.md",
+   "class": "agent",
+   "title": "Decision: UART control and flag capabilities (2026-11-09)",
+   "purpose": "ADR-004 - Status: promoted",
+   "bytes": 2125,
+   "adr": "ADR-004",
+   "status": "promoted"
+  },
+  {
+   "path": "docs/decisions/2026-11-10-doc-map-dissolution.md",
+   "class": "agent",
+   "title": "ADR-006: Dissolve the architecture map into topic documents (2026-11-10)",
+   "purpose": "ADR-006 - Status: accepted",
+   "bytes": 1574,
+   "adr": "ADR-006",
+   "status": "accepted"
+  },
+  {
+   "path": "docs/decisions/README.md",
+   "class": "agent",
+   "title": "Decision records (ADR hub)",
+   "purpose": "Record = event what, why, rejected, date, not",
+   "bytes": 1416
+  },
+  {
+   "path": "docs/decisions/index/2026.md",
+   "class": "agent",
+   "title": "Decision index, 2026",
+   "purpose": "One row per record. The record itself is auth",
+   "bytes": 978
+  },
+  {
+   "path": "docs/design/api-surface.md",
+   "class": "agent",
+   "title": "Public API surface",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 2009
+  },
+  {
+   "path": "docs/design/clocks.md",
+   "class": "agent",
+   "title": "Clocks",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 958
+  },
+  {
+   "path": "docs/design/execution-model.md",
+   "class": "agent",
+   "title": "Execution model: scheduler-agnostic",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 778
+  },
+  {
+   "path": "docs/design/ferroforge-seam.md",
+   "class": "agent",
+   "title": "The FerroForge seam: foot-guns and fixes",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 2084
+  },
+  {
+   "path": "docs/design/free-shapes.md",
+   "class": "agent",
+   "title": "`free()`: the landed shapes, driver by driver",
+   "purpose": "What blocked each driver's teardown, and the ",
+   "bytes": 2674
+  },
+  {
+   "path": "docs/design/free.md",
+   "class": "agent",
+   "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
+   "purpose": "Every driver handle that owns a peripheral to",
+   "bytes": 2524
+  },
+  {
+   "path": "docs/design/h7-errata.md",
+   "class": "agent",
+   "title": "ES0392 review: cache, system, flash ECC",
+   "purpose": "W11 of the debt sweep. Read against ES0392 Re",
+   "bytes": 2988
+  },
+  {
+   "path": "docs/design/layering.md",
+   "class": "agent",
+   "title": "Crate layering above FerroHAL",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 1634
+  },
+  {
+   "path": "docs/design/ownership.md",
+   "class": "agent",
+   "title": "Ownership and shared registers",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 2029
+  },
+  {
+   "path": "docs/design/requirements-ids.md",
+   "class": "agent",
+   "title": "Requirement IDs and what a user maps onto",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 1789
+  },
+  {
+   "path": "docs/design/requirements-system.md",
+   "class": "agent",
+   "title": "The requirements and verification model",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 3815
+  },
+  {
+   "path": "docs/design/requirements-tooling.md",
+   "class": "agent",
+   "title": "Requirement format and reqtool",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 2325
+  },
+  {
+   "path": "docs/design/scope.md",
+   "class": "agent",
+   "title": "Scope: what FerroHAL is and is not",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 2527
+  },
+  {
+   "path": "docs/design/structure.md",
+   "class": "agent",
+   "title": "Crate and module structure",
+   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
+   "bytes": 1497
+  },
+  {
+   "path": "docs/design/uart-ferrowasp.md",
+   "class": "agent",
+   "title": "UART design for FerroWasp",
+   "purpose": "Source: ADR-005, ../decisions/2026-10-31-ferr",
+   "bytes": 1402
+  },
+  {
+   "path": "docs/design/uart-ownership.md",
+   "class": "agent",
+   "title": "UART ownership: line, flags, data (2026-11-09)",
+   "purpose": "Source: ADR-004, ../decisions/2026-11-09-uart",
+   "bytes": 1710
+  },
+  {
+   "path": "docs/housekeeping/README.md",
+   "class": "agent",
+   "title": "Housekeeping",
+   "purpose": "Documents rot by addition. An agent adds a no",
+   "bytes": 2006
+  },
+  {
+   "path": "docs/housekeeping/state.md",
+   "class": "agent",
+   "title": "Housekeeping state",
+   "purpose": "Cadence: monthly, or immediately when more th",
+   "bytes": 1720
+  },
+  {
+   "path": "docs/notes/2026-11-08-naming-audit.md",
+   "class": "agent",
+   "title": "Naming audit (evidence)",
+   "purpose": "Audited 2026-11-08/09. Target scheme: ../deci",
+   "bytes": 2458
+  },
+  {
+   "path": "docs/notes/2026-11-08-rtic-and-hal-comparison.md",
+   "class": "agent",
+   "title": "RTIC + reference-HAL evidence (G5)",
+   "purpose": "Code-only, 2026-11-08/09. Sources: rtic-macro",
+   "bytes": 3216
+  },
+  {
+   "path": "docs/notes/2026-11-10-ip-versions.md",
+   "class": "agent",
+   "title": "IP versions across families (stm32-metapac 21, measured)",
+   "purpose": "From the architecture map's section 11, disso",
+   "bytes": 1262
+  },
+  {
+   "path": "docs/notes/2026-11-10-reference-implementations.md",
+   "class": "agent",
+   "title": "Reference implementations",
+   "purpose": "The architecture map's section 14, dissolved ",
+   "bytes": 1067
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-bench.md",
+   "class": "agent",
+   "title": "Bench runs and baseline, B1-B3 (API review)",
+   "purpose": "Baseline 2026-11-11; run letters per bench. H",
+   "bytes": 1906
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-docs.md",
+   "class": "agent",
+   "title": "Docs against code, K1-K8 (API review)",
+   "purpose": "Docs and code that disagree; ADR-003 gaps. Hu",
+   "bytes": 2805
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-driver-behaviour.md",
+   "class": "agent",
+   "title": "Errors, waits and vectors, D6-D13 (API review)",
+   "purpose": "Error types, refusals, waits, vectors. Hub: 2",
+   "bytes": 2701
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-driver-traits.md",
+   "class": "agent",
+   "title": "Driver traits, D1-D5 (API review)",
+   "purpose": "Instance traits, kernel clock, exposure. Hub:",
+   "bytes": 3278
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-naming-drift.md",
+   "class": "agent",
+   "title": "One concept, several names, N6-N19 (API review)",
+   "purpose": "One concept, several names; small items. Hub:",
+   "bytes": 3155
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-naming.md",
+   "class": "agent",
+   "title": "Naming rules, N1-N5 (API review)",
+   "purpose": "ADR-003 rule 5 against the code. Hub: 2026-11",
+   "bytes": 2923
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-reuse.md",
+   "class": "agent",
+   "title": "Duplication and reuse, U1-U11 (API review)",
+   "purpose": "What repeats, with measured counts. Hub: 2026",
+   "bytes": 2709
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review-structure.md",
+   "class": "agent",
+   "title": "Files, modules and tests, S1-S7 (API review)",
+   "purpose": "File placement, glue sharing, tests. Hub: 202",
+   "bytes": 2608
+  },
+  {
+   "path": "docs/notes/2026-11-11-api-review.md",
+   "class": "agent",
+   "title": "API review: consistency, naming, structure, reuse (hub)",
+   "purpose": "Merged 2026-11-11, every fact re-measured at ",
+   "bytes": 2866
+  },
+  {
+   "path": "docs/plans/2026-11-08-debt-sweep-gates.md",
+   "class": "human",
+   "title": "Debt sweep: detail, gates, cross-repo",
+   "purpose": "Part of the plan2026-11-08-debt-sweep.md.",
+   "bytes": 2997
+  },
+  {
+   "path": "docs/plans/2026-11-08-debt-sweep.md",
+   "class": "human",
+   "title": "FerroHAL debt sweep - plan of record",
+   "purpose": "Status: done - W1-W7 watchdog debug freeze, w",
+   "bytes": 4484
+  },
+  {
+   "path": "docs/plans/2026-11-08-free-redesign.md",
+   "class": "human",
+   "title": "Ownership / `free()` redesign",
+   "purpose": "Next project after the sweep, its own PR. ste",
+   "bytes": 5213
+  },
+  {
+   "path": "docs/plans/2026-11-08-w14-naming.md",
+   "class": "human",
+   "title": "W14: naming normalisation (ADR-003)",
+   "purpose": "Split out of the free redesign plan2026-11-08",
+   "bytes": 1593
+  },
+  {
+   "path": "docs/plans/2026-11-10-doc-sweep.md",
+   "class": "human",
+   "title": "Documentation sweep 2026-11-10 - plan of record",
+   "purpose": "Owner-ordered, after W12 merged #29: the READ",
+   "bytes": 3413
+  },
+  {
+   "path": "docs/policies/agent-docs.md",
+   "class": "agent",
+   "title": "Agent-doc style",
+   "purpose": "Agent docs = AGENTS.md + docs/{policies,decis",
+   "bytes": 1154
+  },
+  {
+   "path": "docs/policies/documentation.md",
+   "class": "agent",
+   "title": "Documentation policy",
+   "purpose": "Normative. Two classes:",
+   "bytes": 3208
+  },
+  {
+   "path": "docs/policies/safety.md",
+   "class": "agent",
+   "title": "Safety policy",
+   "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
+   "bytes": 2521
+  },
+  {
+   "path": "hil/CAPABILITIES.md",
+   "class": "human",
+   "title": "HIL rig: capabilities and improvements",
+   "purpose": "The rig turns requirement claims into measure",
+   "bytes": 7239
+  },
+  {
+   "path": "hil/RIG.md",
+   "class": "human",
+   "title": "Rig set-up",
+   "purpose": "What every bench script and firmware crate re",
+   "bytes": 2575
+  },
+  {
+   "path": "hil/WIRING.md",
+   "class": "human",
+   "title": "Bench wiring: the Pico 1 I2C simulator",
+   "purpose": "The two Nucleo benches prove FerroHAL's I2C m",
+   "bytes": 4765
+  },
+  {
+   "path": "hil/pico-i2c-sim/README.md",
+   "class": "human",
+   "title": "pico-i2c-sim",
+   "purpose": "A Raspberry Pi Pico 1 RP2040 standing in for ",
+   "bytes": 1483
+  },
+  {
+   "path": "requirements/benches-analysis.md",
+   "class": "human",
+   "title": "Bench Procedures: the host analyses",
+   "purpose": "The checks of benches.mdbenches.md that run o",
+   "bytes": 767
+  },
+  {
+   "path": "requirements/benches-faults.md",
+   "class": "human",
+   "title": "Bench Procedures: the injected faults and the cache matrix",
+   "purpose": "The fault-injection and cache-matrix runs of ",
+   "bytes": 4543
+  },
+  {
+   "path": "requirements/benches-refusals.md",
+   "class": "human",
+   "title": "Bench Procedures: the constructor refusals",
+   "purpose": "The refusal runs of benches.mdbenches.md, spl",
+   "bytes": 2858
+  },
+  {
+   "path": "requirements/benches.md",
+   "class": "human",
+   "title": "Bench Procedures",
+   "purpose": "What each requirement's bench entry runs. The",
+   "bytes": 12026
+  },
+  {
+   "path": "requirements/goals.md",
+   "class": "human",
+   "title": "FerroHAL's Goals",
+   "purpose": "Every requirement derives from one of these, ",
+   "bytes": 1207
+  }
+ ]
+}

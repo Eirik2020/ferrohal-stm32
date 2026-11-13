@@ -15,7 +15,7 @@ use stm32_metapac::usart::{
 };
 
 pub use crate::uart::stream_dma::{
-    Info, Instance, Line, RxDma, RxPin, TxDma, TxPin, Uart, UartIrq, UartRx, UartTx,
+    Info, Instance, Line, RxDma, RxLine, RxPin, TxDma, TxPin, Uart, UartIrq, UartRx, UartTx,
 };
 use crate::uart::{
     Config, Parity, StopBits,

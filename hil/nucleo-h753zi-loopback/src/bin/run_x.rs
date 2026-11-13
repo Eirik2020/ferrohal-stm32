@@ -74,14 +74,14 @@ unsafe fn set_regions(core: &mut cortex_m::Peripherals) {
         board::dma_region(core);
         core.MPU.rnr.write(1);
         core.MPU.rbar.write(WT_BASE);
-        core.MPU.rasr.write(
-            EXECUTE_NEVER | FULL_ACCESS | WRITE_THROUGH | SIZE_32K | ENABLE,
-        );
+        core.MPU
+            .rasr
+            .write(EXECUTE_NEVER | FULL_ACCESS | WRITE_THROUGH | SIZE_32K | ENABLE);
         core.MPU.rnr.write(2);
         core.MPU.rbar.write(WB_BASE);
-        core.MPU.rasr.write(
-            EXECUTE_NEVER | FULL_ACCESS | WRITE_BACK | SIZE_32K | ENABLE,
-        );
+        core.MPU
+            .rasr
+            .write(EXECUTE_NEVER | FULL_ACCESS | WRITE_BACK | SIZE_32K | ENABLE);
         core.MPU.ctrl.write(DEFAULT_MAP | ENABLE);
     }
     cortex_m::asm::dsb();
@@ -116,7 +116,11 @@ fn sequence_2_1_1(at: u32) -> bool {
 /// clean-invalidate the line, then — with or without the DMB — a store,
 /// then a linefill to the same line, then the load. Returns (the load read
 /// the store, the store reached SRAM).
-unsafe fn sequence_2_1_5(scb: &mut cortex_m::peripheral::SCB, at: u32, barrier: bool) -> (bool, bool) {
+unsafe fn sequence_2_1_5(
+    scb: &mut cortex_m::peripheral::SCB,
+    at: u32,
+    barrier: bool,
+) -> (bool, bool) {
     unsafe {
         let p = at as *mut u32;
         let _ = read_volatile(p);
@@ -156,7 +160,11 @@ fn run_2_1_1(base: u32, rounds: u32) -> Result<(), Fail> {
 }
 
 /// The 2.1.5 loop with the DMB: every load fresh.
-fn run_2_1_5_barriered(scb: &mut cortex_m::peripheral::SCB, base: u32, rounds: u32) -> Result<(), Fail> {
+fn run_2_1_5_barriered(
+    scb: &mut cortex_m::peripheral::SCB,
+    base: u32,
+    rounds: u32,
+) -> Result<(), Fail> {
     for i in 0..rounds {
         let at = base + (i % (REGION_BYTES / SET_SPAN - 4)) * SET_SPAN;
         let (fresh, in_sram) = unsafe { sequence_2_1_5(scb, at, true) };
@@ -173,7 +181,11 @@ fn run_2_1_5_barriered(scb: &mut cortex_m::peripheral::SCB, base: u32, rounds: u
 /// The 2.1.5 loop without the DMB. The cache-side stale count is the
 /// silicon's timing, not policy, and goes to the log; the store reaching
 /// SRAM is the invariant the erratum itself grants.
-fn run_2_1_5_free(scb: &mut cortex_m::peripheral::SCB, base: u32, rounds: u32) -> Result<u32, Fail> {
+fn run_2_1_5_free(
+    scb: &mut cortex_m::peripheral::SCB,
+    base: u32,
+    rounds: u32,
+) -> Result<u32, Fail> {
     let mut stale = 0;
     for i in 0..rounds {
         let at = base + (i % (REGION_BYTES / SET_SPAN - 4)) * SET_SPAN;
@@ -200,7 +212,7 @@ mod app {
     use crate::{
         board,
         tests::{self, Fail, Report},
-        {mpu_off, run_2_1_1, run_2_1_5_barriered, run_2_1_5_free, set_regions, WB_BASE, WT_BASE},
+        {WB_BASE, WT_BASE, mpu_off, run_2_1_1, run_2_1_5_barriered, run_2_1_5_free, set_regions},
     };
 
     const ROUNDS: u32 = 500;

@@ -1,0 +1,91 @@
+   Compiling nucleo-f401re-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback)
+warning: unused `Result` that must be used
+   --> src/bin/run_h.rs:203:9
+    |
+203 |         tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+203 |         let _ = tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_h.rs:206:9
+    |
+206 |         tick!("TIM9 tick 1 kHz", Tim9, run.tim9.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+206 |         let _ = tick!("TIM9 tick 1 kHz", Tim9, run.tim9.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_h.rs:207:9
+    |
+207 |         tick!("TIM10 tick 1 kHz", Tim10, run.tim10.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+207 |         let _ = tick!("TIM10 tick 1 kHz", Tim10, run.tim10.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_h.rs:208:9
+    |
+208 |         tick!("TIM11 tick 1 kHz", Tim11, run.tim11.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+208 |         let _ = tick!("TIM11 tick 1 kHz", Tim11, run.tim11.take(), khz, 50);
+    |         +++++++
+
+warning: `nucleo-f401re-loopback` (bin "run-h") generated 4 warnings
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.74s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/run-h`
+     [38;5;10m[1mFinished[0m in 1.03s
+[INFO ] run H, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2 } (run_h src/bin/run_h.rs:88)
+[INFO ] PWR_CR VOS before freeze 0b01 (run_h src/bin/run_h.rs:146)
+[INFO ] PASS PWR: scale 3 (VOS 0b01) set before freeze, for it to replace [RCC-003] (run_h ../common/tests.rs:315)
+[INFO ] PWR_CR VOS 0b10, PWR_CSR VOSRDY true (run_h src/bin/run_h.rs:163)
+[INFO ] PASS PWR: voltage scale 2 (VOS 0b10) and VOSRDY set [RCC-003] (run_h ../common/tests.rs:315)
+[INFO ] PASS TIM1 tick 1 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM1 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM1 tick 1 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM2 tick 1 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM2 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM2 tick 1 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM3 tick 1 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM3 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM3 tick 1 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 1 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 1 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM5 tick 1 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM5 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM5 tick 1 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM9 tick 1 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM9 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM9 tick 1 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM10 tick 1 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM10 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM10 tick 1 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM11 tick 1 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM11 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM11 tick 1 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 8 kHz: update vector enabled [TIMER-005] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 8 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 8 kHz: pause stops the ticks [TIMER-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM2 timebase 1 MHz: counts at its frequency, to 0.01 % of the DWT [TIMER-003 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] PASS TIM5 timebase 1 MHz: counts at its frequency, to 0.01 % of the DWT [TIMER-003 RCC-002] (run_h ../common/tests.rs:303)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (run_h ../common/tests.rs:1351)
+[INFO ] all checks passed (run_h ../common/tests.rs:1359)
+Firmware exited successfully

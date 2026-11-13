@@ -168,7 +168,9 @@ pub fn feed_then_starve(
         if Watchdog::is_frozen_on_halt() {
             Ok(())
         } else {
-            Err(Fail::Level { expected_high: true })
+            Err(Fail::Level {
+                expected_high: true,
+            })
         },
     );
     defmt::info!(

@@ -103,9 +103,34 @@ pub fn suite(report: &mut Report, name: &str, cause: ResetCause, enable_cache: i
     }
     // The reset restarted RTT; give the host time to find it again.
     cortex_m::asm::delay(200_000_000);
-    expect(report, name, "a fresh boot finds no request [RESET-003]", read(FRESH) == 1);
-    expect(report, name, "the request survives the reset [RESET-002]", read(COLD) == 1);
-    expect(report, name, "it answers yes only once [RESET-003]", read(AGAIN) == 1);
-    expect(report, name, "it survives with the data cache on [RESET-002]", read(CACHED) == 1);
-    expect(report, name, "the reset cause is software [RESET-001]", cause.software);
+    expect(
+        report,
+        name,
+        "a fresh boot finds no request [RESET-003]",
+        read(FRESH) == 1,
+    );
+    expect(
+        report,
+        name,
+        "the request survives the reset [RESET-002]",
+        read(COLD) == 1,
+    );
+    expect(
+        report,
+        name,
+        "it answers yes only once [RESET-003]",
+        read(AGAIN) == 1,
+    );
+    expect(
+        report,
+        name,
+        "it survives with the data cache on [RESET-002]",
+        read(CACHED) == 1,
+    );
+    expect(
+        report,
+        name,
+        "the reset cause is software [RESET-001]",
+        cause.software,
+    );
 }

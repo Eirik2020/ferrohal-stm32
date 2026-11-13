@@ -141,6 +141,15 @@ mod app {
             &mut sampler,
             cpu,
         );
+        pwm::awg_free_check(
+            &mut report,
+            "TIM3 CH3/CH4 PB0/PB1, freed",
+            awg,
+            (0, 1),
+            &mut sampler,
+            &mut run.rcc,
+            cpu,
+        );
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

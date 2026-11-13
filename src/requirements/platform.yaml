@@ -54,10 +54,6 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
-        - level: target
-          environment: product
-          method:
-            procedure: requirements/benches.md#The Foxeer F405 V2 board bench
 
   - id: GPIO-001
     title: Pins carry what they are set to
@@ -72,10 +68,6 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
 
   - id: DMA-001
     title: Streams move what they are set to
@@ -129,7 +121,3 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#UART on the Nucleo-H753ZI

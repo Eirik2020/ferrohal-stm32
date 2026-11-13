@@ -1,9 +1,9 @@
 //! Run H: every timer the F401 has, against the DWT cycle counter. No links.
 //!
 //! Each timer ticks at 1 kHz and must keep that rate to 0.05 %, then stop
-//! when paused. Run U takes the second use of TIM4 (8 kHz, FerroWasp's
-//! control loop rate) and of TIM2 and TIM5 (1 MHz timebases) on a fresh
-//! boot, so no token is stolen.
+//! when paused. The run then frees TIM4 and reopens it at 8 kHz, FerroWasp's
+//! control loop rate, and frees TIM2 and TIM5 to reopen them as 1 MHz
+//! timebases — each measured again, from the token `free` hands back.
 //!
 //! First, the voltage scale. Before `freeze`, `init` sets scale 3, as a
 //! bootloader might have left it: VOS 0b01 in RM0368's two bits, harmless on
@@ -32,9 +32,9 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
-        chip::{TIM1, TIM10, TIM11, TIM2, TIM3, TIM4, TIM5, TIM9},
+        chip::{TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10, TIM11},
         time::Hertz,
-        timer::Tick,
+        timer::{Tick, Timebase},
     };
 
     use crate::{
@@ -182,22 +182,67 @@ mod app {
         macro_rules! tick {
             ($name:literal, $variant:ident, $timer:expr, $rate:expr, $ticks:expr) => {
                 match $timer.map(|timer| Tick::new(&mut run.rcc, timer, $rate)) {
-                    Some(Ok(tick)) => {
-                        timers::tick_check(&mut report, $name, bench, Benched::$variant(tick), cpu, $ticks)
+                    Some(Ok(tick)) => Ok(timers::tick_check(
+                        &mut report,
+                        $name,
+                        bench,
+                        Benched::$variant(tick),
+                        cpu,
+                        $ticks,
+                    )),
+                    Some(Err(refused)) => {
+                        report.check($name, "open", Err(Fail::Timer(refused.error())));
+                        Err(())
                     }
-                    Some(Err(refused)) => report.check($name, "open", Err(Fail::Timer(refused.error()))),
                     None => defmt::unreachable!(),
                 }
             };
         }
-        tick!("TIM1 tick 1 kHz", Tim1, run.tim1.take(), khz, 50);
-        tick!("TIM2 tick 1 kHz", Tim2, run.tim2.take(), khz, 50);
-        tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
-        tick!("TIM4 tick 1 kHz", Tim4, run.tim4.take(), khz, 50);
-        tick!("TIM5 tick 1 kHz", Tim5, run.tim5.take(), khz, 50);
-        tick!("TIM9 tick 1 kHz", Tim9, run.tim9.take(), khz, 50);
-        tick!("TIM10 tick 1 kHz", Tim10, run.tim10.take(), khz, 50);
-        tick!("TIM11 tick 1 kHz", Tim11, run.tim11.take(), khz, 50);
+        let _ = tick!("TIM1 tick 1 kHz", Tim1, run.tim1.take(), khz, 50);
+        let tim2 = tick!("TIM2 tick 1 kHz", Tim2, run.tim2.take(), khz, 50);
+        let _ = tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
+        let tim4 = tick!("TIM4 tick 1 kHz", Tim4, run.tim4.take(), khz, 50);
+        let tim5 = tick!("TIM5 tick 1 kHz", Tim5, run.tim5.take(), khz, 50);
+        let _ = tick!("TIM9 tick 1 kHz", Tim9, run.tim9.take(), khz, 50);
+        let _ = tick!("TIM10 tick 1 kHz", Tim10, run.tim10.take(), khz, 50);
+        let _ = tick!("TIM11 tick 1 kHz", Tim11, run.tim11.take(), khz, 50);
+
+        // The second use, from the token `free` hands back: nothing is
+        // stolen, and no fresh boot is needed. A first use that was refused
+        // lost its token with its refusal, so it reports and stops here.
+        if let Ok(Benched::Tim4(tick)) = tim4 {
+            let token = tick.free();
+            match Tick::new(&mut run.rcc, token, board::CONTROL_RATE) {
+                Ok(tick) => {
+                    let _ = timers::tick_check(
+                        &mut report,
+                        "TIM4 tick 8 kHz",
+                        bench,
+                        Benched::Tim4(tick),
+                        cpu,
+                        400,
+                    );
+                }
+                Err(refused) => {
+                    report.check("TIM4 tick 8 kHz", "open", Err(Fail::Timer(refused.error())))
+                }
+            }
+        }
+        macro_rules! base {
+            ($name:literal, $second:expr, $variant:ident) => {
+                if let Ok(Benched::$variant(tick)) = $second {
+                    let token = tick.free();
+                    match Timebase::new(&mut run.rcc, token, Hertz::mhz(1)) {
+                        Ok(base) => timers::timebase_check(&mut report, $name, &base, cpu),
+                        Err(refused) => {
+                            report.check($name, "open", Err(Fail::Timer(refused.error())))
+                        }
+                    }
+                }
+            };
+        }
+        base!("TIM2 timebase 1 MHz", tim2, Tim2);
+        base!("TIM5 timebase 1 MHz", tim5, Tim5);
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

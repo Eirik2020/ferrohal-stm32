@@ -28,6 +28,7 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
+        chip::{SPI1, SPI2},
         device::Interrupt,
         exti::{Ctrl, Edge, Exti},
         spi::{Buffers, Spi},
@@ -43,14 +44,15 @@ mod app {
 
     #[shared]
     struct Shared {
-        bus: Bus,
+        bus1: Bus<SPI1>,
+        bus2: Bus<SPI2>,
     }
 
     #[local]
     struct Local {
         ctrl: Ctrl,
-        spi1: Option<Spi>,
-        spi2: Option<Spi>,
+        spi1: Option<Spi<SPI1>>,
+        spi2: Option<Spi<SPI2>>,
         sck1: Exti<'B', 3>,
         sck2: Exti<'B', 10>,
     }
@@ -101,7 +103,10 @@ mod app {
         sck2.unlisten(&mut ctrl);
         checks::spawn().ok();
         (
-            Shared { bus: Bus::new() },
+            Shared {
+                bus1: Bus::new(),
+                bus2: Bus::new(),
+            },
             Local {
                 ctrl,
                 spi1: Some(spi1),
@@ -112,57 +117,60 @@ mod app {
         )
     }
 
-    #[task(binds = DMA2_STREAM2, priority = 2, shared = [bus])]
+    #[task(binds = DMA2_STREAM2, priority = 2, shared = [bus1])]
     fn spi1_rx(mut cx: spi1_rx::Context) {
-        cx.shared.bus.lock(Bus::on_dma);
+        cx.shared.bus1.lock(Bus::on_dma);
     }
 
-    #[task(binds = DMA1_STREAM3, priority = 2, shared = [bus])]
+    #[task(binds = DMA1_STREAM3, priority = 2, shared = [bus2])]
     fn spi2_rx(mut cx: spi2_rx::Context) {
-        cx.shared.bus.lock(Bus::on_dma);
+        cx.shared.bus2.lock(Bus::on_dma);
     }
 
-    #[task(binds = EXTI3, priority = 2, shared = [bus])]
+    #[task(binds = EXTI3, priority = 2, shared = [bus1, bus2])]
     fn exti_3(mut cx: exti_3::Context) {
-        cx.shared.bus.lock(Bus::on_exti);
+        cx.shared.bus1.lock(Bus::on_exti);
+        cx.shared.bus2.lock(Bus::on_exti);
     }
 
-    #[task(binds = EXTI15_10, priority = 2, shared = [bus])]
+    #[task(binds = EXTI15_10, priority = 2, shared = [bus1, bus2])]
     fn exti_10_15(mut cx: exti_10_15::Context) {
-        cx.shared.bus.lock(Bus::on_exti);
+        cx.shared.bus1.lock(Bus::on_exti);
+        cx.shared.bus2.lock(Bus::on_exti);
     }
 
-    #[task(priority = 1, shared = [bus], local = [ctrl, spi1, spi2, sck1, sck2])]
+    #[task(priority = 1, shared = [bus1, bus2], local = [ctrl, spi1, spi2, sck1, sck2])]
     async fn checks(mut cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         let cpu = board::CLOCKS.cpu;
         let l = cx.local;
-        let bus = &mut cx.shared.bus;
+        let bus1 = &mut cx.shared.bus1;
+        let bus2 = &mut cx.shared.bus2;
 
-        bus.lock(|b| b.spi = l.spi1.take());
+        bus1.lock(|b| b.spi = l.spi1.take());
         spi_exti::spi_suite(
             &mut report,
             "SPI1 PB3/PB4/PB5, DMA2 S5/S2",
-            bus,
+            bus1,
             &board::SPI,
             cpu,
             Interrupt::DMA2_STREAM2,
             l.sck1,
             l.ctrl,
         );
-        bus.lock(|b| b.spi = l.spi2.take());
+        bus2.lock(|b| b.spi = l.spi2.take());
         spi_exti::spi_suite(
             &mut report,
             "SPI2 PB10/PC2/PC3, DMA1 S4/S3",
-            bus,
+            bus2,
             &board::SPI,
             cpu,
             Interrupt::DMA1_STREAM3,
             l.sck2,
             l.ctrl,
         );
-        bus.lock(|b| b.spi = None);
+        bus2.lock(|b| b.spi = None);
         tests::finish(&report, || {});
     }
 }

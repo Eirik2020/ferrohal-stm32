@@ -4,10 +4,10 @@
 #![no_std]
 #![no_main]
 
-#[path = "../../../common/bootloader.rs"]
-mod bootloader;
 #[path = "../board.rs"]
 mod board;
+#[path = "../../../common/bootloader.rs"]
+mod bootloader;
 #[path = "../../../common/tests.rs"]
 mod tests;
 

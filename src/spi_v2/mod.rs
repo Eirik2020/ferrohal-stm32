@@ -9,7 +9,7 @@
 //! stay high if the SPI is disabled mid-frame): SPE only drops in
 //! `configure`, with the bus idle.
 //!
-//! Requirements: SPIV2-001
+//! Requirements: SPIV2-001, SPIPOLL-001, SPIPOLL-002
 
 use stm32_metapac::spi::vals::{Br, Cpha, Cpol, Dff, Lsbfirst, Mstr};
 
@@ -130,6 +130,16 @@ impl Unit {
 
     /// A polled transfer ends: nothing to undo.
     pub(crate) fn end_polled(self) {}
+
+    /// Closes the SPI: SPE off. Only a teardown (`Spi::free`) calls this —
+    /// between transfers the driver keeps SPE on (see the module header), so
+    /// a disable here may land mid-frame if a transfer was running, and
+    /// ES0299 2.11.1 / ES0182 2.12.1's BSY-then-stuck caveat applies to the
+    /// dead peripheral. A reopen starts from `configure`, which writes CR1
+    /// with SPE clear first.
+    pub(crate) fn disable(self) {
+        self.0.cr1().modify(|w| w.set_spe(false));
+    }
 
     /// After a stopped or failed transfer: requests off, then up to `spins`
     /// register reads for the frames already in the SPI (the one shifting,

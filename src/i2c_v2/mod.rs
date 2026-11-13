@@ -15,7 +15,7 @@
 //! releases the lines while the timing register keeps its value
 //! (RM0433 §47.4.6).
 //!
-//! Requirements: I2C-005, I2CV2-001
+//! Requirements: I2C-005, I2CV2-001, I2C-002, I2C-003, I2C-004, I2C-006
 
 use stm32_metapac::i2c::I2c as Regs;
 
@@ -172,6 +172,14 @@ impl Unit {
             w.set_sclh(((timing.timingr >> 8) & 0xFF) as u8);
             w.set_scll((timing.timingr & 0xFF) as u8);
         });
+    }
+
+    /// Closes the I2C: PE off. Only a teardown (`I2c::free`) calls this —
+    /// the driver keeps PE on for its life. A reopen runs `new` again,
+    /// whose `apply` writes with PE clear first, as RM0433 §47.4.6's flow
+    /// requires.
+    pub(crate) fn disable(self) {
+        self.0.cr1().modify(|w| w.set_pe(false));
     }
 
     /// ISR's BUSY (RM0433 §47.6.9).

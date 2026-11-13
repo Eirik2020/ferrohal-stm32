@@ -25,8 +25,8 @@ requirements:
     statement: >-
       The API shall support bidirectional communication using DMA.
     rationale: >-
-      A UART that holds the CPU for every byte would not suit a flight
-      controller or most other firmware.
+      A UART that holds the CPU for every byte would not suit most
+      firmware.
     derived_from: [G3]
     verification:
       entries:
@@ -668,7 +668,7 @@ requirements:
         - level: analysis
           environment: host
           method:
-            procedure: requirements/benches.md#Chip glue against metapac
+            procedure: requirements/benches-analysis.md#Chip glue against metapac
 
   - id: GLUE-002
     title: A wiring describes itself
@@ -718,10 +718,10 @@ requirements:
             test: ferrohal_stm32::chip::tests::ccm_ram_is_refused
 
   - id: GLUE-005
-    title: An IMU bus describes itself
+    title: An SPI wiring describes itself
     statement: >-
-      An IMU SPI wiring shall report the instance, pins and streams the
-      board chose.
+      An SPI wiring shall report the instance, pins and streams it was
+      built from.
     rationale: >-
       A board can then be checked against its manifest without running.
     derived_from: [G3]
@@ -733,9 +733,9 @@ requirements:
             test: ferrohal_stm32::chip::tests::imu_spi_describes_itself
 
   - id: GLUE-006
-    title: A flight board's routes exist
+    title: A board manifest's routes exist
     statement: >-
-      Every route a flight board's manifest names shall exist on its chip.
+      Every route a board manifest names shall exist on the chip it names.
     rationale: >-
       A manifest route with no hardware behind it would fail only on the
       bench.

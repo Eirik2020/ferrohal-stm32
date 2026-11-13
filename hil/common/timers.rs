@@ -143,8 +143,9 @@ fn spin_until(cycles: u32, mut done: impl FnMut() -> bool) -> bool {
 }
 
 /// `ticks` ticks of `tick`, timed against the DWT, then a pause that must
-/// stop them. The tick moves into the bench, timer token sealed inside, and
-/// is stopped and dropped at the end.
+/// stop them. The tick moves into the bench, timer token sealed inside,
+/// and comes back stopped, for the caller to drop or to `free` for a
+/// second use from the same token.
 pub fn tick_check<E, B>(
     report: &mut Report,
     name: &str,
@@ -152,7 +153,8 @@ pub fn tick_check<E, B>(
     tick: E,
     cpu: Hertz,
     ticks: u32,
-) where
+) -> E
+where
     E: BenchedTick,
     B: Mutex<T = TickBench<E>>,
 {
@@ -209,12 +211,12 @@ pub fn tick_check<E, B>(
             });
             let paused = bench.lock(|b| b.count);
             spin_until(period.saturating_mul(4), || false);
-            let after = bench.lock(|b| {
+            bench.lock(|b| {
                 if let Some(tick) = b.tick.as_mut() {
                     tick.stop();
                 }
-                b.tick.take().map(|_| b.count)
             });
+            let after = bench.lock(|b| b.tick.as_ref().map(|_| b.count));
             match after {
                 Some(after) if after == paused => Ok(()),
                 Some(after) => Err(Fail::Count {
@@ -228,6 +230,9 @@ pub fn tick_check<E, B>(
             }
         })(),
     );
+    bench
+        .lock(|b| b.tick.take())
+        .unwrap_or_else(|| defmt::unreachable!())
 }
 
 /// `base` counts at its frequency, to 0.01 % of the DWT over 20 ms.

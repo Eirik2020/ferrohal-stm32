@@ -67,8 +67,8 @@ requirements:
       An address no device acknowledges shall be reported as a NACK, its flag
       cleared, and the bus put back, so the next transfer runs.
     rationale: >-
-      A vacant or broken device is a condition a flight firmware measures,
-      not a hang; the bus must not go down with it.
+      A vacant or broken device is a condition firmware measures, not a
+      hang; the bus must not go down with it.
     derived_from: [G2]
     verification:
       entries:

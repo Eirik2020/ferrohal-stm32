@@ -26,7 +26,7 @@
 //! See `THIRD-PARTY.md`. The voltage scale is not: embassy writes scale 1 on
 //! every F4, which is reserved on the F401.
 //!
-//! Requirements: RCC-001, RCC-002, RCC-003
+//! Requirements: RCC-001, RCC-002, RCC-003, RESET-001
 
 use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,

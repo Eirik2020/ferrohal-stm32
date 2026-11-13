@@ -79,7 +79,7 @@ mod app {
         let Some(mut run) = cx.local.run.take() else {
             defmt::unreachable!()
         };
-        let (Ok(mut tim3), Ok(mut tim8)) = (
+        let (Ok(tim3), Ok(tim8)) = (
             Pwm::new(&mut run.rcc, run.tim3, Hertz::khz(150)),
             Pwm::new(&mut run.rcc, run.tim8, Hertz::khz(150)),
         ) else {

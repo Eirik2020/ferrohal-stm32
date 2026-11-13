@@ -33,12 +33,18 @@ contract. Ecosystem precedent exists: `stm32h7xx-hal-0.16` has 11 `free(...)` me
   they are `Tick<T>`/`Timebase<T>` and hand the token back with `free()`; the bench's
   `TickBench<E>` holds a per-run enum of benched ticks so the token stays sealed while
   the vector runs.
-- `I2c` (`src/i2c/mod.rs:256`) and `Spi`/`Uart` store `&'static Info`, not their tokens.
-- `UartRx`/`UartTx` must rejoin before `Uart::free()`.
+- ~~`I2c` (`src/i2c/mod.rs:256`) and `Spi`/`Uart` store `&'static Info`, not their tokens.~~
+  **done (2026-11-11/12):** all three carry the token in the handle and hand it back
+  with `free()`.
+- ~~`UartRx`/`UartTx` must rejoin before `Uart::free()`.~~ **done (2026-11-11):**
+  `split`/`join` pair; `free()` takes the whole `Uart`. Since 2026-11-13 the halves
+  carry their instance and a receive-only UART frees through its own `RxLine`
+  ([`../design/free-shapes.md`](../design/free-shapes.md)).
 
 ## Consequences
 
 - Every affected file's evidence is re-owed (architecture §9 hashes).
 - The fresh-boot bench runs stay valid; they simply become redundant and can be folded
   back once `free()` exists.
-- `DEBT.md`'s "no `release()`/`free()`" entry closes only when the redesign lands.
+- `DEBT.md`'s "no `release()`/`free()`" entry closes only when the redesign lands
+  (closed 2026-11-12, moved to [RESOLVED.md](../../RESOLVED.md)).

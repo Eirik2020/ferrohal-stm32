@@ -41,7 +41,11 @@ fn worst<A: adc::Instance>(
     let mut sample = adc.read(channel)?;
     for _ in 1..READS {
         let next = adc.read(channel)?;
-        sample = if pick_higher { sample.max(next) } else { sample.min(next) };
+        sample = if pick_higher {
+            sample.max(next)
+        } else {
+            sample.min(next)
+        };
     }
     Ok(sample)
 }
@@ -78,7 +82,13 @@ pub fn rails<A: adc::Instance>(
         high.unwrap_or(0).into(),
         max.into(),
     );
-    defmt::info!("{=str}: low {}, high {} of {=u16}", name, low.unwrap_or(0), high.unwrap_or(0), max);
+    defmt::info!(
+        "{=str}: low {}, high {} of {=u16}",
+        name,
+        low.unwrap_or(0),
+        high.unwrap_or(0),
+        max
+    );
     drive(false);
     cortex_m::asm::delay(settle_cycles);
     let back = adc.read(channel);
@@ -185,7 +195,21 @@ pub fn scan<A: adc::Instance>(
             _ => failures += 1,
         }
     }
-    expect(report, name, "64 sequences over DMA follow the pin [ADC-004]", failures == 0, finished, 64);
-    expect(report, name, "a second start while running is refused [ADC-005]", refused, 0, 1);
+    expect(
+        report,
+        name,
+        "64 sequences over DMA follow the pin [ADC-004]",
+        failures == 0,
+        finished,
+        64,
+    );
+    expect(
+        report,
+        name,
+        "a second start while running is refused [ADC-005]",
+        refused,
+        0,
+        1,
+    );
     drive(false);
 }

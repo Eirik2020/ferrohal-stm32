@@ -8,7 +8,7 @@
 //! the wire plus a margin, measured with a [`CycleClock`] when one is set,
 //! otherwise counted as register polls of at least a cycle each.
 //!
-//! Requirements: SPIPOLL-001, SPIPOLL-002
+//! Requirements: SPIPOLL-001, SPIPOLL-002, API-002
 
 use crate::{
     gpio::AltPin,
@@ -28,8 +28,10 @@ const CHUNK: usize = 65_535;
 /// Added to every bound, in CPU cycles.
 const MARGIN_CYCLES: u32 = 20_000;
 
-/// An SPI master moving bytes by polling its data register.
-pub struct BlockingSpi {
+/// An SPI master moving bytes by polling its data register. It carries the
+/// instance token: [`free`](Self::free) hands it back, so the same
+/// instance can open again.
+pub struct BlockingSpi<U> {
     info: &'static Info,
     kernel_clock: Hertz,
     cpu: Hertz,
@@ -37,22 +39,25 @@ pub struct BlockingSpi {
     sck_cycles: u32,
     clock: Option<&'static dyn CycleClock>,
     name: &'static str,
+    token: U,
 }
 
-impl BlockingSpi {
+impl<U: Instance> BlockingSpi<U> {
     /// Enables and resets the SPI and configures it as a master. Chip select
     /// is the firmware's GPIO.
     ///
     /// A refusal hands back `wiring` with the reason. Every refusal comes
     /// before anything is written to hardware.
+    ///
+    /// On success the instance token moves into the handle;
+    /// [`free`](Self::free) returns it.
     #[allow(clippy::type_complexity)]
-    pub fn new<U, Sck, Miso, Mosi>(
+    pub fn new<Sck, Miso, Mosi>(
         rcc: &mut Rcc,
         wiring: BlockingWiring<U, Sck, Miso, Mosi>,
         config: &Config,
     ) -> Result<Self, Refused<ConfigError, BlockingWiring<U, Sck, Miso, Mosi>>>
     where
-        U: Instance,
         Sck: SckPin<U>,
         Miso: MisoPin<U>,
         Mosi: MosiPin<U>,
@@ -67,6 +72,7 @@ impl BlockingSpi {
             Err(error) => return Err(Refused::new(error, wiring)),
         };
         // Past the last refusal: the wiring's tokens end when `new` returns.
+        let BlockingWiring { spi, .. } = wiring;
         rcc.enable(info.enable());
         rcc.reset(info.enable());
         info.unit().configure(code, config);
@@ -79,7 +85,17 @@ impl BlockingSpi {
             sck_cycles: clocks.cpu.0.div_ceil(frequency.0.max(1)),
             clock: None,
             name: U::NAME,
+            token: spi,
         })
+    }
+
+    /// Closes the SPI, and hands the instance token back: what a `Drop`
+    /// would do, made explicit so the token can move out. The SPI is idle
+    /// between polled transfers, so SPE drops with the bus quiet. A reopen
+    /// runs `BlockingSpi::new` again, from the same token.
+    pub fn free(self) -> U {
+        self.info.unit().disable();
+        self.token
     }
 
     /// Changes the bus settings. Returns the new SCK.
@@ -170,12 +186,12 @@ impl BlockingSpi {
     }
 }
 
-impl embedded_hal::spi::ErrorType for BlockingSpi {
+impl<U: Instance> embedded_hal::spi::ErrorType for BlockingSpi<U> {
     type Error = Error;
 }
 
 /// Every operation is bounded. The bytes sent while reading are 0x00.
-impl embedded_hal::spi::SpiBus<u8> for BlockingSpi {
+impl<U: Instance> embedded_hal::spi::SpiBus<u8> for BlockingSpi<U> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Error> {
         for part in words.chunks_mut(CHUNK) {
             self.exchange(

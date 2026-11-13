@@ -47,7 +47,10 @@ fn main() -> ! {
         if uid != [0; 12] && uid != [0xFF; 12] {
             Ok(())
         } else {
-            Err(Fail::Count { expected: 1, got: 0 })
+            Err(Fail::Count {
+                expected: 1,
+                got: 0,
+            })
         },
     );
 
@@ -59,7 +62,11 @@ fn main() -> ! {
     let pin = adc.channel(&run.analog);
     let link = &mut run.drive;
     adc::rails(&mut report, name, &mut adc, pin, SETTLE, |high| {
-        if high { link.set_high() } else { link.set_low() }
+        if high {
+            link.set_high()
+        } else {
+            link.set_low()
+        }
     });
     adc::internal(&mut report, "ADC1 internal", &mut adc);
 
@@ -77,7 +84,11 @@ fn main() -> ! {
         SETTLE,
         BOUND,
         |high| {
-            if high { link.set_high() } else { link.set_low() }
+            if high {
+                link.set_high()
+            } else {
+                link.set_low()
+            }
         },
         |samples, high, max| {
             let [pin, reference, temperature] = samples else {
@@ -89,9 +100,7 @@ fn main() -> ! {
                 u32::from(*pin) * 100 <= u32::from(max) * 3
             };
             // 1.21 V of 3.3 V, and the sensor's 0.76 V at 25 C, near enough.
-            pin_ok
-                && (1300..=1700).contains(reference)
-                && (800..=1200).contains(temperature)
+            pin_ok && (1300..=1700).contains(reference) && (800..=1200).contains(temperature)
         },
     );
     let led = &mut run.led;

@@ -12,7 +12,7 @@
 //! between EOT and disabling (ES0392 2.22.6). FIFO and DMA requests are
 //! one byte each.
 //!
-//! Requirements: SPIV4-001
+//! Requirements: SPIV4-001, SPIPOLL-001, SPIPOLL-002
 
 use stm32_metapac::spi::vals::{Comm, Cpha, Cpol, Fthlv, Lsbfirst, Master, Mbr, Sp};
 
@@ -134,6 +134,16 @@ impl Unit {
     /// A polled transfer ends as a DMA one does: flags cleared, disabled.
     pub(crate) fn end_polled(self) {
         self.end();
+    }
+
+    /// Closes the SPI: SPE off. Only a teardown (`Spi::free`) calls this —
+    /// between transfers the driver keeps SPE on (see the v2 module
+    /// header's note, which applies here too), so a disable here may land
+    /// mid-frame if a transfer was running. A reopen starts from
+    /// `configure`, which writes CFG1/CFG2 with SPE clear first, as
+    /// RM0433 requires.
+    pub(crate) fn disable(self) {
+        self.0.cr1().modify(|w| w.set_spe(false));
     }
 
     /// Overrun and mode fault; `end` clears them.

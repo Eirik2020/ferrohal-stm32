@@ -47,7 +47,13 @@ pub fn suite<A: adc::Instance>(
     );
     let samples = scan.samples();
     let in_scale = samples.len() == names.len() && samples.iter().all(|&s| s <= scan.max_sample());
-    check!(report, link, in_scale, "adc: {} samples in scale", samples.len());
+    check!(
+        report,
+        link,
+        in_scale,
+        "adc: {} samples in scale",
+        samples.len()
+    );
     let values: [u16; 4] = core::array::from_fn(|i| samples.get(i).copied().unwrap_or(0));
     for (name, &sample) in names.iter().zip(&values) {
         link.line(format_args!(

@@ -1,0 +1,177 @@
+   Compiling nucleo-h753zi-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-h753zi-loopback)
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:190:9
+    |
+190 |         tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+190 |         let _ = tick!("TIM3 tick 1 kHz", Tim3, run.tim3.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:193:9
+    |
+193 |         tick!("TIM6 tick 1 kHz", Tim6, run.tim6.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+193 |         let _ = tick!("TIM6 tick 1 kHz", Tim6, run.tim6.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:194:9
+    |
+194 |         tick!("TIM7 tick 1 kHz", Tim7, run.tim7.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+194 |         let _ = tick!("TIM7 tick 1 kHz", Tim7, run.tim7.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:195:9
+    |
+195 |         tick!("TIM8 tick 1 kHz", Tim8, run.tim8.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+195 |         let _ = tick!("TIM8 tick 1 kHz", Tim8, run.tim8.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:196:9
+    |
+196 |         tick!("TIM12 tick 1 kHz", Tim12, run.tim12.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+196 |         let _ = tick!("TIM12 tick 1 kHz", Tim12, run.tim12.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:197:9
+    |
+197 |         tick!("TIM13 tick 1 kHz", Tim13, run.tim13.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+197 |         let _ = tick!("TIM13 tick 1 kHz", Tim13, run.tim13.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:198:9
+    |
+198 |         tick!("TIM14 tick 1 kHz", Tim14, run.tim14.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+198 |         let _ = tick!("TIM14 tick 1 kHz", Tim14, run.tim14.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:199:9
+    |
+199 |         tick!("TIM15 tick 1 kHz", Tim15, run.tim15.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+199 |         let _ = tick!("TIM15 tick 1 kHz", Tim15, run.tim15.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:200:9
+    |
+200 |         tick!("TIM16 tick 1 kHz", Tim16, run.tim16.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+200 |         let _ = tick!("TIM16 tick 1 kHz", Tim16, run.tim16.take(), khz, 50);
+    |         +++++++
+
+warning: unused `Result` that must be used
+   --> src/bin/run_i.rs:201:9
+    |
+201 |         tick!("TIM17 tick 1 kHz", Tim17, run.tim17.take(), khz, 50);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+201 |         let _ = tick!("TIM17 tick 1 kHz", Tim17, run.tim17.take(), khz, 50);
+    |         +++++++
+
+warning: `nucleo-h753zi-loopback` (bin "run-i") generated 10 warnings
+    Finished `release` profile [optimized + debuginfo] target(s) in 2.67s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-i`
+     [38;5;10m[1mFinished[0m in 2.27s
+[INFO ] run I, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_i src/bin/run_i.rs:85)
+[INFO ] PASS TIM1 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM1 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM1 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM2 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM2 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM2 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM3 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM3 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM3 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM5 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM5 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM5 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM6 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM6 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM6 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM7 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM7 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM7 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM8 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM8 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM8 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM12 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM12 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM12 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM13 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM13 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM13 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM14 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM14 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM14 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM15 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM15 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM15 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM16 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM16 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM16 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM17 tick 1 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM17 tick 1 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM17 tick 1 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 8 kHz: update vector enabled [TIMER-005] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 8 kHz: ticks at its rate, to 0.05 % of the DWT [TIMER-001 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM4 tick 8 kHz: pause stops the ticks [TIMER-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM2 timebase 1 MHz: counts at its frequency, to 0.01 % of the DWT [TIMER-003 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] PASS TIM5 timebase 1 MHz: counts at its frequency, to 0.01 % of the DWT [TIMER-003 RCC-002] (run_i ../common/tests.rs:303)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_i ../common/tests.rs:1351)
+[INFO ] all checks passed (run_i ../common/tests.rs:1359)
+Firmware exited successfully

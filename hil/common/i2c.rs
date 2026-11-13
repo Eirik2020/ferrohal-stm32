@@ -15,7 +15,10 @@
 
 use cortex_m::peripheral::DWT;
 use embedded_hal::i2c::{I2c as HalI2c, Operation};
-use ferrohal_stm32::{i2c::{Error, I2c}, time::Hertz};
+use ferrohal_stm32::{
+    i2c::{Error, I2c, Instance},
+    time::Hertz,
+};
 
 use crate::tests::{Fail, Report};
 
@@ -55,7 +58,7 @@ fn nack_within(result: Result<(), Error>, waited: u32, bound: u32) -> Result<(),
 
 /// The NACK suite over the open bus. `cpu` and the bus's own frequency
 /// answer the bound; every transfer the checks make ends a NACK.
-pub fn suite(report: &mut Report, link: &str, bus: &mut I2c, cpu: Hertz) {
+pub fn suite<U: Instance>(report: &mut Report, link: &str, bus: &mut I2c<U>, cpu: Hertz) {
     let speed = bus.frequency();
     let mut nacks = 0;
 
@@ -184,18 +187,12 @@ pub fn suite(report: &mut Report, link: &str, bus: &mut I2c, cpu: Hertz) {
     // Without a caller clock the bound is counted, which runs long but
     // must still end: this write is bounded by twelve times the driver's
     // clocked bound, in wall cycles.
-    report.check_for(
-        link,
-        "I2C-003",
-        "the counted bound ends without a clock",
-        {
-            bus.set_clock(None);
-            let start = DWT::cycle_count();
-            let result = HalI2c::write(bus, VACANT, &[0xA5; 4]);
-            let waited = DWT::cycle_count().wrapping_sub(start);
-            bus.set_clock(Some(&crate::tests::DWT_CLOCK));
-            nack_within(result, waited, 12 * bound(cpu, speed, 12 + 9 * 4))
-        },
-    );
+    report.check_for(link, "I2C-003", "the counted bound ends without a clock", {
+        bus.set_clock(None);
+        let start = DWT::cycle_count();
+        let result = HalI2c::write(bus, VACANT, &[0xA5; 4]);
+        let waited = DWT::cycle_count().wrapping_sub(start);
+        bus.set_clock(Some(&crate::tests::DWT_CLOCK));
+        nack_within(result, waited, 12 * bound(cpu, speed, 12 + 9 * 4))
+    });
 }
-

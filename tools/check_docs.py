@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
-"""Checks the size of every markdown document in FerroHAL.
+"""Checks the size of every markdown document in FerroHAL, and that none is
+an orphan.
 
 Agents write diaries. A document that grows without bound kills an agent's
 context window and hides the one fact a reader needed. The rule is: a document
 has a budget, and when it needs more it is *split into a second document*, never
 compressed and never left to grow (see docs/policies/documentation.md).
 
-Budgets, in bytes and lines:
-- always-loaded entry files (AGENTS.md): 6000 B / 120 lines - they are read the
-  moment an agent enters the repository, so their budget is the strictest;
-- one decision per file (docs/decisions): 4096 B / 100 lines;
-- one topic per file (docs/notes, docs/plans, docs/policies): 6000 B / 150 lines;
-- procedures (requirements/benches.md): 12000 B / 300 lines;
-- topic design documents (docs/design): 8000 B / 200 lines;
-- other committed documents: 8000 B / 200 lines.
+Budgets, in bytes (set by the owner 2026-11-13):
+- always-loaded files (AGENTS.md): 20000 B - they are read the moment an agent
+  enters the repository, so their budget is the strictest;
+- every other document: 40000 B.
 
-The registries (DEBT.md, RESOLVED.md) are ratcheted at their present size and
-may only shrink. The architecture map dissolved into docs/design/ topics,
-notes and ADR-005 on 2026-11-10; its chapters are budgeted like any other
-document.
+No document may be an orphan: each is linked, or named by its path, from another
+document, the code or a requirement, unless it is an entry or a hub. A split's
+second document is linked from the first.
 
 Dates: documents under docs/ must be named YYYY-MM-DD-topic.md.
 """
@@ -33,40 +29,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# (pattern, name, max_bytes, max_lines); first match wins, so specific first.
-BUDGETS: list[tuple[str, str, int, int]] = [
-    (r"^AGENTS\.md$", "entry file", 6_000, 120),
-    (r"^docs/design/[^/]+\.md$", "design chapter", 8_000, 200),
-    (r"^docs/housekeeping/[^/]+\.md$", "housekeeping", 4_096, 100),
-    (r"^docs/decisions/README\.md$", "decision hub", 4_096, 100),
-    (r"^docs/decisions/index/[^/]+\.md$", "decision index", 8_192, 200),
-    (r"^docs/decisions/[^/]+\.md$", "decision", 4_096, 100),
-    (r"^docs/(notes|plans|policies)/[^/]+\.md$", "topic", 6_000, 150),
-    (r"^requirements/benches\.md$", "procedures", 12_000, 300),
-    (r"^(README|THIRD-PARTY|hil/(WIRING|CAPABILITIES|RIG))\.md$", "document", 8_000, 200),
-    (r"^src/([^/]+/)?requirements\.yaml$", "catalog", 0, 0),  # not markdown
-]
-
-# Agent-facing documents are read by agents; they are measured in estimated tokens
-# (4 bytes/token) rather than bytes and lines. Human-facing documents below keep byte
-# and line budgets.
-TOKENS: list[tuple[str, str, int]] = [
-    (r"^AGENTS\.md$", "agent entry", 1_100),
-    (r"^docs/INDEX\.md$", "docs index", 1_200),
-    (r"^docs/policies/[^/]+\.md$", "agent policy", 800),
-    (r"^docs/decisions/README\.md$", "decision hub", 500),
-    (r"^docs/decisions/index/[^/]+\.md$", "decision index", 400),
-    (r"^docs/decisions/[^/]+\.md$", "decision", 750),
-    (r"^docs/design/[^/]+\.md$", "design topic", 750),
-    (r"^docs/notes/[^/]+\.md$", "agent note", 850),
-    (r"^docs/housekeeping/[^/]+\.md$", "agent housekeeping", 500),
-]
-
-# Ratcheted: present size, may only shrink until the planned split.
-RATCHET: dict[str, int] = {
-    "DEBT.md": 22_511,
-    "RESOLVED.md": 39_326,
+# Always-loaded files; everything else gets DEFAULT_BYTES.
+ALWAYS_LOADED: dict[str, int] = {
+    "AGENTS.md": 20_000,
 }
+DEFAULT_BYTES = 40_000
+
+# Agent-facing documents (docs/policies/agent-docs.md style); the rest are human.
+# A class of writing, not a budget: both classes share the byte limits above.
+AGENT_FACING = (
+    r"^AGENTS\.md$",
+    r"^docs/(policies|decisions|notes|housekeeping|design|index)/",
+)
+
+# Where readers start: nothing needs to link to these.
+ENTRY = {
+    "AGENTS.md",
+    "README.md",
+    "DEBT.md",
+    "RESOLVED.md",
+    "docs/decisions/README.md",
+    "docs/housekeeping/README.md",
+    "docs/housekeeping/state.md",
+}
+HUBS = ("docs/decisions/index/",)
+LINK = re.compile(r"\]\(([^)\s#]+\.md)(?:#[^)]*)?\)")
 
 # Never part of a commit decision: drafts and evidence.
 EXEMPT = (
@@ -78,6 +65,10 @@ EXEMPT = (
     r"^target/",
     r"^\.git/",
 )
+
+# Written by tools/docs_index.py: budgeted like any agent document, but not counted
+# as documents, since nobody adds one by hand.
+GENERATED = re.compile(r"^docs/index/")
 
 DATE_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9][a-z0-9-]*\.md$")
 
@@ -93,67 +84,67 @@ def documents() -> list[Path]:
     return found
 
 
-def budget_for(relative: str) -> tuple[str, int, int] | None:
-    for pattern, name, max_bytes, max_lines in BUDGETS:
-        if re.search(pattern, relative):
-            return name, max_bytes, max_lines
-    if relative.endswith(".md"):
-        return "document", 8_000, 200
-    return None
+def budget_for(relative: str) -> int:
+    return ALWAYS_LOADED.get(relative, DEFAULT_BYTES)
+
+
+def orphans(docs: list[Path]) -> list[str]:
+    """Documents nothing links to or names by path, entries and hubs aside.
+
+    A markdown link from another document counts, and so does the document's
+    path written anywhere in another document, a requirement file or the code.
+    The generated index is left out: it names every path.
+    """
+    corpus = []
+    for path in sorted(ROOT.rglob("*")):
+        if path.suffix not in (".md", ".yaml", ".rs") or not path.is_file():
+            continue
+        relative = path.relative_to(ROOT).as_posix()
+        if relative.startswith(("target/", "requirements/evidence/", "docs/index/")):
+            continue
+        if "/target/" in relative:
+            continue
+        corpus.append((path, path.read_text(encoding="utf-8", errors="ignore")))
+
+    inbound = {path.resolve(): 0 for path in docs}
+    for path in docs:
+        for target in LINK.findall(path.read_text(encoding="utf-8")):
+            if target.startswith(("http://", "https://", "mailto:")):
+                continue
+            resolved = (path.parent / target).resolve()
+            if resolved in inbound and resolved != path.resolve():
+                inbound[resolved] += 1
+    for doc in docs:
+        relative = doc.relative_to(ROOT).as_posix()
+        for path, text in corpus:
+            if path != doc and relative in text:
+                inbound[doc.resolve()] += 1
+
+    return [
+        path.relative_to(ROOT).as_posix()
+        for path in docs
+        if not inbound[path.resolve()]
+        and path.relative_to(ROOT).as_posix() not in ENTRY
+        and not path.relative_to(ROOT).as_posix().startswith(HUBS)
+    ]
 
 
 def main() -> int:
     failures: list[str] = []
     checked = 0
-    agent_tokens = 0
+    total_bytes = 0
 
     for path in documents():
         relative = path.relative_to(ROOT).as_posix()
-
-        budget = budget_for(relative)
-        if budget is None:
-            continue
-        name, max_bytes, max_lines = budget
-        checked += 1
-
+        if not GENERATED.search(relative):
+            checked += 1
         size = path.stat().st_size
-        lines = len(path.read_text(encoding="utf-8").splitlines())
-
-        if relative in RATCHET:
-            cap = RATCHET[relative]
-            if size > cap:
-                failures.append(
-                    f"{relative}: {size} B exceeds its ratchet of {cap} B; "
-                    "split it, or shrink it by the same amount"
-                )
-            elif size < cap:
-                failures.append(
-                    f"{relative}: {size} B is below its ratchet of {cap} B; "
-                    "lower the ratchet in this change so it cannot grow back"
-                )
-            continue
-
-        agent = next(
-            (
-                (label, cap)
-                for pattern, label, cap in TOKENS
-                if re.search(pattern, relative)
-            ),
-            None,
-        )
-        if agent is not None:
-            tokens = (size + 3) // 4
-            agent_tokens += tokens
-            if tokens > agent[1]:
-                failures.append(
-                    f"{relative}: ~{tokens} estimated tokens exceeds the "
-                    f"{agent[0]} cap of {agent[1]}; rewrite terser or split"
-                )
-        elif size > max_bytes or lines > max_lines:
+        total_bytes += size
+        cap = budget_for(relative)
+        if size > cap:
             failures.append(
-                f"{relative}: {size} B / {lines} lines exceeds "
-                f"{name} budget {max_bytes} B / {max_lines} lines; "
-                "split it into a second document"
+                f"{relative}: {size} B exceeds its {cap} B budget; "
+                "split it into a second document, linked from this one"
             )
 
         if (
@@ -164,6 +155,15 @@ def main() -> int:
             stem = relative.rsplit("/", 1)[1]
             if not DATE_NAME.match(stem):
                 failures.append(f"{relative}: name it YYYY-MM-DD-topic.md")
+
+    # No orphans: a split's second document is linked from the first.
+    for orphan in orphans(
+        [path for path in documents() if not GENERATED.search(path.relative_to(ROOT).as_posix())]
+    ):
+        failures.append(
+            f"{orphan}: an orphan - nothing links to it or names its path; "
+            "link it from the document it was split from, or from its hub"
+        )
 
     # Housekeeping is forced: due by a date, or when ten documents were added since
     # the last review. See docs/housekeeping/README.md.
@@ -313,7 +313,7 @@ def main() -> int:
             )
 
     # Every relative markdown link in docs/ and AGENTS.md must resolve.
-    linked = re.compile(r"\]\(([^)\s#]+\.md)(?:#[^)]*)?\)")
+    linked = LINK
     paths = sorted((ROOT / "docs").rglob("*.md"))
     if agents.is_file():
         paths.append(agents)
@@ -335,7 +335,7 @@ def main() -> int:
                         "documents": checked,
                         "decisions": len(records),
                         "active": active_count,
-                        "agent_tokens": agent_tokens,
+                        "bytes": total_bytes,
                         "failures": failures,
                     }
                 )
@@ -352,7 +352,7 @@ def main() -> int:
                     "documents": checked,
                     "decisions": len(records),
                     "active": active_count,
-                    "agent_tokens": agent_tokens,
+                    "bytes": total_bytes,
                     "failures": [],
                 }
             )
@@ -361,7 +361,7 @@ def main() -> int:
 
     print(
         f"pass  doc size limits ({checked} documents, {len(records)} decisions, "
-        f"{active_count} active, ~{agent_tokens} agent tokens)"
+        f"{active_count} active, {total_bytes} B, no orphans)"
     )
     return 0
 

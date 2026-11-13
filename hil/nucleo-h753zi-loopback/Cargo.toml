@@ -119,12 +119,6 @@ test = false
 bench = false
 
 [[bin]]
-name = "run-t"
-path = "src/bin/run_t.rs"
-test = false
-bench = false
-
-[[bin]]
 name = "run-u"
 path = "src/bin/run_u.rs"
 test = false

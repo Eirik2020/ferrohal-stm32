@@ -14,7 +14,13 @@ const FRAMES: u32 = 100;
 
 fn frame(pattern: u16, period: u32) -> [u32; 16] {
     core::array::from_fn(|i| {
-        period * if pattern & (0x8000 >> i) != 0 { ONE } else { ZERO } / 16
+        period
+            * if pattern & (0x8000 >> i) != 0 {
+                ONE
+            } else {
+                ZERO
+            }
+            / 16
     })
 }
 
@@ -33,8 +39,10 @@ where
         link.service();
         let first = frame(0x8421u16.rotate_left(round), awg.period());
         let second = frame(0x5AA5u16.rotate_left(round), awg.period());
-        let loaded = (0..awg.lanes())
-            .all(|lane| awg.load(lane, if lane < 2 { &first } else { &second }).is_ok());
+        let loaded = (0..awg.lanes()).all(|lane| {
+            awg.load(lane, if lane < 2 { &first } else { &second })
+                .is_ok()
+        });
         if !loaded || awg.play().is_err() {
             awg.abort();
             continue;
@@ -63,7 +71,7 @@ where
         report,
         link,
         done == FRAMES,
-        "motors: {} of {} frames on all four streams through the AWG, slowest {} us [AWG-005]",
+        "motors: {} of {} frames on all four streams through the AWG, slowest {} us",
         done,
         FRAMES,
         slowest_us
@@ -72,8 +80,11 @@ where
 
 /// Every lane reading its pad's port, on the flight routes: all four finish. Their
 /// outputs are released, so nothing is sent, and they end released again.
-pub fn listen_suite<T1, T2, L1, L2>(report: &mut Report, link: &mut Link, awg: &mut Awg<T1, T2, L1, L2>)
-where
+pub fn listen_suite<T1, T2, L1, L2>(
+    report: &mut Report,
+    link: &mut Link,
+    awg: &mut Awg<T1, T2, L1, L2>,
+) where
     T1: ChannelTimer,
     T2: ChannelTimer,
     L1: Lanes<T1>,
@@ -81,7 +92,9 @@ where
 {
     const CAPTURES: usize = 64;
     link.service();
-    let started = awg.listen(ferrohal_stm32::time::Hertz::mhz(1), CAPTURES).is_ok();
+    let started = awg
+        .listen(ferrohal_stm32::time::Hertz::mhz(1), CAPTURES)
+        .is_ok();
     let began = link.now();
     let mut finished = [false; 4];
     let mut failed = !started;
@@ -99,12 +112,14 @@ where
     if !all {
         awg.abort();
     }
-    let read = (0..4).filter(|lane| awg.samples(*lane).len() == CAPTURES).count();
+    let read = (0..4)
+        .filter(|lane| awg.samples(*lane).len() == CAPTURES)
+        .count();
     check!(
         report,
         link,
         all && !failed && read == 4,
-        "motors: all four lanes read their pads over DMA, {} of 4 [AWG-012]",
+        "motors: all four lanes read their pads over DMA, {} of 4",
         read
     );
     let _ = awg.speak();

@@ -24,7 +24,7 @@
 //! second's. The firmware binds each lane's stream vector, or polls, and calls
 //! [`Awg::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
 //!
-//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, AWG-012
+//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, API-002
 
 use super::pwm::{CompareLane, Error, Pwm};
 use super::{ChannelTimer, ConfigError, TriggeredBy};
@@ -484,12 +484,32 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             self.second_lanes.abort_all(second);
         }
         self.halt();
+        // The lanes wrote duty 0 into the preload; the stopped timers make no
+        // update to load it, so an output stopped mid-pulse would stay high.
+        self.first.latch();
+        if let Some(second) = self.second.as_ref() {
+            second.latch();
+        }
         self.state.active = 0;
         if self.state.listening {
             self.state.listening = false;
             let rate = self.sample_rate;
             let _ = self.retime(rate);
         }
+    }
+
+    /// Stops everything and hands the timer tokens back: [`abort`](Self::abort)'s
+    /// sequence (every lane at duty 0 with its stream stopped, the timers stopped,
+    /// their compare requests closed), then each [`Pwm::free`]. The lanes end
+    /// here, their streams released with them and their pins kept: the DMA stream
+    /// tokens stay transport-owned (`docs/design/free.md`). The second token is
+    /// `None` on a generator built with [`single`](Awg::single). A reopen runs
+    /// `Pwm::new` again, whose reset clears the second timer's slave mode.
+    pub fn free(self) -> (A, Option<B>) {
+        let mut awg = self;
+        awg.abort();
+        let Self { first, second, .. } = awg;
+        (first.free(), second.map(Pwm::free))
     }
 
     fn halt(&mut self) {

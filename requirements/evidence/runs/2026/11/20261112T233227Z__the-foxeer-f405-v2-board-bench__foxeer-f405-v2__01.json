@@ -1,0 +1,216 @@
+{
+  "schema_version": 5,
+  "run_id": "20261112T233227Z__the-foxeer-f405-v2-board-bench__foxeer-f405-v2__01",
+  "recorded_at_utc": "2026-11-12T23:32:27Z",
+  "board": "foxeer-f405-v2",
+  "revision": "65204a3d2005a3b6c11a3c1690cc74c93689dd14",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "foxeer-f405-v2",
+    "features": [],
+    "files": {
+      "hil/foxeer-f405-v2/.cargo/config.toml": "bfb71bef7a8107df9b33b2f2328931f2af6826b3d3fe0afab75e9195041aece6",
+      "hil/foxeer-f405-v2/Cargo.toml": "a9b76ac08ea5f7d3e4fb4c828a4eb5adfe9c98401708fd6b16ec1042543ec190",
+      "hil/foxeer-f405-v2/src/../../common/board_adc.rs": "b1922f59d18d24269333979c57d03c150f608ba1bc11ed4b93e4c214f9bc5b7d",
+      "hil/foxeer-f405-v2/src/../../common/imu.rs": "d871f7deb12e383800a85fdad92b527cafa657c583fc4faec44f7f564a7a1d0f",
+      "hil/foxeer-f405-v2/src/../../common/motor_lanes.rs": "2fff1a7226860d626c225572b9880fa083d842567f6c84ad4889d9e02caf76f1",
+      "hil/foxeer-f405-v2/src/../../common/usb_bench.rs": "7a62219124a89a2d9cdf540977fc4de4174e214dda3ad43ffaa94b607d727ba4",
+      "hil/foxeer-f405-v2/src/bin/../../../common/usb_bench.rs": "7a62219124a89a2d9cdf540977fc4de4174e214dda3ad43ffaa94b607d727ba4",
+      "hil/foxeer-f405-v2/src/bin/../clocks.rs": "7a907261a3d2b88a147080b90444c78ca371816b69d6cdf02c8e06a1d0754b6c",
+      "hil/foxeer-f405-v2/src/bin/usb_irq.rs": "e2aec3aa499178a3d6fed10b05eaa263f068841f3d2266f9adf7f87f07c49d72",
+      "hil/foxeer-f405-v2/src/clocks.rs": "7a907261a3d2b88a147080b90444c78ca371816b69d6cdf02c8e06a1d0754b6c",
+      "hil/foxeer-f405-v2/src/main.rs": "9eacde447ee8aae60c164e0360ba326480901d4029cdce732ae343ba64d0cf36",
+      "src/adc/mod.rs": "744e0e7d354811d86ce8081892f9c921cf48ea7d9285ba1a5df7c92b365874e9",
+      "src/adc_v2/mod.rs": "63d8da380a40883c1fa08ace773570005dd5a66332ff39a15534a6cfa0c5bf06",
+      "src/chips/shared/macros.rs": "f5efa9a3af3f408bbd6392ba4cc8b0d0de13e99b4df9f2d9c26e8606ad533e45",
+      "src/chips/stm32f405rg.rs": "73df86a1bf0f3a56c8cd8a7a1fe289aeec339b2d2d0217775ed9e2aea164e6e9",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma_stream.rs": "b00885beb50627b0ecca5c3947666b3dafdc69fa4ef0cf8524be1e53834c06d0",
+      "src/exti.rs": "149cced8cf0459865a3dc39ac43eb60d1d8dd795d218c833818b69c54970c5cd",
+      "src/gpio_v2/mod.rs": "52fe7e4799fdab2bf7bb35bb50e94f01f7d49d2069fabdd7daa3c6eb5df6753f",
+      "src/i2c/mod.rs": "a7e0442c0323efadacf3661c9abb1970edaa71e7d8c396b4720189877310cac6",
+      "src/i2c_v1/mod.rs": "747c3734d7308b90d0962928f28e3e7990a8f0e2930a92d868598c4cb06df8fc",
+      "src/iwdg.rs": "912cb70a7931f0ae9b048e2ad284296b05be47d38e95813e12daa3e34fa388b2",
+      "src/lib.rs": "51e89f682fe69b4322d263c35421bc716bb7a57a204cd06f85412293d783bc49",
+      "src/rcc_f4/mod.rs": "31603ad0bb3706192a47f3b66d633aacf5dcc897d58b84ed52aa7339d47e2943",
+      "src/reset.rs": "620f0afa3cb661bc0f609a921a68d8f9f0ede80a0fd10d1a7141474734f73a3f",
+      "src/resource.rs": "f7b5a325a2e4c025da1418063138e3865fe3f9b9cd53d54a387ac66d5611fbc6",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/mod.rs": "35ffe5eb2e37b058b3dce5b13c184e4d1485653209ae0fcf21349819ec25dc47",
+      "src/spi/polled.rs": "760d83e99ecb82e8b58b539b3489886cd3512fa70613441da63cf1c7cce574a5",
+      "src/spi/stream_dma.rs": "3e5b8a39bab77c99ddf71f9cb5abd3b1b443cf3ea5ab88924204aeb386a31440",
+      "src/spi_v2/mod.rs": "e3f6a46ca70302fac256c843aa3aa94c18c38a590b3f112f99e8bf9c6b6d966f",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer.rs": "94fec1bc3be18c3fe06dad5bffe6802ca75909ce40400cebc21559bfe00438b5",
+      "src/timer_awg.rs": "f86e34c81e5a7aa2802072e595542fdac1b7ad238ebc1739f0f65f651a088243",
+      "src/timer_pwm.rs": "2525612b6ac11cfe1cc1de99a51c3dbd73a78fb5194c68b72f2681713244a8a5",
+      "src/uart/mod.rs": "5d0b11e5c3dd5f1d6c386a2094c72f583adf6d110fd11d0110f137b5b8841c6f",
+      "src/uart/ring.rs": "6e93c664a105cc570e3893309c131294e5975244b044401f1cc85402433328bc",
+      "src/uart/stream_dma.rs": "ee2f6cf380d687dc64f27ab085681e25ffdece8c74a1b9edb79b1cb449802704",
+      "src/uart/tx_ring.rs": "8e75e58d60f7da72902bebca74f88ee9b974ea0acfe22e825f97c56308ae8b05",
+      "src/usart_v2/mod.rs": "6708e046c3a8666fde76853e10086e3737649255ff330c10e5aeb3366dce0f91",
+      "src/usb.rs": "4639d398be8390652fd0a9ea21dc04f0558309ebe230389ad446a72db75a4c21",
+      "src/wait.rs": "9f62d55f6c02ccb3e72ad35b181e8f5add4efb3bbf2a56d1c80cb0959e07a76b"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "critical-section": "1.2.0",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.6.1, 0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.9",
+      "synopsys-usb-otg": "0.4.0",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "usbd-serial": "0.2.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    }
+  },
+  "results": [
+    {
+      "requirement": "API-001",
+      "method": {
+        "procedure": "requirements/benches.md#The Foxeer F405 V2 board bench"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "36cdaf0916fbb3eb24c138a029bc384c5f06d100e81c0c756d7598d9d1250138",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-005",
+      "method": {
+        "procedure": "requirements/benches.md#The Foxeer F405 V2 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "ff91007587b19b6840c3b31a86f3105097f24e42da38c9e200d69555a62702e5",
+      "result": "pass"
+    },
+    {
+      "requirement": "AWG-012",
+      "method": {
+        "procedure": "requirements/benches.md#The Foxeer F405 V2 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "154a4f5c390e0eac76658adb3277b6b59b8801d4d3955b63097ff0bda9f21a65",
+      "result": "pass"
+    },
+    {
+      "requirement": "RCC-003",
+      "method": {
+        "procedure": "requirements/benches.md#The Foxeer F405 V2 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "8022132ce243b7e13ae5f4d95bf1c41f04fe22de73d68c9a236c511e77de6b1e",
+      "result": "pass"
+    },
+    {
+      "requirement": "RESET-004",
+      "method": {
+        "procedure": "requirements/benches.md#The Foxeer F405 V2 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "58dba8eb2cea9961b93c1b96eceaf5a39a906e062a49e468ce068d4b4d559a02",
+      "result": "pass"
+    },
+    {
+      "requirement": "SIG-002",
+      "method": {
+        "procedure": "requirements/benches.md#The Foxeer F405 V2 board bench"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "63d849fb25b89c6f831a709d677c9eec11cb713848cb2ceb87daff4e5a71b1ff",
+      "result": "pass"
+    },
+    {
+      "requirement": "USB-001",
+      "method": {
+        "procedure": "requirements/benches.md#The Foxeer F405 V2 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "7e856827a5f7dd92000c881a6557d7ad71531236efb8eec4d417b5dfc59317d9",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "7e10bc1d900a724c3966c50dc5a32466c2ef3de5b24e7d66abbf3bfd0dc3461f",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-foxeer.sh",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "foxeer-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/free-redesign-20261113-api002/foxeer-images.sha256",
+        "bytes": 163,
+        "sha256": "7e10bc1d900a724c3966c50dc5a32466c2ef3de5b24e7d66abbf3bfd0dc3461f"
+      },
+      {
+        "id": "foxeer",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-api002/foxeer.log",
+        "bytes": 3376,
+        "sha256": "82c869b42318a5b57302b5bfb98f5380651bf82bbe58221c991e9353ef9c5f28"
+      },
+      {
+        "id": "foxeer-usb-irq",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-api002/foxeer-usb-irq.log",
+        "bytes": 294,
+        "sha256": "8323e35e4c750f52fe6463ff3702028bf73c2bcf4080571e7ce942915300a972"
+      }
+    ]
+  }
+}

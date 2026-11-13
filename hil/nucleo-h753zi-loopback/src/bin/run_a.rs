@@ -38,7 +38,7 @@ use panic_probe as _;
 mod app {
     use cortex_m::peripheral::{CPUID, SCB};
     use ferrohal_stm32::{
-        chip::{check_dma_buffer, Interrupt, USART1, USART2, USART3, USART6},
+        chip::{Interrupt, USART1, USART2, USART3, USART6, check_dma_buffer},
         uart::{Config, ConfigError, Parity, StopBits, Uart, UartInterrupts, UartIrq},
     };
 

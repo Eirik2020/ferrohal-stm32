@@ -74,17 +74,19 @@ mod app {
         let Some(mut run) = cx.local.run.take() else {
             defmt::unreachable!()
         };
-        let (Ok(mut tim1), Ok(mut tim3)) = (
+        let (Ok(tim1), Ok(tim3)) = (
             Pwm::new(&mut run.rcc, run.tim1, Hertz::khz(150)),
             Pwm::new(&mut run.rcc, run.tim3, Hertz::khz(150)),
         ) else {
             defmt::panic!("TIM1 or TIM3 PWM")
         };
-        let near = tim1.complementary::<1, _>(run.pa7).into_two_way_lane::<_, 'A'>(
-            run.near_lane,
-            core::mem::take(cx.local.near),
-            core::mem::take(cx.local.reads),
-        );
+        let near = tim1
+            .complementary::<1, _>(run.pa7)
+            .into_two_way_lane::<_, 'A'>(
+                run.near_lane,
+                core::mem::take(cx.local.near),
+                core::mem::take(cx.local.reads),
+            );
         let far = tim3
             .channel::<1, _>(run.pa6)
             .into_lane(run.far_lane, core::mem::take(cx.local.far));
@@ -93,7 +95,14 @@ mod app {
         };
         let mut near = Awg::single(tim1, (near,));
         let mut far = Awg::single(tim3, (far,));
-        pwm::awg_wire_in_check(&mut report, "TIM3 CH1 PA6 -> S1 -> TIM1 CH1N PA7", &mut near, 7, &mut far, cpu);
+        pwm::awg_wire_in_check(
+            &mut report,
+            "TIM3 CH1 PA6 -> S1 -> TIM1 CH1N PA7",
+            &mut near,
+            7,
+            &mut far,
+            cpu,
+        );
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

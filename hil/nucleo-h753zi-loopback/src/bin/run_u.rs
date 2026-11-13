@@ -52,6 +52,29 @@ mod watchdog;
 use defmt_rtt as _;
 use panic_probe as _;
 
+/// What a `free` must leave: the handle freed at all (`handed_back`), the
+/// peripheral off (`off`, read from its enable bit) and every one of its DMA
+/// streams stopped. Counts what is still on.
+fn freed(
+    handed_back: bool,
+    off: bool,
+    streams: &[(stm32_metapac::dma::Dma, usize)],
+) -> Result<(), tests::Fail> {
+    let running = streams
+        .iter()
+        .filter(|(dma, stream)| dma.st(*stream).cr().read().en())
+        .count() as u32;
+    let on = u32::from(!handed_back) + u32::from(!off) + running;
+    if on == 0 {
+        Ok(())
+    } else {
+        Err(tests::Fail::Count {
+            expected: 0,
+            got: on,
+        })
+    }
+}
+
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [CEC])]
 mod app {
     use ferrohal_stm32::{
@@ -130,16 +153,18 @@ mod app {
 
     #[task(priority = 1, local = [run, rcc_refusal], shared = [irq6])]
     async fn checks(mut cx: checks::Context) {
+        use embedded_hal::i2c::I2c as _;
+        use embedded_hal::spi::SpiBus as _;
         use ferrohal_stm32::{
             adc::{Adc, Config as AdcConfig, Error as AdcError},
             i2c::{Config as I2cConfig, ConfigError as I2cConfigError, Error as I2cError, I2c},
             iwdg::Watchdog,
-            spi::{self, Buffers as SpiBuffers, Config as SpiConfig, ConfigError as SpiConfigError},
+            spi::{
+                self, Buffers as SpiBuffers, Config as SpiConfig, ConfigError as SpiConfigError,
+            },
             time::Hertz,
             timer::{Awg, ConfigError as TimerConfigError, Pwm, Sampler, Tick, Timebase},
         };
-        use embedded_hal::i2c::I2c as _;
-        use embedded_hal::spi::SpiBus as _;
 
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
@@ -151,7 +176,13 @@ mod app {
         // watchdog's own reset at the end of the first, reports the bite
         // and ends cleanly; the first runs the refusals.
         let cause = run.rcc.reset_cause();
-        if watchdog::after_reset(&mut report, "IWDG1 50 ms", cause, (29, 34), (47_500, 52_500)) {
+        if watchdog::after_reset(
+            &mut report,
+            "IWDG1 50 ms",
+            cause,
+            (29, 34),
+            (47_500, 52_500),
+        ) {
             tests::finish(&report, || {});
         }
         static mut SPI_TX: [u8; 64] = [0; 64];
@@ -183,7 +214,10 @@ mod app {
                     expected: ClockError::PllNotConfigured as u32,
                     got: other as u32,
                 }),
-                None => Err(Fail::Count { expected: 1, got: 0 }),
+                None => Err(Fail::Count {
+                    expected: 1,
+                    got: 0,
+                }),
             },
         );
 
@@ -192,8 +226,12 @@ mod app {
         static mut TX: [u8; 256] = [0; 256];
         static mut RX: [u8; 256] = [0; 256];
         // SAFETY: as above.
-        let (tx, rx): (&'static mut [u8], &'static mut [u8]) =
-            unsafe { (&mut *core::ptr::addr_of_mut!(TX), &mut *core::ptr::addr_of_mut!(RX)) };
+        let (tx, rx): (&'static mut [u8], &'static mut [u8]) = unsafe {
+            (
+                &mut *core::ptr::addr_of_mut!(TX),
+                &mut *core::ptr::addr_of_mut!(RX),
+            )
+        };
         let (usart6, uart_refusal) = match Uart::new(
             &mut run.rcc,
             run.usart6,
@@ -232,10 +270,22 @@ mod app {
             "the handed-back wiring echoes a frame [API-001]",
             tests::echo(&mut loop6, b"refusal\n"),
         );
+        // `free` stops the line and both streams, and hands the token back.
+        let _token = usart6.free();
+        report.check(
+            "USART6 PC6->PC7",
+            "free leaves the USART off and both streams stopped [API-002]",
+            crate::freed(
+                true,
+                !stm32_metapac::USART6.cr1().read().ue(),
+                &[(stm32_metapac::DMA1, 6), (stm32_metapac::DMA1, 1)],
+            ),
+        );
 
         // SPI: a 0 Hz config refuses for the stream and the polled driver,
         // and the handed-back wirings transfer over S1 and S3.
         let sent = b"refusal run";
+        let mut spi_freed = false;
         report.check(
             "SPI1 PA5/PA6/PD7",
             "a 0 Hz config refuses; the wiring transfers over S1 [API-001]",
@@ -255,20 +305,35 @@ mod app {
                     } else {
                         let (wiring, buffers) = refused.into_parts();
                         match spi::Spi::new(&mut run.rcc, wiring, &board::SPI, buffers) {
-                            Ok(mut spi) => match spi.transfer(sent) {
-                                Ok(got) if got == sent => Ok(()),
-                                Ok(_) => Err(Fail::Count {
-                                    expected: sent.len() as u32,
-                                    got: 0,
-                                }),
-                                Err(error) => Err(Fail::Spi(error)),
-                            },
+                            Ok(mut spi) => {
+                                let echoed = match spi.transfer(sent) {
+                                    Ok(got) if got == sent => Ok(()),
+                                    Ok(_) => Err(Fail::Count {
+                                        expected: sent.len() as u32,
+                                        got: 0,
+                                    }),
+                                    Err(error) => Err(Fail::Spi(error)),
+                                };
+                                let _token = spi.free();
+                                spi_freed = true;
+                                echoed
+                            }
                             Err(refused) => Err(Fail::SpiConfig(refused.error())),
                         }
                     }
                 }
             },
         );
+        report.check(
+            "SPI1 PA5/PA6/PD7",
+            "free leaves the SPI off and both streams stopped [API-002]",
+            crate::freed(
+                spi_freed,
+                !stm32_metapac::SPI1.cr1().read().spe(),
+                &[(stm32_metapac::DMA1, 5), (stm32_metapac::DMA1, 4)],
+            ),
+        );
+        let mut polled_freed = false;
         report.check(
             "SPI2 PB10/PC2/PC3 (polled)",
             "a 0 Hz config refuses; the wiring writes over S3 [API-001]",
@@ -280,10 +345,12 @@ mod app {
                     } else {
                         let wiring = refused.into_parts();
                         match spi::BlockingSpi::new(&mut run.rcc, wiring, &board::SPI) {
-                            Ok(mut spi) => match spi.write(sent) {
-                                Ok(()) => Ok(()),
-                                Err(error) => Err(Fail::Spi(error)),
-                            },
+                            Ok(mut spi) => {
+                                let written = spi.write(sent).map_err(Fail::Spi);
+                                let _token = spi.free();
+                                polled_freed = true;
+                                written
+                            }
                             Err(refused) => Err(Fail::SpiConfig(refused.error())),
                         }
                     }
@@ -293,6 +360,12 @@ mod app {
 
         // I2C: an out-of-range speed refuses; the wiring opens the bus,
         // which NACKs a vacant address all by itself.
+        report.check(
+            "SPI2 PB10/PC2/PC3 (polled)",
+            "free leaves the SPI off [API-002]",
+            crate::freed(polled_freed, !stm32_metapac::SPI2.cr1().read().spe(), &[]),
+        );
+        let mut i2c_freed = false;
         report.check(
             "I2C3 PA8/PC9",
             "an out-of-range speed refuses; the bus NACKs a vacant address [API-001]",
@@ -304,16 +377,27 @@ mod app {
                     } else {
                         let wiring = refused.into_parts();
                         match I2c::new(&mut run.rcc, wiring, &I2cConfig::new(Hertz::khz(50))) {
-                            Ok(mut bus) => match bus.write(0x1E, &[0xA5]) {
-                                Err(I2cError::Nack) => Ok(()),
-                                Err(error) => Err(Fail::I2c(error)),
-                                Ok(()) => Err(Fail::I2cNotNack(None)),
-                            },
+                            Ok(mut bus) => {
+                                let nacked = match bus.write(0x1E, &[0xA5]) {
+                                    Err(I2cError::Nack) => Ok(()),
+                                    Err(error) => Err(Fail::I2c(error)),
+                                    Ok(()) => Err(Fail::I2cNotNack(None)),
+                                };
+                                let _token = bus.free();
+                                i2c_freed = true;
+                                nacked
+                            }
                             Err(refused) => Err(Fail::I2cConfig(refused.error())),
                         }
                     }
                 }
             },
+        );
+
+        report.check(
+            "I2C3 PA8/PC9",
+            "free leaves the I2C off [API-002]",
+            crate::freed(i2c_freed, !stm32_metapac::I2C3.cr1().read().pe(), &[]),
         );
 
         // ADC: an empty sequence refuses; the converter, stream and buffer
@@ -342,7 +426,10 @@ mod app {
                         let Ok(mut scan) = adc.into_scan(stream, &[pin, pin], buffer) else {
                             defmt::panic!("the scan")
                         };
-                        let mut result = Err(Fail::Count { expected: 1, got: 0 });
+                        let mut result = Err(Fail::Count {
+                            expected: 1,
+                            got: 0,
+                        });
                         if scan.start().is_ok() {
                             let mut spins = cpu.0 / 8;
                             loop {
@@ -372,7 +459,7 @@ mod app {
         );
 
         // PWM: a 0 rate refuses; the timer comes back at 500 kHz.
-        let (mut pwm3, pwm3_refusal) = match Pwm::new(&mut run.rcc, run.tim3, Hertz(0)) {
+        let (pwm3, pwm3_refusal) = match Pwm::new(&mut run.rcc, run.tim3, Hertz(0)) {
             Ok(_) => defmt::panic!("a 0-rate PWM config was accepted"),
             Err(refused) => {
                 let error = refused.error();
@@ -441,13 +528,7 @@ mod app {
             Err(refused) => {
                 let error = refused.error();
                 let (tim8, stream, buffer) = refused.into_parts();
-                match Sampler::new::<_, 'B'>(
-                    &mut run.rcc,
-                    tim8,
-                    stream,
-                    Hertz::mhz(1),
-                    buffer,
-                ) {
+                match Sampler::new::<_, 'B'>(&mut run.rcc, tim8, stream, Hertz::mhz(1), buffer) {
                     Ok(sampler) => (sampler, Some(error)),
                     Err(refused) => defmt::panic!("the TIM8 sampler: {}", refused.error()),
                 }
@@ -476,10 +557,14 @@ mod app {
             let count = (per_bit16 as usize * (16 + 8)) / 16;
             lane3
                 .arm(&pwm3, &pwm::duties(pattern, pwm3.period()))
-                .map_err(|_| Fail::Count { expected: 16, got: 0 })?;
-            sampler
-                .start(count)
-                .map_err(|_| Fail::Count { expected: count as u32, got: 0 })?;
+                .map_err(|_| Fail::Count {
+                    expected: 16,
+                    got: 0,
+                })?;
+            sampler.start(count).map_err(|_| Fail::Count {
+                expected: count as u32,
+                got: 0,
+            })?;
             pwm3.stage(0b0100);
             pwm3.start();
             let done = pwm::wait(budget, || lane3.poll());
@@ -487,7 +572,10 @@ mod app {
             pwm3.stop();
             pwm3.close_requests();
             if !matches!(done, Some(Ok(()))) || !matches!(sampled, Some(Ok(_))) {
-                return Err(Fail::Count { expected: 2, got: 0 });
+                return Err(Fail::Count {
+                    expected: 2,
+                    got: 0,
+                });
             }
             pwm::decode(sampler.samples(), 0, pattern, per_bit16, false)
         })();
@@ -499,7 +587,7 @@ mod app {
 
         // AWG: two timers at different periods refuse; both PWMs and both
         // lanes come back, the second re-rated, and the pair plays PB0.
-        let mut pwm5 = match Pwm::new(&mut run.rcc, run.tim5, Hertz::khz(100)) {
+        let pwm5 = match Pwm::new(&mut run.rcc, run.tim5, Hertz::khz(100)) {
             Ok(pwm) => pwm,
             Err(refused) => defmt::panic!("TIM5 PWM: {}", refused.error()),
         };
@@ -534,23 +622,36 @@ mod app {
                 .map_err(Fail::Timer)?;
             let period = awg.period();
             if awg.load(0, &pwm::duties(awg_pattern, period)).is_err() {
-                return Err(Fail::Count { expected: 16, got: 0 });
+                return Err(Fail::Count {
+                    expected: 16,
+                    got: 0,
+                });
             }
             let awg_per_bit16 =
                 (u64::from(sampler.rate().0) * 16 / u64::from(awg.sample_rate().0)) as u32;
             let count = (awg_per_bit16 as usize * (16 + 8)) / 16;
-            sampler
-                .start(count)
-                .map_err(|_| Fail::Count { expected: count as u32, got: 0 })?;
+            sampler.start(count).map_err(|_| Fail::Count {
+                expected: count as u32,
+                got: 0,
+            })?;
             if awg.play().is_err() {
-                return Err(Fail::Count { expected: 1, got: 0 });
+                return Err(Fail::Count {
+                    expected: 1,
+                    got: 0,
+                });
             }
             if !matches!(pwm::wait(budget, || awg.poll(0)), Some(Ok(()))) {
-                return Err(Fail::Count { expected: count as u32, got: 0 });
+                return Err(Fail::Count {
+                    expected: count as u32,
+                    got: 0,
+                });
             }
             let sampled = pwm::wait(budget, || sampler.poll());
             if !matches!(sampled, Some(Ok(_))) {
-                return Err(Fail::Count { expected: count as u32, got: 0 });
+                return Err(Fail::Count {
+                    expected: count as u32,
+                    got: 0,
+                });
             }
             pwm::decode(sampler.samples(), 0, awg_pattern, awg_per_bit16, false)
         })();

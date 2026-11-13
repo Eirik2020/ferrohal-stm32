@@ -4,8 +4,8 @@ Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is his
 
 Status as of 2026-11-10:
 
-- **F401:** `hil/run-f401.sh` passes its twenty-two default runs, 318 checks (2026-11-10); the runs, their links and their checks are in `requirements/benches.md`.
-- **H753ZI:** `hil/run-h753.sh` passes its twenty-two default runs (2026-11-10); run M, off the list while its CN13 cable powers the Pico, passed 11 of 11 on 2026-11-09.
+- **F401:** `hil/run-f401.sh` passes its twenty-one default runs, 318 checks (2026-11-12); the runs, their links and their checks are in `requirements/benches.md`.
+- **H753ZI:** `hil/run-h753.sh` passes its twenty-one default runs, 532 checks (2026-11-12); run M, off the list while its CN13 cable powers the Pico, passed 11 of 11 on 2026-11-09.
 - **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
 - **H743VI:** `hil/run-lucid.sh` passes 51 of 51 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 592 and 590 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams, its UID and rev V (2026-11-10). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
 - **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
@@ -44,7 +44,6 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 - **Low: the flight boards' I2C has carried bytes only on the Lucid.** Its barometer answers at `0x76` on I2C2 (PB10/PB11); the SpeedyBee's SPA06-001 and the Foxeer's I2C1 wiring use the same open-drain pins, but nothing has answered.
 - **Low: the I2C scope is master, 7-bit, no SMBus, no DMA.** SMBA isn't routed; slave mode or 10-bit addressing isn't asked for. A held-low line is [`Error::Busy`], not repaired: nine-clock recovery is firmware's.
-- **Medium: `Spi` and `I2c` have no `free()`;** `Pwm`, `Tick`/`Timebase` and `Uart` do. The rules a `free()` must meet are collected in `docs/design/free.md`.
 - **Medium: USB sits outside the no-panic proof.** `synopsys-usb-otg` has about 30 panic/unwrap sites and unbounded register spins; behind the `usb` feature, the check covers only FerroHAL's clock and constructor. Flight firmware should keep USB away from critical paths.
 - **Medium: USB is device-mode CDC on OTG_FS, tested on the H753ZI, the Foxeer's F405 and the Lucid's H743.** No OTG_HS, no host mode; the F401's Nucleo has no USB connector.
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
@@ -58,7 +57,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: a tick or timebase rate must divide the timer clock exactly.** `Tick` and `Timebase` refuse a rate they would have to round (`ConfigError::Inexact`) rather than drift.
 - **Low: some timers share their update vector** (the F4's `TIM1_UP_TIM10`, the H7's `TIM8_UP_TIM13`). `Tick::on_interrupt` returns `false` for another's flag; firmware calls every sharer's handler.
 - **Low: `verify()` can't check task priorities.** It checks a UART's vectors are enabled at one priority; "above every task that uses it" is the application's job.
-- **Low: `set_config` exists only on the whole `Uart`;** after `split()` the frame can't change. `Uart::halves()` lends both halves meanwhile.
+- **Low: no `free()` returns its pins,** only the token: no second role on its pins ([free.md](docs/design/free.md)).
 - **Low: DMA double buffering and FIFO threshold mode are untested,** and unreachable outside the crate since W6b2 made `Channel::start` internal.
 - **Medium: the ADC is regular conversions by software start only.** No timer trigger, injected channels, watchdogs, oversampling, or differential inputs; ADC2 isn't offered, nor the H7's `_C` pads. An `AdcScan` holds its ADC for good, and one sample time serves every channel.
 - **Low: the H7's ADC runs at a fixed 4 MHz,** per_ck (HSI) over 16, FerroWasp's speed, with BOOST left at its reset value, which suits that clock on both silicon revisions. ES0392 2.9.8 limits ADC3's resolution while the LSE runs; nothing here starts it. The Nucleo's bench reads 16 bits to within a few hundred counts on the rails, with no accuracy figure beyond that.

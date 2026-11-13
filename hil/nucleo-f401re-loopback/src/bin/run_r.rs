@@ -116,16 +116,28 @@ mod app {
         let result = (|| -> Result<(), Fail> {
             lane3
                 .arm(pwm3, &pwm::duties(patterns.0, period))
-                .map_err(|_| Fail::Count { expected: BITS as u32, got: 0 })?;
+                .map_err(|_| Fail::Count {
+                    expected: BITS as u32,
+                    got: 0,
+                })?;
             lane4
                 .arm(pwm3, &pwm::duties(patterns.1, period))
-                .map_err(|_| Fail::Count { expected: BITS as u32, got: 0 })?;
+                .map_err(|_| Fail::Count {
+                    expected: BITS as u32,
+                    got: 0,
+                })?;
             lane23
                 .arm(pwm2, &pwm::duties(patterns.2, period))
-                .map_err(|_| Fail::Count { expected: BITS as u32, got: 0 })?;
+                .map_err(|_| Fail::Count {
+                    expected: BITS as u32,
+                    got: 0,
+                })?;
             lane22
                 .arm(pwm2, &pwm::duties(patterns.3, period))
-                .map_err(|_| Fail::Count { expected: BITS as u32, got: 0 })?;
+                .map_err(|_| Fail::Count {
+                    expected: BITS as u32,
+                    got: 0,
+                })?;
             sampler.start(count).map_err(|_| Fail::Count {
                 expected: count as u32,
                 got: 0,
@@ -169,7 +181,11 @@ mod app {
             }
         })();
         let finished_ok = result.is_ok();
-        report.check(name, "all four lanes and the sampler finish [PWM-003]", result);
+        report.check(
+            name,
+            "all four lanes and the sampler finish [PWM-003]",
+            result,
+        );
         if !finished_ok {
             sampler.stop();
             return;
@@ -211,17 +227,13 @@ mod app {
             defmt::panic!("motor timers")
         };
         let (Ok(mut lane3), Ok(mut lane4), Ok(mut lane23), Ok(mut lane22)) = (
-            pwm3
-                .channel::<3, _>(run.ch3)
+            pwm3.channel::<3, _>(run.ch3)
                 .into_lane(run.lane3, core::mem::take(cx.local.lane3)),
-            pwm3
-                .channel::<4, _>(run.ch4)
+            pwm3.channel::<4, _>(run.ch4)
                 .into_lane(run.lane4, core::mem::take(cx.local.lane4)),
-            pwm2
-                .channel::<3, _>(run.ch23)
+            pwm2.channel::<3, _>(run.ch23)
                 .into_lane(run.lane23, core::mem::take(cx.local.lane23)),
-            pwm2
-                .channel::<2, _>(run.ch22)
+            pwm2.channel::<2, _>(run.ch22)
                 .into_lane(run.lane22, core::mem::take(cx.local.lane22)),
         ) else {
             defmt::panic!("motor lanes")

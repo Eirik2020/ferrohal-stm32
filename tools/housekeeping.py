@@ -20,34 +20,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_docs  # noqa: E402
 
 ROOT = check_docs.ROOT
-LINK = re.compile(r"\]\(([^)\s#]+\.md)(?:#[^)]*)?\)")
+LINK = check_docs.LINK
 TITLE = re.compile(r"^# (.+)$", re.M)
 STATUS = re.compile(
     r"^ADR-(\d{3}) - Status: (accepted|promoted|superseded|rejected)\b", re.M
 )
 STAMP = re.compile(r"^- (Last review|Next due): (\d{4}-\d{2}-\d{2})$", re.M)
 
-ENTRY = {
-    "AGENTS.md",
-    "README.md",
-    "DEBT.md",
-    "RESOLVED.md",
-    "docs/INDEX.md",
-    "docs/decisions/README.md",
-    "docs/housekeeping/README.md",
-    "docs/housekeeping/state.md",
-}
-HUBS = ("docs/decisions/index/",)
+ENTRY = check_docs.ENTRY
+HUBS = check_docs.HUBS
 
 
 def label(relative: str) -> str:
-    if relative in check_docs.RATCHET:
-        return "ratcheted"
-    for pattern, name, _ in check_docs.TOKENS:
-        if re.search(pattern, relative):
-            return name
-    budget = check_docs.budget_for(relative)
-    return budget[0] if budget else "document"
+    if relative in check_docs.ALWAYS_LOADED:
+        return "always loaded"
+    if any(re.search(pattern, relative) for pattern in check_docs.AGENT_FACING):
+        return "agent"
+    return "document"
 
 
 def age(path: Path) -> str:
@@ -64,30 +53,13 @@ def age(path: Path) -> str:
 
 
 def collect() -> dict:
-    docs = check_docs.documents()
-    corpus = []
-    for path in sorted(ROOT.rglob("*")):
-        if path.suffix not in (".md", ".yaml", ".rs") or not path.is_file():
-            continue
-        relative = path.relative_to(ROOT).as_posix()
-        if relative.startswith(("target/", "requirements/evidence/")):
-            continue
-        corpus.append((path, path.read_text(encoding="utf-8", errors="ignore")))
-
-    inbound = {path.resolve(): 0 for path in docs}
-    for path in docs:
-        for target in LINK.findall(path.read_text(encoding="utf-8")):
-            if target.startswith(("http://", "https://", "mailto:")):
-                continue
-            resolved = (path.parent / target).resolve()
-            if resolved in inbound:
-                inbound[resolved] += 1
-    for doc in docs:
-        relative = doc.relative_to(ROOT).as_posix()
-        for path, text in corpus:
-            if path != doc and relative in text:
-                inbound[doc.resolve()] += 1
-
+    # The generated index is not a document, and it names every path: left in, it
+    # would count as a link to each of them and no document could be an orphan.
+    docs = [
+        path
+        for path in check_docs.documents()
+        if not check_docs.GENERATED.search(path.relative_to(ROOT).as_posix())
+    ]
     entries = []
     for path in docs:
         relative = path.relative_to(ROOT).as_posix()
@@ -97,17 +69,10 @@ def collect() -> dict:
                 "path": relative,
                 "label": label(relative),
                 "bytes": size,
-                "tokens": (size + 3) // 4,
             }
         )
 
-    orphans = [
-        path.relative_to(ROOT).as_posix()
-        for path in docs
-        if not inbound[path.resolve()]
-        and path.relative_to(ROOT).as_posix() not in ENTRY
-        and not path.relative_to(ROOT).as_posix().startswith(HUBS)
-    ]
+    orphans = check_docs.orphans(docs)
 
     titles = {}
     for path in docs:
@@ -193,16 +158,6 @@ def collect() -> dict:
         "duplicates": duplicates,
         "decisions": {"counts": counts, "unpromoted": unpromoted, "active_cap": 20},
         "stale": stale,
-        "ratchets": [
-            {
-                "path": relative,
-                "bytes": (ROOT / relative).stat().st_size
-                if (ROOT / relative).is_file()
-                else 0,
-                "cap": cap,
-            }
-            for relative, cap in check_docs.RATCHET.items()
-        ],
         "questions": questions,
     }
 
@@ -248,10 +203,6 @@ def render(data: dict) -> None:
         print(f"  {item['path']}: unchanged since {item['since']} ({item['days']} days)")
     if not data["stale"]:
         print("  none")
-
-    print("\nratchets")
-    for item in data["ratchets"]:
-        print(f"  {item['bytes']:>6} B of {item['cap']} B  {item['path']}")
 
     print("\nquestions for the owner")
     for question in data["questions"] or ["none"]:

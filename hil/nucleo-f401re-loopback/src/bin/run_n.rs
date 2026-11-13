@@ -13,11 +13,7 @@ mod tests;
 
 use cortex_m_rt::entry;
 use defmt_rtt as _;
-use ferrohal_stm32::{
-    chip::Peripherals,
-    time::Hertz,
-    timer::Pwm,
-};
+use ferrohal_stm32::{chip::Peripherals, time::Hertz, timer::Pwm};
 use panic_probe as _;
 
 use tests::Report;
