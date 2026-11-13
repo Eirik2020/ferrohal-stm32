@@ -12,6 +12,9 @@ Foxeer F405 V2 and the TBS Lucid H7 are `FLSH`, flashed and run without full deb
 coverage, and their runs count at that tier (ADR-009). Measured 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560
 checks; reqtool 117 of 122 verified.
 
+The tables below are hand-written until the tier command generates them from the
+evidence (ADR-008, item 7); then they must not be edited by hand.
+
 ## Per IP version
 
 | IP version | chips | proven on (`HIL`): runs | flashed (`FLSH`) | not proven (`docs/DEBT.md`) |

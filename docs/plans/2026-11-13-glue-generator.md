@@ -32,7 +32,9 @@ both Nucleo suites.
    type, decided before anything is emitted, so the rows are written once.
 4. **Emit and compare.** The generator writes `src/chips/gen/`; the generated glue is
    compared row by row with today's hand glue, and every difference is explained. Then
-   the part files switch to the generated glue plus their hand facts.
+   the part files switch to the generated glue plus their hand facts, and the generator
+   also writes `docs/CHIPS.md`'s silicon and capability tables, between generated
+   markers, replacing the hand tables.
 5. **The glue probe.** A run per Nucleo, debugger only: the die ID, each peripheral's
    enable and reset bits, each vector, each pin's mode and alternate function. It is the
    die axis's evidence for 0x433 and 0x450.
@@ -40,7 +42,7 @@ both Nucleo suites.
    on any difference; `tools/check_glue.py` and its `checks/run.sh` step go.
 7. **Tiers.** reqtool records each run's tier as its environment (a reqtool change, pinned
    by revision here); a command computes each part's platform tier and capability table
-   into `docs/CHIPS.md`, checked at the merge gate.
+   into `docs/CHIPS.md`, and `hil/COVERAGE.md`'s matrix, both checked at the merge gate.
 
 ## What it closes
 

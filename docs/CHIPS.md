@@ -17,7 +17,9 @@ IP versions and features per chip: [`design/naming.md`](design/naming.md#feature
 Maturity follows three axes, IP version, die and series, on the tier ladder `BRD`,
 `HIL`, `DBG`, `FLSH`, `INH` ([`design/maturity.md`](design/maturity.md)). A capability is as
 strong as its weakest axis; one not listed here is not covered. The computed tier
-tables replace this paragraph when the tier command lands (ADR-009).
+tables replace this paragraph when the tier command lands (ADR-009). The silicon and
+capability tables here are hand-written until the generator writes them (ADR-008, item 7);
+then they are generated and must not be edited by hand.
 
 ## Capabilities
 

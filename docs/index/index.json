@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 50,
-  "bytes": 270820
+  "bytes": 272565
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 8987
+   "bytes": 9150
   },
   {
    "path": "docs/DEBT.md",
@@ -123,7 +123,7 @@
    "class": "agent",
    "title": "ADR-008: Generate the chip glue from metapac (2026-11-13)",
    "purpose": "ADR-008 - Status: promoted",
-   "bytes": 2693,
+   "bytes": 3117,
    "adr": "ADR-008",
    "status": "promoted"
   },
@@ -197,7 +197,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 3892
+   "bytes": 4726
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -428,7 +428,7 @@
    "class": "human",
    "title": "The glue generator, and the work before it - plan of record",
    "purpose": "Status: agreed 2026-11-13, not started. Decis",
-   "bytes": 3070
+   "bytes": 3246
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -470,7 +470,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 4408
+   "bytes": 4556
   },
   {
    "path": "hil/RIG.md",

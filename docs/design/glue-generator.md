@@ -41,6 +41,20 @@ emits: [maturity.md](maturity.md).
 - **[Decided]** It runs on demand, and as a required check on pull requests into `main`
   (regenerate, fail on any difference). It does not run on development-branch pushes.
 
+## Generated documentation
+
+- **[Decided]** Tables that restate the registry, the metadata or the evidence are
+  generated, never hand-edited (owner, 2026-11-13): drift is a check failure.
+  - `glue-gen` writes `docs/CHIPS.md`'s silicon table (part, series, die, package, core,
+    clock as offered) and capability matrix (per part: each driver, the instances its
+    die offers, n/a where the part has none).
+  - The tier command writes each part's platform tier and capability tiers into
+    `docs/CHIPS.md`, and `hil/COVERAGE.md`'s matrix per IP version, die and series, from
+    reqtool's evidence.
+- **[Decided]** Each generated table sits between `<!-- generated: <tool> -->` markers;
+  the prose around it (limits, roadmap, notes) stays hand-written. The merge gate
+  regenerates and fails on any difference, as for the glue.
+
 ## Hand facts
 
 - **[Decided]** Facts metapac lacks stay hand-written beside the generated files, per die,

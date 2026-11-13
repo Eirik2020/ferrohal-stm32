@@ -30,6 +30,11 @@ generator; this record unparks it.
 6. Verification: the generator's self-checks, a one-time row-by-row comparison with the
    hand glue it replaces, a glue probe run per die on target, and the bench runs.
    `tools/check_glue.py` retires once the generator is merged into `main`.
+7. The documentation tables come from the same sources, so they cannot drift (owner,
+   2026-11-13): the generator writes `docs/CHIPS.md`'s silicon and capability tables
+   from its registry, the metadata and the driver table; the tier command writes the
+   tier tables and `hil/COVERAGE.md`'s matrix from the evidence. Both are checked at
+   the merge gate with the glue. Prose (limits, roadmap, notes) stays hand-written.
 
 ## Consequences
 
