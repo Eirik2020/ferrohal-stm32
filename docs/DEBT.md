@@ -61,7 +61,8 @@ Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/r
   hand-written; `tools/check_glue.py` reads them as text against metapac, so their
   layout is frozen, and what metapac lacks (USB FIFO depth, clock limits, memory map) is
   checked by hand. *Spawned:* `af65cad` 2026-10-31, hand-written glue for the prototype
-  with the generator left open; parked by `docs/design/scope.md`.
+  with the generator left open; parked by `docs/design/scope.md`. Planned: ADR-008,
+  `docs/plans/2026-11-13-glue-generator.md`.
 - `code` `errata` `rig` **Medium: no ES0392 2.2.10 workaround for rev-Y/W H7s.** DMA
   buffers sit in AXI SRAM, where those revisions can corrupt reads;
   `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it and metapac lacks the register. Both H7s
@@ -210,6 +211,10 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   *Spawned:* `af65cad`.
 - `rig` **Low: clock checks are indirect.** `freeze`'s record, working baud rates and the
   host echo; nothing measures MCO. *Spawned:* `af65cad`.
+- `rig` **Low: die 0x413 (F405, F407) has no debugger bench.** Its glue rests on the
+  Foxeer's flashed runs (`FLSH`); the generator's glue probe needs `DBG` or better, which
+  the F407 Discovery gives once wired with a cable. Owner accepted, 2026-11-13; rig parts
+  ordered. *Spawned:* ADR-009's die axis (2026-11-13), which made the gap visible.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. *Spawned:* the
   W11 audit (`ff3af8d`, 2026-11-10).

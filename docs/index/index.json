@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 67,
-  "agent": 46,
-  "bytes": 254321
+  "documents": 72,
+  "agent": 50,
+  "bytes": 270820
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4993
+   "bytes": 5274
   },
   {
    "path": "README.md",
@@ -32,14 +32,14 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 8826
+   "bytes": 8987
   },
   {
    "path": "docs/DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 16100
+   "bytes": 16511
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -119,6 +119,24 @@
    "status": "promoted"
   },
   {
+   "path": "docs/decisions/2026-11-13-chip-glue-generator.md",
+   "class": "agent",
+   "title": "ADR-008: Generate the chip glue from metapac (2026-11-13)",
+   "purpose": "ADR-008 - Status: promoted",
+   "bytes": 2693,
+   "adr": "ADR-008",
+   "status": "promoted"
+  },
+  {
+   "path": "docs/decisions/2026-11-13-maturity-tiers.md",
+   "class": "agent",
+   "title": "ADR-009: Maturity by evidence tier, per IP, die and series (2026-11-13)",
+   "purpose": "ADR-009 - Status: promoted",
+   "bytes": 2112,
+   "adr": "ADR-009",
+   "status": "promoted"
+  },
+  {
    "path": "docs/decisions/README.md",
    "class": "agent",
    "title": "Decision records (ADR hub)",
@@ -130,7 +148,7 @@
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 1109
+   "bytes": 1340
   },
   {
    "path": "docs/design/api-surface.md",
@@ -175,6 +193,13 @@
    "bytes": 2524
   },
   {
+   "path": "docs/design/glue-generator.md",
+   "class": "agent",
+   "title": "The chip-glue generator",
+   "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
+   "bytes": 3892
+  },
+  {
    "path": "docs/design/h7-errata.md",
    "class": "agent",
    "title": "ES0392 review: cache, system, flash ECC",
@@ -187,6 +212,13 @@
    "title": "Crate layering above FerroHAL",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
    "bytes": 1634
+  },
+  {
+   "path": "docs/design/maturity.md",
+   "class": "agent",
+   "title": "Maturity: capability, evidence axes and tiers",
+   "purpose": "Source: ADR-009, ../decisions/2026-11-13-matu",
+   "bytes": 2385
   },
   {
    "path": "docs/design/naming.md",
@@ -214,7 +246,7 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 3886
+   "bytes": 4101
   },
   {
    "path": "docs/design/requirements-tooling.md",
@@ -228,7 +260,7 @@
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 3122
+   "bytes": 3184
   },
   {
    "path": "docs/design/structure.md",
@@ -263,7 +295,7 @@
    "class": "agent",
    "title": "Housekeeping state",
    "purpose": "Cadence: monthly, or immediately when more th",
-   "bytes": 1720
+   "bytes": 2566
   },
   {
    "path": "docs/notes/2026-11-08-naming-audit.md",
@@ -392,6 +424,13 @@
    "bytes": 3413
   },
   {
+   "path": "docs/plans/2026-11-13-glue-generator.md",
+   "class": "human",
+   "title": "The glue generator, and the work before it - plan of record",
+   "purpose": "Status: agreed 2026-11-13, not started. Decis",
+   "bytes": 3070
+  },
+  {
    "path": "docs/policies/agent-docs.md",
    "class": "agent",
    "title": "Agent-doc style",
@@ -431,7 +470,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 4268
+   "bytes": 4408
   },
   {
    "path": "hil/RIG.md",
