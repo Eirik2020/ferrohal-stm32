@@ -43,7 +43,9 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 
 - Owner, 2026-11-13: the root holds only the files a repository is expected to have there
   (`README.md`, `AGENTS.md`, `THIRD-PARTY.md`, the licences, the Cargo and tool
-  manifests) and temporary markdown that is never committed (a review record, a draft).
+  manifests) and temporary markdown that is never committed. Review records and
+  architecture drafts go in `review/`, which git ignores whole and agents may not write
+  to without the owner's explicit permission (its local `README.md` and `AGENTS.md`).
   Every other document lives under `docs/` or beside what it describes (`hil/`,
   `requirements/`); the debt registries are `docs/DEBT.md` and `docs/RESOLVED*.md`.
 - `tools/check_docs.py` fails a committed root `.md` outside that list, and treats an

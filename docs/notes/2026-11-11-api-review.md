@@ -1,7 +1,7 @@
 # API review: consistency, naming, structure, reuse (hub)
 
 Merged 2026-11-11, every fact re-measured at `main` `d2bdccd`, from:
-- review 2026-11-10 at `7d1af83` (`REVIEW-2026-11-10-consistency.md`, repo root; host checks only);
+- review 2026-11-10 at `7d1af83` (`review/REVIEW-2026-11-10-consistency.md`, uncommitted; host checks only);
 - scan 2026-11-11: all 41 `src/` files (17 657 lines), `hil/`, `tools/`, both Nucleo benches.
 
 Scope: Rust API shape. ADR-003/W14 covers catalogs, IDs, features, scripts, doc names.

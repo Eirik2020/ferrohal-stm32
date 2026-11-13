@@ -3,7 +3,7 @@
  "counts": {
   "documents": 63,
   "agent": 44,
-  "bytes": 246916
+  "bytes": 247171
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4519
+   "bytes": 4599
   },
   {
    "path": "README.md",
@@ -338,7 +338,7 @@
    "class": "agent",
    "title": "API review: consistency, naming, structure, reuse (hub)",
    "purpose": "Merged 2026-11-11, every fact re-measured at ",
-   "bytes": 3103
+   "bytes": 3112
   },
   {
    "path": "docs/plans/2026-11-08-debt-sweep-gates.md",
@@ -387,7 +387,7 @@
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 4035
+   "bytes": 4201
   },
   {
    "path": "docs/policies/safety.md",

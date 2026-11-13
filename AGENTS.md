@@ -59,7 +59,8 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - Docs: human vs agent classes; 20000 B always-loaded, 40000 B otherwise (`docs/policies/documentation.md`); split, never compress; a split is linked, never orphaned.
 - Housekeeping forced: `state.md` due date or +10 docs -> `tools/housekeeping.py`, record pass.
 - Root: README, AGENTS, THIRD-PARTY, licences, manifests, and uncommitted temporary `.md` only; docs live in `docs/`.
-- Don't touch `flash-backups/`, `requirements/evidence/`. `ferrosmith-board-schema.md` stays untracked.
+- Don't touch `flash-backups/`, `requirements/evidence/`.
+- `review/` (owner's reviews + drafts, uncommitted): read only; no write of any kind without the owner's explicit permission.
 - Workspace habits: `../agent-memory/MEMORY.md`.
 
 ## State 2026-11-13

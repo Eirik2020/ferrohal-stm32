@@ -8,6 +8,10 @@ hil/logs/
 __pycache__/
 *.pyc
 
+# The owner's review records and architecture drafts: never committed, and agents
+# may not write there without the owner's permission (review/AGENTS.md, kept locally).
+/review/
+
 # The root holds only these documents; any other root .md is temporary (a review
 # record, a draft) and never committed (docs/policies/documentation.md).
 /*.md

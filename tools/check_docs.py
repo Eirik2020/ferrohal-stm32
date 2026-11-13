@@ -67,6 +67,7 @@ ROOT_FILES = {"README.md", "AGENTS.md", "THIRD-PARTY.md"}
 
 # Never part of a commit decision: evidence and build output.
 EXEMPT = (
+    r"^review/",  # the owner's reviews and drafts: uncommitted, not ours to write
     r"^requirements/evidence/",
     r"^target/",
     r"^\.git/",
