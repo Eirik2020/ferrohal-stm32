@@ -1,6 +1,6 @@
 schema_version: 2
 requirements:
-  - id: RES-001
+  - id: RESOURCE-001
     title: A driver can see its vectors are enabled
     statement: >-
       A driver shall report whether the vectors it needs are enabled at one

@@ -128,7 +128,7 @@ requirements:
           method:
             procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
 
-  - id: I2CV1-001
+  - id: I2C-V1-001
     title: I2C v1 clears its event flags in the manual's sequences
     statement: >-
       I2C v1 shall walk its events as RM0368 §27.3.3 sequences them: the
@@ -146,7 +146,7 @@ requirements:
           method:
             procedure: requirements/benches.md#I2C on the Nucleo-F401RE
 
-  - id: I2CV2-001
+  - id: I2C-V2-001
     title: I2C v2 carries its transfers in CR2 programs
     statement: >-
       I2C v2 shall carry a segment as CR2 programs it: NBYTES with RELOAD

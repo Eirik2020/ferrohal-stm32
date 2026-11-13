@@ -3,7 +3,7 @@
  "counts": {
   "documents": 62,
   "agent": 43,
-  "bytes": 228622
+  "bytes": 228639
  },
  "documents": [
   {
@@ -18,7 +18,7 @@
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 22317
+   "bytes": 22318
   },
   {
    "path": "README.md",
@@ -380,7 +380,7 @@
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 3240
+   "bytes": 3241
   },
   {
    "path": "docs/policies/safety.md",
@@ -443,7 +443,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 12960
+   "bytes": 12975
   },
   {
    "path": "requirements/goals.md",

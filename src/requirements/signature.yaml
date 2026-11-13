@@ -1,6 +1,6 @@
 schema_version: 2
 requirements:
-  - id: SIG-001
+  - id: UID-001
     title: The unique ID is readable
     statement: >-
       The driver shall read the chip's factory unique ID.
@@ -18,7 +18,7 @@ requirements:
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
 
-  - id: SIG-002
+  - id: REVISION-001
     title: The die revision is readable
     statement: >-
       The driver shall read the chip's die revision code from its family's

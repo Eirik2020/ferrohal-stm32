@@ -313,7 +313,7 @@ fn cross_checks<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Inst
     tests::drain(cross);
     report.check_for(
         name,
-        "UART-001 UART-002 USART-001",
+        "UART-001 UART-002 UART-016",
         "echo",
         tests::echo(cross, b"hello across\n"),
     );
@@ -325,13 +325,13 @@ fn cross_checks<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Inst
     );
     report.check_for(
         name,
-        "UART-005 UART-013 USART-002 USART-003",
+        "UART-005 UART-013 UART-017 UART-018",
         "break reported",
         tests::line_break(cross),
     );
     report.check_for(
         name,
-        "UART-005 USART-002",
+        "UART-005 UART-017",
         "half baud rate reported as framing error",
         tests::framing_mismatch(cross),
     );
@@ -469,13 +469,13 @@ mod app {
         let mut report = Report::new();
         report.check_for(
             "USART1",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors1),
         );
         report.check_for(
             "USART6",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );

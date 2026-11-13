@@ -1034,7 +1034,7 @@ pub fn full_suite(
     }
     report.check_for(
         name,
-        "UART-001 UART-002 USART-001",
+        "UART-001 UART-002 UART-016",
         "echo",
         echo(link, b"hello ferrohal\n"),
     );
@@ -1074,13 +1074,13 @@ pub fn full_suite(
     );
     report.check_for(
         name,
-        "UART-005 UART-013 USART-002 USART-003",
+        "UART-005 UART-013 UART-017 UART-018",
         "break reported",
         line_break(link),
     );
     report.check_for(
         name,
-        "UART-007 USART-002",
+        "UART-007 UART-017",
         "chunks end where the line goes idle",
         chunks_end_at_idle(link),
     );
@@ -1129,9 +1129,9 @@ pub fn full_suite(
     report.check_for(
         name,
         if inversion_supported {
-            "USARTV4-001"
+            "USART-V4-001"
         } else {
-            "UART-004 USARTV2-001"
+            "UART-004 USART-V2-001"
         },
         if inversion_supported {
             "RX and TX inversion"
@@ -1142,19 +1142,19 @@ pub fn full_suite(
     );
     report.check_for(
         name,
-        "UART-012 USART-001",
+        "UART-012 UART-016",
         "1 Mbaud",
         reconfigured(link, &ONE_MBAUD),
     );
     report.check_for(
         name,
-        "UART-012 USART-001",
+        "UART-012 UART-016",
         "57600 8E2",
         reconfigured(link, &EVEN_PARITY_TWO_STOP),
     );
     report.check_for(
         name,
-        "UART-012 USART-001",
+        "UART-012 UART-016",
         "back to its own frame",
         reconfigured(link, config),
     );

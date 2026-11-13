@@ -133,7 +133,7 @@ fn main() -> ! {
             // sequence; the version's own requirement stands on them all.
             report.check_for(
                 link,
-                "I2CV1-001",
+                "I2C-V1-001",
                 "every transfer above walked this version's register sequence",
                 if report.failed == failed_before {
                     Ok(())

@@ -2,7 +2,7 @@
 //! vectors are bound as it needs, and what a constructor that refuses hands
 //! back. Shared by every peripheral driver.
 //!
-//! Requirements: RES-001
+//! Requirements: RESOURCE-001
 
 /// One resource a wiring uses, as data: for checking a board's manifest
 /// against the types that wire it (`Wiring::RESOURCES` and the like).

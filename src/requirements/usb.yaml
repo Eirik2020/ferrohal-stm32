@@ -8,7 +8,7 @@ requirements:
     rationale: >-
       A board with no debug probe is configured over USB. Proven on the H7's
       OTG_HS core at full speed; the F4's OTG_FS core is different IP behind
-      the same driver, and USBF4-001 owes its own proof.
+      the same driver, and USB-F4-001 owes its own proof.
     derived_from: [G3]
     verification:
       entries:
@@ -17,7 +17,7 @@ requirements:
           method:
             procedure: requirements/benches.md#USB on the Nucleo-H753ZI
 
-  - id: USBF4-001
+  - id: USB-F4-001
     title: On the F4, the OTG_FS core carries CDC serial
     statement: >-
       On the F4, the OTG_FS core shall enumerate as a CDC serial device and

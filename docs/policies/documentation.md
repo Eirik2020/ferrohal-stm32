@@ -27,7 +27,7 @@ Measurement wins for what the code does; record both; divergence -> erratum cand
 ## Requirements
 
 - A file states its requirements; the `Requirements:` trailer names the IDs; `docs/design/requirements-system.md` hashes it.
-- One `shall` per statement. A single-part requirement gets its own family (`USARTV4-001`).
+- One `shall` per statement. A single-part requirement gets its own family (`USART-V4-001`).
 
 ## Decision records
 

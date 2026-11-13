@@ -43,7 +43,7 @@ fn main() -> ! {
     defmt::info!("unique ID: {=[u8]:02x}", uid);
     report.check(
         "unique ID",
-        "isn't blank [SIG-001]",
+        "isn't blank [UID-001]",
         if uid != [0; 12] && uid != [0xFF; 12] {
             Ok(())
         } else {
@@ -61,7 +61,7 @@ fn main() -> ! {
     defmt::info!("die revision: {=u16:#06x}", revision);
     report.check(
         "die revision",
-        "the glue reads DBGMCU's REV_ID, a known code [SIG-002]",
+        "the glue reads DBGMCU's REV_ID, a known code [REVISION-001]",
         if revision == direct && matches!(revision, 0x1000 | 0x1001) {
             Ok(())
         } else {

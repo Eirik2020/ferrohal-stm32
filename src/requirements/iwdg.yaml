@@ -70,7 +70,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
 
-  - id: IWDG-005
+  - id: IWDG-V2-001
     title: A feed before the window opens resets
     statement: >-
       A watchdog started with a window shall reset the chip if fed before
@@ -113,14 +113,14 @@ requirements:
           method:
             test: ferrohal_stm32::iwdg_v1::tests::divider_follows_the_lsi
 
-  - id: IWDG-007
+  - id: IWDG-V2-002
     title: A feed inside the window does not reset
     statement: >-
       A watchdog started with a window shall not reset the chip when fed
       inside the window.
     rationale: >-
       A window that also resets on correct feeds is no watchdog a firmware
-      can run under; IWDG-005 alone cannot tell the two apart.
+      can run under; IWDG-V2-001 alone cannot tell the two apart.
     derived_from: [G3]
     verification:
       entries:

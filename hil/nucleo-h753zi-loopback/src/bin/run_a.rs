@@ -227,28 +227,28 @@ mod app {
         let usart6 = cx.local.usart6;
         report.check_for(
             "USART6 PC6->PC7, CRSF 420000",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart6),
         );
         let usart1 = cx.local.usart1;
         report.check_for(
             "USART1 PB6->PB7, SBUS 100000 8E2",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart1),
         );
         let usart3 = cx.local.usart3;
         report.check_for(
             "USART3 PB10->PB11, MSP 115200",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart3),
         );
         let usart2 = cx.local.usart2;
         report.check_for(
             "USART2 PD5->PD6, control",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart2),
         );
@@ -289,7 +289,7 @@ mod app {
         );
         report.check_for(
             "USART1 PB6->PB7, SBUS 100000 8E2",
-            "USART-005",
+            "UART-020",
             "a masked line keeps its events out until unmasking",
             tests::line_mask(&mut Loop {
                 name: "USART1 PB6->PB7, SBUS 100000 8E2",

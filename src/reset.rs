@@ -20,7 +20,7 @@
 //! so a firmware's reset handler takes VTOR back; without it, its interrupts
 //! ran the ROM's handlers and the Foxeer's USB never enumerated.
 //!
-//! Requirements: RESET-001, RESET-002, RESETH7-001, RESET-003, RESET-004
+//! Requirements: RESET-001, RESET-002, RESET-H7-001, RESET-003, RESET-004
 
 use core::{mem::MaybeUninit, ptr::addr_of_mut};
 

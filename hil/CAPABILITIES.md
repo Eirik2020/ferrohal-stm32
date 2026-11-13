@@ -26,7 +26,7 @@ Links, jumpers and shared cables are in `hil/WIRING.md` and each board's
 - **UART**, all three IP paths: every TX/RX pin entry and DMA route the reference
   manuals list on both Nucleos, loopback and host echo, receive-only links,
   inversion (SBUS), parity errors and their clear, idle-line chunking, line
-  masking (USART-005), 64 KiB echo at 561 KiB/s.
+  masking (UART-020), 64 KiB echo at 561 KiB/s.
 - **SPI**: DMA and polled masters, all four modes with SCK idling at CPOL, SCK
   edges counted by EXTI, abort then recovery, the Foxeer's real NOR, SPI1–SPI5
   on the H753's Zio pins.
@@ -105,7 +105,7 @@ with no method today its proof, one chip per IP version (the car rule,
 `docs/design/requirements-system.md`); the rest are cheap ones first, then the
 ones that unblock a claim.
 
-1. **An F4 USB bench.** The F4's OTG_FS core then has a bench: USBF4-001, and
+1. **An F4 USB bench.** The F4's OTG_FS core then has a bench: USB-F4-001, and
    RESET-004 on the F4 through the ROM's USB DFU. Either a USB breakout on the
    F401's PA11/PA12 (morpho CN10, with VBUS and ground), or the STM32F407
    Discovery the owner has, whose USB connector serves the same F4 IP versions.

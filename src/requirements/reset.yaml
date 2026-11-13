@@ -41,7 +41,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Bootloader request on the Nucleo-F401RE
 
-  - id: RESETH7-001
+  - id: RESET-H7-001
     title: On the H7, a bootloader request survives the cache and the ECC
     statement: >-
       On the H7, a bootloader request shall survive the reset it causes with

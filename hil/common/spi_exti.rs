@@ -182,7 +182,7 @@ pub fn spi_suite<U: spi::Instance, B: Mutex<T = Bus<U>>, const P: char, const N:
 {
     sck.unlisten(ctrl);
     let cap = bus.lock(|b| b.spi.as_ref().map_or(0, Spi::capacity));
-    report.check(name, "receive-stream vector enabled [RES-001]", {
+    report.check(name, "receive-stream vector enabled [RESOURCE-001]", {
         bus.lock(|b| b.spi.as_ref().map(|s| s.interrupts().verify()))
             .unwrap_or(Ok(()))
             .map_err(|error| Fail::Irq(Some(error)))
@@ -276,7 +276,7 @@ pub fn spi_suite<U: spi::Instance, B: Mutex<T = Bus<U>>, const P: char, const N:
 
     report.check(
         name,
-        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPIV2-001 SPIV4-001]",
+        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001]",
         (|| {
             let sent: [u8; 15] = pattern(4);
             for mode in [MODE_0, MODE_1, MODE_2, MODE_3] {
@@ -642,7 +642,7 @@ pub fn blocking_suite<U: ferrohal_stm32::spi::Instance, const P: char, const N: 
     );
     report.check(
         name,
-        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPIV2-001 SPIV4-001]",
+        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001]",
         (|| {
             let sent: [u8; 15] = pattern(11);
             for mode in [MODE_0, MODE_1, MODE_2, MODE_3] {

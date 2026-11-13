@@ -1,6 +1,6 @@
 //! The chip's factory-programmed 96-bit unique ID, and its die revision.
 //!
-//! Requirements: SIG-001, SIG-002
+//! Requirements: UID-001, REVISION-001
 
 /// The unique ID's twelve bytes, in memory order.
 pub fn device_uid() -> [u8; 12] {
