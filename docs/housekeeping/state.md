@@ -1,13 +1,24 @@
 # Housekeeping state
 
-- Last review: 2026-11-12
-- Next due: 2026-12-12
-- Documents at last review: 59
+- Last review: 2026-11-13
+- Next due: 2026-12-13
+- Documents at last review: 72
 
 Cadence: monthly, or immediately when more than ten documents have been added since the
 last review. The owner changes the cadence by editing the two dates above.
 
 ## Reviews
+
+- 2026-11-13 - pass forced by the day's restructuring (+13 documents: `docs/CHIPS.md`,
+  `hil/COVERAGE.md`, `docs/policies/features.md`, ADR-007 to ADR-009 with
+  `docs/design/glue-generator.md` and `maturity.md`, the generator plan, DEBT and
+  RESOLVED moved into `docs/`). No orphans. One duplicate-title hint, `benches-analysis.md`
+  and `benches-refusals.md`: different procedures, kept. ADR-002, ADR-005 and ADR-006
+  stay accepted (owner, 2026-11-13). `hil/CAPABILITIES.md`'s "What it can prove today"
+  overlaps `hil/COVERAGE.md` (prose per capability against a matrix per IP version):
+  cross-linked, kept. The five finished plans (debt sweep and its gates, `free()`, W14,
+  doc sweep) stay: decision records cite them as their plans of record; retiring them
+  is the owner's call. Workspace: `agent-memory` check passes (38 documents).
 
 - 2026-11-12 - pass forced by the `free()` redesign (+11 documents since the last
   review, mostly the 2026-11-11 API-review notes and plans): no orphans, no

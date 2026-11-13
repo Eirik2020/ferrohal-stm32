@@ -20,8 +20,10 @@ Public repo. Bench-verified.
 | what the benches prove | `hil/COVERAGE.md`, `hil/CAPABILITIES.md` |
 | touch IP driver | `src/<ip>_vN/mod.rs` + `src/requirements/<ip>.yaml` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `docs/DEBT.md` (§2: API review, order in `docs/notes/2026-11-11-api-review.md`); `docs/CHIPS.md` roadmap; `docs/plans/` = finished plans |
+| plan work | next: `docs/plans/2026-11-13-glue-generator.md` (free(), D6/D7, generator); `docs/DEBT.md`; `docs/CHIPS.md` roadmap |
 | naming/catalogs/IDs | `docs/design/naming.md`; `tools/check_names.py` holds it |
+| chip glue, parts, dies, packages | `docs/design/glue-generator.md` (ADR-008), plan `docs/plans/2026-11-13-glue-generator.md` |
+| maturity, tiers, evidence axes | `docs/design/maturity.md` (ADR-009) |
 | API shape/renames/reuse | `docs/notes/2026-11-11-api-review.md` (hub) |
 | unsafe/registers | `docs/policies/safety.md`, `docs/decisions/README.md`, `docs/notes/2026-11-08-rtic-and-hal-comparison.md` |
 | record/find decision | `docs/decisions/README.md` -> `docs/decisions/index/<year>.md` |
@@ -39,7 +41,7 @@ python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap
 python3 -I tools/housekeeping.py # the review report
 hil/run-f401.sh [runs]           # Nucleo-F401RE
 hil/run-h753.sh [runs]           # Nucleo-H753ZI
-hil/flash-dfu.sh <board>         # a DFU-flashed board: the flight smoke tests
+hil/flash-dfu.sh <board>         # a DFU-flashed board (`FLSH` tier): Foxeer, Lucid
 hil/pico-i2c-sim.sh [flash|run]  # Pico 1 I2C slave, both benches
 ```
 
@@ -50,7 +52,7 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 
 ## Rules
 
-- Car rule (`docs/design/requirements-system.md`): one chip proves an IP version for every family, one chip a family's shared glue; exhaustive tests need the owner's accepted rationale. Evidence follows files, not images.
+- Car rule (`docs/design/requirements-system.md`): one chip proves an IP version for every family, one chip a family's shared glue; exhaustive tests need the owner's accepted rationale. Evidence follows files, not images; three axes (IP, die, series), tiers `BRD`/`HIL`/`DBG`/`FLSH`/`INH` (`docs/design/maturity.md`).
 - Debt (`docs/DEBT.md`) = owed work on what ships, tagged, with its recorded origin. A
   feature not built or a silicon limit goes to `docs/CHIPS.md`; nothing names a user
   firmware (toaster rule, absolute). An item leaves only when hardware proves the fix;

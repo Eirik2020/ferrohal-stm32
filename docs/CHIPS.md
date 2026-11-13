@@ -7,16 +7,19 @@ IP versions and features per chip: [`design/naming.md`](design/naming.md#feature
 
 ## Silicon
 
-| chip | family, core | package (bonded pins) | clock as offered | revision on the rig | bench |
-|---|---|---|---|---|---|
-| STM32F401RE | F4, Cortex-M4F | LQFP64 | 84 MHz | 0x1001 | Nucleo-F401RE (evidence) |
-| STM32F405RG | F4, Cortex-M4F | LQFP64 | 168 MHz | 0x100f | Foxeer F405 V2 (smoke test) |
-| STM32H743VI | H7, Cortex-M7 | TFBGA100 (as LQFP100) | 400 MHz (VOS1) | 0x2003, V | TBS Lucid H7 (smoke test) |
-| STM32H753ZI | H7, Cortex-M7 | LQFP144 | 400 MHz (VOS1) | 0x2003, V | Nucleo-H753ZI (evidence) |
+| part | series, core | die | package (bonded pins) | clock as offered | revision on the rig | bench (tier) |
+|---|---|---|---|---|---|---|
+| STM32F401RE | F4, Cortex-M4F | 0x433 | LQFP64 | 84 MHz | 0x1001 | Nucleo-F401RE (`HIL`) |
+| STM32F405RG | F4, Cortex-M4F | 0x413 | LQFP64 | 168 MHz | 0x100f | Foxeer F405 V2 (`FLSH`) |
+| STM32H743VI | H7, Cortex-M7 | 0x450 | TFBGA100 (as LQFP100) | 400 MHz (VOS1) | 0x2003, V | TBS Lucid H7 (`FLSH`) |
+| STM32H753ZI | H7, Cortex-M7 | 0x450 | LQFP144 | 400 MHz (VOS1) | 0x2003, V | Nucleo-H753ZI (`HIL`) |
 
-Under the car rule (`design/requirements-system.md`) one chip proves an IP version for
-every chip that carries it, so the F405 and H743 rely on the Nucleos' evidence; their
-own boards are smoke tests.
+Maturity follows three axes, IP version, die and series, on the tier ladder `BRD`,
+`HIL`, `DBG`, `FLSH`, `INH` ([`design/maturity.md`](design/maturity.md)). A capability is as
+strong as its weakest axis; one not listed here is not covered. The computed tier
+tables replace this paragraph when the tier command lands (ADR-009). The silicon and
+capability tables here are hand-written until the generator writes them (ADR-008, item 7);
+then they are generated and must not be edited by hand.
 
 ## Capabilities
 

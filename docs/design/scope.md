@@ -19,7 +19,8 @@ direction, raise it before building on it.
 
 ## Code generator, parked (was section 10)
 
-**[Decided]** The generator is not part of the current work. Avoid closing it off:
+**[Superseded 2026-11-13, ADR-008]** ~~The generator is not part of the current work.~~ It is
+unparked: [glue-generator.md](glue-generator.md). What kept it open still holds:
 
 - keep board facts as data, not code;
 - keep routing traits typed per IP and per instance;
@@ -39,7 +40,6 @@ FerroHAL must not:
 - choose DMA, pins or timers automatically;
 - expose metapac through the safe public API;
 - know about safety tiers;
-- add the code generator now;
 - modify RTIC.
 
 The prototype is not intended for safety certification (was section 11). Section

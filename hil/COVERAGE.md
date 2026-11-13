@@ -7,13 +7,17 @@ every chip that carries it (`docs/design/requirements-system.md`). Runs are per 
 [`docs/CHIPS.md`](../docs/CHIPS.md); the rig itself and its upgrade queue are
 [CAPABILITIES.md](CAPABILITIES.md); open proof gaps are `docs/DEBT.md` §3 and §4.
 
-The Foxeer F405 V2 and the TBS Lucid H7 are **smoke tests**: they show a chip runs, and
-carry no evidence. Measured 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560
+Tiers ([`docs/design/maturity.md`](../docs/design/maturity.md)): the Nucleos are `HIL`; the
+Foxeer F405 V2 and the TBS Lucid H7 are `FLSH`, flashed and run without full debugger
+coverage, and their runs count at that tier (ADR-009). Measured 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560
 checks; reqtool 117 of 122 verified.
+
+The tables below are hand-written until the tier command generates them from the
+evidence (ADR-008, item 7); then they must not be edited by hand.
 
 ## Per IP version
 
-| IP version | chips | proven on: runs | smoke test | not proven (`docs/DEBT.md`) |
+| IP version | chips | proven on (`HIL`): runs | flashed (`FLSH`) | not proven (`docs/DEBT.md`) |
 |---|---|---|---|---|
 | `usart_v2` | F401, F405 | F401: A, B, C, D, V, W | – | USART2's break, baud and parity (ST-LINK); parity clear above 115200 |
 | `usart_v4` | H743, H753 | H753: A, B, C, D, E, U, W, Y | – | UART8 TX and the morpho-only pins |
