@@ -14,7 +14,7 @@ subject, section 9 split three ways for the token budgets; the measured facts
 (sections 11 and 14) became dated notes; section 12's deferred items are built
 (USB, SDMMC) or superseded (ADR-005's all-at-once swap), so only their fate is
 noted. The plan of record is
-[../plans/2026-11-10-doc-sweep.md](../plans/2026-11-10-doc-sweep.md).
+PR #30's (the plan file was deleted on 2026-11-13; git history keeps it).
 
 ## Consequences
 

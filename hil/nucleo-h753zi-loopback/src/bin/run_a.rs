@@ -39,7 +39,8 @@ mod app {
     use cortex_m::peripheral::{CPUID, SCB};
     use ferrohal_stm32::{
         chip::{Interrupt, USART1, USART2, USART3, USART6, check_dma_buffer},
-        uart::{Config, ConfigError, Parity, StopBits, Uart, UartInterrupts, UartIrq},
+        dma::BufferError,
+        uart::{Config, Parity, StopBits, Uart, UartInterrupts, UartIrq},
     };
 
     use crate::{
@@ -371,7 +372,7 @@ mod app {
             "D-cache on",
             "GLUE-003",
             "buffer in cached RAM refused",
-            tests::expect_refusal(check_dma_buffer(&cached), ConfigError::BufferCacheable),
+            tests::expect_refusal(check_dma_buffer(&cached), BufferError::Cacheable),
         );
         // SAFETY: never read; only its address is checked.
         let dtcm = unsafe { core::slice::from_raw_parts(0x2000_0000 as *const u8, 32) };
@@ -379,7 +380,7 @@ mod app {
             "D-cache on",
             "GLUE-003",
             "buffer in DTCM refused",
-            tests::expect_refusal(check_dma_buffer(dtcm), ConfigError::BufferUnreachable),
+            tests::expect_refusal(check_dma_buffer(dtcm), BufferError::Unreachable),
         );
         report.check_for(
             "USART6 + USART1 + USART3 + USART2",

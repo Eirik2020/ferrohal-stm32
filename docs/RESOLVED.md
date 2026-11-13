@@ -4,6 +4,23 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The finished plans are deleted** (2026-11-13, owner). The debt sweep and its gates
+  (PR #29), the `free()` redesign (PRs #35 to #38), W14 (PR #39) and the documentation
+  sweep (PR #30): their facts already lived in the design documents, the decision
+  records, the code and this file; the one left, the CI rerun for a gitleaks CDN 504,
+  moved to `AGENTS.md`. Their commits keep the record.
+
+- **One DMA-buffer error, and the timers refuse with their own** (2026-11-13; API review
+  D6, D7, N11, B3). `uart::ConfigError` had been the crate's buffer error since the
+  timer lanes reused it (`ea7a9f8`), and a bad sampler rate refused as the UART's
+  `Unsupported`. Now `dma::BufferError { Unreachable, Cacheable }` is what
+  `chip::check_dma_buffer` returns, and the UART's and SPI's `ConfigError`, the timer's
+  `ConfigError` and the ADC's `Error` each wrap it as `Buffer(_)`. The timer's error
+  gains `DmaBusy`, the lane and sampler refusals carry it, and the sampler refuses a bad
+  rate with the solver's own reason. F401 run V and H753 run U expect the timer's
+  `Buffer(Unreachable)` and `Inexact`; run A's generator follows. Hardware runs pending
+  with the PR's.
+
 - **USB's panics are G2's listed exception, not debt** (2026-11-13, ADR-007). The owner
   rewrote G2 as no panic by default, with a feature that can panic allowed when off by
   default and listed in `docs/policies/features.md`. DEBT's "USB sits outside the

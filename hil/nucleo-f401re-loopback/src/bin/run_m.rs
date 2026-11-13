@@ -121,6 +121,15 @@ fn main() -> ! {
             pin_ok && (1300..=1700).contains(reference) && (800..=1200).contains(temperature)
         },
     );
+    adc::freed(
+        &mut report,
+        "ADC1 freed",
+        &mut run.rcc,
+        scan,
+        &channels,
+        BOUND,
+        || stm32_metapac::ADC1.cr2().read().adon(),
+    );
     let led = &mut run.led;
     tests::finish(&report, || led.set_high());
 }

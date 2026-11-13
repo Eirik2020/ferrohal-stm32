@@ -40,7 +40,7 @@ clears through ICR, which touches no byte, so A survives, and whether B is
 discarded or lands once the request returns is the shift register's
 timing, which the check accepts both ways. DMA transfer error: USART6's
 receive stream is re-pointed at the DTCM, which DMA1 and DMA2 cannot reach
-— the same fact `ConfigError::BufferUnreachable` refuses at construction —
+— the same fact `ConfigError::Buffer(BufferError::Unreachable)` refuses at construction —
 and the next byte is a bus error; the driver reports DmaTransfer, restarts
 the ring on its own buffer, and an echo after the gap succeeds. Timeout:
 USART6's DMA transmit request is disconnected before a 128-byte frame is
@@ -54,7 +54,7 @@ and programs three MPU regions: region 0 the non-cacheable DMA block, region
 1 a 32 KiB write-through block and region 2 a 32 KiB write-back block, both
 in free AXI SRAM. The driver's verdicts per shape: a buffer in the
 write-through region and in the write-back region is refused
-(`BufferCacheable`), a buffer in the non-cacheable block is taken, and with
+(`BufferError::Cacheable`), a buffer in the non-cacheable block is taken, and with
 the MPU off a buffer in plain cached RAM is refused again. ES0392 2.1.1's
 sequence — a store, a linefill to another line of the same set, a second
 store, a load, all in write-through memory — runs 500 rounds and the load

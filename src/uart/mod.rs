@@ -293,13 +293,14 @@ pub enum ConfigError {
     /// The receive ring is shorter than 2 bytes, odd, or longer than one
     /// DMA transfer.
     RxBuffer,
-    /// A buffer lies in memory the DMA controller cannot reach, such as
-    /// the H7's DTCM.
-    BufferUnreachable,
-    /// The data cache is on and a buffer is not in memory the MPU marks
-    /// non-cacheable. The driver does no cache maintenance, so it refuses
-    /// rather than read stale bytes.
-    BufferCacheable,
+    /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
+    Buffer(crate::dma::BufferError),
+}
+
+impl From<crate::dma::BufferError> for ConfigError {
+    fn from(error: crate::dma::BufferError) -> Self {
+        Self::Buffer(error)
+    }
 }
 
 /// A fault on the link. Each one marks a gap or corruption in the byte

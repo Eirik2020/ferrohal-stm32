@@ -8,10 +8,10 @@ use crate::usb_bench::{Link, Report};
 
 /// Runs the sequence a hundred times, polled, and reports the last samples
 /// under `names`, in millivolts of `vdda_mv`.
-pub fn suite<A: adc::Instance>(
+pub fn suite<A: adc::Instance, S>(
     report: &mut Report,
     link: &mut Link,
-    scan: &mut AdcScan<A>,
+    scan: &mut AdcScan<A, S>,
     names: &[&str],
     vdda_mv: u32,
 ) {

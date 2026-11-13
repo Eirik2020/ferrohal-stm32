@@ -74,6 +74,7 @@ fn freed(
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
+        dma::BufferError,
         rcc::ClockError,
         uart::{
             Buffers as UartBuffers, Config as UartConfig, ConfigError as UartConfigError, Uart,
@@ -447,16 +448,10 @@ mod app {
             "ADC1 scan",
             "an empty sequence refuses; the parts scan the internals [API-001]",
             match adc.into_scan(run.scan_stream, &[], scan) {
-                Ok(_) => Err(Fail::Count {
-                    expected: AdcError::Sequence as u32,
-                    got: 0,
-                }),
+                Ok(_) => Err(Fail::Adc(AdcError::Sequence)),
                 Err(refused) => {
                     if refused.error() != AdcError::Sequence {
-                        Err(Fail::Count {
-                            expected: AdcError::Sequence as u32,
-                            got: refused.error() as u32,
-                        })
+                        Err(Fail::Adc(refused.error()))
                     } else {
                         let (adc, stream, buffer) = refused.into_parts();
                         let Ok(mut scan) = adc.into_scan(stream, &channels, buffer) else {
@@ -551,9 +546,9 @@ mod app {
             "TIM3 CH3",
             "a CCM buffer refuses; the channel and stream come back [API-001]",
             match lane_refusal {
-                Some(UartConfigError::BufferUnreachable) => Ok(()),
-                Some(other) => Err(Fail::Config(other)),
-                None => Err(Fail::Config(UartConfigError::BufferUnreachable)),
+                Some(TimerConfigError::Buffer(BufferError::Unreachable)) => Ok(()),
+                Some(other) => Err(Fail::Timer(other)),
+                None => Err(Fail::Timer(TimerConfigError::Buffer(BufferError::Unreachable))),
             },
         );
 
@@ -579,9 +574,9 @@ mod app {
             "TIM1 sampler",
             "a 0 rate refuses; the timer, stream and buffer come back [API-001]",
             match sampler_refusal {
-                Some(UartConfigError::Unsupported) => Ok(()),
-                Some(other) => Err(Fail::Config(other)),
-                None => Err(Fail::Config(UartConfigError::Unsupported)),
+                Some(TimerConfigError::Inexact) => Ok(()),
+                Some(other) => Err(Fail::Timer(other)),
+                None => Err(Fail::Timer(TimerConfigError::Inexact)),
             },
         );
 

@@ -17,7 +17,8 @@ when stale). Then run `python3 -I tools/housekeeping.py` and work through its re
    point at the other.
 3. **Decisions** - promote what binds (policy, `docs/design/<topic>.md`, or requirement),
    supersede what changed, archive what is settled. Keep the active set under 20.
-4. **Plans and notes** - a plan whose work merged becomes a `RESOLVED.md` line; a note
+4. **Plans and notes** - a plan whose work merged becomes a `RESOLVED.md` line and is
+   deleted once its facts live in their owning documents (owner, 2026-11-13); a note
    whose facts moved into a module doc is deleted; anything still useful is re-linked.
 5. **Budgets and orphans** - fix every checker failure by **moving prose** (split the
    document, move a chapter to a topic document), never by compressing it; link

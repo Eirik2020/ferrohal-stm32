@@ -24,7 +24,6 @@ use crate::{
     rcc_f4::{Bus, Limits, RCC, RccBit},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
-    uart::ConfigError,
     usart_v2::{self, Info, LineRegs, RxDma, RxPin, TxDma, TxPin},
 };
 
@@ -41,11 +40,11 @@ const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 128 * 1024)];
 /// or SRAM2. A Cortex-M4 has no data cache, so that is all. `Uart::new`
 /// checks every buffer with this; firmware that places statics in CCM RAM
 /// can use it to check its own.
-pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), ConfigError> {
+pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), crate::dma::BufferError> {
     if macros::within(buffer, &DMA_RAM) {
         Ok(())
     } else {
-        Err(ConfigError::BufferUnreachable)
+        Err(crate::dma::BufferError::Unreachable)
     }
 }
 
@@ -703,13 +702,19 @@ mod tests {
     fn ccm_ram_is_refused() {
         // SAFETY: never dereferenced; only the address range is checked.
         let ccm = unsafe { core::slice::from_raw_parts(0x1000_0000 as *const u8, 64) };
-        assert_eq!(check_dma_buffer(ccm), Err(ConfigError::BufferUnreachable));
+        assert_eq!(
+            check_dma_buffer(ccm),
+            Err(crate::dma::BufferError::Unreachable)
+        );
         // SAFETY: as above.
         let sram2_end = unsafe { core::slice::from_raw_parts(0x2001_ff00 as *const u8, 256) };
         assert_eq!(check_dma_buffer(sram2_end), Ok(()));
         // SAFETY: as above.
         let past = unsafe { core::slice::from_raw_parts(0x2001_ff00 as *const u8, 257) };
-        assert_eq!(check_dma_buffer(past), Err(ConfigError::BufferUnreachable));
+        assert_eq!(
+            check_dma_buffer(past),
+            Err(crate::dma::BufferError::Unreachable)
+        );
     }
 
     #[test]
@@ -721,11 +726,11 @@ mod tests {
         let two = half.with_stop_bits(StopBits::Two);
         assert_eq!(
             Uart::<UART4>::check(&clocks, &half),
-            Err(ConfigError::Unsupported)
+            Err(crate::uart::ConfigError::Unsupported)
         );
         assert_eq!(
             Uart::<UART5>::check(&clocks, &one_and_half),
-            Err(ConfigError::Unsupported)
+            Err(crate::uart::ConfigError::Unsupported)
         );
         assert_eq!(Uart::<UART4>::check(&clocks, &two), Ok(()));
         assert_eq!(Uart::<USART3>::check(&clocks, &half), Ok(()));

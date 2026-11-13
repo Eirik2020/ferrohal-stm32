@@ -9,7 +9,7 @@
 //! `UsbDevice::poll` from one context; FerroHAL enables nothing in the NVIC.
 //! Set both pins to very high speed.
 //!
-//! Requirements: USB-001, USB-F4-001
+//! Requirements: USB-001, USB-F4-001, API-002
 
 pub use usb_device;
 
@@ -26,8 +26,12 @@ use crate::{
 /// The port's bus type, for `UsbDeviceBuilder` and the class crates.
 pub type UsbBus = synopsys_usb_otg::UsbBus<UsbFs>;
 
-/// The OTG_FS port on PA11 (DM) and PA12 (DP), with its clock running.
+/// The OTG_FS port on PA11 (DM) and PA12 (DP), with its clock running. It
+/// holds the token and both pins, which [`free`](Self::free) hands back.
 pub struct UsbFs {
+    token: USB_OTG_FS,
+    dm: Pin<'A', 11, Alternate<10>>,
+    dp: Pin<'A', 12, Alternate<10>>,
     hclk: u32,
 }
 
@@ -48,18 +52,36 @@ impl UsbFs {
     /// Refuses with the token and both pins handed back.
     pub fn new(
         rcc: &mut Rcc,
-        _token: USB_OTG_FS,
-        _dm: Pin<'A', 11, Alternate<10>>,
-        _dp: Pin<'A', 12, Alternate<10>>,
+        token: USB_OTG_FS,
+        dm: Pin<'A', 11, Alternate<10>>,
+        dp: Pin<'A', 12, Alternate<10>>,
     ) -> Result<Self, UsbNewRefused> {
         if let Err(error) = rcc.usb_clock() {
-            return Err(Refused::new(error, (_token, _dm, _dp)));
+            return Err(Refused::new(error, (token, dm, dp)));
         }
         rcc.enable(USB_FS.enable);
         rcc.reset(USB_FS.enable);
         Ok(Self {
+            token,
+            dm,
+            dp,
             hclk: rcc.clocks().hclk.0,
         })
+    }
+
+    /// Hands back what [`UsbFs::new`] took: the token and both pins. The core
+    /// stays clocked, as `new` left it, and a reopen through `UsbFs::new`
+    /// resets it. A port already built into a [`UsbBus`] comes back through
+    /// the bus's own `free()`; one inside a `usb-device` `UsbBusAllocator`
+    /// never does, since that crate keeps its bus for good.
+    pub fn free(
+        self,
+    ) -> (
+        USB_OTG_FS,
+        Pin<'A', 11, Alternate<10>>,
+        Pin<'A', 12, Alternate<10>>,
+    ) {
+        (self.token, self.dm, self.dp)
     }
 
     /// The vector to bind to the handler that polls the device.

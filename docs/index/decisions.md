@@ -4,12 +4,12 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | docs/decisions/2026-10-31-ferrowasp-integration.md | 3408 B | ADR-005 - Status: accepted |
+| a | docs/decisions/2026-10-31-ferrowasp-integration.md | 3522 B | ADR-005 - Status: accepted |
 | a | docs/decisions/2026-11-08-free-teardown-brief.md | 2743 B | ADR-002 - Status: accepted |
 | a | docs/decisions/2026-11-08-g5-safe-by-default.md | 2606 B | ADR-001 - Status: promoted |
-| a | docs/decisions/2026-11-08-naming-scheme.md | 3269 B | ADR-003 - Status: promoted |
+| a | docs/decisions/2026-11-08-naming-scheme.md | 3234 B | ADR-003 - Status: promoted |
 | a | docs/decisions/2026-11-09-uart-capabilities.md | 2125 B | ADR-004 - Status: promoted |
-| a | docs/decisions/2026-11-10-doc-map-dissolution.md | 1574 B | ADR-006 - Status: accepted |
+| a | docs/decisions/2026-11-10-doc-map-dissolution.md | 1578 B | ADR-006 - Status: accepted |
 | a | docs/decisions/2026-11-13-adapters-behind-features.md | 1805 B | ADR-007 - Status: promoted |
 | a | docs/decisions/2026-11-13-chip-glue-generator.md | 3117 B | ADR-008 - Status: promoted |
 | a | docs/decisions/2026-11-13-maturity-tiers.md | 2112 B | ADR-009 - Status: promoted |

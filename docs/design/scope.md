@@ -7,6 +7,12 @@ The architecture map's sections 1, 10, 12 and 13, dissolved 2026-11-10. Tags:
 **[Decided]** settled by the owner, follow it; **[Proposal]** current
 direction, raise it before building on it.
 
+The design's other topics: [execution-model.md](execution-model.md) (scheduler-agnostic
+execution), [layering.md](layering.md) (crate layering and the async hooks),
+[structure.md](structure.md), [ownership.md](ownership.md),
+[api-surface.md](api-surface.md), [clocks.md](clocks.md), and the reference HALs they
+were measured against: [`../notes/2026-11-10-reference-implementations.md`](../notes/2026-11-10-reference-implementations.md).
+
 ## Identity (was section 1)
 
 - **[Decided]** FerroHAL is a general-purpose STM32 HAL usable from RTIC, async, bare metal or an equivalent. It is RTIC-first, but RTIC is never required.

@@ -3,7 +3,7 @@
 ADR-002 - Status: accepted
 
 Scheduled 2026-11-08, after the debt sweep. Plan:
-[`../plans/2026-11-08-free-redesign.md`](../plans/2026-11-08-free-redesign.md).
+PRs #35 to #38 (the plan file was deleted on 2026-11-13; git history keeps it).
 
 ## Context
 

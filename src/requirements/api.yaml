@@ -53,3 +53,15 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#USB on the Nucleo-H753ZI

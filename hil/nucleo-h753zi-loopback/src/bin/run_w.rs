@@ -10,7 +10,7 @@
 //!   is the shift register's timing, and the check accepts both.
 //! - DMA transfer error: the receive stream is stopped, re-pointed at
 //!   DTCM — which DMA1 and DMA2 cannot reach, the same fact
-//!   `ConfigError::BufferUnreachable` refuses at construction — and
+//!   `ConfigError::Buffer(BufferError::Unreachable)` refuses at construction — and
 //!   restarted. The next byte is a bus error; the stream stops, the
 //!   driver reports DmaTransfer and restarts the ring on its own buffer.
 //!   What the outage costs is timing, so the bytes right after the gap go

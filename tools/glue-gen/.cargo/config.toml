@@ -1,0 +1,3 @@
+# A host tool: the repository config builds for the firmware target.
+[build]
+target = "host-tuple"

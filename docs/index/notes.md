@@ -16,4 +16,4 @@
 | a | docs/notes/2026-11-11-api-review-naming.md | 2923 B | ADR-003 rule 5 against the code. Hub: 2026-11 |
 | a | docs/notes/2026-11-11-api-review-reuse.md | 2709 B | What repeats, with measured counts. Hub: 2026 |
 | a | docs/notes/2026-11-11-api-review-structure.md | 2608 B | File placement, glue sharing, tests. Hub: 202 |
-| a | docs/notes/2026-11-11-api-review.md | 3117 B | Merged 2026-11-11, every fact re-measured at  |
+| a | docs/notes/2026-11-11-api-review.md | 3149 B | Merged 2026-11-11, every fact re-measured at  |

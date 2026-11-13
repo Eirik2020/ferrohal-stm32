@@ -19,7 +19,7 @@
 //!   against the factory calibration; elsewhere a board states its nominal
 //!   supply.
 //!
-//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005
+//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005, API-002
 
 use core::marker::PhantomData;
 
@@ -80,8 +80,8 @@ pub enum Error {
     Busy,
     /// No channels, or more than 16, or more than the buffer holds.
     Sequence,
-    /// A buffer lies in memory DMA can't reach, or in cacheable memory.
-    Buffer,
+    /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
+    Buffer(crate::dma::BufferError),
     /// The calibration values or the reading can't give an answer.
     Calibration,
 }
@@ -203,7 +203,7 @@ impl<A> Channel<A> {
 /// A powered-up ADC, converting one channel at a time.
 pub struct Adc<A> {
     unit: Unit,
-    _adc: PhantomData<A>,
+    token: A,
 }
 
 impl<A: Instance> Adc<A> {
@@ -211,21 +211,27 @@ impl<A: Instance> Adc<A> {
     /// calibrates it, which takes a few milliseconds. Refuses with the ADC
     /// token handed back; on a power-up refusal the ADC is already enabled
     /// and reset.
-    pub fn new(rcc: &mut Rcc, _adc: A, config: &Config) -> Result<Self, Refused<Error, A>> {
+    pub fn new(rcc: &mut Rcc, token: A, config: &Config) -> Result<Self, Refused<Error, A>> {
         if let Err(error) = crate::adc_ip::start_clock(rcc) {
-            return Err(Refused::new(error, _adc));
+            return Err(Refused::new(error, token));
         }
         rcc.enable(A::ENABLE);
         rcc.reset(A::ENABLE);
         let unit = A::unit();
         if let Err(error) = unit.power_up(&rcc.clocks(), A::BUS, A::INTERNAL, config.sample_cycles)
         {
-            return Err(Refused::new(error, _adc));
+            return Err(Refused::new(error, token));
         }
-        Ok(Self {
-            unit,
-            _adc: PhantomData,
-        })
+        Ok(Self { unit, token })
+    }
+
+    /// Powers the ADC down and hands the token back: what a `Drop` would do,
+    /// made explicit so the token can move out. A reopen runs
+    /// [`Adc::new`] again, which resets, powers up and (on the H7)
+    /// calibrates it.
+    pub fn free(self) -> A {
+        self.unit.power_down();
+        self.token
     }
 
     /// The channel of `pin`, which must be in analog mode.
@@ -258,15 +264,15 @@ impl<A: Instance> Adc<A> {
         stream: S,
         channels: &[Channel<A>],
         buffer: &'static mut [u16],
-    ) -> Result<AdcScan<A>, ScanRefused<A, S>>
+    ) -> Result<AdcScan<A, S>, ScanRefused<A, S>>
     where
         S: AdcDma<A>,
     {
         if channels.is_empty() || channels.len() > 16 || channels.len() > buffer.len() {
             return Err(Refused::new(Error::Sequence, (self, stream, buffer)));
         }
-        if crate::chip::check_dma_buffer(as_bytes(buffer)).is_err() {
-            return Err(Refused::new(Error::Buffer, (self, stream, buffer)));
+        if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
+            return Err(Refused::new(Error::Buffer(error), (self, stream, buffer)));
         }
         let mut numbers = [0u8; 16];
         for (number, channel) in numbers.iter_mut().zip(channels) {
@@ -281,6 +287,7 @@ impl<A: Instance> Adc<A> {
             .set_sequence(numbers.get(..channels.len()).unwrap_or(&[]));
         Ok(AdcScan {
             adc: self,
+            stream,
             dma,
             request: S::REQUEST,
             vector: S::INTERRUPT,
@@ -349,9 +356,11 @@ enum ScanState {
     Done,
 }
 
-/// A fixed sequence of channels, converted over DMA.
-pub struct AdcScan<A> {
+/// A fixed sequence of channels, converted over DMA. It holds the ADC, its
+/// stream's token and the buffer, which [`free`](Self::free) hands back.
+pub struct AdcScan<A, S> {
     adc: Adc<A>,
+    stream: S,
     dma: DmaChannel,
     request: u8,
     vector: Interrupt,
@@ -360,7 +369,7 @@ pub struct AdcScan<A> {
     state: ScanState,
 }
 
-impl<A: Instance> AdcScan<A> {
+impl<A: Instance, S> AdcScan<A, S> {
     /// Converts the sequence once. Returns at once.
     pub fn start(&mut self) -> Result<(), Error> {
         if self.state == ScanState::Running {
@@ -445,6 +454,15 @@ impl<A: Instance> AdcScan<A> {
 
     pub const fn is_busy(&self) -> bool {
         matches!(self.state, ScanState::Running)
+    }
+
+    /// Stops the stream and any sequence and hands back what
+    /// [`Adc::into_scan`] took: the ADC, still powered, the stream's token and
+    /// the buffer. [`Adc::free`] then powers the ADC down and returns its
+    /// token; `into_scan` on the same parts starts a new scan.
+    pub fn free(mut self) -> (Adc<A>, S, &'static mut [u16]) {
+        self.abort();
+        (self.adc, self.stream, self.buffer)
     }
 
     /// The vector to bind to the handler that calls `on_interrupt`: the

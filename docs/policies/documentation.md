@@ -7,7 +7,9 @@ Normative. Two classes:
   `docs/DEBT.md`, `docs/RESOLVED*.md`, `docs/CHIPS.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
 - Agent-facing (token-optimised, [agent-docs.md](agent-docs.md) style): `AGENTS.md`,
   `docs/{policies,decisions,notes,housekeeping,design}/**`.
-- **Plans are human-readable**: `docs/plans/**` uses prose.
+- **Plans are human-readable**: `docs/plans/**` uses prose. A finished plan is deleted: its
+  useful facts move into the documents that own them first, and its commits and PR keep
+  the record (owner, 2026-11-13).
 
 ## Where behaviour lives
 

@@ -44,6 +44,9 @@ How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
 | `stm32h743vi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
 | `stm32h753zi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
 
+Which IP versions each series carries, as metapac measured them:
+[`../notes/2026-11-10-ip-versions.md`](../notes/2026-11-10-ip-versions.md).
+
 ## Modules
 
 - **[Decided]** A neutral module plus a directory per IP version for every new IP:

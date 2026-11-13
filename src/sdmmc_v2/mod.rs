@@ -17,7 +17,7 @@
 //! Not offered: SDSC and pre-v2 cards (byte addressing), 1.8 V signalling and
 //! the faster modes it needs, the internal DMA, eMMC, SDMMC2.
 //!
-//! Requirements: SDMMC-001, SDMMC-002, SDMMC-003, SDMMC-004
+//! Requirements: SDMMC-001, SDMMC-002, SDMMC-003, SDMMC-004, API-002
 
 use stm32_metapac::sdmmc::{
     Sdmmc as Regs,
@@ -213,8 +213,10 @@ enum Response {
     Long,
 }
 
-/// The SDMMC, with or without a card brought up.
-pub struct Sdmmc {
+/// The SDMMC, with or without a card brought up. It holds the board's
+/// [`Wiring`], which [`free`](Self::free) hands back whole.
+pub struct Sdmmc<W> {
+    wiring: W,
     regs: Regs,
     kernel: Hertz,
     cpu: Hertz,
@@ -228,7 +230,16 @@ pub struct Sdmmc {
 pub type SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3> =
     Refused<Error, Wiring<U, Ck, Cmd, D0, D1, D2, D3>>;
 
-impl Sdmmc {
+impl<U, Ck, Cmd, D0, D1, D2, D3> Sdmmc<Wiring<U, Ck, Cmd, D0, D1, D2, D3>>
+where
+    U: Instance,
+    Ck: CkPin<U>,
+    Cmd: CmdPin<U>,
+    D0: D0Pin<U>,
+    D1: D1Pin<U>,
+    D2: D2Pin<U>,
+    D3: D3Pin<U>,
+{
     /// Enables and resets the SDMMC and sets the identification clock. The
     /// card stays unpowered until [`init_card`](Self::init_card). Refuses
     /// with the wiring handed back: the clocks are checked before the
@@ -236,34 +247,26 @@ impl Sdmmc {
     /// The refusal's parts are the wiring, whose seven parameters are the
     /// board's statement of the route.
     #[allow(clippy::type_complexity)]
-    pub fn new<U, Ck, Cmd, D0, D1, D2, D3>(
+    pub fn new(
         rcc: &mut Rcc,
-        _wiring: Wiring<U, Ck, Cmd, D0, D1, D2, D3>,
+        wiring: Wiring<U, Ck, Cmd, D0, D1, D2, D3>,
         config: &Config,
-    ) -> Result<Self, SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3>>
-    where
-        U: Instance,
-        Ck: CkPin<U>,
-        Cmd: CmdPin<U>,
-        D0: D0Pin<U>,
-        D1: D1Pin<U>,
-        D2: D2Pin<U>,
-        D3: D3Pin<U>,
-    {
+    ) -> Result<Self, SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3>> {
         let clocks = rcc.clocks();
         let kernel = match clocks.pll1_q {
             Some(kernel) => kernel,
-            None => return Err(Refused::new(Error::Clock, _wiring)),
+            None => return Err(Refused::new(Error::Clock, wiring)),
         };
         if config.frequency.0 > MAX_DEFAULT_SPEED_HZ
             || divider(kernel.0, IDENTIFICATION_HZ).is_none()
             || divider(kernel.0, config.frequency.0).is_none()
         {
-            return Err(Refused::new(Error::Clock, _wiring));
+            return Err(Refused::new(Error::Clock, wiring));
         }
         rcc.enable(U::ENABLE);
         rcc.reset(U::ENABLE);
         Ok(Self {
+            wiring,
             regs: U::regs(),
             kernel,
             cpu: clocks.cpu,
@@ -273,6 +276,20 @@ impl Sdmmc {
         })
     }
 
+    /// Powers the card off, clears every flag and hands the wiring back, the
+    /// instance and its six pins, exactly as [`Sdmmc::new`] took them: what a
+    /// `Drop` would do, made explicit so the parts can move out. A transfer is
+    /// never in flight here, since every transfer runs to its end inside one
+    /// call. A reopen runs `Sdmmc::new` on the same wiring, which resets the
+    /// controller, then [`init_card`](Self::init_card).
+    pub fn free(self) -> Wiring<U, Ck, Cmd, D0, D1, D2, D3> {
+        self.regs.power().write(|w| w.set_pwrctrl(0));
+        self.clear_flags();
+        self.wiring
+    }
+}
+
+impl<W> Sdmmc<W> {
     fn set_clock(&self, target: u32, wide: bool) -> Result<u32, Error> {
         let (code, clock) = divider(self.kernel.0, target).ok_or(Error::Clock)?;
         self.wait_idle()?;

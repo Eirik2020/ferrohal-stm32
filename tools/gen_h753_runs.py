@@ -182,7 +182,7 @@ for run, (summary, uarts) in RUNS.items():
             "D-cache on",
             "GLUE-003",
             "buffer in cached RAM refused",
-            tests::expect_refusal(check_dma_buffer(&cached), ConfigError::BufferCacheable),
+            tests::expect_refusal(check_dma_buffer(&cached), BufferError::Cacheable),
         );
         // SAFETY: never read; only its address is checked.
         let dtcm = unsafe {{ core::slice::from_raw_parts(0x2000_0000 as *const u8, 32) }};
@@ -190,13 +190,13 @@ for run, (summary, uarts) in RUNS.items():
             "D-cache on",
             "GLUE-003",
             "buffer in DTCM refused",
-            tests::expect_refusal(check_dma_buffer(dtcm), ConfigError::BufferUnreachable),
+            tests::expect_refusal(check_dma_buffer(dtcm), BufferError::Unreachable),
         );
 {streams.replace('"8 KiB each, all at once"', '"8 KiB each, all at once, caches on"')}
 {bounds}
 """
         extra_uses = ", check_dma_buffer"
-        extra_uses2 = "        uart::{Config, ConfigError, Parity, StopBits, Uart, UartInterrupts, UartIrq},\n"
+        extra_uses2 = "        dma::BufferError,\n        uart::{Config, Parity, StopBits, Uart, UartInterrupts, UartIrq},\n"
         core_uses = "    use cortex_m::peripheral::{CPUID, SCB};\n"
         consts = """
     /// The Lucid's frames: CRSF to the receiver, SBUS from the DJI

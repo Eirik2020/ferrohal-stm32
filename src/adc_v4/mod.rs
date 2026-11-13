@@ -5,7 +5,7 @@
 //! 16 bits, with linearity calibration at startup. ADC1 and ADC2 share their
 //! clock and common registers; only ADC1 and ADC3 are offered.
 //!
-//! Requirements: ADC-001
+//! Requirements: ADC-001, API-002
 
 use stm32_metapac::{
     adc::{
@@ -224,5 +224,25 @@ impl Unit {
         });
         self.clear_flags();
         overrun
+    }
+
+    /// Powers the ADC down (RM0433 25.4.9): any conversion stopped, ADDIS
+    /// with a bounded wait for ADEN to clear, the regulator off, deep
+    /// power-down on, as reset leaves it. A reopen powers it up and
+    /// calibrates again.
+    pub(crate) fn power_down(&self) {
+        self.stop();
+        self.regs.cfgr().modify(|w| w.set_dmngt(Dmngt::DR));
+        if self.regs.cr().read().aden() {
+            self.regs.cr().modify(|w| w.set_addis(true));
+            for _ in 0..STOP_SPINS {
+                if !self.regs.cr().read().aden() {
+                    break;
+                }
+            }
+        }
+        self.regs.cr().modify(|w| w.set_advregen(false));
+        self.regs.cr().modify(|w| w.set_deeppwd(true));
+        self.clear_flags();
     }
 }

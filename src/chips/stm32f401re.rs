@@ -20,7 +20,6 @@ use crate::{
     rcc_f4::{Bus, Limits, RCC, RccBit},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
-    uart::ConfigError,
     usart_v2::{self, Info, LineRegs, RxDma, RxPin, TxDma, TxPin},
 };
 
@@ -35,11 +34,11 @@ const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 96 * 1024)];
 /// Whether `buffer` can be handed to a DMA stream: whether it lies in SRAM.
 /// A Cortex-M4 has no data cache, so that is all. `Uart::new` checks every
 /// buffer with this.
-pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), ConfigError> {
+pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), crate::dma::BufferError> {
     if macros::within(buffer, &DMA_RAM) {
         Ok(())
     } else {
-        Err(ConfigError::BufferUnreachable)
+        Err(crate::dma::BufferError::Unreachable)
     }
 }
 

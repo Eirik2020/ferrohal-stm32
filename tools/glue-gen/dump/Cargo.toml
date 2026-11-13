@@ -1,0 +1,21 @@
+# Reads one part's metadata from the stm32-metapac the library pins, and
+# prints it as JSON. metapac selects one chip per build, so the generator
+# builds this once per part, with that part's feature.
+[package]
+name = "glue-dump"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+glue-model = { path = "../model" }
+serde_json = "=1.0.150"
+# The library's pin, exactly; the generator checks both lockfiles agree.
+stm32-metapac = { version = "=21.0.0", default-features = false, features = ["metadata"] }
+
+# One per part in the generator's registry.
+[features]
+stm32f401re = ["stm32-metapac/stm32f401re"]
+stm32f405rg = ["stm32-metapac/stm32f405rg"]
+stm32h743vi = ["stm32-metapac/stm32h743vi"]
+stm32h753zi = ["stm32-metapac/stm32h753zi"]
