@@ -1,0 +1,24 @@
+schema_version: 2
+requirements:
+  - id: WAIT-001
+    title: A counted bound is never short, on either core
+    statement: >-
+      On each core FerroHAL runs on, the F4's Cortex-M4 and the H7's
+      Cortex-M7, a wait counted in loop passes shall never end sooner than
+      the bound asked for.
+    rationale: >-
+      A wait that ends early reports a failure that did not happen. A loop
+      pass costs a different number of cycles on each core, and the floors
+      the count is built on are measured per core, so each core needs its
+      own proof.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI

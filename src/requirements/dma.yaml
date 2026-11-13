@@ -1,0 +1,19 @@
+schema_version: 2
+requirements:
+  - id: DMA-001
+    title: Streams move what they are set to
+    statement: >-
+      A DMA stream shall move data for the peripheral request it is set to.
+    rationale: >-
+      Every DMA driver depends on it.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI

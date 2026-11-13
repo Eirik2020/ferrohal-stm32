@@ -13,9 +13,9 @@ Public repo. Bench-verified.
 | task | docs |
 |---|---|
 | change public API | `docs/policies/safety.md`, `docs/design/api-surface.md` |
-| add/move requirements | `docs/policies/documentation.md`, `requirements/goals.md`, an `src/**/requirements.yaml` |
+| add/move requirements | `docs/policies/documentation.md`, `requirements/goals.md`, `src/requirements/<ip>.yaml` |
 | fix limitation/close debt | `DEBT.md`, `RESOLVED.md` (indexes) -> owning file |
-| touch IP driver | `src/<ip>_vN/mod.rs` + its `requirements.yaml` |
+| touch IP driver | `src/<ip>_vN/mod.rs` + `src/requirements/<ip>.yaml` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
 | plan work | `docs/plans/2026-11-08-w14-naming.md` (next), `docs/plans/2026-11-08-free-redesign.md`, `docs/plans/2026-11-08-debt-sweep.md` (+`-gates`) |
 | naming/catalogs | `docs/decisions/README.md` (ADR-003), `docs/notes/2026-11-08-naming-audit.md` |

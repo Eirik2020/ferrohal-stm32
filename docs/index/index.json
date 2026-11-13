@@ -3,7 +3,7 @@
  "counts": {
   "documents": 62,
   "agent": 43,
-  "bytes": 228405
+  "bytes": 228622
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4164
+   "bytes": 4168
   },
   {
    "path": "DEBT.md",
@@ -198,7 +198,7 @@
    "class": "agent",
    "title": "Requirement format and reqtool",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2325
+   "bytes": 2507
   },
   {
    "path": "docs/design/scope.md",
@@ -373,14 +373,14 @@
    "class": "agent",
    "title": "Agent-doc style",
    "purpose": "Agent docs = AGENTS.md + docs/{policies,decis",
-   "bytes": 1154
+   "bytes": 1153
   },
   {
    "path": "docs/policies/documentation.md",
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 3208
+   "bytes": 3240
   },
   {
    "path": "docs/policies/safety.md",

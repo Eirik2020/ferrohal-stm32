@@ -1,0 +1,56 @@
+schema_version: 2
+requirements:
+  - id: RCC-001
+    title: A clock tree is checked before it is used
+    statement: >-
+      A clock configuration shall be checked against the chip's limits
+      before it is applied.
+    rationale: >-
+      A clock past its limit can run unreliably with no visible failure.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::tests::foxeer_clocks_validate
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::tests::spi123_needs_pll1q
+
+  - id: RCC-002
+    title: The clocks are what they report
+    statement: >-
+      The clocks the driver reports shall be the clocks the chip runs at.
+    rationale: >-
+      Every baud rate, timer and SPI clock is computed from them.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: RCC-003
+    title: The regulator scale suits the clocks
+    statement: >-
+      When a clock configuration uses the PLL, the driver shall set the
+      regulator voltage scale that the chip's clock limits assume, never a
+      reserved value, and see the regulator report ready before the system
+      runs from the PLL.
+    rationale: >-
+      A bootloader can leave a lower scale, under which the chip's highest
+      clocks run out of specification with no visible failure.
+    derived_from: [RCC-001]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
