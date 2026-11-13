@@ -169,8 +169,8 @@ where
             Err(error) => return Err((error, wiring)),
         };
 
-        rcc.enable(info.enable());
-        rcc.reset(info.enable());
+        rcc.enable(U::ENABLE);
+        rcc.reset(U::ENABLE);
         let mut tx = crate::dma::claim_channel(&wiring.tx_dma);
         let mut rx = crate::dma::claim_channel(&wiring.rx_dma);
         // Streams left running by an earlier owner must stop before they

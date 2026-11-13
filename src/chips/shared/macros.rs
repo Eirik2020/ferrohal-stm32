@@ -106,14 +106,13 @@ macro_rules! spi_kernel {
 macro_rules! spis {
     ($($name:ident => $info:ident, $bus:ident, $bit:literal, $kernel:ident;)+) => {
         $(
-            static $info: crate::spi::Info = crate::spi::Info::new(
-                crate::spi_ip::Unit::new(pac::$name),
-                RccBit::new(Bus::$bus, $bit),
-            );
+            static $info: crate::spi::Info =
+                crate::spi::Info::new(crate::spi_ip::Unit::new(pac::$name));
 
             impl crate::spi::Instance for $name {
                 const KERNEL: crate::rcc::Kernel = spi_kernel!($kernel);
                 const NAME: &'static str = stringify!($name);
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 fn info() -> &'static crate::spi::Info {
                     &$info
                 }
@@ -127,14 +126,13 @@ macro_rules! spis {
 macro_rules! i2cs {
     ($($name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
         $(
-            static $info: crate::i2c::Info = crate::i2c::Info::new(
-                crate::i2c_ip::Unit::new(pac::$name),
-                RccBit::new(Bus::$bus, $bit),
-            );
+            static $info: crate::i2c::Info =
+                crate::i2c::Info::new(crate::i2c_ip::Unit::new(pac::$name));
 
             impl crate::i2c::Instance for $name {
                 const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
                 const NAME: &'static str = stringify!($name);
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 fn info() -> &'static crate::i2c::Info {
                     &$info
                 }
@@ -154,10 +152,13 @@ macro_rules! timers {
                 const UPDATE: Interrupt = Interrupt::$update;
                 const UPDATE_NAME: &'static str = stringify!($update);
                 const BITS: u8 = $bits;
-                fn core() -> stm32_metapac::timer::TimCore {
-                    // SAFETY: the timer's base address; the core registers
-                    // sit at the start of every timer's block.
-                    unsafe { stm32_metapac::timer::TimCore::from_ptr(pac::$name.as_ptr()) }
+                fn info() -> &'static crate::timer::Info {
+                    static INFO: crate::timer::Info = crate::timer::Info::new(
+                        // SAFETY: the timer's base address; the core
+                        // registers sit at the start of every timer's block.
+                        unsafe { stm32_metapac::timer::TimCore::from_ptr(pac::$name.as_ptr()) },
+                    );
+                    &INFO
                 }
             }
             timer_width!($name, $bits);
@@ -371,8 +372,10 @@ macro_rules! adcs {
                 const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
                 const INTERNAL: bool = $internal;
-                fn unit() -> crate::adc_ip::Unit {
-                    crate::adc_ip::Unit::new(pac::$name, pac::$common)
+                fn info() -> &'static crate::adc::Info {
+                    static INFO: crate::adc::Info =
+                        crate::adc::Info::new(crate::adc_ip::Unit::new(pac::$name, pac::$common));
+                    &INFO
                 }
             }
         )+
@@ -443,16 +446,14 @@ macro_rules! timer_trigger {
 macro_rules! sdmmcs {
     ($($name:ident => $bus:ident, $bit:literal;)+) => {
         $(
-            impl crate::sdmmc::Registers for $name {
-                fn regs() -> stm32_metapac::sdmmc::Sdmmc {
-                    pac::$name
-                }
-            }
-
             impl crate::sdmmc::Instance for $name {
                 const NAME: &'static str = stringify!($name);
                 const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Pll1Q;
+                fn info() -> &'static crate::sdmmc::Info {
+                    static INFO: crate::sdmmc::Info = crate::sdmmc::Info::new(pac::$name);
+                    &INFO
+                }
             }
         )+
     };

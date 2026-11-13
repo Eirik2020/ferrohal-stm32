@@ -60,7 +60,27 @@ pub trait Instance: crate::Sealed + 'static {
     /// Counter width in bits: 16 or 32.
     const BITS: u8;
     #[doc(hidden)]
-    fn core() -> TimCore;
+    fn info() -> &'static Info;
+}
+
+/// Per-instance facts: the timer's core registers. Chip facts: the glue
+/// layer holds one static `Info` per timer. Its fields are private, so no
+/// register type crosses the public API (G5).
+pub struct Info {
+    core: TimCore,
+}
+
+// SAFETY: `core` is an address.
+unsafe impl Sync for Info {}
+
+impl Info {
+    pub(crate) const fn new(core: TimCore) -> Self {
+        Self { core }
+    }
+
+    pub(crate) fn core(&self) -> TimCore {
+        self.core
+    }
 }
 
 /// A timer with a 32-bit counter (TIM2 and TIM5 on these chips).
@@ -326,7 +346,7 @@ impl<T: Instance> Tick<T> {
         };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
-        let core = T::core();
+        let core = T::info().core();
         load(core, prescaler, reload);
         core.dier().write(|w| w.set_uie(true));
         core.cr1().modify(|w| {
@@ -444,7 +464,7 @@ impl<T: Instance32> Timebase<T> {
         };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
-        let core = T::core();
+        let core = T::info().core();
         load(core, prescaler, 1 << 32);
         core.cr1().modify(|w| w.set_cen(true));
         Ok(Self {

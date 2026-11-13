@@ -124,19 +124,34 @@ impl Config {
     }
 }
 
-/// The controller's register block. Crate-internal: a public bound naming it
-/// would hand metapac out.
-pub(crate) trait Registers {
-    fn regs() -> Regs;
+/// Per-instance facts: the controller's register block. Chip facts: the
+/// glue layer holds one static `Info` per SDMMC. Its field is private, so
+/// no register type crosses the public API (G5).
+pub struct Info {
+    regs: Regs,
 }
 
-/// An SDMMC instance. The kernel clock is PLL1Q, SDMMCSEL as reset leaves it.
-#[allow(private_bounds)] // `Registers` is the crate-internal half.
-pub trait Instance: crate::Sealed + Registers {
+// SAFETY: `regs` is an address.
+unsafe impl Sync for Info {}
+
+impl Info {
+    pub(crate) const fn new(regs: Regs) -> Self {
+        Self { regs }
+    }
+
+    pub(crate) fn regs(&self) -> Regs {
+        self.regs
+    }
+}
+
+/// An SDMMC instance.
+pub trait Instance: crate::Sealed {
     const NAME: &'static str;
     const ENABLE: RccBit;
     /// Its kernel clock: PLL1's Q output, SDMMCSEL as reset leaves it.
     const KERNEL: crate::rcc::Kernel;
+    #[doc(hidden)]
+    fn info() -> &'static Info;
 }
 
 /// A pin, in the right alternate function, that carries `U`'s clock.
@@ -269,7 +284,7 @@ where
         rcc.reset(U::ENABLE);
         Ok(Self {
             wiring,
-            regs: U::regs(),
+            regs: U::info().regs(),
             kernel,
             cpu: clocks.cpu,
             target: config.frequency,

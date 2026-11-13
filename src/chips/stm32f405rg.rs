@@ -243,11 +243,12 @@ impl DmaInstance for Dma<2> {
 macro_rules! usarts {
     ($($kind:ident $name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
         $(
-            static $info: Info = Info::new(LineRegs::new(pac::$name), RccBit::new(Bus::$bus, $bit));
+            static $info: Info = Info::new(LineRegs::new(pac::$name));
 
             impl crate::uart::Instance for $name {
                 const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
                 const NAME: &'static str = stringify!($name);
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 const INTERRUPT: Interrupt = Interrupt::$name;
                 const INTERRUPT_NAME: &'static str = stringify!($name);
                 const FRACTIONAL_STOP_BITS: bool = fractional_stop!($kind);

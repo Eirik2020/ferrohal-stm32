@@ -72,8 +72,8 @@ where
             Ok(code) => code,
             Err(error) => return Err(Refused::new(error, wiring)),
         };
-        rcc.enable(info.enable());
-        rcc.reset(info.enable());
+        rcc.enable(U::ENABLE);
+        rcc.reset(U::ENABLE);
         info.unit().configure(code, config);
         let frequency = Hertz(kernel_clock.0 >> (code + 1));
         Ok(Self {

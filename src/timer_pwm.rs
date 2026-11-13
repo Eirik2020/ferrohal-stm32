@@ -142,7 +142,7 @@ impl<T: ChannelTimer> Pwm<T> {
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
         let gp = Self::gp();
-        let core = T::core();
+        let core = T::info().core();
         super::load(core, prescaler, reload);
         gp.cr1().modify(|w| {
             w.set_urs(Urs::COUNTER_ONLY);
@@ -222,13 +222,13 @@ impl<T: ChannelTimer> Pwm<T> {
         // SAFETY: a channel timer's base address; the registers used here
         // sit where the 16-bit general-purpose layout has them on every
         // channel timer.
-        unsafe { TimGp16::from_ptr(T::core().as_ptr()) }
+        unsafe { TimGp16::from_ptr(T::info().core().as_ptr()) }
     }
 
     fn adv() -> TimAdv {
         // SAFETY: only for timers with a break unit, whose BDTR and CCER's
         // complementary bits sit where the advanced layout has them.
-        unsafe { TimAdv::from_ptr(T::core().as_ptr()) }
+        unsafe { TimAdv::from_ptr(T::info().core().as_ptr()) }
     }
 
     /// Counts per period: the duty for an output always active.
@@ -983,7 +983,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
         }
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
-        super::load(T::core(), prescaler, reload);
+        super::load(T::info().core(), prescaler, reload);
         let mut dma = crate::dma::claim_channel(&stream);
         if dma.stop(STOP_SPINS).is_err() {
             return Err(Refused::new(
@@ -995,7 +995,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
         Ok(Self {
             // SAFETY: the timer's base address; CR1, DIER, SR and CNT sit
             // where the general-purpose layout has them on every timer.
-            timer: unsafe { TimGp16::from_ptr(T::core().as_ptr()) },
+            timer: unsafe { TimGp16::from_ptr(T::info().core().as_ptr()) },
             clock,
             dma,
             request: S::REQUEST,

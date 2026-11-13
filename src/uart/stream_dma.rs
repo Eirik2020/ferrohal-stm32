@@ -103,7 +103,6 @@ const COUNT_TRIES: u32 = 8;
 /// static `Info` per USART.
 pub struct Info {
     regs: LineRegs,
-    enable: RccBit,
     state: State,
 }
 
@@ -111,10 +110,9 @@ pub struct Info {
 unsafe impl Sync for Info {}
 
 impl Info {
-    pub(crate) const fn new(regs: LineRegs, enable: RccBit) -> Self {
+    pub(crate) const fn new(regs: LineRegs) -> Self {
         Self {
             regs,
-            enable,
             state: State::new(),
         }
     }
@@ -266,6 +264,8 @@ pub trait Instance: crate::Sealed + 'static {
     const KERNEL: crate::rcc::Kernel;
     /// Its name in the reference manual.
     const NAME: &'static str;
+    /// Its RCC enable (and reset) bit.
+    const ENABLE: RccBit;
     /// Its interrupt vector.
     const INTERRUPT: Interrupt;
     /// The vector's name.
@@ -643,7 +643,7 @@ where
         } = wiring;
         let info = U::info();
         let kernel_clock = U::KERNEL.clock(&clocks);
-        reset(rcc, info, checked.rx_len);
+        reset(rcc, U::ENABLE, info, checked.rx_len);
         info.state
             .frame_cycles
             .store(checked.frame_cycles, Ordering::Relaxed);
@@ -1152,7 +1152,7 @@ where
         let RxWiring { uart, rx, rx_dma } = wiring;
         let info = U::info();
         let kernel_clock = U::KERNEL.clock(&clocks);
-        reset(rcc, info, checked.rx_len);
+        reset(rcc, U::ENABLE, info, checked.rx_len);
         info.state
             .frame_cycles
             .store(checked.frame_cycles, Ordering::Relaxed);
@@ -1795,9 +1795,9 @@ fn check_open(
 }
 
 /// Turns the USART's clock on, resets it, and resets its shared state.
-fn reset(rcc: &mut Rcc, info: &Info, rx_len: u16) {
-    rcc.enable(info.enable);
-    rcc.reset(info.enable);
+fn reset(rcc: &mut Rcc, enable: RccBit, info: &Info, rx_len: u16) {
+    rcc.enable(enable);
+    rcc.reset(enable);
     let state = &info.state;
     state.halves.store(0, Ordering::Relaxed);
     state.base.store(0, Ordering::Relaxed);

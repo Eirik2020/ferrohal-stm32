@@ -16,23 +16,18 @@ use crate::{
 /// per SPI.
 pub struct Info {
     unit: Unit,
-    enable: RccBit,
 }
 
 // SAFETY: `unit` is an address.
 unsafe impl Sync for Info {}
 
 impl Info {
-    pub(crate) const fn new(unit: Unit, enable: RccBit) -> Self {
-        Self { unit, enable }
+    pub(crate) const fn new(unit: Unit) -> Self {
+        Self { unit }
     }
 
     pub(crate) fn unit(&self) -> Unit {
         self.unit
-    }
-
-    pub(crate) fn enable(&self) -> RccBit {
-        self.enable
     }
 }
 
@@ -42,6 +37,8 @@ pub trait Instance: crate::Sealed + 'static {
     const KERNEL: Kernel;
     /// Its name in the reference manual.
     const NAME: &'static str;
+    /// Its RCC enable (and reset) bit.
+    const ENABLE: RccBit;
     #[doc(hidden)]
     fn info() -> &'static Info;
 }
