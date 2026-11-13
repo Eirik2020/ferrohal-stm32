@@ -228,6 +228,21 @@ pub struct Channel {
 // moves that ownership with it.
 unsafe impl Send for Channel {}
 
+/// Why a buffer cannot serve a DMA transfer: what `chip::check_dma_buffer`
+/// returns, and what every driver's refusal wraps as its `Buffer` reason
+/// (API review D6).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum BufferError {
+    /// The buffer lies in memory the DMA controller cannot reach, such as the
+    /// H7's DTCM or the F405's CCM RAM.
+    Unreachable,
+    /// The data cache is on and the buffer is not in memory the MPU marks
+    /// non-cacheable. The drivers do no cache maintenance, so they refuse
+    /// rather than move stale bytes.
+    Cacheable,
+}
+
 /// A stream's status flags.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]

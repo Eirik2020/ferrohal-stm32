@@ -61,15 +61,13 @@ const STOP_SPINS: u32 = 10_000;
 
 /// What [`PwmChannel::into_lane`](PwmChannel::into_lane) hands back when it
 /// refuses: the reason, and the channel, stream and buffer it took.
-pub type IntoLaneRefused<'a, T, const C: u8, S> = crate::resource::Refused<
-    crate::uart::ConfigError,
-    (PwmChannel<'a, T, C>, S, &'static mut [u32]),
->;
+pub type IntoLaneRefused<'a, T, const C: u8, S> =
+    crate::resource::Refused<super::ConfigError, (PwmChannel<'a, T, C>, S, &'static mut [u32])>;
 
 /// What [`PwmChannel::into_two_way_lane`](PwmChannel::into_two_way_lane)
 /// hands back: the reason, and the channel, stream and both buffers.
 pub type IntoTwoWayLaneRefused<'a, T, const C: u8, S> = crate::resource::Refused<
-    crate::uart::ConfigError,
+    super::ConfigError,
     (
         PwmChannel<'a, T, C>,
         S,
@@ -81,7 +79,7 @@ pub type IntoTwoWayLaneRefused<'a, T, const C: u8, S> = crate::resource::Refused
 /// What [`Sampler::new`](Sampler::new) hands back: the reason, and the
 /// timer, stream and buffer it took.
 pub type SamplerNewRefused<T, S> =
-    crate::resource::Refused<crate::uart::ConfigError, (T, S, &'static mut [u16])>;
+    crate::resource::Refused<super::ConfigError, (T, S, &'static mut [u16])>;
 
 /// Why a lane or sampler refused or failed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -493,12 +491,12 @@ impl<'a, T: ChannelTimer, const C: u8> PwmChannel<'a, T, C> {
         buffer: &'static mut [u32],
     ) -> Result<CompareLane<T, C>, IntoLaneRefused<'a, T, C, S>> {
         if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
-            return Err(Refused::new(error, (self, stream, buffer)));
+            return Err(Refused::new(error.into(), (self, stream, buffer)));
         }
         let mut dma = crate::dma::claim_channel(&stream);
         if dma.stop(STOP_SPINS).is_err() {
             return Err(Refused::new(
-                crate::uart::ConfigError::DmaBusy,
+                super::ConfigError::DmaBusy,
                 (self, stream, buffer),
             ));
         }
@@ -529,7 +527,7 @@ impl<'a, T: ChannelTimer, const C: u8> PwmChannel<'a, T, C> {
         Port<P>: PortInstance,
     {
         if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(samples)) {
-            return Err(Refused::new(error, (self, stream, buffer, samples)));
+            return Err(Refused::new(error.into(), (self, stream, buffer, samples)));
         }
         let mut lane = match self.into_lane(stream, buffer) {
             Ok(lane) => lane,
@@ -568,16 +566,13 @@ where
         super::LaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
     > {
         if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
-            return Err(Refused::new(error, (self, buffer)));
+            return Err(Refused::new(error.into(), (self, buffer)));
         }
         // A second owner beside the token, for the checks: the token comes
         // back on a refusal, the channel goes to the lane on success.
         let mut dma = crate::dma::claim_channel(&self.stream);
         if dma.stop(STOP_SPINS).is_err() {
-            return Err(Refused::new(
-                crate::uart::ConfigError::DmaBusy,
-                (self, buffer),
-            ));
+            return Err(Refused::new(super::ConfigError::DmaBusy, (self, buffer)));
         }
         dma.clear_flags(Flags::ALL);
         pwm.channel::<C, _>(self.pin);
@@ -606,15 +601,15 @@ where
         Port<PORT>: PortInstance,
     {
         if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
-            return Err(Refused::new(error, (self, (buffer, samples))));
+            return Err(Refused::new(error.into(), (self, (buffer, samples))));
         }
         if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(samples)) {
-            return Err(Refused::new(error, (self, (buffer, samples))));
+            return Err(Refused::new(error.into(), (self, (buffer, samples))));
         }
         let mut dma = crate::dma::claim_channel(&self.stream);
         if dma.stop(STOP_SPINS).is_err() {
             return Err(Refused::new(
-                crate::uart::ConfigError::DmaBusy,
+                super::ConfigError::DmaBusy,
                 (self, (buffer, samples)),
             ));
         }
@@ -656,14 +651,11 @@ where
         super::ComplementaryLaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
     > {
         if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
-            return Err(Refused::new(error, (self, buffer)));
+            return Err(Refused::new(error.into(), (self, buffer)));
         }
         let mut dma = crate::dma::claim_channel(&self.stream);
         if dma.stop(STOP_SPINS).is_err() {
-            return Err(Refused::new(
-                crate::uart::ConfigError::DmaBusy,
-                (self, buffer),
-            ));
+            return Err(Refused::new(super::ConfigError::DmaBusy, (self, buffer)));
         }
         dma.clear_flags(Flags::ALL);
         pwm.complementary::<C, _>(self.pin);
@@ -943,15 +935,12 @@ impl<T: Instance> Sampler<T> {
         let clock = rcc.clocks().timer(T::BUS);
         let (prescaler, reload, rate) = match nearest(clock, rate, T::BITS) {
             Ok(parts) => parts,
-            Err(_) => {
-                return Err(Refused::new(
-                    crate::uart::ConfigError::Unsupported,
-                    (timer, stream, buffer),
-                ));
+            Err(error) => {
+                return Err(Refused::new(error, (timer, stream, buffer)));
             }
         };
         if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(buffer)) {
-            return Err(Refused::new(error, (timer, stream, buffer)));
+            return Err(Refused::new(error.into(), (timer, stream, buffer)));
         }
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
@@ -959,7 +948,7 @@ impl<T: Instance> Sampler<T> {
         let mut dma = crate::dma::claim_channel(&stream);
         if dma.stop(STOP_SPINS).is_err() {
             return Err(Refused::new(
-                crate::uart::ConfigError::DmaBusy,
+                super::ConfigError::DmaBusy,
                 (timer, stream, buffer),
             ));
         }

@@ -145,6 +145,8 @@ pub enum Fail {
     Time { cycles: u32, min: u32, max: u32 },
     /// A timer refused a rate the check needs.
     Timer(ferrohal_stm32::timer::ConfigError),
+    /// The ADC refused or failed otherwise than the check expected.
+    Adc(ferrohal_stm32::adc::Error),
     /// The I2C driver reported an error the check did not expect.
     I2c(ferrohal_stm32::i2c::Error),
     /// The I2C refused a configuration the check needs.
@@ -169,11 +171,21 @@ pub enum Fail {
 }
 
 /// Passes if `result` is the refusal `expected`.
-pub fn expect_refusal(result: Result<(), ConfigError>, expected: ConfigError) -> Result<(), Fail> {
+/// A buffer `chip::check_dma_buffer` must refuse, for `expected`.
+pub fn expect_refusal(
+    result: Result<(), ferrohal_stm32::dma::BufferError>,
+    expected: ferrohal_stm32::dma::BufferError,
+) -> Result<(), Fail> {
     match result {
         Err(error) if error == expected => Ok(()),
-        Err(error) => Err(Fail::Config(error)),
-        Ok(()) => Err(Fail::NotRefused(expected)),
+        Err(error) => Err(Fail::Config(ConfigError::Buffer(error))),
+        Ok(()) => Err(Fail::NotRefused(ConfigError::Buffer(expected))),
+    }
+}
+
+impl From<ferrohal_stm32::dma::BufferError> for Fail {
+    fn from(error: ferrohal_stm32::dma::BufferError) -> Self {
+        Self::Config(ConfigError::Buffer(error))
     }
 }
 

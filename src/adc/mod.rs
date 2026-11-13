@@ -80,8 +80,8 @@ pub enum Error {
     Busy,
     /// No channels, or more than 16, or more than the buffer holds.
     Sequence,
-    /// A buffer lies in memory DMA can't reach, or in cacheable memory.
-    Buffer,
+    /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
+    Buffer(crate::dma::BufferError),
     /// The calibration values or the reading can't give an answer.
     Calibration,
 }
@@ -271,8 +271,8 @@ impl<A: Instance> Adc<A> {
         if channels.is_empty() || channels.len() > 16 || channels.len() > buffer.len() {
             return Err(Refused::new(Error::Sequence, (self, stream, buffer)));
         }
-        if crate::chip::check_dma_buffer(as_bytes(buffer)).is_err() {
-            return Err(Refused::new(Error::Buffer, (self, stream, buffer)));
+        if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
+            return Err(Refused::new(Error::Buffer(error), (self, stream, buffer)));
         }
         let mut numbers = [0u8; 16];
         for (number, channel) in numbers.iter_mut().zip(channels) {

@@ -170,13 +170,11 @@ impl<T, const C: u8, Pin, Stream> ComplementaryLaneWiring<T, C, Pin, Stream> {
 /// What a lane's assembly hands back when it refuses: the reason, the wiring,
 /// and the buffers it took, in a tuple with the wiring first.
 pub type LaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
-    crate::resource::Refused<crate::uart::ConfigError, (LaneWiring<T, C, Pin, Stream>, Buffers)>;
+    crate::resource::Refused<ConfigError, (LaneWiring<T, C, Pin, Stream>, Buffers)>;
 
 /// As [`LaneRefusal`], for a complementary lane's assembly.
-pub type ComplementaryLaneRefusal<T, const C: u8, Pin, Stream, Buffers> = crate::resource::Refused<
-    crate::uart::ConfigError,
-    (ComplementaryLaneWiring<T, C, Pin, Stream>, Buffers),
->;
+pub type ComplementaryLaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
+    crate::resource::Refused<ConfigError, (ComplementaryLaneWiring<T, C, Pin, Stream>, Buffers)>;
 
 /// What a two-way lane's assembly returns: the lane, or the refusal with
 /// everything it took.
@@ -247,6 +245,16 @@ pub enum ConfigError {
     OutOfRange,
     /// A waveform generator's two timers run at different periods.
     PeriodMismatch,
+    /// A DMA stream was left running by an earlier owner and did not stop.
+    DmaBusy,
+    /// A lane's or sampler's buffer cannot serve DMA.
+    Buffer(crate::dma::BufferError),
+}
+
+impl From<crate::dma::BufferError> for ConfigError {
+    fn from(error: crate::dma::BufferError) -> Self {
+        Self::Buffer(error)
+    }
 }
 
 /// The prescaler and reload that divide `clock` down to `rate` exactly:

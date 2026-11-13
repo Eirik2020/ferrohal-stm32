@@ -3,7 +3,7 @@
 //! throughout.
 //!
 //! - The driver's verdicts per shape: a buffer in the write-through region
-//!   and in the write-back region is refused (`BufferCacheable`), a buffer
+//!   and in the write-back region is refused (`BufferError::Cacheable`), a buffer
 //!   in the non-cacheable DMA block is taken, and with the MPU off a
 //!   buffer in plain cached RAM is refused again — the safe-by-default
 //!   answer to "MPU off with caches on".
@@ -207,7 +207,7 @@ fn run_2_1_5_free(
 mod app {
     use cortex_m::peripheral::SCB;
     use ferrohal_stm32::chip::check_dma_buffer;
-    use ferrohal_stm32::uart::ConfigError;
+    use ferrohal_stm32::dma::BufferError;
 
     use crate::{
         board,
@@ -259,7 +259,7 @@ mod app {
             "buffer in the write-through region refused",
             tests::expect_refusal(
                 check_dma_buffer(unsafe { core::slice::from_raw_parts(WT_BASE as *const u8, 32) }),
-                ConfigError::BufferCacheable,
+                BufferError::Cacheable,
             ),
         );
         report.check_for(
@@ -268,7 +268,7 @@ mod app {
             "buffer in the write-back region refused",
             tests::expect_refusal(
                 check_dma_buffer(unsafe { core::slice::from_raw_parts(WB_BASE as *const u8, 32) }),
-                ConfigError::BufferCacheable,
+                BufferError::Cacheable,
             ),
         );
         report.check_for(
@@ -331,7 +331,7 @@ mod app {
             "MPU off: a buffer in cached RAM refused",
             tests::expect_refusal(
                 check_dma_buffer(unsafe { core::slice::from_raw_parts(WT_BASE as *const u8, 32) }),
-                ConfigError::BufferCacheable,
+                BufferError::Cacheable,
             ),
         );
         report.check_for(

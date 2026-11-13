@@ -412,7 +412,9 @@ fn main() -> ! {
             Err(refused) => {
                 let refused_dtcm = matches!(
                     refused.error(),
-                    ferrohal_stm32::uart::ConfigError::BufferUnreachable
+                    ferrohal_stm32::timer::ConfigError::Buffer(
+                        ferrohal_stm32::dma::BufferError::Unreachable
+                    )
                 );
                 let (channel, stream, _dtcm, read) = refused.into_parts();
                 (refused_dtcm, channel, stream, read)

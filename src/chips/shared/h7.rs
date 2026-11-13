@@ -4,7 +4,7 @@
 //!
 //! Requirements: GLUE-003
 
-use crate::{rcc_h7_rm0433::Limits, time::Hertz, uart::ConfigError};
+use crate::{rcc_h7_rm0433::Limits, time::Hertz};
 
 /// Limits both silicon revisions meet. The wide VCO tops out at 836 MHz on
 /// revision Y (DS12117 table 39) and 960 MHz on revision V (table 136); the
@@ -42,14 +42,14 @@ const DMA_RAM: [(usize, usize); 3] = [
 /// - While the data cache is on, it must lie in memory the MPU marks
 ///   non-cacheable, since the drivers do no cache maintenance: the CPU
 ///   would read stale received bytes and transmit stale written ones.
-pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), ConfigError> {
+pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), crate::dma::BufferError> {
     if !super::macros::within(buffer, &DMA_RAM) {
-        return Err(ConfigError::BufferUnreachable);
+        return Err(crate::dma::BufferError::Unreachable);
     }
     let start = buffer.as_ptr() as usize;
     let end = start.saturating_add(buffer.len());
     if cortex_m::peripheral::SCB::dcache_enabled() && !mpu_non_cacheable(start, end) {
-        return Err(ConfigError::BufferCacheable);
+        return Err(crate::dma::BufferError::Cacheable);
     }
     Ok(())
 }

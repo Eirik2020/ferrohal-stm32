@@ -213,11 +213,8 @@ pub enum ConfigError {
     TxBuffer,
     /// The receive buffer is empty or longer than one DMA transfer.
     RxBuffer,
-    /// A buffer lies in memory the DMA controller cannot reach.
-    BufferUnreachable,
-    /// The data cache is on and a buffer is not in memory the MPU marks
-    /// non-cacheable.
-    BufferCacheable,
+    /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
+    Buffer(crate::dma::BufferError),
 }
 
 /// Why a transfer failed or was refused.
@@ -269,14 +266,9 @@ pub struct Health {
     pub aborts: u32,
 }
 
-impl From<crate::uart::ConfigError> for ConfigError {
-    /// For `chip::check_dma_buffer`, whose errors are the UART's.
-    fn from(error: crate::uart::ConfigError) -> Self {
-        match error {
-            crate::uart::ConfigError::BufferCacheable => Self::BufferCacheable,
-            crate::uart::ConfigError::DmaBusy => Self::DmaBusy,
-            _ => Self::BufferUnreachable,
-        }
+impl From<crate::dma::BufferError> for ConfigError {
+    fn from(error: crate::dma::BufferError) -> Self {
+        Self::Buffer(error)
     }
 }
 
