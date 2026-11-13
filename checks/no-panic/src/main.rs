@@ -727,7 +727,7 @@ pub fn exercise_blocking<U, K, I, O>(
 
 /// The I2C through every operation of the bus trait, and the empty
 /// operation inside a transaction.
-fn exercise_i2c(bus: &mut I2c<chip::I2cUnit>) {
+fn exercise_i2c<W: i2c::I2cParts>(bus: &mut I2c<W>) {
     use embedded_hal::i2c::{I2c as HalI2c, Operation};
 
     let data = black_box(&[0x5au8; 4][..]);

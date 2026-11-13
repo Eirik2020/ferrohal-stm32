@@ -22,7 +22,7 @@
 use cortex_m::peripheral::DWT;
 use embedded_hal::i2c::I2c as HalI2c;
 use ferrohal_stm32::{
-    i2c::{Error, I2c, Instance},
+    i2c::{Error, I2c, I2cParts},
     time::Hertz,
 };
 
@@ -81,7 +81,7 @@ fn spin(cpu: Hertz, ms: u32) {
 /// One live bus against the simulator. Every transfer the checks make
 /// goes through here, so the transactions the master started can be
 /// compared with the ones the simulator says it saw.
-struct Live<'a, U> {
+struct Live<'a, U: I2cParts> {
     bus: &'a mut I2c<U>,
     /// Transactions that reached the wire: what the simulator must
     /// count. A transfer refused before the wire moved (a Busy) never
@@ -92,7 +92,7 @@ struct Live<'a, U> {
     done: u32,
 }
 
-impl<U: Instance> Live<'_, U> {
+impl<U: I2cParts> Live<'_, U> {
     /// One write transaction: the register, then its payload.
     fn write(&mut self, reg: u8, payload: &[u8]) -> Result<(), Fail> {
         let mut frame = [reg; 33];
@@ -147,7 +147,7 @@ impl<U: Instance> Live<'_, U> {
 /// `recover_cycles` allowance is what the driver's bounded recovery can
 /// add past its deadline while the simulator still holds the line: the
 /// F401's v1 spins on BUSY, the H7's v2 clears and returns.
-pub fn suite<U: Instance>(
+pub fn suite<U: I2cParts>(
     report: &mut Report,
     link: &str,
     bus: &mut I2c<U>,
