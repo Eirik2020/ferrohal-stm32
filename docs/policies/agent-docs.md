@@ -21,6 +21,6 @@ see `documentation.md`.
 
 ## Human docs stay human
 
-`requirements/**`, `src/requirements/*.yaml`, `DEBT.md`,
-`RESOLVED.md`, `README.md`, `THIRD-PARTY.md`, `hil/WIRING.md`, `hil/*/README.md`: normal
+`requirements/**`, `src/requirements/*.yaml`, `docs/DEBT.md`,
+`docs/RESOLVED*.md`, `README.md`, `THIRD-PARTY.md`, `hil/WIRING.md`, `hil/*/README.md`: normal
 prose, citations, readable by people. Do not compress them for tokens.

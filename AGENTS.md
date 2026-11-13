@@ -14,10 +14,10 @@ Public repo. Bench-verified.
 |---|---|
 | change public API | `docs/policies/safety.md`, `docs/design/api-surface.md` |
 | add/move requirements | `docs/policies/documentation.md`, `requirements/goals.md`, `src/requirements/<ip>.yaml` |
-| fix limitation/close debt | `DEBT.md`, `RESOLVED.md` (indexes) -> owning file |
+| fix limitation/close debt | `docs/DEBT.md`, `docs/RESOLVED.md` (indexes) -> owning file |
 | touch IP driver | `src/<ip>_vN/mod.rs` + `src/requirements/<ip>.yaml` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `DEBT.md` (§6: API review findings, order in `docs/notes/2026-11-11-api-review.md`); `docs/plans/` holds finished plans |
+| plan work | `docs/DEBT.md` (§6: API review findings, order in `docs/notes/2026-11-11-api-review.md`); `docs/plans/` holds finished plans |
 | naming/catalogs/IDs | `docs/design/naming.md`; `tools/check_names.py` holds it |
 | API shape/renames/reuse | `docs/notes/2026-11-11-api-review.md` (hub) |
 | unsafe/registers | `docs/policies/safety.md`, `docs/decisions/README.md`, `docs/notes/2026-11-08-rtic-and-hal-comparison.md` |
@@ -58,6 +58,7 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - Nothing documented only in commit/PR/chat.
 - Docs: human vs agent classes; 20000 B always-loaded, 40000 B otherwise (`docs/policies/documentation.md`); split, never compress; a split is linked, never orphaned.
 - Housekeeping forced: `state.md` due date or +10 docs -> `tools/housekeeping.py`, record pass.
+- Root: README, AGENTS, THIRD-PARTY, licences, manifests, and uncommitted temporary `.md` only; docs live in `docs/`.
 - Don't touch `flash-backups/`, `requirements/evidence/`. `ferrosmith-board-schema.md` stays untracked.
 - Workspace habits: `../agent-memory/MEMORY.md`.
 

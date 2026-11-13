@@ -4,7 +4,7 @@ Normative. Two classes:
 
 - **Human-readable** (prose, citations, people read them): `requirements/**` (`goals.md`,
   `benches.md`, `evidence/`), `src/requirements/*.yaml`,
-  `DEBT.md`, `RESOLVED.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
+  `docs/DEBT.md`, `docs/RESOLVED*.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
 - Agent-facing (token-optimised, [agent-docs.md](agent-docs.md) style): `AGENTS.md`,
   `docs/{policies,decisions,notes,housekeeping,design}/**`.
 - **Plans are human-readable**: `docs/plans/**` uses prose.
@@ -39,6 +39,16 @@ Exactly one `index/<year>.md` row per record; row id+status must match. Supersed
 move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 `docs/decisions/README.md`.
 
+## The repository root
+
+- Owner, 2026-11-13: the root holds only the files a repository is expected to have there
+  (`README.md`, `AGENTS.md`, `THIRD-PARTY.md`, the licences, the Cargo and tool
+  manifests) and temporary markdown that is never committed (a review record, a draft).
+  Every other document lives under `docs/` or beside what it describes (`hil/`,
+  `requirements/`); the debt registries are `docs/DEBT.md` and `docs/RESOLVED*.md`.
+- `tools/check_docs.py` fails a committed root `.md` outside that list, and treats an
+  uncommitted root `.md` as temporary: no budget, no index.
+
 ## Limits
 
 - Bytes only, set by the owner 2026-11-13: always-loaded files (`AGENTS.md`) 20000 B;
@@ -46,8 +56,8 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 - Over a limit: **split into a second document**, linked from the first; never
   compress, never drop a fact.
 - No orphans: every document is linked, or named by its path, from another document,
-  the code or a requirement file; entries (`AGENTS.md`, `README.md`, `DEBT.md`,
-  `RESOLVED.md`, the decision and housekeeping hubs) and the decision indexes aside.
+  the code or a requirement file; entries (`AGENTS.md`, `README.md`, `docs/DEBT.md`,
+  `docs/RESOLVED.md`, the decision and housekeeping hubs) and the decision indexes aside.
 - Checker: `tools/check_docs.py` in `checks/run.sh` (sizes and orphans, both fail);
   workspace: `agent-memory/tools/check_agent_docs.py`.
 - Generated `docs/index/` (hub, one file per area, `index.json`): `tools/docs_index.py` (`--check` fails stale).

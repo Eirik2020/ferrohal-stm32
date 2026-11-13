@@ -6,7 +6,7 @@
 |---|---|---|---|
 | a | docs/notes/2026-11-08-naming-audit.md | 2458 B | Audited 2026-11-08/09. Target scheme: ../deci |
 | a | docs/notes/2026-11-08-rtic-and-hal-comparison.md | 3216 B | Code-only, 2026-11-08/09. Sources: rtic-macro |
-| a | docs/notes/2026-11-10-ip-versions.md | 1262 B | From the architecture map's section 11, disso |
+| a | docs/notes/2026-11-10-ip-versions.md | 1259 B | From the architecture map's section 11, disso |
 | a | docs/notes/2026-11-10-reference-implementations.md | 1067 B | The architecture map's section 14, dissolved  |
 | a | docs/notes/2026-11-11-api-review-bench.md | 1906 B | Baseline 2026-11-11; run letters per bench. H |
 | a | docs/notes/2026-11-11-api-review-docs.md | 2805 B | Docs and code that disagree; ADR-003 gaps. Hu |
