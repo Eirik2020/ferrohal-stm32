@@ -14,7 +14,7 @@ Status as of 2026-11-10:
 |---|---|---|---|
 | STM32F401RE | Nucleo-F401RE | `usart_v2`, `spi_v2`, `exti_v1`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 USART DMA routes; USART2 through a host echo on the ST-LINK VCP. All three SPIs on all 15 pin entries and all 10 SPI DMA routes. EXTI on PA12 and on every SPI SCK pin. |
 | STM32F405RG | Foxeer F405 V2 | as the F401 | HSE crystal to 168 MHz, checked against the host's USB frames. USB CDC on OTG_FS. SPI1 on the IMU's pins and DMA2 streams, EXTI4 from its data-ready, SPI2 polled on the real NOR. TIM2 timebase; the watchdog started and fed. |
-| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
+| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7_rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
 | STM32H743VI | TBS Lucid H7 | as the H753ZI | HSE crystal to 400 MHz, checked against the host's USB frames. USB CDC on OTG_FS from HSI48. SPI1 on the IMU's pins and DMA1 streams 4 and 5, EXTI2 from its data-ready. |
 
 Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp). **Medium** is a gap someone will hit soon. **Low** is cleanup, or a limit worth knowing.
@@ -118,7 +118,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the DTCM goes unused.** DMA1/DMA2 can't reach it, so the test firmware puts everything in AXI SRAM. A firmware that wants the DTCM needs a linker section for DMA buffers.
 - **Low: MPU reads.** `check_dma_buffer` steps RNR (and restores it), so the firmware must not reprogram the MPU while a `Uart` is being opened. There's no cache-maintenance mode for buffers in cacheable memory.
 
-### Clocks and power (`rcc_h7rm0433`)
+### Clocks and power (`rcc_h7_rm0433`)
 
 - **Medium: no VOS0 (480 MHz).** It exists only on rev V, needs SYSCFG ODEN and its own flash table; `freeze` doesn't read `signature::revision`.
 - **Medium: limits are the lowest common denominator:** the wide VCO is capped at 836 MHz (rev Y, DS12117 table 39 / DS12110 table 40) though rev V allows 960 MHz. `signature::revision` tells, if the headroom matters.

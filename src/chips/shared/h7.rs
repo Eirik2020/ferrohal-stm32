@@ -4,7 +4,7 @@
 //!
 //! Requirements: GLUE-003
 
-use crate::{rcc_h7rm0433::Limits, time::Hertz, uart::ConfigError};
+use crate::{rcc_h7_rm0433::Limits, time::Hertz, uart::ConfigError};
 
 /// Limits both silicon revisions meet. The wide VCO tops out at 836 MHz on
 /// revision Y (DS12117 table 39) and 960 MHz on revision V (table 136); the

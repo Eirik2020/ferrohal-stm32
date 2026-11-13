@@ -31,7 +31,7 @@ ALLOWED_UNSAFE = {"src/chips/shared/macros.rs": "steal"}
 METAPAC_FILES = {"device.rs", "dma_stream.rs", "exti.rs", "iwdg.rs",
                  "timer.rs", "timer_pwm.rs"}
 METAPAC_DIRS = {"adc_v2", "adc_v4", "gpio_v2", "i2c_v1", "i2c_v2", "rcc_f4",
-                "rcc_h7rm0433", "sdmmc_v2", "spi_v2", "spi_v4", "usart_v2",
+                "rcc_h7_rm0433", "sdmmc_v2", "spi_v2", "spi_v4", "usart_v2",
                 "usart_v4", "chips"}
 
 offenders: list[str] = []

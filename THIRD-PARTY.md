@@ -12,7 +12,7 @@ What was ported:
 
 | FerroHAL | From embassy-stm32 | What |
 |---|---|---|
-| `src/rcc_h7rm0433/mod.rs` | `src/rcc/h.rs` | The power-up order (PWR supply configuration, ACTVOSRDY, voltage scale, HSI, HSE, PLL, flash wait states, prescalers, switch); the PLL register programming (DIVM, PLLRGE, VCO range selection, DIV fields holding the divider less one); the voltage-scale clock limits; the RM0433 flash wait-state table, also checked against RM0433 table 17 |
+| `src/rcc_h7_rm0433/mod.rs` | `src/rcc/h.rs` | The power-up order (PWR supply configuration, ACTVOSRDY, voltage scale, HSI, HSE, PLL, flash wait states, prescalers, switch); the PLL register programming (DIVM, PLLRGE, VCO range selection, DIV fields holding the divider less one); the voltage-scale clock limits; the RM0433 flash wait-state table, also checked against RM0433 table 17 |
 | `src/rcc_f4/mod.rs` | `src/rcc/f247.rs` | The F401 clock limits (SYSCLK, APB, HSE and PLL input ranges) and the flash wait-state rule (one per 30 MHz at 2.7 to 3.6 V) |
 
 The overall structure is also embassy's design, though not its code: one module per stm32-metapac IP version, and instance traits that return an erased static `Info`.

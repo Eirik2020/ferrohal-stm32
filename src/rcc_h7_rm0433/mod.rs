@@ -1,4 +1,4 @@
-//! RCC on the H742/H743/H753/H750 clock tree (`rcc_h7rm0433`): the explicit
+//! RCC on the H742/H743/H753/H750 clock tree (`rcc_h7_rm0433`): the explicit
 //! clock configuration, the power settings it depends on, and the single
 //! owner of every shared RCC register.
 //!

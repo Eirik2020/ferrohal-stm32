@@ -6,7 +6,7 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 
 - **No scheduler inside.** FerroHAL never defines an interrupt handler, writes the NVIC, or takes a critical section. Drivers enable their peripheral's own interrupt bits and expose `on_interrupt()`-style service methods for the scheduler's handlers to call. Every wait is bounded: counted, or measured with a `CycleClock` the firmware provides.
 - **No reachable panics.** `checks/no-panic` links the whole public API under a panic handler that calls an undefined symbol, so a release build only links if no panic path survives.
-- **One module per IP version.** Drivers are written per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`, `spi_v4`, `dma_v1`/`dma_v2`, `exti_v1`/`exti_h7`, `gpio_v2`, `rcc_f4`, `rcc_h7rm0433`). A chip is a glue file of facts (pins, alternate functions, DMA routes, RCC bits, memory map) that `tools/check_glue.py` checks against metapac's metadata.
+- **One module per IP version.** Drivers are written per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`, `spi_v4`, `dma_v1`/`dma_v2`, `exti_v1`/`exti_h7`, `gpio_v2`, `rcc_f4`, `rcc_h7_rm0433`). A chip is a glue file of facts (pins, alternate functions, DMA routes, RCC bits, memory map) that `tools/check_glue.py` checks against metapac's metadata.
 - **Routing checked at compile time.** A board file names the pins and DMA streams; a pin without the peripheral's function, or a stream that can't serve its request, doesn't build. Wirings also describe themselves as `const` data (`Wiring::RESOURCES`) for comparison with a board manifest.
 
 ## Chips and peripherals
