@@ -1,0 +1,17 @@
+# The chip-glue generator (ADR-008, docs/design/glue-generator.md). A host
+# tool: never published, never a dependency of the library. Its own workspace,
+# as every package under hil/ and checks/ is.
+[package]
+name = "glue-gen"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Generates FerroHAL's chip glue from stm32-metapac's metadata."
+
+[dependencies]
+glue-model = { path = "model" }
+serde_json = "=1.0.150"
+
+[workspace]
+members = [".", "model", "dump"]
+resolver = "3"

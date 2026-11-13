@@ -1,0 +1,10 @@
+# What the dumper writes and the generator reads: one part's metadata, the
+# subset the glue needs, with RCC bits resolved to their positions.
+[package]
+name = "glue-model"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }

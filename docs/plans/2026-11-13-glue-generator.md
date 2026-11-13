@@ -1,7 +1,9 @@
 # The glue generator, and the work before it - plan of record
 
 Status: **agreed 2026-11-13; steps 1 and 2 of the order built (PR #43), their hardware runs
-pending.** Decisions: ADR-008 (the generator) and ADR-009
+pending; the generator's step 1 built (`tools/glue-gen`), step 2 next.** The owner chose
+2026-11-13: handles generic over their whole wiring (`Uart<W>`), and `free()` the inverse
+of `new` for every driver. Decisions: ADR-008 (the generator) and ADR-009
 (maturity). Design: `docs/design/glue-generator.md` and `docs/design/maturity.md`.
 
 ## Order
@@ -27,7 +29,11 @@ both Nucleo suites.
 1. **The tool and the registry.** `tools/glue-gen` reads the pinned metapac's metadata
    for one part per build and holds the part registry (the four parts FerroHAL supports
    today, each with its die and device) and the offering policy. Selectors `all`,
-   `series`, `die`, `part`.
+   `series`, `die`, `part`. **Built 2026-11-13:** `glue-dump` prints one part's
+   metadata as JSON, every RCC field resolved to its bit; `glue-gen parts|dump
+   <selector>` checks the tool's metapac is the library's, the registry's consistency,
+   and writes `tools/glue-gen/target/parts/<part>.json`. Offering policy not yet. Noted:
+   metapac names the H7's SPI IP `v4_i2s`.
 2. **The silicon model.** Die tables as the union of their parts, with the consistency
    check; device and package layers; per-package pin sets, which `Port::split` follows.
 3. **The instance shape** (D1 to D3, D2). One instance trait shape and one kernel-clock

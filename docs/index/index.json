@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 50,
-  "bytes": 274919
+  "bytes": 275464
  },
  "documents": [
   {
@@ -428,7 +428,7 @@
    "class": "human",
    "title": "The glue generator, and the work before it - plan of record",
    "purpose": "Status: agreed 2026-11-13; steps 1 and 2 of t",
-   "bytes": 3645
+   "bytes": 4190
   },
   {
    "path": "docs/policies/agent-docs.md",
