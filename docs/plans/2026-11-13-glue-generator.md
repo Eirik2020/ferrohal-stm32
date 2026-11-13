@@ -1,8 +1,8 @@
 # The glue generator, and the work before it - plan of record
 
-Status: **agreed 2026-11-13; steps 1 and 2 of the order built (PR #43), their hardware runs
-pending; the generator's step 1 built (`tools/glue-gen`), step 2 next.** Steps 1 and 2 of the
-order and the generator's step 1 merged (#43, verified 2026-11-13); generator step 2 built. The owner chose
+Status: **agreed 2026-11-13. Steps 1 and 2 of the order and the generator's step 1 merged
+(#43, verified 2026-11-13); generator steps 2 and 3 built on PR #44, their hardware runs
+pending; step 4 next.** The owner chose
 2026-11-13: handles generic over their whole wiring (`Uart<W>`), and `free()` the inverse
 of `new` for every driver. Decisions: ADR-008 (the generator) and ADR-009
 (maturity). Design: `docs/design/glue-generator.md` and `docs/design/maturity.md`.
@@ -45,7 +45,9 @@ both Nucleo suites.
    type, decided before anything is emitted, so the rows are written once. UART, SPI,
    I2C and the timer lanes keep their typed pins and stream tokens, and `free()`
    returns them (free.md rule 0); how a handle carries them (generic over its wiring,
-   or over each part) is the owner's choice at this step.
+   or over each part) is the owner's choice at this step. **Built 2026-11-13:** handles
+   generic over their wiring (owner's choice); one `Instance` shape (`NAME`, `ENABLE`,
+   `KERNEL`, `info()`); one kernel type, `rcc::Kernel`.
 4. **Emit and compare.** The generator writes `src/chips/gen/`; the generated glue is
    compared row by row with today's hand glue, and every difference is explained. Then
    the part files switch to the generated glue plus their hand facts, and the generator

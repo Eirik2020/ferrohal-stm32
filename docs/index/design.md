@@ -8,8 +8,8 @@
 | a | docs/design/clocks.md | 958 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/execution-model.md | 890 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ferroforge-seam.md | 2084 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/free-shapes.md | 2674 B | What blocked each driver's teardown, and the  |
-| a | docs/design/free.md | 3040 B | Every driver handle that owns a peripheral to |
+| a | docs/design/free-shapes.md | 3399 B | What blocked each driver's teardown, and the  |
+| a | docs/design/free.md | 3098 B | Every driver handle that owns a peripheral to |
 | a | docs/design/glue-generator.md | 5615 B | Source: ADR-008, ../decisions/2026-11-13-chip |
 | a | docs/design/h7-errata.md | 2988 B | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |

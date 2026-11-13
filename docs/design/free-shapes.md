@@ -36,3 +36,12 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
   `BlockingSpi<U>` and `I2c<U>` carry the token; `free()` stops the streams (SPI) or
   closes the unit (I2C, polled SPI) and returns it, and a refusal hands the token back
   with the wiring. `Spi::check` reads the instance from the type.
+- ~~UART, SPI, I2C and the timer lanes erased their streams into a `Channel` and freed
+  only the instance token, stranding pins and streams~~ **done (2026-11-13, plan
+  step 3):** each handle is generic over its wiring (`Uart<W>`, `Spi<W>`, `I2c<W>`,
+  `CompareLane<T, C, W>`) through a sealed `UartParts`/`SpiParts`/`I2cParts` trait, and
+  `free()` rebuilds the wiring it was opened from, typed pins and stream tokens. A lane
+  is assembled from its wiring (`LaneWiring::assemble`), and its `free(&Pwm)` returns
+  the wiring and buffers; a `PwmChannel` keeps its pin and closes its output on `free`.
+  Lanes still name their channel as a const generic beside the wiring: stable Rust
+  cannot derive it from the pin's type.

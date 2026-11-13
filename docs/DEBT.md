@@ -97,10 +97,7 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 
 | id | tags | sev | finding | spawned |
 |---|---|---|---|---|
-| D1 | `code` `api` | M | Instance traits have five or more shapes; nothing records which differences are deliberate. | one per driver: `af65cad` UART, `99e6404` SPI, `4070cd8` timers, `a8a3a05` ADC, `4237048` SDMMC, `cdfe190` I2C |
-| D2 | `code` `api` | M | The kernel clock has three types and a `BUS` constant. | `024179f` UART `KERNEL: Bus`; `99e6404` SPI `Kernel` enum |
-| D3 | `code` `api` `bench` | M | Neutral drivers expose themselves three ways, so board code names the IP version. | each driver's own re-exports, as above |
-| D4 | `code` | L | SPI's traits live in its DMA engine; the polled driver imports them. | `99e6404` before the polled SPI (`66afdaa`, 2026-11-02) |
+| D3 | `code` `api` | L | Board code now uses only the neutral modules, but the versioned ones (`usart_v2`, `spi_v4`, ...) are still public beside them. | each driver's own re-exports, as above |
 | D8 | `code` `api` | L | Refusals carry three error families. | `af65cad` `ClockError`, `1e1bbdf` IWDG, `a8a3a05` ADC, `4237048` SDMMC |
 | D9 | `code` | L | `usb.rs` hard-codes PA11/PA12 AF10 outside the glue. | `9bd9d1e` 2026-11-02 |
 | D10 | `code` | L | USB and SDMMC wirings have no `RESOURCES`. | `9bd9d1e`, `4237048` did not follow `2e7f7fe`'s descriptors |
@@ -134,7 +131,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | U1 | `code` `tool` | M | Chip glue repeats across a family's dies (owner: after the generator). | `74a8dcd` |
 | U2 | `code` | M | Six RCC types identical in both RCC modules. | `af65cad`, written separately |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
-| U4 | `code` | M | Four near-identical lane-assembly bodies. | `ee05895` 2026-11-06 |
 | U5 | `code` | L | `Resource::Pin` rows written 13 times. | from `2e7f7fe` |
 | U6 | `code` | L | DMA and polled SPI repeat clock logic; `spi::Info` = `i2c::Info`. | `66afdaa` copied `99e6404`; `cdfe190` |
 | U7 | `code` | L | Three unsafe byte casts exist only for `check_dma_buffer`. | `ea7a9f8`, `a8a3a05` |

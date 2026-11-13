@@ -4,6 +4,19 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **One instance shape, and every handle frees what it was opened from** (2026-11-13,
+  plan step 3; API review D1, D2, D4, U4, D3 in part). Every driver's `Instance` now
+  carries `NAME`, `ENABLE` and `KERNEL` as constants and one accessor, `info() ->
+  &'static Info`, with private fields, so the timers' `TimCore` no longer crosses the
+  API. The kernel clock is one type, `rcc::Kernel` (`Bus`, `Timer`, H7 `Pll1Q`);
+  `spi::Kernel`, `i2c::Kernel` and the timer and ADC `BUS` constants are gone. SPI's
+  shared traits moved out of its DMA engine into `spi/instance.rs`. The UART, SPI, I2C
+  handles and the timer lanes are generic over their wiring, and `free()` returns it
+  (free.md rule 0); the four lane-assembly bodies are one. GPIO ports and DMA
+  controllers keep crate-internal register supertraits: they are infrastructure a
+  driver borrows, not drivers a user opens. Breaking for FerroWasp (owner: allowed,
+  the FerroHAL bump already breaks it). Hardware runs pending with PR #44's.
+
 - **The finished plans are deleted** (2026-11-13, owner). The debt sweep and its gates
   (PR #29), the `free()` redesign (PRs #35 to #38), W14 (PR #39) and the documentation
   sweep (PR #30): their facts already lived in the design documents, the decision
