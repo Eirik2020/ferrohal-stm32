@@ -4,7 +4,8 @@
 //! 3 and 4 (PB0, PB1; DMA1 streams 7 and 2) sending different 16-bit
 //! patterns from the same update. TIM1's update request has DMA2 stream 5
 //! copy port B's input register into memory about 12 times a bit, and the
-//! checks decode both pins' bits and timing from it.
+//! checks decode both pins' bits and timing from it. Last, TIM4 channel 1
+//! on PB6 runs one pulse, which the sampler reads on the same port.
 //!
 //! Everything is polled: no vectors are bound.
 
@@ -150,6 +151,25 @@ mod app {
             &mut run.rcc,
             cpu,
         );
+
+        // One pulse on timer_v1: TIM4 channel 1 on PB6 at a quarter duty,
+        // 100 kHz, as H753 run J does on TIM1 for timer_v3.
+        let name = "TIM4 CH1 PB6, 100 kHz, 1/4 duty";
+        match Pwm::new(&mut run.rcc, run.tim4, Hertz::khz(100)) {
+            Ok(mut tim4) => {
+                let mut ch = tim4.channel::<1, _>(run.pb6);
+                ch.set_duty(tim4.period() / 4);
+                tim4.start();
+                let _ = sampler.set_rate(Hertz::mhz(2));
+                pwm::duty_check(&mut report, name, &mut sampler, 6, 4, cpu);
+                pwm::one_pulse_check(&mut report, name, &mut tim4, 6, 4, &mut sampler, cpu);
+                tim4.set_output::<1>(false);
+                tim4.stop();
+            }
+            Err(refused) => {
+                report.check(name, "timer at the rate", Err(Fail::Timer(refused.error())))
+            }
+        }
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());
     }

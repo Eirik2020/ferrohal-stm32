@@ -660,6 +660,9 @@ mod app {
             "mismatched periods refuse; the parts play after re-rating [API-001]",
             awg_use,
         );
+        // The same generator, TIM5 started in software beside TIM3: every
+        // lane of both finishes.
+        pwm::awg_pair_check(&mut report, "TIM3 + TIM5, software start", &mut awg, cpu);
 
         // Tick: a rate the clock cannot divide to refuses; the timer comes
         // back. Its vector is unbound, so it pauses right away.

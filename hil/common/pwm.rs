@@ -12,7 +12,7 @@
 use cortex_m::peripheral::DWT;
 use ferrohal_stm32::{
     time::Hertz,
-    timer::{Awg, ChannelTimer, CompareLane, Pwm, Sampler},
+    timer::{Awg, ChannelTimer, CompareLane, Lanes, Pwm, Sampler},
 };
 
 use crate::tests::{Fail, Report};
@@ -377,6 +377,64 @@ pub fn awg_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u
                     + u32::from(started)
                     + u32::from(while_playing)
                     + u32::from(idle),
+            })
+        },
+    );
+}
+
+/// A generator on two timers, however it starts the second, plays a waveform
+/// on every lane of both and every lane finishes, ten rounds over [AWG-005].
+/// It needs no wire: finishing is what the requirement asks, and a second
+/// timer that never started would leave its lanes unfinished.
+pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>>(
+    report: &mut Report,
+    name: &str,
+    awg: &mut Awg<A, B, LA, LB>,
+    cpu: Hertz,
+) {
+    const ROUNDS: u32 = 10;
+    let lanes = awg.lanes();
+    let budget = cpu.0 / 100;
+    let mut done = 0;
+    for round in 0..ROUNDS {
+        let samples = duties(0x8421u16.rotate_left(round), awg.period());
+        let loaded = (0..lanes).all(|lane| awg.load(lane, &samples).is_ok());
+        if !loaded || awg.play().is_err() {
+            awg.abort();
+            continue;
+        }
+        // Every lane polled in turn until all have finished: one finishing
+        // first must not hide another that never starts.
+        let start = DWT::cycle_count();
+        let mut finished = 0u32;
+        let mut failed = false;
+        while finished.count_ones() < lanes as u32
+            && DWT::cycle_count().wrapping_sub(start) < budget
+        {
+            for lane in 0..lanes {
+                if finished & (1 << lane) == 0 {
+                    if let Some(result) = awg.poll(lane) {
+                        finished |= 1 << lane;
+                        failed |= result.is_err();
+                    }
+                }
+            }
+        }
+        if finished.count_ones() == lanes as u32 && !failed {
+            done += 1;
+        } else {
+            awg.abort();
+        }
+    }
+    report.check(
+        name,
+        "AWG: every lane on both timers finishes [AWG-005]",
+        if done == ROUNDS {
+            Ok(())
+        } else {
+            Err(Fail::Count {
+                expected: ROUNDS,
+                got: done,
             })
         },
     );

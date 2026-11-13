@@ -54,6 +54,24 @@ fn main() -> ! {
         },
     );
 
+    // The die revision, through this family's glue, against DBGMCU read here
+    // directly; and a code the reference manual lists for this family.
+    let revision = signature::revision();
+    let direct = stm32_metapac::DBGMCU.idcode().read().rev_id();
+    defmt::info!("die revision: {=u16:#06x}", revision);
+    report.check(
+        "die revision",
+        "the glue reads DBGMCU's REV_ID, a known code [SIG-002]",
+        if revision == direct && matches!(revision, 0x1000 | 0x1001) {
+            Ok(())
+        } else {
+            Err(Fail::Count {
+                expected: u32::from(direct),
+                got: u32::from(revision),
+            })
+        },
+    );
+
     let name = "ADC1 PA6";
     let mut adc = match Adc::new(&mut run.rcc, run.adc, &Config::slow_source()) {
         Ok(adc) => adc,

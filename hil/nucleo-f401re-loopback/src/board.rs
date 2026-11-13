@@ -587,6 +587,10 @@ pub struct RunI {
     pub lane4: Stream<1, 2>,
     pub tim1: TIM1,
     pub sampler: Stream<2, 5>,
+    /// TIM4 channel 1 on PB6, for the one-pulse check: a pin the sampler's
+    /// port B reads, used by nothing else in this run.
+    pub tim4: TIM4,
+    pub pb6: Pin<'B', 6, Alternate<2>>,
 }
 
 pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
@@ -608,6 +612,8 @@ pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
         lane4: dma1.s2,
         tim1: p.TIM1,
         sampler: dma2.s5,
+        tim4: p.TIM4,
+        pb6: b.p6.into_alternate::<2>(&mut b.ctrl),
         rcc,
     })
 }
