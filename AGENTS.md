@@ -14,10 +14,12 @@ Public repo. Bench-verified.
 |---|---|
 | change public API | `docs/policies/safety.md`, `docs/design/api-surface.md` |
 | add/move requirements | `docs/policies/documentation.md`, `requirements/goals.md`, `src/requirements/<ip>.yaml` |
-| fix limitation/close debt | `docs/DEBT.md`, `docs/RESOLVED.md` (indexes) -> owning file |
+| fix/close debt | `docs/DEBT.md` (tagged; each item's origin), `docs/RESOLVED.md` -> owning file |
+| what chips support; limits; roadmap | `docs/CHIPS.md` |
+| what the benches prove | `hil/COVERAGE.md`, `hil/CAPABILITIES.md` |
 | touch IP driver | `src/<ip>_vN/mod.rs` + `src/requirements/<ip>.yaml` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `docs/DEBT.md` (§6: API review findings, order in `docs/notes/2026-11-11-api-review.md`); `docs/plans/` holds finished plans |
+| plan work | `docs/DEBT.md` (§2: API review, order in `docs/notes/2026-11-11-api-review.md`); `docs/CHIPS.md` roadmap; `docs/plans/` = finished plans |
 | naming/catalogs/IDs | `docs/design/naming.md`; `tools/check_names.py` holds it |
 | API shape/renames/reuse | `docs/notes/2026-11-11-api-review.md` (hub) |
 | unsafe/registers | `docs/policies/safety.md`, `docs/decisions/README.md`, `docs/notes/2026-11-08-rtic-and-hal-comparison.md` |
@@ -48,9 +50,10 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 ## Rules
 
 - Car rule (`docs/design/requirements-system.md`): one chip proves an IP version for every family, one chip a family's shared glue; exhaustive tests need the owner's accepted rationale. Evidence follows files, not images.
-- Evidence: a debt item leaves `DEBT.md` only when hardware proves the fix. A fix no
-  bench can reach stays open as Deferred (`DEBT.md` §7), ranked below every testable
-  item.
+- Debt (`docs/DEBT.md`) = owed work on what ships, tagged, with its recorded origin. A
+  feature not built or a silicon limit goes to `docs/CHIPS.md`; nothing names a user
+  firmware (toaster rule, absolute). An item leaves only when hardware proves the fix;
+  one no bench can reach stays in §4 (`rig`).
 - G5: no `unsafe fn` public; only `Peripherals::steal` behind `rtic`. Registers -> take metapac.
 - No unsafe wrappers around register writes; token-owning module only; PAC imports confined.
 - One `shall` per requirement; module trailer names its IDs.
@@ -67,8 +70,8 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 
 Debt sweep W1-W13 done (#29); refusal runs (#31) and fault injection (#33) landed. The
 `free()` redesign and the requirements cleanup under the car rule merged (#37, #38), W14
-naming (#39, `docs/design/naming.md`). Debt sweep 2026-11-13: the API review's 54 open
-findings joined `DEBT.md` as §6, per-file tracing on, CI's reqtool pin current. Rig
+naming (#39, `docs/design/naming.md`). Debt sweep 2026-11-13: one tagged ledger with
+recorded origins; limits and roadmap to `docs/CHIPS.md`, coverage to `hil/COVERAGE.md`. Rig
 upgrades held by the owner; the five requirements with no method wait on them
 (`hil/CAPABILITIES.md`).
 

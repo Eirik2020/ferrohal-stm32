@@ -4,6 +4,20 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **DEBT holds debt only: tagged, each with its recorded origin** (2026-11-13, owner).
+  Of DEBT's 80 limitation items, 29 stay as debt (as 27 entries) and 51 leave it. Moved:
+  silicon limits and documented contracts (UART v2 errata, wait floors, ring and
+  vector contracts, H7 clock and memory limits) to `docs/CHIPS.md` Limits; features not
+  built (frame formats, slave modes, LPUART, BDMA, input capture, ADC triggers, VOS0 and
+  the rest) to `docs/CHIPS.md` Not supported yet. Dropped as proven elsewhere under the
+  car rule: the flight boards' I2C, UART4/5 on `usart_v2`, motor pads on both smoke
+  boards (their IP versions are proven on the Nucleos, their rows glue-checked).
+  Dropped as another firmware's: the smoke bench's copy of a user's NOR commands, and a
+  user image's DFU `leave` (toaster rule). Added: `Adc`, `AdcScan`, `Sdmmc` and `UsbFs`
+  have no `free()`, and RESET-004's missing method. `hil/RIG.md`'s Lucid part fixed in
+  place (STM32H743VIH6, TFBGA100). The hardware-tested table moved to
+  `hil/COVERAGE.md`.
+
 - **Every library file owes tracing, and CI checks with the reqtool that records**
   (2026-11-13). DEBT's "tracing isn't enforced per file" closed: `reqtool.toml` turns
   on `every_file_traced` and leaves `hil/` out with `every_file_traced_except`, which

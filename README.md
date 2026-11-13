@@ -50,7 +50,7 @@ The benches flash RTIC firmwares over probe-rs and need the jumpers listed at th
 
 ## Status
 
-[DEBT.md](docs/DEBT.md) lists what's open, per chip; [RESOLVED.md](docs/RESOLVED.md) is the history of what's been closed.
+[CHIPS.md](docs/CHIPS.md) lists the supported chips, what each supports, its limits and what isn't supported yet; [hil/COVERAGE.md](hil/COVERAGE.md) shows what the benches prove. [DEBT.md](docs/DEBT.md) is the open debt; [RESOLVED.md](docs/RESOLVED.md) is the history of what's been closed.
 
 ## Licence
 

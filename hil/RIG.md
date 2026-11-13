@@ -44,7 +44,7 @@ manual and chip module name:
 - **Nucleo-F401RE**: STM32F401RET6, die revision 0x1001.
 - **Nucleo-H753ZI**: STM32H753ZIT6, die revision 0x2003 (V).
 - **Foxeer F405 V2**: STM32F405RGT6, die revision 0x100f.
-- **Lucid H743**: STM32H743VIT6, die revision 0x2003 (V).
+- **Lucid H743**: STM32H743VIH6 (TFBGA100), die revision 0x2003 (V).
 
 ES0392's per-part rules — 2.2.10's AXI SRAM reads, revision Y/W only, and
 2.2.21's 480 MHz — are decided off the revision: both H7s here are V.

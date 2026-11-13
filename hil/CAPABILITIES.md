@@ -2,9 +2,10 @@
 
 The rig turns requirement claims into measurements. [`benches.md`](../requirements/benches.md) says
 how each run is performed; this chapter is the map of the rig itself: what it can
-prove, where its blind spots are, and the order to close them in. `DEBT.md` §7
-lists fixes waiting for the rig to reach them; when an item here lands, its run
-moves to `benches.md` and the deferral comes out.
+prove, where its blind spots are, and the order to close them in. What each bench
+proves, IP version by IP version, is [COVERAGE.md](COVERAGE.md). `docs/DEBT.md` §4
+lists the proof gaps waiting for the rig; when an item here lands, its run moves to
+`benches.md` and the debt item comes out.
 
 ## The rig
 
@@ -136,6 +137,7 @@ ones that unblock a claim.
   lists the runs and their pass criteria. Logs land in `hil/logs/` and the
   manifest beside each log hashes every binary.
 - A claim in a commit or requirement names the run that proves it. A claim based
-  on inspection says so and points at `DEBT.md` §7 or `docs/design/h7-errata.md`.
+  on inspection says so and points at `docs/DEBT.md` §4 or `docs/design/h7-errata.md`.
 - When the rig gains a capability, add its run to `benches.md`, move the entry
-  out of the queue here, and remove the matching deferral from `DEBT.md` §7.
+  out of the queue here, update `COVERAGE.md`, and remove the matching item from
+  `docs/DEBT.md` §4.
