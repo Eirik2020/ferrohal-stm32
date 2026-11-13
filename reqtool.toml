@@ -8,3 +8,6 @@ evidence = "requirements/evidence/runs"
 artifacts = "requirements/evidence/logs"
 boards = "hil"
 test_features = [["stm32f401re"], ["stm32f405rg"], ["stm32h743vi"], ["stm32h753zi"]]
+# Every library file owes tracing; the bench crates under hil/ do not.
+every_file_traced = true
+every_file_traced_except = ["hil"]
