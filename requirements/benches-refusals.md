@@ -22,7 +22,7 @@ the pair plays on PB6), an inexact tick and timebase (both timers run,
 the tick paused), and a 1 us watchdog (the peripheral starts, feeds for
 300 ms, then starves, and the second boot reports the bite — run J's
 shape, so this run's own reset clears its flags and leaves none for
-the next bench run). Each handed-back UART, SPI and I2C is then freed: its enable bit (UE, SPE, PE) and every DMA stream it ran must read off [API-002]. Pass: every check in both boots passes and the
+the next bench run). Each handed-back UART, SPI and I2C is then freed: its enable bit (UE, SPE, PE) and every DMA stream it ran must read off [API-002]. The refused-then-rebuilt generator then plays every lane of both its timers, the second started in software, ten rounds [AWG-005]. Pass: every check in both boots passes and the
 script exits zero.
 
 ## Constructor refusals on the Nucleo-H753ZI
@@ -41,5 +41,5 @@ longer than the timeout, then a 1 us timeout — before it starts, feeds
 for 300 ms and starves, and the second boot reports the bite, run K's
 shape. USB is left out: this chip's constructor starts its own 48 MHz
 source, so nothing this bench can wire makes it refuse; the F401's run
-V covers it. Each handed-back UART, SPI and I2C is then freed: its enable bit (UE, SPE, PE) and every DMA stream it ran must read off [API-002]. Pass: every check in both boots passes and the script
+V covers it. Each handed-back UART, SPI and I2C is then freed: its enable bit (UE, SPE, PE) and every DMA stream it ran must read off [API-002]. The refused-then-rebuilt generator then plays every lane of both its timers, the second started in software, ten rounds [AWG-005]. Pass: every check in both boots passes and the script
 exits zero.

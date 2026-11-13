@@ -657,8 +657,8 @@ mod tests {
     use super::*;
     use crate::uart::{Resource, Signal, Wiring};
 
-    /// The TBS Lucid H7's receiver port, as its manifest claims it.
-    type Usart6Lucid = Wiring<
+    /// A receiver port, as an example board manifest names it.
+    type Usart6Example = Wiring<
         USART6,
         Pin<'C', 6, Alternate<7>>,
         Pin<'C', 7, Alternate<7>>,
@@ -666,10 +666,10 @@ mod tests {
         Stream<1, 0>,
     >;
 
-    /// The Lucid's IMU bus, as its manifest claims it.
+    /// An SPI bus, as an example board manifest names it.
     #[test]
-    fn imu_spi_describes_itself() {
-        type Spi1Lucid = crate::spi::Wiring<
+    fn spi_wiring_describes_itself() {
+        type Spi1Example = crate::spi::Wiring<
             SPI1,
             Pin<'A', 5, Alternate<5>>,
             Pin<'A', 6, Alternate<5>>,
@@ -678,7 +678,7 @@ mod tests {
             Stream<1, 4>,
         >;
         assert_eq!(
-            Spi1Lucid::RESOURCES,
+            Spi1Example::RESOURCES,
             [
                 Resource::Peripheral("SPI1"),
                 Resource::Pin {
@@ -754,7 +754,7 @@ mod tests {
     #[test]
     fn wiring_describes_itself() {
         assert_eq!(
-            Usart6Lucid::RESOURCES,
+            Usart6Example::RESOURCES,
             [
                 Resource::Peripheral("USART6"),
                 Resource::Pin {
@@ -769,7 +769,7 @@ mod tests {
                     pin: 7,
                     af: 7
                 },
-                // The Lucid's manifest names these DMA1_STREAM6_CH72 and
+                // The example manifest names these DMA1_STREAM6_CH72 and
                 // DMA1_STREAM0_CH71.
                 Resource::Dma {
                     signal: Signal::Tx,
@@ -790,11 +790,11 @@ mod tests {
         );
     }
 
-    /// Every UART and motor route the Lucid's manifest claims is one this
+    /// Every UART and timer-lane route an example board manifest names is one this
     /// glue offers, on the pin and alternate function it names and with its
     /// DMAMUX request. That it compiles is half the check.
     #[test]
-    fn lucid_manifest_routes_exist() {
+    fn example_manifest_routes_exist() {
         use crate::timer::{ChannelPin, ChannelTimer, CompareDma};
 
         type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;

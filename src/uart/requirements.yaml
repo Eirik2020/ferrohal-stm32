@@ -263,6 +263,10 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
   - id: UART-015
     title: Noise and receiver overrun reach the reader
@@ -730,7 +734,7 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::chip::tests::imu_spi_describes_itself
+            test: ferrohal_stm32::chip::tests::spi_wiring_describes_itself
 
   - id: GLUE-006
     title: A board manifest's routes exist
@@ -745,8 +749,4 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::chip::tests::foxeer_manifest_routes_exist
-        - level: unit
-          environment: host
-          method:
-            test: ferrohal_stm32::chip::tests::lucid_manifest_routes_exist
+            test: ferrohal_stm32::chip::tests::example_manifest_routes_exist

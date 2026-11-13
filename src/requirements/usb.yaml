@@ -4,9 +4,15 @@ requirements:
     title: USB carries CDC serial
     statement: >-
       The USB port shall enumerate as a CDC serial device and echo what the
-      host sends, polled or from its interrupt.
+      host sends, polled or from its interrupt, on both USB cores FerroHAL
+      drives: the F4's OTG_FS and the H7's OTG_HS at full speed.
     rationale: >-
-      A board with no debug probe is configured over USB.
+      A board with no debug probe is configured over USB. The two cores are
+      different IP behind one driver, so each needs its own proof.
     derived_from: [G3]
     verification:
-      entries: []
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#USB on the Nucleo-H753ZI

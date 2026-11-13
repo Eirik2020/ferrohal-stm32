@@ -562,8 +562,8 @@ mod tests {
     use super::*;
     use crate::uart::{Resource, Signal, Wiring};
 
-    /// The Foxeer F405 V2's receiver port, as its manifest claims it.
-    type Usart2Foxeer = Wiring<
+    /// A receiver port, as an example board manifest names it.
+    type Usart2Example = Wiring<
         USART2,
         Pin<'A', 2, Alternate<7>>,
         Pin<'A', 3, Alternate<7>>,
@@ -574,7 +574,7 @@ mod tests {
     #[test]
     fn wiring_describes_itself() {
         assert_eq!(
-            Usart2Foxeer::RESOURCES,
+            Usart2Example::RESOURCES,
             [
                 Resource::Peripheral("USART2"),
                 Resource::Pin {
@@ -589,7 +589,7 @@ mod tests {
                     pin: 3,
                     af: 7
                 },
-                // The manifest names these DMA1_STREAM6_CH4 and
+                // The example manifest names these DMA1_STREAM6_CH4 and
                 // DMA1_STREAM5_CH4.
                 Resource::Dma {
                     signal: Signal::Tx,
@@ -610,11 +610,11 @@ mod tests {
         );
     }
 
-    /// Every UART and motor route the Foxeer's manifest claims is one this
+    /// Every UART and timer-lane route an example board manifest names is one this
     /// glue offers, on the pin and alternate function it names and with its
     /// DMA channel. That it compiles is half the check.
     #[test]
-    fn foxeer_manifest_routes_exist() {
+    fn example_manifest_routes_exist() {
         use crate::{
             timer::{ChannelPin, ChannelTimer, CompareDma, ComplementaryPin},
             usart_v2::Instance,
@@ -648,10 +648,10 @@ mod tests {
         assert_eq!(lane_n::<TIM1, 3, Af<'B', 15, 1>, Stream<2, 6>>(), 6);
     }
 
-    /// The Foxeer's IMU bus, as its manifest claims it.
+    /// An SPI bus, as an example board manifest names it.
     #[test]
-    fn imu_spi_describes_itself() {
-        type Spi1Foxeer = crate::spi::Wiring<
+    fn spi_wiring_describes_itself() {
+        type Spi1Example = crate::spi::Wiring<
             SPI1,
             Pin<'A', 5, Alternate<5>>,
             Pin<'A', 6, Alternate<5>>,
@@ -660,7 +660,7 @@ mod tests {
             Stream<2, 0>,
         >;
         assert_eq!(
-            Spi1Foxeer::RESOURCES,
+            Spi1Example::RESOURCES,
             [
                 Resource::Peripheral("SPI1"),
                 Resource::Pin {

@@ -33,14 +33,21 @@ saw PE, and how many bytes the receive DMA had taken by then.
 
 ## UART on the Nucleo-H753ZI
 
-`hil/run-h753.sh a b c d e`, with the Zio links in
+`hil/run-h753.sh a b c d e y`, with the Zio links in
 `hil/nucleo-h753zi-loopback/src/board.rs` fitted. Pass: every check in every run
 passes and the script exits zero. Covers `usart_v4` with the caches off and on, and
 the same checks in `hil/common/tests.rs`; run A also masks USART1's line for the
-USART-005 drill, as the F401's run A does.
+USART-005 drill, as the F401's run A does. Run Y crosses two UARTs over Z6, USART3's
+TX on PC10 into UART4's RX on PC11, for what a loop cannot show: even parity into
+odd reaches UART4's reader as a parity error [UART-014], half the baud rate as a
+framing error.
 
-Run M (USB CDC over CN13, off the default list while the cable powers the Pico)
-builds `run-m` before starting `hil/usb_cdc_host.py`, so the host's wait for a port
+## USB on the Nucleo-H753ZI
+
+`hil/run-h753.sh m`, with the CN13 cable on the H753, as the rig keeps it
+(`hil/WIRING.md`). Pass: every check passes and the script exits zero.
+
+Run M (USB CDC over CN13) builds `run-m` before starting `hil/usb_cdc_host.py`, so the host's wait for a port
 is not spent compiling, and the host opens only a port that appeared after the one
 a previous image left had gone: a rerun cannot talk to the image it is about to
 replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
@@ -55,11 +62,11 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run I stops its TIM3 generator mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the generator's period [AWG-007 API-002]. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run I stops its TIM3 generator mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the generator's period [AWG-007 API-002]. Run I then runs one pulse on TIM4 channel 1 (PB6), read by the same sampler [PWM-007]. Run R ends with its four lanes as one generator, TIM3 starting TIM2 through its trigger, and every lane of both must finish [AWG-005]. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 
-`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 generator as run I does on the F401 [AWG-007 API-002]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 generator as run I does on the F401 [AWG-007 API-002]. Run P ends with a generator over TIM1 and TIM8, linked, a lane on each with its output off, and every lane of both must finish [AWG-005]. Pass: every check in every run passes and the script exits zero.
 
 ## Watchdog on the Nucleo-F401RE
 
@@ -75,15 +82,15 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## Bootloader request on the Nucleo-H753ZI
 
-`hil/run-h753.sh n`. Resets the chip on purpose. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh n`. Resets the chip on purpose. Its request crosses the reset with the data cache on, as whole doublewords [RESETH7-001]. Pass: every check in every run passes and the script exits zero.
 
 ## ADC on the Nucleo-F401RE
 
-`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDCODE REV_ID, read directly, and a code RM0368 lists [SIG-002]. Pass: every check in every run passes and the script exits zero.
 
 ## ADC on the Nucleo-H753ZI
 
-`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDC REV_ID, read directly, and a code RM0433 lists [SIG-002]. Pass: every check in every run passes and the script exits zero.
 
 ## The Foxeer F405 V2 board bench
 
@@ -151,7 +158,4 @@ clears ISR.BUSY — so a stuck bus surfaces as a bounded Timeout where the
 F401 reports Busy before the wire moves, and the first transfer after a
 slave's stretch can be the one that resyncs driver and device; the
 checks accept both shapes and count each exactly in the health totals.
-Pass: every check in both runs passes and the script exits zero. Run M
-(the USB device bench) is off the default list while its CN13 cable
-powers the Pico: `./run-h753.sh m` still runs it with the cable moved
-back.
+Pass: every check in both runs passes and the script exits zero.
