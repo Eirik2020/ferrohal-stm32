@@ -9,6 +9,10 @@ design document at `docs/design/naming.md` (the chip-to-feature table and the na
 rules), linked from `ferrohal-architecture.md` §2 - a **design** promotion. Audit with
 file-and-line evidence: [`../notes/2026-11-08-naming-audit.md`](../notes/2026-11-08-naming-audit.md).
 
+Outcome (owner, 2026-11-13): rule 1 became one catalog per IP or subsystem, holding its part
+families, not one per family; rule 2's part families are hyphenated (`USART-V4-*`, `SPI-V2-*`,
+`I2C-V1-*`), and `USART-005` below is `UART-020`. `naming.md` holds the rules as applied.
+
 ## Context
 
 A review found the naming inconsistent in seven groups: catalogs in two locations with

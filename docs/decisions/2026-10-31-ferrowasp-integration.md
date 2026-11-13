@@ -8,6 +8,7 @@ benches; recorded from the architecture map's section 15 when the map dissolved
 
 ## Integration
 
+- **[Decided 2026-11-13, owner]** FerroWasp is FerroHAL's first-class supported user: FerroWasp's needs drive what FerroHAL builds and in what order. The toaster rule still holds: a FerroWasp need lands as a generic capability, named, specified and tested in FerroHAL's own terms, never as FerroWasp-specific logic, and FerroHAL never depends on FerroWasp. Binding text: [`../design/scope.md`](../design/scope.md).
 - **[Decided]** The owner dropped the gate on FerroWasp's refactoring (2026-11-03): FerroHAL is implemented in FerroWasp first, before the rest of that refactoring. It still has to support everything FerroWasp's HALs do today.
 - **[Decided]** The swap is all at once. A partial transition (FerroHAL beside stm32f4xx-hal or stm32h7xx-hal in one firmware) is not doable. A transitional `unsafe` path for adopting clocks and peripherals another HAL set up was accepted in principle, but is not needed without a partial transition, and is not built.
 - **[Decided]** The H7 is a real target: FerroWasp's TBS Lucid H7 (STM32H743) moves off stm32h7xx-hal as well as the Foxeer F405 V2 off stm32f4xx-hal.
@@ -17,7 +18,7 @@ benches; recorded from the architecture map's section 15 when the map dissolved
 
 ## What "supports everything" means
 
-- **[Proposal]** The peripherals FerroWasp's F4 and H7 backends drive, all of which FerroHAL needs before the swap:
+- **[Decided 2026-11-13]** (a proposal until FerroWasp became first-class) The peripherals FerroWasp's F4 and H7 backends drive, all of which FerroHAL needs before the swap:
 
 | Area | FerroWasp uses it for |
 |---|---|
