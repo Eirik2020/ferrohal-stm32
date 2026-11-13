@@ -3,7 +3,7 @@
  "counts": {
   "documents": 63,
   "agent": 44,
-  "bytes": 232744
+  "bytes": 233433
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4207
+   "bytes": 4313
   },
   {
    "path": "DEBT.md",
@@ -366,7 +366,7 @@
    "class": "human",
    "title": "W14: naming normalisation (ADR-003)",
    "purpose": "Split out of the free redesign plan2026-11-08",
-   "bytes": 2022
+   "bytes": 2442
   },
   {
    "path": "docs/plans/2026-11-10-doc-sweep.md",
@@ -450,7 +450,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 12975
+   "bytes": 13138
   },
   {
    "path": "requirements/goals.md",

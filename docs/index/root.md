@@ -4,7 +4,7 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | AGENTS.md | 4207 B | STM32 HAL on stm32-metapac. Chips: stm32f401r |
+| a | AGENTS.md | 4313 B | STM32 HAL on stm32-metapac. Chips: stm32f401r |
 | h | DEBT.md | 22321 B | Open items only. Finished work moves to RESOL |
 | h | README.md | 4885 B | A scheduler-agnostic STM32 HAL on stm32-metap |
 | h | RESOLVED-chips-and-features.md | 8495 B | The chip and feature sections of RESOLVED.mdR |

@@ -64,8 +64,9 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 ## State 2026-11-13
 
 Debt sweep W1-W13 done (#29); refusal runs (#31) and fault injection (#33) landed. The
-`free()` redesign is done: every token-owning handle hands its token back
-(`docs/design/free.md`), on branch `free-redesign-close`. Next: W14 naming, its own PR.
+`free()` redesign and the requirements cleanup under the car rule merged (#37, #38). W14
+naming applied on branch `w14-naming` (`docs/design/naming.md`). Rig upgrades held by the
+owner; the five requirements with no method wait on them (`hil/CAPABILITIES.md`).
 Details `docs/plans/`.
 
 ## Style
