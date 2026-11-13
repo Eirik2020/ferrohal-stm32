@@ -3,7 +3,7 @@
  "counts": {
   "documents": 62,
   "agent": 43,
-  "bytes": 227637
+  "bytes": 228405
  },
  "documents": [
   {
@@ -394,7 +394,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 8332
+   "bytes": 8669
   },
   {
    "path": "hil/RIG.md",
@@ -422,7 +422,7 @@
    "class": "human",
    "title": "Bench Procedures: the host analyses",
    "purpose": "The checks of benches.mdbenches.md that run o",
-   "bytes": 767
+   "bytes": 1198
   },
   {
    "path": "requirements/benches-faults.md",
