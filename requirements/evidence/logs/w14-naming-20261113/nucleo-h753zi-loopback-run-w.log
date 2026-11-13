@@ -1,0 +1,19 @@
+   Compiling nucleo-h753zi-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-h753zi-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.23s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-w`
+     [38;5;10m[1mFinished[0m in 2.26s
+[INFO ] run W, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_w src/bin/run_w.rs:309)
+[INFO ] PASS USART6: vectors enabled at one priority [UART-003 RESOURCE-001] (run_w ../common/tests.rs:379)
+[INFO ] USART6 PC6->PC7 loopback: overrun: reader 1, driver counted 1, 4 byte(s) after it, dma 0, sends ok true and true (run_w src/bin/run_w.rs:115)
+[INFO ] PASS USART6 PC6->PC7 loopback: overrun: reported once, by the reader and in Health [UART-015 UART-019] (run_w ../common/tests.rs:379)
+[INFO ] PASS USART6 PC6->PC7 loopback: overrun: A, C, D and E arrive in order, at most B lost [UART-015] (run_w ../common/tests.rs:379)
+[INFO ] PASS USART6 PC6->PC7 loopback: echo after the overrun (run_w ../common/tests.rs:367)
+[INFO ] USART6 PC6->PC7 loopback: dma transfer: reader 1, driver counted 1, restarts 0 -> 1, 0 byte(s) after it, overrun 0, sent true, bytes [] (run_w src/bin/run_w.rs:192)
+[INFO ] PASS USART6 PC6->PC7 loopback: dma transfer: reported once and the ring restarted [UARTDMA-011] (run_w ../common/tests.rs:379)
+[INFO ] PASS USART6 PC6->PC7 loopback: echo after the dma transfer error (run_w ../common/tests.rs:367)
+[INFO ] USART6 PC6->PC7 loopback: timeout: queue true, flush err, timeouts 0 -> 1 (run_w src/bin/run_w.rs:247)
+[INFO ] PASS USART6 PC6->PC7 loopback: timeout: the bound expired, the queue dropped and counted [UARTDMA-012] (run_w ../common/tests.rs:379)
+[INFO ] PASS USART6 PC6->PC7 loopback: the next frame goes out whole (run_w ../common/tests.rs:367)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_w ../common/tests.rs:1420)
+[INFO ] all checks passed (run_w ../common/tests.rs:1428)
+Firmware exited successfully

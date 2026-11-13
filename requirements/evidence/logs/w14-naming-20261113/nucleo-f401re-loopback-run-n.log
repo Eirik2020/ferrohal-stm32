@@ -1,0 +1,11 @@
+   Compiling nucleo-f401re-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.71s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/run-n`
+     [38;5;10m[1mFinished[0m in 0.84s
+[INFO ] PASS TIM1 starts TIM3: the slave waits for the master [PWM-004] (run_n ../common/tests.rs:367)
+[INFO ] PASS TIM1 starts TIM3: 100 starts: the master's starts the slave [PWM-005] (run_n ../common/tests.rs:367)
+[INFO ] PASS TIM1 starts TIM3: 100 starts: they begin together [PWM-005] (run_n ../common/tests.rs:367)
+[INFO ] TIM1 starts TIM3: at most 4 counts apart, read one after the other (run_n ../common/pwm.rs:1027)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (run_n ../common/tests.rs:1420)
+[INFO ] all checks passed (run_n ../common/tests.rs:1428)
+Firmware exited successfully
