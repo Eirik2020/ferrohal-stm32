@@ -57,6 +57,7 @@ compile_error!("enable only one chip feature");
 
 pub mod adc;
 pub mod i2c;
+mod rcc_kernel;
 pub mod reset;
 pub mod resource;
 pub mod signature;

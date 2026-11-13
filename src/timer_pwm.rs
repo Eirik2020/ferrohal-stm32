@@ -134,7 +134,7 @@ impl<T: ChannelTimer> Pwm<T> {
     /// Refuses with the timer token handed back: the rate is checked before
     /// the timer is touched.
     pub fn new(rcc: &mut Rcc, timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
-        let clock = rcc.clocks().timer(T::BUS);
+        let clock = T::KERNEL.clock(&rcc.clocks());
         let (prescaler, reload, frequency) = match nearest(clock, rate, T::BITS) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, timer)),
@@ -212,7 +212,7 @@ impl<T: ChannelTimer> Pwm<T> {
 
     /// The rate `T` would run at for `rate` under `clocks`.
     pub const fn check(clocks: &crate::rcc::Clocks, rate: Hertz) -> Result<Hertz, ConfigError> {
-        match nearest(clocks.timer(T::BUS), rate, T::BITS) {
+        match nearest(T::KERNEL.clock(clocks), rate, T::BITS) {
             Ok((_, _, actual)) => Ok(actual),
             Err(error) => Err(error),
         }
@@ -971,7 +971,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
     where
         Port<P>: PortInstance,
     {
-        let clock = rcc.clocks().timer(T::BUS);
+        let clock = T::KERNEL.clock(&rcc.clocks());
         let (prescaler, reload, rate) = match nearest(clock, rate, T::BITS) {
             Ok(parts) => parts,
             Err(error) => {

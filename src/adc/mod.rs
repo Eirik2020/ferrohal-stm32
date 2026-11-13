@@ -30,7 +30,7 @@ use crate::{
         Channel as DmaChannel, Direction, FifoMode, Flags, Interrupts, Priority, StreamInstance,
         StreamInterrupt, Transfer, WordSize,
     },
-    rcc::{Bus, Rcc, RccBit},
+    rcc::{Rcc, RccBit},
     resource::Refused,
 };
 
@@ -90,8 +90,9 @@ pub enum Error {
 pub trait Instance: crate::Sealed {
     const NAME: &'static str;
     const ENABLE: RccBit;
-    /// The bus whose clock feeds it, on chips where that decides its speed.
-    const BUS: Bus;
+    /// Its kernel clock, on chips where that decides its speed: the bus it
+    /// sits on.
+    const KERNEL: crate::rcc::Kernel;
     /// Whether its internal channels should be powered.
     const INTERNAL: bool;
     fn unit() -> Unit;
@@ -218,7 +219,8 @@ impl<A: Instance> Adc<A> {
         rcc.enable(A::ENABLE);
         rcc.reset(A::ENABLE);
         let unit = A::unit();
-        if let Err(error) = unit.power_up(&rcc.clocks(), A::BUS, A::INTERNAL, config.sample_cycles)
+        if let Err(error) =
+            unit.power_up(&rcc.clocks(), A::KERNEL, A::INTERNAL, config.sample_cycles)
         {
             return Err(Refused::new(error, token));
         }

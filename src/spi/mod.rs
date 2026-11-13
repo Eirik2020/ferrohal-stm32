@@ -121,29 +121,6 @@ impl Config {
     }
 }
 
-/// Where an SPI instance's kernel clock comes from. Chip facts: the glue
-/// sets it per instance, and `freeze` sets the muxes to match.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Kernel {
-    /// The clock of the bus the SPI sits on.
-    Bus(crate::rcc::Bus),
-    /// PLL1's Q output (the H7's SPI1 to SPI3, SPI123SEL at reset).
-    #[cfg(feature = "rcc_h7_rm0433")]
-    Pll1Q,
-}
-
-impl Kernel {
-    /// The frequency, or `None` if its source isn't running.
-    pub const fn frequency(self, clocks: &crate::rcc::Clocks) -> Option<Hertz> {
-        match self {
-            Self::Bus(bus) => Some(clocks.bus(bus)),
-            #[cfg(feature = "rcc_h7_rm0433")]
-            Self::Pll1Q => clocks.pll1_q,
-        }
-    }
-}
-
 /// What the board file hands to `Spi::new`: one SPI instance, its three
 /// pins and its two DMA streams. The driver's trait bounds check that they
 /// belong together; this struct only carries them.

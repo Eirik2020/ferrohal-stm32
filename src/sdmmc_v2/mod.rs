@@ -135,6 +135,8 @@ pub(crate) trait Registers {
 pub trait Instance: crate::Sealed + Registers {
     const NAME: &'static str;
     const ENABLE: RccBit;
+    /// Its kernel clock: PLL1's Q output, SDMMCSEL as reset leaves it.
+    const KERNEL: crate::rcc::Kernel;
 }
 
 /// A pin, in the right alternate function, that carries `U`'s clock.
@@ -253,7 +255,7 @@ where
         config: &Config,
     ) -> Result<Self, SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3>> {
         let clocks = rcc.clocks();
-        let kernel = match clocks.pll1_q {
+        let kernel = match U::KERNEL.frequency(&clocks) {
             Some(kernel) => kernel,
             None => return Err(Refused::new(Error::Clock, wiring)),
         };

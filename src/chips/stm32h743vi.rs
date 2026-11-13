@@ -325,7 +325,7 @@ macro_rules! usarts {
             static $info: Info = Info::new(LineRegs::new(pac::$name), RccBit::new(Bus::$bus, $bit));
 
             impl crate::uart::Instance for $name {
-                const KERNEL: Bus = Bus::$bus;
+                const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
                 const NAME: &'static str = stringify!($name);
                 const INTERRUPT: Interrupt = Interrupt::$name;
                 const INTERRUPT_NAME: &'static str = stringify!($name);

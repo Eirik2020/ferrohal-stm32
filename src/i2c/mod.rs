@@ -89,17 +89,12 @@ pub trait Instance: crate::Sealed + 'static {
     /// The bus whose clock is its kernel clock: APB1 everywhere but the
     /// H7's I2C4, which sits on APB4. `freeze` writes the H7's kernel
     /// muxes to match.
-    const KERNEL: Kernel;
+    const KERNEL: crate::rcc::Kernel;
     /// Its name in the reference manual.
     const NAME: &'static str;
     #[doc(hidden)]
     fn info() -> &'static Info;
 }
-
-/// Where an I2C instance's kernel clock comes from. On every chip it is
-/// the clock of the bus the instance sits on, so this is the bus itself
-/// and `Clocks::bus` answers its frequency.
-pub type Kernel = crate::rcc::Bus;
 
 /// A pin, in the right alternate function, that carries `U`'s SCL.
 pub trait SclPin<U: Instance>: crate::Sealed {}
@@ -307,7 +302,7 @@ where
     ) -> Result<Self, Refused<ConfigError, Wiring<U, Scl, Sda>>> {
         let info = U::info();
         let clocks = rcc.clocks();
-        let kernel_clock = clocks.bus(U::KERNEL);
+        let kernel_clock = U::KERNEL.clock(&clocks);
         let timing = match config.check(kernel_clock) {
             Ok(()) => Unit::timing(kernel_clock, config.speed),
             Err(error) => Err(error),

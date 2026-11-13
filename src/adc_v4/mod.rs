@@ -21,7 +21,7 @@ use stm32_metapac::{
 
 use crate::{
     adc::Error,
-    rcc::{Bus, Clocks, Rcc},
+    rcc::{Clocks, Rcc},
 };
 
 pub const MAX_SAMPLE: u16 = 65535;
@@ -72,7 +72,7 @@ impl Unit {
     pub(crate) fn power_up(
         &self,
         clocks: &Clocks,
-        _bus: Bus,
+        _bus: crate::rcc::Kernel,
         internal: bool,
         sample_cycles: u16,
     ) -> Result<(), Error> {

@@ -171,7 +171,7 @@ fn main() -> ! {
     black_box(&chip::I2cWiring::RESOURCES).iter().for_each(keep);
     keep(
         i2c::Config::new(Hertz::khz(400))
-            .check(black_box(rcc.clocks()).bus(<chip::I2cUnit as i2c::Instance>::KERNEL)),
+            .check(<chip::I2cUnit as i2c::Instance>::KERNEL.clock(&black_box(rcc.clocks()))),
     );
     // A refusal hands back the wiring: retry once with it, at 100 kHz.
     let mut i2c = match I2c::new(

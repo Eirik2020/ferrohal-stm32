@@ -61,7 +61,7 @@ use crate::{
         StreamInstance, StreamInterrupt, Transfer, WordSize,
     },
     gpio::AltPin,
-    rcc::{Bus, Clocks, Rcc, RccBit},
+    rcc::{Clocks, Rcc, RccBit},
     time::Hertz,
     uart::{
         Buffers, Chunk, ChunkEnd, Config, ConfigError, Error, Health, Refused, Resource, RxWiring,
@@ -262,8 +262,8 @@ impl State {
 
 /// A USART this chip has.
 pub trait Instance: crate::Sealed + 'static {
-    /// The bus whose clock is this USART's kernel clock.
-    const KERNEL: Bus;
+    /// Its kernel clock: the bus it sits on.
+    const KERNEL: crate::rcc::Kernel;
     /// Its name in the reference manual.
     const NAME: &'static str;
     /// Its interrupt vector.
@@ -339,7 +339,7 @@ impl<U: Instance, RxP, RxD> UartParts for RxWiring<U, RxP, RxD> {
 /// compiling: `const _: () = assert!(uart::check::<USART6>(&CLOCKS,
 /// &CRSF).is_ok());`.
 pub const fn check<U: Instance>(clocks: &Clocks, config: &Config) -> Result<(), ConfigError> {
-    match config.divider(clocks.bus(U::KERNEL), U::FRACTIONAL_STOP_BITS) {
+    match config.divider(U::KERNEL.clock(clocks), U::FRACTIONAL_STOP_BITS) {
         Ok(_) => Ok(()),
         Err(error) => Err(error),
     }
@@ -642,7 +642,7 @@ where
             rx_dma,
         } = wiring;
         let info = U::info();
-        let kernel_clock = clocks.bus(U::KERNEL);
+        let kernel_clock = U::KERNEL.clock(&clocks);
         reset(rcc, info, checked.rx_len);
         info.state
             .frame_cycles
@@ -1151,7 +1151,7 @@ where
         };
         let RxWiring { uart, rx, rx_dma } = wiring;
         let info = U::info();
-        let kernel_clock = clocks.bus(U::KERNEL);
+        let kernel_clock = U::KERNEL.clock(&clocks);
         reset(rcc, info, checked.rx_len);
         info.state
             .frame_cycles
@@ -1766,13 +1766,13 @@ struct Checked {
 
 fn check_open(
     clocks: Clocks,
-    kernel: Bus,
+    kernel: crate::rcc::Kernel,
     fractional_stop: bool,
     config: &Config,
     tx: Option<&[u8]>,
     rx: &[u8],
 ) -> Result<Checked, ConfigError> {
-    let brr = config.divider(clocks.bus(kernel), fractional_stop)?;
+    let brr = config.divider(kernel.clock(&clocks), fractional_stop)?;
     let tx_len = match tx {
         Some(tx) => {
             let len = u16::try_from(tx.len())

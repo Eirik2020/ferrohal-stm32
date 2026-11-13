@@ -5,8 +5,9 @@
 
 use crate::{
     dma::{StreamInstance, StreamInterrupt},
+    rcc::Kernel,
     rcc::{Clocks, RccBit},
-    spi::{BlockingWiring, Config, ConfigError, Kernel, Wiring},
+    spi::{BlockingWiring, Config, ConfigError, Wiring},
     spi_ip::Unit,
     time::Hertz,
 };

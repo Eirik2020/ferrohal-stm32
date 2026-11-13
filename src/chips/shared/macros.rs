@@ -95,10 +95,10 @@ macro_rules! pins {
 /// An SPI row's kernel clock column: `Pll1Q`, or the name of a bus.
 macro_rules! spi_kernel {
     (Pll1Q) => {
-        crate::spi::Kernel::Pll1Q
+        crate::rcc::Kernel::Pll1Q
     };
     ($bus:ident) => {
-        crate::spi::Kernel::Bus(Bus::$bus)
+        crate::rcc::Kernel::Bus(Bus::$bus)
     };
 }
 
@@ -112,7 +112,7 @@ macro_rules! spis {
             );
 
             impl crate::spi::Instance for $name {
-                const KERNEL: crate::spi::Kernel = spi_kernel!($kernel);
+                const KERNEL: crate::rcc::Kernel = spi_kernel!($kernel);
                 const NAME: &'static str = stringify!($name);
                 fn info() -> &'static crate::spi::Info {
                     &$info
@@ -133,7 +133,7 @@ macro_rules! i2cs {
             );
 
             impl crate::i2c::Instance for $name {
-                const KERNEL: crate::i2c::Kernel = Bus::$bus;
+                const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
                 const NAME: &'static str = stringify!($name);
                 fn info() -> &'static crate::i2c::Info {
                     &$info
@@ -149,7 +149,7 @@ macro_rules! timers {
         $(
             impl crate::timer::Instance for $name {
                 const NAME: &'static str = stringify!($name);
-                const BUS: Bus = Bus::$bus;
+                const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Timer(Bus::$bus);
                 const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 const UPDATE: Interrupt = Interrupt::$update;
                 const UPDATE_NAME: &'static str = stringify!($update);
@@ -369,7 +369,7 @@ macro_rules! adcs {
             impl crate::adc::Instance for $name {
                 const NAME: &'static str = stringify!($name);
                 const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
-                const BUS: Bus = Bus::$bus;
+                const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
                 const INTERNAL: bool = $internal;
                 fn unit() -> crate::adc_ip::Unit {
                     crate::adc_ip::Unit::new(pac::$name, pac::$common)
@@ -452,6 +452,7 @@ macro_rules! sdmmcs {
             impl crate::sdmmc::Instance for $name {
                 const NAME: &'static str = stringify!($name);
                 const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
+                const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Pll1Q;
             }
         )+
     };
