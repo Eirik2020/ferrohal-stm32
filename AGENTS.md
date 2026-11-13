@@ -45,7 +45,8 @@ hil/flash-dfu.sh <board>         # a DFU-flashed board (`FLSH` tier): Foxeer, Lu
 hil/pico-i2c-sim.sh [flash|run]  # Pico 1 I2C slave, both benches
 ```
 
-Bench traps: watchdog/bootloader runs need `--no-catch-reset`; run M + DFU use the H753's
+CI trap: a gitleaks CDN 504 fails Publication security spuriously; `gh run rerun <id> --failed`,
+never change the workflow. Bench traps: watchdog/bootloader runs need `--no-catch-reset`; run M + DFU use the H753's
 CN13 cable, which stays connected; probes by serial through `hil/probe.sh` (`F401_PROBE`,
 `H753_PROBE`, or `PROBE_RS_PROBE`; one probe attached needs none). The rig's
 capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.

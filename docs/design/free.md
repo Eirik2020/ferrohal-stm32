@@ -50,4 +50,4 @@ the fresh-boot runs are gone. `Peripherals::steal` stays the only unsafe hatch, 
 gated behind `rtic`.
 
 Decisions: [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions/2026-11-08-free-teardown-brief.md).
-Plan: [`../plans/2026-11-08-free-redesign.md`](../plans/2026-11-08-free-redesign.md).
+Plan of record: PRs #35 to #38 (the plan file was deleted on 2026-11-13; git history keeps it).

@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The finished plans are deleted** (2026-11-13, owner). The debt sweep and its gates
+  (PR #29), the `free()` redesign (PRs #35 to #38), W14 (PR #39) and the documentation
+  sweep (PR #30): their facts already lived in the design documents, the decision
+  records, the code and this file; the one left, the CI rerun for a gitleaks CDN 504,
+  moved to `AGENTS.md`. Their commits keep the record.
+
 - **One DMA-buffer error, and the timers refuse with their own** (2026-11-13; API review
   D6, D7, N11, B3). `uart::ConfigError` had been the crate's buffer error since the
   timer lanes reused it (`ea7a9f8`), and a bad sampler rate refused as the UART's

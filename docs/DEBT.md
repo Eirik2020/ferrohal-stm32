@@ -47,7 +47,7 @@ Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/r
   peripherals cannot take a second role. Fix: `free()` on each, with a refusal-run
   reopen. *Spawned:* the drivers predate ADR-002 (`a8a3a05`, `4237048`, `9bd9d1e`,
   2026-11-02), and the `free()` plan's scope listed timers, UART, SPI and I2C only
-  (`docs/plans/2026-11-08-free-redesign.md`).
+  (PRs #35 to #38).
 - `code` `api` **Medium: an I2C wiring accepts a push-pull pin.** Both `into_alternate`
   forms return one type ([gpio_v2](../src/gpio_v2/mod.rs)), and push-pull NACKs every
   transfer. Fix: an open-drain type state. *Spawned:* GPIO's single alternate type
