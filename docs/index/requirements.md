@@ -8,4 +8,4 @@
 | h | requirements/benches-faults.md | 4543 B | The fault-injection and cache-matrix runs of  |
 | h | requirements/benches-refusals.md | 3120 B | The refusal runs of benches.mdbenches.md, spl |
 | h | requirements/benches.md | 13138 B | What each requirement's bench entry runs. The |
-| h | requirements/goals.md | 1207 B | Every requirement derives from one of these,  |
+| h | requirements/goals.md | 1676 B | Every requirement derives from one of these,  |

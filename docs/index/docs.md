@@ -1,9 +1,10 @@
 # Document index: docs (generated)
 
-3 documents in docs/. Hub: [README.md](README.md).
+4 documents in docs/. Hub: [README.md](README.md).
 
 | class | path | size | purpose |
 |---|---|---|---|
-| h | docs/DEBT.md | 29546 B | Open items only. Finished work moves to RESOL |
+| h | docs/CHIPS.md | 8826 B | What FerroHAL supports on each chip, the limi |
+| h | docs/DEBT.md | 16100 B | Debt is work FerroHAL owes on what it already |
 | h | docs/RESOLVED-chips-and-features.md | 8495 B | The chip and feature sections of RESOLVED.mdR |
-| h | docs/RESOLVED.md | 36113 B | History: items moved out of DEBT.mdDEBT.md on |
+| h | docs/RESOLVED.md | 37551 B | History: items moved out of DEBT.mdDEBT.md on |

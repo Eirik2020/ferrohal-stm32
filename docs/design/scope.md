@@ -32,8 +32,10 @@ FerroHAL must not:
 - depend on FerroForge, FerroWasp or embassy-stm32;
 - define interrupt handlers, set NVIC priorities or enable vectors in the NVIC;
 - use critical sections in drivers, or write a shared register outside its single owner;
-- contain async code or own a time source;
-- panic on a hardware error, or spin without a bound in a stop path;
+- contain async code or own a time source, or use a time crate in its core (adapters behind
+  features may; `docs/policies/features.md`, ADR-007);
+- panic on a hardware error, or spin without a bound in a stop path, with default features (a
+  feature that can panic is a listed exception: `docs/policies/features.md`);
 - choose DMA, pins or timers automatically;
 - expose metapac through the safe public API;
 - know about safety tiers;

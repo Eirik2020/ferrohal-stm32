@@ -4,7 +4,7 @@ Normative. Two classes:
 
 - **Human-readable** (prose, citations, people read them): `requirements/**` (`goals.md`,
   `benches.md`, `evidence/`), `src/requirements/*.yaml`,
-  `docs/DEBT.md`, `docs/RESOLVED*.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
+  `docs/DEBT.md`, `docs/RESOLVED*.md`, `docs/CHIPS.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
 - Agent-facing (token-optimised, [agent-docs.md](agent-docs.md) style): `AGENTS.md`,
   `docs/{policies,decisions,notes,housekeeping,design}/**`.
 - **Plans are human-readable**: `docs/plans/**` uses prose.
@@ -18,8 +18,12 @@ Normative. Two classes:
 | bench measurement of the device | `RESOLVED.md` (dated, measured), run module doc, `requirements/benches.md`, `requirements/evidence/`; driver module doc once it changes a contract |
 | bench fact about the instrument | that instrument's crate docs |
 | tooling workaround | script comment + `requirements/benches.md`; `DEBT.md` pointer only |
-| open limitation | `DEBT.md`: severity, one sentence, pointer, verification |
-| review or audit finding | the review's note (evidence, proposed fix); `DEBT.md` a one-line row pointing at it, added when the review lands: DEBT is the one ledger of open work |
+| open debt: owed work on what ships | `docs/DEBT.md`: tags, severity, what is wrong and the fix, the recorded origin (*Spawned:*, never reconstructed) |
+| silicon limit or documented contract | `docs/CHIPS.md` Limits, and the item's own doc |
+| feature not built | `docs/CHIPS.md` Not supported yet (the roadmap), never `DEBT.md` |
+| what a bench proves | `hil/COVERAGE.md` |
+| a user firmware's need | that firmware's repository, never here (toaster rule) |
+| review or audit finding | the review's note (evidence, proposed fix); `docs/DEBT.md` a tagged row pointing at it, added when the review lands: DEBT is the one ledger of open work |
 | requirement | its IP's catalog, `src/requirements/<ip>.yaml`, one `shall`, verified by a `benches.md#anchor` or host test |
 
 Measurement wins for what the code does; record both; divergence -> erratum candidate in

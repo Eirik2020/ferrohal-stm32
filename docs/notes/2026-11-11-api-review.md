@@ -44,7 +44,7 @@ Per-IP directories with a lone `mod.rs`: 12, not 7. Shared sources: 9, not 8. Ca
 ## Status 2026-11-13
 
 Closed: D5, K2, K3, K5-K8 (`RESOLVED.md`). The other 54 are open, one line each in
-`DEBT.md` §6, which is the ledger; these notes keep the evidence and the fixes.
+`docs/DEBT.md` §2, which is the ledger; these notes keep the evidence and the fixes.
 
 ## Order (opinion)
 
