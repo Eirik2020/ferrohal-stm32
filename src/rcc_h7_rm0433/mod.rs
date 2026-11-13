@@ -30,6 +30,7 @@ use stm32_metapac::{
     },
 };
 
+pub use crate::rcc_kernel::Kernel;
 use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency, undivided.

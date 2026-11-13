@@ -47,10 +47,10 @@ use ferrohal_stm32::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP, PllSource,
         Rcc, Supply, Sysclk,
     },
-    spi::{self, Spi},
+    spi::{self},
     time::Hertz,
     timer::{Tick, Timebase},
-    uart::{self, ConfigError, Parity, RxWiring, StopBits, Uart, Wiring},
+    uart::{self, ConfigError, Parity, RxWiring, StopBits, Wiring},
 };
 
 /// 84 MHz, the F401's ceiling, from HSI so it works on every board:
@@ -109,9 +109,9 @@ pub const HSE_CLOCK_CONFIG: Config = Config {
 pub const SBUS_PLAIN: uart::Config = uart::Config::new(100_000)
     .with_parity(Parity::Even)
     .with_stop_bits(StopBits::Two);
-const _: () = assert!(Uart::<USART6>::check(&CLOCKS, &SBUS_PLAIN).is_ok());
+const _: () = assert!(ferrohal_stm32::uart::check::<USART6>(&CLOCKS, &SBUS_PLAIN).is_ok());
 const _: () = assert!(matches!(
-    Uart::<USART6>::check(&CLOCKS, &SBUS_PLAIN.with_inverted_rx(true)),
+    ferrohal_stm32::uart::check::<USART6>(&CLOCKS, &SBUS_PLAIN.with_inverted_rx(true)),
     Err(ConfigError::Unsupported)
 ));
 
@@ -370,11 +370,11 @@ pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
 /// (SPI1 from PCLK2 / 16, SPI2 and SPI3 from PCLK1 / 8).
 pub const SPI: spi::Config = spi::Config::new(Hertz::mhz(10));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &SPI),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &SPI),
     Ok(Hertz(5_250_000))
 ));
 const _: () = assert!(matches!(
-    Spi::<SPI2>::check(&CLOCKS, &SPI),
+    ferrohal_stm32::spi::check::<SPI2>(&CLOCKS, &SPI),
     Ok(Hertz(5_250_000))
 ));
 

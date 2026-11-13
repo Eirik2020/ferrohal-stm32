@@ -30,7 +30,8 @@ use crate::{
     rcc_h7_rm0433::{Bus, RCC, RccBit},
     sdmmc::{CkPin, CmdPin, D0Pin, D1Pin, D2Pin, D3Pin},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
-    usart_v4::{self, Info, LineRegs, RxDma, RxPin, TxDma, TxPin},
+    uart::{Info, RxDma, RxPin, TxDma, TxPin},
+    usart_v4::LineRegs,
 };
 
 #[path = "shared/macros.rs"]
@@ -321,11 +322,12 @@ impl DmaInstance for Dma<2> {
 macro_rules! usarts {
     ($($name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
         $(
-            static $info: Info = Info::new(LineRegs::new(pac::$name), RccBit::new(Bus::$bus, $bit));
+            static $info: Info = Info::new(LineRegs::new(pac::$name));
 
-            impl usart_v4::Instance for $name {
-                const KERNEL: Bus = Bus::$bus;
+            impl crate::uart::Instance for $name {
+                const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
                 const NAME: &'static str = stringify!($name);
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 const INTERRUPT: Interrupt = Interrupt::$name;
                 const INTERRUPT_NAME: &'static str = stringify!($name);
                 fn info() -> &'static Info {
@@ -744,11 +746,11 @@ mod tests {
         .unwrap();
         assert_eq!(reset.pll1_q, None);
         assert_eq!(
-            Spi::<SPI1>::check(&reset, &imu),
+            crate::spi::check::<SPI1>(&reset, &imu),
             Err(spi::ConfigError::KernelClock)
         );
         // SPI4 runs from PCLK2: 64 MHz at reset, so 16 MHz.
-        assert_eq!(Spi::<SPI4>::check(&reset, &imu), Ok(Hertz::mhz(16)));
+        assert_eq!(crate::spi::check::<SPI4>(&reset, &imu), Ok(Hertz::mhz(16)));
     }
 
     #[test]
@@ -798,10 +800,10 @@ mod tests {
         use crate::timer::{ChannelPin, ChannelTimer, CompareDma};
 
         type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;
-        fn tx<U: usart_v4::Instance, P: TxPin<U>, D: TxDma<U>>() -> u8 {
+        fn tx<U: crate::uart::Instance, P: TxPin<U>, D: TxDma<U>>() -> u8 {
             D::REQUEST
         }
-        fn rx<U: usart_v4::Instance, P: RxPin<U>, D: RxDma<U>>() -> u8 {
+        fn rx<U: crate::uart::Instance, P: RxPin<U>, D: RxDma<U>>() -> u8 {
             D::REQUEST
         }
         fn lane<T: ChannelTimer, const C: u8, P: ChannelPin<T, C>, D: CompareDma<T, C>>() -> u8 {

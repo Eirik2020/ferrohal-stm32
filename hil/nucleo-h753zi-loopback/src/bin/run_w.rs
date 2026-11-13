@@ -56,7 +56,7 @@ fn stop_stream(st: St) {
 
 /// One fault's worth of reading: the bytes, the overrun and DMA errors,
 /// and anything else. Stops at a silent line.
-fn collect<U: ferrohal_stm32::uart::Instance>(
+fn collect<U: ferrohal_stm32::uart::UartParts>(
     loop_: &mut Loop<'_, U>,
     cap: usize,
 ) -> (usize, [u8; 64], u32, u32, Option<Error>) {
@@ -87,7 +87,7 @@ fn collect<U: ferrohal_stm32::uart::Instance>(
 }
 
 /// Overrun: two frames with the DMA request disconnected.
-fn inject_overrun<U: ferrohal_stm32::uart::Instance>(report: &mut Report, loop_: &mut Loop<'_, U>) {
+fn inject_overrun<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_: &mut Loop<'_, U>) {
     let name = loop_.name();
     tests::drain(loop_);
     let before = loop_.rx().health().overrun;
@@ -174,7 +174,7 @@ fn inject_overrun<U: ferrohal_stm32::uart::Instance>(report: &mut Report, loop_:
 }
 
 /// DMA transfer error: the receive stream re-pointed at DTCM.
-fn inject_dma_transfer<U: ferrohal_stm32::uart::Instance>(
+fn inject_dma_transfer<U: ferrohal_stm32::uart::UartParts>(
     report: &mut Report,
     loop_: &mut Loop<'_, U>,
 ) {
@@ -234,7 +234,7 @@ fn inject_dma_transfer<U: ferrohal_stm32::uart::Instance>(
 }
 
 /// Timeout: the DMA transmit request disconnected before a frame is queued.
-fn inject_timeout<U: ferrohal_stm32::uart::Instance>(report: &mut Report, loop_: &mut Loop<'_, U>) {
+fn inject_timeout<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_: &mut Loop<'_, U>) {
     let name = loop_.name();
     tests::drain(loop_);
     let before = loop_.tx().health().timeouts;
@@ -271,10 +271,7 @@ fn inject_timeout<U: ferrohal_stm32::uart::Instance>(report: &mut Report, loop_:
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::{
-        chip::USART6,
-        uart::{Buffers, Config, Uart, UartInterrupts, UartIrq},
-    };
+    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
 
     use crate::{
         board,
@@ -289,7 +286,7 @@ mod app {
 
     #[local]
     struct Local {
-        usart6: Uart<USART6>,
+        usart6: Uart<board::Usart6Lucid>,
         vectors6: UartInterrupts,
         led: board::Led,
     }

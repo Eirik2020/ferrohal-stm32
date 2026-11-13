@@ -29,7 +29,10 @@ pub(crate) mod stream_dma;
 mod tx_ring;
 
 #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
-pub use crate::usart::{Instance, Line, RxLine, Uart, UartIrq, UartRx, UartTx};
+pub use stream_dma::{
+    Info, Instance, Line, RxDma, RxLine, RxPin, TxDma, TxPin, Uart, UartIrq, UartParts, UartRx,
+    UartTx, check,
+};
 
 /// Frame settings. Data is always 8 bits; with parity on, the parity bit
 /// is a ninth.

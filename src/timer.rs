@@ -39,7 +39,7 @@ pub use awg::{Awg, Lanes, recover};
 
 use crate::{
     chip::Interrupt,
-    rcc::{Bus, Clocks, Rcc, RccBit},
+    rcc::{Clocks, Rcc, RccBit},
     resource::IrqError,
     resource::Refused,
     time::Hertz,
@@ -49,8 +49,8 @@ use crate::{
 pub trait Instance: crate::Sealed + 'static {
     /// Its name in the reference manual.
     const NAME: &'static str;
-    /// The bus it sits on; it counts at that bus's timer clock.
-    const BUS: Bus;
+    /// Its kernel clock: the timer clock of the bus it sits on.
+    const KERNEL: crate::rcc::Kernel;
     #[doc(hidden)]
     const ENABLE: RccBit;
     /// The vector its update interrupt raises (shared with other timers on
@@ -60,7 +60,27 @@ pub trait Instance: crate::Sealed + 'static {
     /// Counter width in bits: 16 or 32.
     const BITS: u8;
     #[doc(hidden)]
-    fn core() -> TimCore;
+    fn info() -> &'static Info;
+}
+
+/// Per-instance facts: the timer's core registers. Chip facts: the glue
+/// layer holds one static `Info` per timer. Its fields are private, so no
+/// register type crosses the public API (G5).
+pub struct Info {
+    core: TimCore,
+}
+
+// SAFETY: `core` is an address.
+unsafe impl Sync for Info {}
+
+impl Info {
+    pub(crate) const fn new(core: TimCore) -> Self {
+        Self { core }
+    }
+
+    pub(crate) fn core(&self) -> TimCore {
+        self.core
+    }
 }
 
 /// A timer with a 32-bit counter (TIM2 and TIM5 on these chips).
@@ -179,7 +199,7 @@ pub type ComplementaryLaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
 /// What a two-way lane's assembly returns: the lane, or the refusal with
 /// everything it took.
 pub type TwoWayLaneAssembly<T, const C: u8, Pin, Stream> = Result<
-    CompareLane<T, C>,
+    CompareLane<T, C, LaneWiring<T, C, Pin, Stream>>,
     LaneRefusal<T, C, Pin, Stream, (&'static mut [u32], &'static mut [u16])>,
 >;
 
@@ -320,13 +340,13 @@ impl<T: Instance> Tick<T> {
     /// enables its update interrupt and starts it. Refuses with the timer
     /// token handed back: the rate is checked before the timer is touched.
     pub fn new(rcc: &mut Rcc, timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
-        let (prescaler, reload) = match divider(rcc.clocks().timer(T::BUS), rate, T::BITS) {
+        let (prescaler, reload) = match divider(T::KERNEL.clock(&rcc.clocks()), rate, T::BITS) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, timer)),
         };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
-        let core = T::core();
+        let core = T::info().core();
         load(core, prescaler, reload);
         core.dier().write(|w| w.set_uie(true));
         core.cr1().modify(|w| {
@@ -344,7 +364,7 @@ impl<T: Instance> Tick<T> {
     /// Whether `T` can tick at `rate` under `clocks`. A `const fn`, for a
     /// board's compile-time asserts: [`Tick::<TIM4>::check`].
     pub const fn check(clocks: &Clocks, rate: Hertz) -> Result<(), ConfigError> {
-        match divider(clocks.timer(T::BUS), rate, T::BITS) {
+        match divider(T::KERNEL.clock(clocks), rate, T::BITS) {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
         }
@@ -437,14 +457,14 @@ impl<T: Instance32> Timebase<T> {
     /// exactly, over its whole 32-bit range. Refuses with the timer token
     /// handed back: the rate is checked before the timer is touched.
     pub fn new(rcc: &mut Rcc, timer: T, frequency: Hertz) -> Result<Self, Refused<ConfigError, T>> {
-        let clock = rcc.clocks().timer(T::BUS);
+        let clock = T::KERNEL.clock(&rcc.clocks());
         let prescaler = match Self::prescaler(clock, frequency) {
             Ok(prescaler) => prescaler,
             Err(error) => return Err(Refused::new(error, timer)),
         };
         rcc.enable(T::ENABLE);
         rcc.reset(T::ENABLE);
-        let core = T::core();
+        let core = T::info().core();
         load(core, prescaler, 1 << 32);
         core.cr1().modify(|w| w.set_cen(true));
         Ok(Self {
@@ -460,7 +480,7 @@ impl<T: Instance32> Timebase<T> {
     /// Whether `T` can count at `frequency` under `clocks`. A `const fn`,
     /// for a board's compile-time asserts: [`Timebase::<TIM2>::check`].
     pub const fn check(clocks: &Clocks, frequency: Hertz) -> Result<(), ConfigError> {
-        match Self::prescaler(clocks.timer(T::BUS), frequency) {
+        match Self::prescaler(T::KERNEL.clock(clocks), frequency) {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
         }

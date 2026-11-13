@@ -133,7 +133,7 @@ fn watch(usart: Usart, rx: St) {
 /// error, and PE was seen, counted and reported once. A fourth, naming no
 /// requirement, restores 8N1. `rx` is the receiver's stream, a circular
 /// ring of `ring` bytes.
-fn pe_clear<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
     report: &mut Report,
     cross: &mut Cross<'_, U, V>,
     rx: St,
@@ -302,7 +302,7 @@ fn pe_clear<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance
 /// One direction of the USART1 <-> USART6 cross: every check it can take.
 /// The two directions are different types (`Cross<USART1, USART6>` and the
 /// reverse), so a loop over one `cross` cannot typecheck; this does each.
-fn cross_checks<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+fn cross_checks<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
     report: &mut Report,
     cross: &mut Cross<'_, U, V>,
     receiver: St,
@@ -346,10 +346,7 @@ fn cross_checks<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Inst
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::{
-        chip::{USART1, USART6},
-        uart::{Buffers, Config, Uart, UartInterrupts, UartIrq},
-    };
+    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
 
     use crate::{
         board,
@@ -369,8 +366,8 @@ mod app {
 
     #[local]
     struct Local {
-        usart1: Uart<USART1>,
-        usart6: Uart<USART6>,
+        usart1: Uart<board::Usart1Cross>,
+        usart6: Uart<board::Usart6Cross>,
         vectors1: UartInterrupts,
         vectors6: UartInterrupts,
         led: board::Led,

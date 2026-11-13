@@ -1,6 +1,6 @@
 //! USART v2 (`usart_v2`, the SR/DR register set of F1, F2 and F4): the
-//! register operations the [`crate::uart`] driver needs. The driver itself,
-//! and the routing traits the glue implements, are re-exported here.
+//! register operations the [`crate::uart`] driver needs. The driver and the
+//! routing traits the glue implements are [`crate::uart`]'s.
 //!
 //! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V2-001
 
@@ -9,9 +9,6 @@ use stm32_metapac::usart::{
     vals::{M0, Ps, Stop},
 };
 
-pub use crate::uart::stream_dma::{
-    Info, Instance, Line, RxDma, RxLine, RxPin, TxDma, TxPin, Uart, UartIrq, UartRx, UartTx,
-};
 use crate::uart::{
     Config, Parity, StopBits,
     stream_dma::{ERR_FRAMING, ERR_NOISE, ERR_OVERRUN, ERR_PARITY},

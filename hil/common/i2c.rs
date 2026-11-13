@@ -16,7 +16,7 @@
 use cortex_m::peripheral::DWT;
 use embedded_hal::i2c::{I2c as HalI2c, Operation};
 use ferrohal_stm32::{
-    i2c::{Error, I2c, Instance},
+    i2c::{Error, I2c, I2cParts},
     time::Hertz,
 };
 
@@ -58,7 +58,7 @@ fn nack_within(result: Result<(), Error>, waited: u32, bound: u32) -> Result<(),
 
 /// The NACK suite over the open bus. `cpu` and the bus's own frequency
 /// answer the bound; every transfer the checks make ends a NACK.
-pub fn suite<U: Instance>(report: &mut Report, link: &str, bus: &mut I2c<U>, cpu: Hertz) {
+pub fn suite<U: I2cParts>(report: &mut Report, link: &str, bus: &mut I2c<U>, cpu: Hertz) {
     let speed = bus.frequency();
     let mut nacks = 0;
 

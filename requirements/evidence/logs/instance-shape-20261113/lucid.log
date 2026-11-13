@@ -1,0 +1,56 @@
+PASS host: port usb-FerroHAL_FerroHAL_bench_lucid-h7-if00
+INFO reset cause: software
+PASS refusals: a config naming Pll1P with no PLL1 refuses, and its token froze these clocks [API-001]
+PASS refusals: a 1 us watchdog timeout refuses, and its peripheral runs the bench's [API-001]
+PASS refusals: a rate the clock cannot divide to refuses, and the timer keeps time [API-001]
+PASS refusals: a 0 Hz SPI config refuses, and the wiring talks to the IMU [API-001]
+PASS refusals: an empty ADC sequence refuses, and the parts scan the battery inputs [API-001]
+PASS refusals: a 0 rate refuses, and the timer carries the motor lanes [API-001]
+PASS refusals: a DTCM lane buffer no DMA reaches refuses, and the lane carried the frames [API-001]
+PASS refusals: mismatched periods refuse, and the pair ran independent after re-rating [API-001]
+PASS refusals: a bus speed past the card's default limit refuses, and the wiring opened the real card [API-001]
+PASS sd: freed to its wiring and reopened; the card suite runs on it [API-002]
+PASS clocks: HSE ready
+PASS clocks: PLL1 locked
+PASS clocks: PLLs fed from HSE
+PASS clocks: SYSCLK is PLL1
+PASS clocks: 400106990 CPU cycles per 1000 host frames, want 400000000 within 0.1%
+PASS clocks: 40000468 CPU cycles per 100 ms of the timebase, want 40000000 within 0.1%
+PASS uid: [43, 00, 22, 00, 06, 51, 33, 35, 30, 34, 34, 32]
+PASS rev: 0x2003 (V)
+PASS imu: WHO_AM_I over DMA is 0x47 at 781250 Hz
+PASS imu: 100 more DMA reads say the same
+PASS imu: the blocking path reads Some(71)
+PASS imu: 100 DMA reads at 12500000 Hz
+PASS imu: soft reset done, status Some(16)
+PASS imu: configured for 2 kHz data ready on INT1
+PASS imu: 404 data-ready edges in 200 ms on EXTI line 2, want 400 within 5%
+PASS imu: 400 bursts of 15 bytes at 12500000 Hz, 0 failed, slowest 22 us
+PASS imu: they took 197959 us, want 200000 within 5%: none missed
+PASS imu: accelerometer reads 976 mg: gravity, if the board isn't being moved
+PASS imu: 35 C inside
+PASS imu: Health { transfers: 613, dma_errors: 0, overruns: 0, mode_faults: 0, timeouts: 0, aborts: 0 }
+PASS adc: VDDA is 3314 mV
+PASS adc: die Ok(377) tenths of a degree
+PASS adc: 100 sequences of 2 channels over DMA, 0 failed, slowest 86 us
+PASS adc: 2 samples in scale
+INFO adc: voltage PC0 is 0 mV (5)
+INFO adc: current PC1 is 474 mV (9387)
+PASS sd: 31116288 blocks at 25000000 Hz, CID 035344534331364780183859cf0149f8
+PASS sd: saved 17 blocks: Ok(())
+PASS sd: one block written and read back in 2804 us: Ok(()) Ok(())
+PASS sd: 16 blocks: written in 2111 us, read in 883 us: Ok(()) Ok(())
+PASS sd: a read past the end is refused: Err(OutOfRange)
+PASS sd: a single read agrees with a multiple write: Ok(())
+PASS sd: the 17 blocks are back as they were: Ok(()) Ok(())
+PASS motors: 100 of 100 frames on all four streams through the AWG, slowest 37 us
+PASS motors: all four lanes read their pads over DMA, 4 of 4
+DONE 43 passed, 0 failed
+PASS host: 1 bytes echoed
+PASS host: 63 bytes echoed
+PASS host: 64 bytes echoed
+PASS host: 65 bytes echoed
+PASS host: 128 bytes echoed
+PASS host: 512 bytes echoed
+PASS host: 4096 bytes echoed
+PASS host: 64 KiB echoed at 561 KiB/s

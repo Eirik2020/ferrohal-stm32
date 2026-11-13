@@ -1,0 +1,18 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --no-catch-reset --chip STM32F401RE target/thumbv7em-none-eabihf/release/run-j`
+     [38;5;10m[1mFinished[0m in 0.84s
+[INFO ] run J, reset cause: ResetCause { power_on: false, pin: true, brownout: false, software: true, independent_watchdog: false, window_watchdog: false, low_power: false } (run_j src/bin/run_j.rs:36)
+[INFO ] PASS IWDG 50 ms: a fresh start isn't a watchdog reset [RESET-001] (run_j ../common/tests.rs:379)
+[INFO ] PASS IWDG 50 ms: start froze the watchdog for the debugger [IWDG-004] (run_j ../common/tests.rs:379)
+[INFO ] IWDG 50 ms: debug freeze before start true, after true (run_j ../common/watchdog.rs:176)
+[33m WARN[0m [2mprobe_rs::util::rtt::client[0m[2m:[0m RTT read pointer changed, re-attaching
+[INFO ] run J, reset cause: ResetCause { power_on: false, pin: true, brownout: false, software: false, independent_watchdog: true, window_watchdog: false, low_power: false } (run_j src/bin/run_j.rs:36)
+[INFO ] PASS IWDG 50 ms: the starvation boot passed its checks (run_j ../common/tests.rs:379)
+[INFO ] PASS IWDG 50 ms: fed every 10 ms for 300 ms: no reset [IWDG-001] (run_j ../common/tests.rs:379)
+[INFO ] PASS IWDG 50 ms: starved: the reset cause is the watchdog [RESET-001] (run_j ../common/tests.rs:379)
+[INFO ] PASS IWDG 50 ms: starved: reset within the LSI's spread of 50 ms [IWDG-002] (run_j ../common/tests.rs:379)
+[INFO ] PASS IWDG 50 ms: starved: at the board's LSI, within 5% of 50 ms [IWDG-006] (run_j ../common/tests.rs:379)
+[INFO ] IWDG 50 ms: reset 49942 us after the last feed (run_j ../common/watchdog.rs:141)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (run_j ../common/tests.rs:1436)
+[INFO ] all checks passed (run_j ../common/tests.rs:1444)
+Firmware exited successfully

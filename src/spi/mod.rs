@@ -25,14 +25,17 @@
 //! Requirements: SPI-001, SPI-002, SPI-003, SPI-004, SPI-005, SPI-007, SPI-009
 
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+mod instance;
 mod polled;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub(crate) mod stream_dma;
 
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
-pub use polled::BlockingSpi;
+pub use instance::{Info, Instance, MisoPin, MosiPin, SckPin, SpiParts, SpiRxDma, SpiTxDma, check};
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
-pub use stream_dma::{Instance, MisoPin, MosiPin, SckPin, Spi, SpiRxDma, SpiTxDma};
+pub use polled::BlockingSpi;
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub use stream_dma::Spi;
 
 pub use embedded_hal::spi::{MODE_0, MODE_1, MODE_2, MODE_3, Mode, Phase, Polarity};
 
@@ -115,29 +118,6 @@ impl Config {
             code += 1;
         }
         Err(ConfigError::Frequency)
-    }
-}
-
-/// Where an SPI instance's kernel clock comes from. Chip facts: the glue
-/// sets it per instance, and `freeze` sets the muxes to match.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Kernel {
-    /// The clock of the bus the SPI sits on.
-    Bus(crate::rcc::Bus),
-    /// PLL1's Q output (the H7's SPI1 to SPI3, SPI123SEL at reset).
-    #[cfg(feature = "rcc_h7_rm0433")]
-    Pll1Q,
-}
-
-impl Kernel {
-    /// The frequency, or `None` if its source isn't running.
-    pub const fn frequency(self, clocks: &crate::rcc::Clocks) -> Option<Hertz> {
-        match self {
-            Self::Bus(bus) => Some(clocks.bus(bus)),
-            #[cfg(feature = "rcc_h7_rm0433")]
-            Self::Pll1Q => clocks.pll1_q,
-        }
     }
 }
 

@@ -7,7 +7,7 @@ use core::convert::Infallible;
 use embedded_hal::digital::OutputPin;
 use ferrohal_stm32::{
     exti::ExtiHandle,
-    spi::{self, Instance, Spi},
+    spi::{self, Spi, SpiParts},
 };
 
 use crate::usb_bench::{Link, Report};
@@ -19,7 +19,7 @@ const MPU6500: u8 = 0x70;
 const MPU6000: u8 = 0x68;
 
 /// The IMU's bus, chip select and data-ready line.
-pub struct Imu<'a, U, Cs> {
+pub struct Imu<'a, U: SpiParts, Cs> {
     pub spi: &'a mut Spi<U>,
     pub cs: &'a mut Cs,
     /// Routed and listening in EXTI, with its NVIC vector off, so the flag
@@ -31,7 +31,7 @@ pub struct Imu<'a, U, Cs> {
     pub fast: spi::Config,
 }
 
-impl<U: Instance, Cs: OutputPin<Error = Infallible>> Imu<'_, U, Cs> {
+impl<U: SpiParts, Cs: OutputPin<Error = Infallible>> Imu<'_, U, Cs> {
     /// One read of WHO_AM_I over DMA, finished by polling.
     fn who_am_i(&mut self, link: &mut Link) -> Result<u8, spi::Error> {
         let _ = self.cs.set_low();

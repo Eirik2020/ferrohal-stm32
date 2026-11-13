@@ -68,10 +68,10 @@ use ferrohal_stm32::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllSource, Rcc,
         Supply, Sysclk, VoltageScale,
     },
-    spi::{self, Spi},
+    spi::{self},
     time::Hertz,
     timer::{Tick, Timebase},
-    uart::{self, Parity, RxWiring, StopBits, Uart, Wiring},
+    uart::{self, Parity, RxWiring, StopBits, Wiring},
 };
 
 /// The TBS Lucid H7's clock tree (400 MHz core, 200 MHz AXI and AHB, every
@@ -141,9 +141,9 @@ pub const SBUS: uart::Config = uart::Config::new(100_000)
     .with_stop_bits(StopBits::Two)
     .with_inverted_rx(true);
 pub const MSP: uart::Config = uart::Config::new(115_200);
-const _: () = assert!(Uart::<USART6>::check(&CLOCKS, &CRSF).is_ok());
-const _: () = assert!(Uart::<USART1>::check(&CLOCKS, &SBUS).is_ok());
-const _: () = assert!(Uart::<USART3>::check(&CLOCKS, &MSP).is_ok());
+const _: () = assert!(ferrohal_stm32::uart::check::<USART6>(&CLOCKS, &CRSF).is_ok());
+const _: () = assert!(ferrohal_stm32::uart::check::<USART1>(&CLOCKS, &SBUS).is_ok());
+const _: () = assert!(ferrohal_stm32::uart::check::<USART3>(&CLOCKS, &MSP).is_ok());
 
 // Run A: the Lucid's ports, on its DMA streams. USART6 is on the Lucid's
 // pins; USART1 and USART3 are on pins the Zio headers carry.
@@ -246,11 +246,11 @@ pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
 /// (SPI1 to SPI3 from PLL1Q at 100 MHz, SPI4 and SPI5 from PCLK2, / 16).
 pub const SPI: spi::Config = spi::Config::new(Hertz::mhz(10));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &SPI),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &SPI),
     Ok(Hertz(6_250_000))
 ));
 const _: () = assert!(matches!(
-    Spi::<SPI4>::check(&CLOCKS, &SPI),
+    ferrohal_stm32::spi::check::<SPI4>(&CLOCKS, &SPI),
     Ok(Hertz(6_250_000))
 ));
 
@@ -800,13 +800,16 @@ pub fn open<U, TxP, RxP, TxD, RxD>(
     wiring: Wiring<U, TxP, RxP, TxD, RxD>,
     config: &ferrohal_stm32::uart::Config,
     buffers: DmaBuffers,
-) -> (ferrohal_stm32::uart::Uart<U>, ferrohal_stm32::uart::UartIrq)
+) -> (
+    ferrohal_stm32::uart::Uart<Wiring<U, TxP, RxP, TxD, RxD>>,
+    ferrohal_stm32::uart::UartIrq,
+)
 where
-    U: ferrohal_stm32::usart_v4::Instance,
-    TxP: ferrohal_stm32::usart_v4::TxPin<U>,
-    RxP: ferrohal_stm32::usart_v4::RxPin<U>,
-    TxD: ferrohal_stm32::usart_v4::TxDma<U>,
-    RxD: ferrohal_stm32::usart_v4::RxDma<U>,
+    U: ferrohal_stm32::uart::Instance,
+    TxP: ferrohal_stm32::uart::TxPin<U>,
+    RxP: ferrohal_stm32::uart::RxPin<U>,
+    TxD: ferrohal_stm32::uart::TxDma<U>,
+    RxD: ferrohal_stm32::uart::RxDma<U>,
 {
     let buffers = ferrohal_stm32::uart::Buffers {
         tx: buffers.tx,

@@ -1,0 +1,15 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.05s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/run-k`
+     [38;5;10m[1mFinished[0m in 0.99s
+[INFO ] run K, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2 } (run_k src/bin/run_k.rs:37)
+[INFO ] PASS SPI2 polled PB13/PC2/PC3 (Foxeer NOR pins): SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (run_k ../common/tests.rs:379)
+[INFO ] PASS SPI2 polled PB13/PC2/PC3 (Foxeer NOR pins): every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001] (run_k ../common/tests.rs:379)
+[INFO ] SPI2 polled PB13/PC2/PC3 (Foxeer NOR pins): 64 bytes in 12671 cycles, 8192 on the wire (run_k ../common/spi_exti.rs:682)
+[INFO ] PASS SPI2 polled PB13/PC2/PC3 (Foxeer NOR pins): 64 bytes take at least their time on the wire [SPIPOLL-002] (run_k ../common/tests.rs:379)
+[INFO ] PASS SPI3 polled PC10/PC11/PC12: SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (run_k ../common/tests.rs:379)
+[INFO ] PASS SPI3 polled PC10/PC11/PC12: every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001] (run_k ../common/tests.rs:379)
+[INFO ] SPI3 polled PC10/PC11/PC12: 64 bytes in 12666 cycles, 8192 on the wire (run_k ../common/spi_exti.rs:682)
+[INFO ] PASS SPI3 polled PC10/PC11/PC12: 64 bytes take at least their time on the wire [SPIPOLL-002] (run_k ../common/tests.rs:379)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (run_k ../common/tests.rs:1436)
+[INFO ] all checks passed (run_k ../common/tests.rs:1444)
+Firmware exited successfully

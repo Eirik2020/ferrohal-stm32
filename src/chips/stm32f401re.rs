@@ -20,7 +20,8 @@ use crate::{
     rcc_f4::{Bus, Limits, RCC, RccBit},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
-    usart_v2::{self, Info, LineRegs, RxDma, RxPin, TxDma, TxPin},
+    uart::{Info, RxDma, RxPin, TxDma, TxPin},
+    usart_v2::LineRegs,
 };
 
 #[path = "shared/macros.rs"]
@@ -203,11 +204,12 @@ impl DmaInstance for Dma<2> {
 macro_rules! usarts {
     ($($name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
         $(
-            static $info: Info = Info::new(LineRegs::new(pac::$name), RccBit::new(Bus::$bus, $bit));
+            static $info: Info = Info::new(LineRegs::new(pac::$name));
 
-            impl usart_v2::Instance for $name {
-                const KERNEL: Bus = Bus::$bus;
+            impl crate::uart::Instance for $name {
+                const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
                 const NAME: &'static str = stringify!($name);
+                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 const INTERRUPT: Interrupt = Interrupt::$name;
                 const INTERRUPT_NAME: &'static str = stringify!($name);
                 fn info() -> &'static Info {

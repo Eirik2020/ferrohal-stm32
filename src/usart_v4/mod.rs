@@ -1,7 +1,7 @@
 //! USART v4 (`usart_v4`, the ISR/ICR/RDR/TDR register set of G4, H5, H7
 //! and others): the register operations the [`crate::uart`] driver needs.
-//! The driver itself, and the routing traits the glue implements, are
-//! re-exported here.
+//! The driver and the routing traits the glue implements are
+//! [`crate::uart`]'s.
 //!
 //! Unlike v2, errors clear through ICR, a write-one-to-clear register, so
 //! clearing one never reads the data register. The receive and transmit
@@ -14,9 +14,6 @@ use stm32_metapac::usart::{
     vals::{M0, M1, Ps, Stop},
 };
 
-pub use crate::uart::stream_dma::{
-    Info, Instance, Line, RxDma, RxLine, RxPin, TxDma, TxPin, Uart, UartIrq, UartRx, UartTx,
-};
 use crate::uart::{
     Config, Parity, StopBits,
     stream_dma::{ERR_FRAMING, ERR_NOISE, ERR_OVERRUN, ERR_PARITY},

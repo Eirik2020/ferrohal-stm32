@@ -35,6 +35,7 @@ use stm32_metapac::{
     rcc::vals::{Hpre, Pllm, Plln, Pllp, Pllq, Pllsrc, Ppre, Sw},
 };
 
+pub use crate::rcc_kernel::Kernel;
 use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency on every F4.

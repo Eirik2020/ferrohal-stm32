@@ -43,7 +43,7 @@ use ferrohal_stm32::{
     rcc::ClockError,
     spi::{self, BlockingSpi, BlockingWiring, Buffers, Spi, Wiring},
     time::Hertz,
-    timer::{Awg, Pwm, Timebase},
+    timer::{Awg, ComplementaryLaneWiring, LaneWiring, Pwm, Timebase},
     usb::UsbFs,
 };
 
@@ -63,15 +63,15 @@ const NOR_BUS: spi::Config = spi::Config::new(Hertz::mhz(11));
 /// A config no clock can make: 0 Hz, for the constructor refusals.
 const SPI_ZERO: spi::Config = spi::Config::new(Hertz(0));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &IMU_SLOW),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &IMU_SLOW),
     Ok(Hertz(656_250))
 ));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &IMU_FAST),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &IMU_FAST),
     Ok(Hertz(10_500_000))
 ));
 const _: () = assert!(matches!(
-    Spi::<SPI2>::check(&CLOCKS, &NOR_BUS),
+    ferrohal_stm32::spi::check::<SPI2>(&CLOCKS, &NOR_BUS),
     Ok(Hertz(10_500_000))
 ));
 
@@ -207,7 +207,7 @@ impl From<spi::Error> for NorFail {
 
 /// The JEDEC commands FerroWasp's NOR driver sends, over the polled SPI.
 struct Nor {
-    spi: BlockingSpi<SPI2>,
+    spi: BlockingSpi<NorWiring>,
     cs: Pin<'B', 12, Output>,
 }
 
@@ -626,20 +626,12 @@ fn main() -> ! {
     // streams and channels are the flight code's.
     let mut pad1 = a.p8.into_alternate::<1>(&mut a.ctrl);
     pad1.set_pull(&mut a.ctrl, Pull::Up);
-    let channel1 = tim1.channel::<1, _>(pad1);
-    tim1.set_output::<1>(false);
     let mut pad4 = b.p15.into_alternate::<1>(&mut b.ctrl);
     pad4.set_pull(&mut b.ctrl, Pull::Up);
-    let channel3n = tim1.complementary::<3, _>(pad4);
-    tim1.set_output::<3>(false);
     let mut pad3 = c.p8.into_alternate::<3>(&mut c.ctrl);
     pad3.set_pull(&mut c.ctrl, Pull::Up);
-    let channel3 = tim8.channel::<3, _>(pad3);
-    tim8.set_output::<3>(false);
     let mut pad2 = c.p9.into_alternate::<3>(&mut c.ctrl);
     pad2.set_pull(&mut c.ctrl, Pull::Up);
-    let channel4 = tim8.channel::<4, _>(pad2);
-    tim8.set_output::<4>(false);
     // SAFETY: `main` runs once, and these are the only references.
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
     let [read1, read2, read3, read4] = unsafe { &mut *addr_of_mut!(LANE_READS) };
@@ -651,28 +643,45 @@ fn main() -> ! {
     // controller reaches it.
     let ccm: &'static mut [u32] =
         unsafe { core::slice::from_raw_parts_mut(0x1000_0000 as *mut u32, 16) };
-    let (lane_refused, channel1, stream1, lane_read1) =
-        match channel1.into_two_way_lane::<_, 'A'>(dma2.s1, ccm, &mut read1[..]) {
-            Err(refused) => {
-                let refused_ccm = matches!(
-                    refused.error(),
-                    ferrohal_stm32::timer::ConfigError::Buffer(
-                        ferrohal_stm32::dma::BufferError::Unreachable
-                    )
-                );
-                let (channel, stream, _ccm, read) = refused.into_parts();
-                (refused_ccm, channel, stream, read)
-            }
-            Ok(_) => reboot_to_dfu(),
-        };
+    let (lane_refused, wiring1, lane_read1) = match LaneWiring::<_, 1, _, _>::new(pad1, dma2.s1)
+        .assemble_two_way::<'A'>(&tim1, ccm, &mut read1[..])
+    {
+        Err(refused) => {
+            let refused_ccm = matches!(
+                refused.error(),
+                ferrohal_stm32::timer::ConfigError::Buffer(ferrohal_stm32::dma::BufferError::Unreachable)
+            );
+            let (wiring, (_ccm, read)) = refused.into_parts();
+            (refused_ccm, wiring, read)
+        }
+        Ok(_) => reboot_to_dfu(),
+    };
     let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
-        channel1.into_two_way_lane::<_, 'A'>(stream1, &mut one[..], lane_read1),
-        channel3n.into_two_way_lane::<_, 'B'>(dma2.s6, &mut two[..], &mut read2[..]),
-        channel3.into_two_way_lane::<_, 'C'>(dma2.s2, &mut three[..], &mut read3[..]),
-        channel4.into_two_way_lane::<_, 'C'>(dma2.s7, &mut four[..], &mut read4[..]),
+        wiring1.assemble_two_way::<'A'>(&tim1, &mut one[..], lane_read1),
+        ComplementaryLaneWiring::<_, 3, _, _>::new(pad4, dma2.s6).assemble_two_way::<'B'>(
+            &tim1,
+            &mut two[..],
+            &mut read2[..],
+        ),
+        LaneWiring::<_, 3, _, _>::new(pad3, dma2.s2).assemble_two_way::<'C'>(
+            &tim8,
+            &mut three[..],
+            &mut read3[..],
+        ),
+        LaneWiring::<_, 4, _, _>::new(pad2, dma2.s7).assemble_two_way::<'C'>(
+            &tim8,
+            &mut four[..],
+            &mut read4[..],
+        ),
     ) else {
         reboot_to_dfu()
     };
+    // Assembly opens each channel's output; the motor pads lose theirs at
+    // once, before any counter runs, as before.
+    tim1.set_output::<1>(false);
+    tim1.set_output::<3>(false);
+    tim8.set_output::<3>(false);
+    tim8.set_output::<4>(false);
     let (timer_still, timer_missed, timer_apart) = measure_motor_timers(&mut tim1, &mut tim8);
     // The waveform generator: TIM1 and TIM8 at different periods refuse;
     // both PWMs and both lane pairs come back, TIM8 re-rated, and the

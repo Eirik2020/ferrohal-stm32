@@ -13,16 +13,19 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 0. **[Decided 2026-11-13, owner]** `free()` is the inverse of the constructor: it hands
    back exactly what `new` took, as a refusal already does. A UART opened with its pins
    and DMA streams frees to its token, both pins and both typed stream tokens; a handle
-   keeps those parts typed so they come back typed. **Met:** `Adc` (its token),
-   `AdcScan` (the ADC, its stream, its buffer), `Sdmmc` (its wiring), `UsbFs` (its token
-   and both pins), timers. **Not yet:** UART, SPI, I2C and the timer lanes return only
-   the token; they move in the instance-shape step
-   (`../plans/2026-11-13-glue-generator.md`, step 3).
+   keeps those parts typed so they come back typed. **Met by every driver:** `Adc` (its
+   token), `AdcScan` (the ADC, its stream, its buffer), `Sdmmc` (its wiring), `UsbFs`
+   (its token and both pins), `Uart` (its wiring and buffers), `UartRx::free(line)` (its
+   receive wiring and ring), `Spi` (its wiring and buffers), `BlockingSpi` and `I2c`
+   (their wiring), `PwmChannel` (its pin), `CompareLane` (its wiring and buffers),
+   `Sampler` (its timer, stream and buffer), `Awg` (its `Pwm`s and lanes), timers. A
+   handle is generic over its whole wiring (`Uart<W>`, owner 2026-11-13), so a board
+   names its route once, as a type alias.
 
 1. Every handle that can touch a peripheral carries the token, or a borrow of it; a
    second handle is a compile error, not a runtime rule. **Met:** the token lives in
-   `Pwm<T>`, `Tick<T>`, `Timebase<T>`, `Line<U>`/`RxLine<U>`, `Spi<U>`,
-   `BlockingSpi<U>`, `I2c<U>` and `Sampler<T>`; an `Awg` frees both its timers;
+   `Pwm<T>`, `Tick<T>`, `Timebase<T>`, `Line<W>`/`RxLine<W>`, `Spi<W>`,
+   `BlockingSpi<W>`, `I2c<W>` and `Sampler<T, S>`; an `Awg` frees both its timers;
    `PwmChannel` borrows its `Pwm`; the UART halves carry their instance.
 2. `free(self) -> T` returns the token only when the last handle is gone. **Met:** a
    UART frees whole, after `join`, or receive-only through its `RxLine`; a channel
@@ -34,12 +37,6 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 Proof: `checks/no-metapac` probes that a split UART's receive half cannot free the
 line and that halves do not cross instances (E0308); `checks/no-panic` runs every
 `free()`, `split` and `join` on all four chips.
-
-## Open
-
-- UART, SPI, I2C and the timer lanes still erase their stream tokens into a
-  `Channel` and return only the instance token, so their pins and streams are
-  stranded after `free()`; rule 0 retires this in plan step 3.
 
 ## Gate
 

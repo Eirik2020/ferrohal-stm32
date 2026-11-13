@@ -71,7 +71,7 @@ fn stop_stream(st: St) {
 
 /// One fault's worth of reading: the bytes, the overrun, noise and DMA
 /// errors, and anything else. Stops at a silent line.
-fn collect<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+fn collect<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
     cross: &mut Cross<'_, U, V>,
     cap: usize,
 ) -> (usize, [u8; 64], u32, u32, u32, Option<Error>) {
@@ -134,7 +134,7 @@ fn expect_tail(len: usize, got: &[u8; 64], before: Option<u8>, want: &[u8]) -> R
 }
 
 /// Overrun: two frames with the receiver's DMA request disconnected.
-fn inject_overrun<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+fn inject_overrun<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
     report: &mut Report,
     cross: &mut Cross<'_, U, V>,
 ) {
@@ -210,7 +210,7 @@ fn inject_overrun<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::In
 }
 
 /// Noise: the sender 5.5 % fast, 8N2 into 8N1.
-fn inject_noise<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+fn inject_noise<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
     report: &mut Report,
     cross: &mut Cross<'_, U, V>,
 ) {
@@ -275,7 +275,7 @@ fn inject_noise<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Inst
 }
 
 /// DMA transfer error: the receive stream re-pointed at unmapped memory.
-fn inject_dma_transfer<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+fn inject_dma_transfer<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
     report: &mut Report,
     cross: &mut Cross<'_, U, V>,
 ) {
@@ -345,7 +345,7 @@ fn inject_dma_transfer<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uar
 }
 
 /// Timeout: the sender's DMA request disconnected before a frame is queued.
-fn inject_timeout<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::Instance>(
+fn inject_timeout<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
     report: &mut Report,
     cross: &mut Cross<'_, U, V>,
 ) {
@@ -385,10 +385,7 @@ fn inject_timeout<U: ferrohal_stm32::uart::Instance, V: ferrohal_stm32::uart::In
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::{
-        chip::{USART1, USART6},
-        uart::{Buffers, Config, Uart, UartInterrupts, UartIrq},
-    };
+    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
 
     use crate::{
         board,
@@ -408,8 +405,8 @@ mod app {
 
     #[local]
     struct Local {
-        usart1: Uart<USART1>,
-        usart6: Uart<USART6>,
+        usart1: Uart<board::Usart1Cross>,
+        usart6: Uart<board::Usart6Cross>,
         vectors1: UartInterrupts,
         vectors6: UartInterrupts,
         led: board::Led,

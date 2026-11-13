@@ -90,7 +90,7 @@ pub struct PeripheralPin {
     pub af: Option<u8>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PeripheralDma {
     pub signal: String,
     pub channel: Option<String>,

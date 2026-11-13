@@ -65,8 +65,8 @@ fn main() -> ! {
     let rated = master
         .set_frequency(Hertz::khz(150))
         .and_then(|_| slave.set_frequency(Hertz::khz(150)));
-    let lane1 = master.channel::<1, _>(pe9).into_lane(dma1.s0, &mut one[..]);
-    let lane8 = slave.channel::<1, _>(pc6).into_lane(dma1.s1, &mut two[..]);
+    let lane1 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(pe9, dma1.s0).assemble(&master, &mut one[..]);
+    let lane8 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(pc6, dma1.s1).assemble(&slave, &mut two[..]);
     match (rated, lane1, lane8) {
         (Ok(_), Ok(lane1), Ok(lane8)) => match Awg::linked(master, slave, (lane1,), (lane8,)) {
             Ok(mut awg) => {

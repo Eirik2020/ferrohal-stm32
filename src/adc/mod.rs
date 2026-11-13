@@ -30,7 +30,7 @@ use crate::{
         Channel as DmaChannel, Direction, FifoMode, Flags, Interrupts, Priority, StreamInstance,
         StreamInterrupt, Transfer, WordSize,
     },
-    rcc::{Bus, Rcc, RccBit},
+    rcc::{Rcc, RccBit},
     resource::Refused,
 };
 
@@ -90,11 +90,32 @@ pub enum Error {
 pub trait Instance: crate::Sealed {
     const NAME: &'static str;
     const ENABLE: RccBit;
-    /// The bus whose clock feeds it, on chips where that decides its speed.
-    const BUS: Bus;
+    /// Its kernel clock, on chips where that decides its speed: the bus it
+    /// sits on.
+    const KERNEL: crate::rcc::Kernel;
     /// Whether its internal channels should be powered.
     const INTERNAL: bool;
-    fn unit() -> Unit;
+    #[doc(hidden)]
+    fn info() -> &'static Info;
+}
+
+/// Per-instance facts: the ADC's registers and its common block. Chip
+/// facts: the glue layer holds one static `Info` per ADC.
+pub struct Info {
+    unit: Unit,
+}
+
+// SAFETY: `unit` is two addresses.
+unsafe impl Sync for Info {}
+
+impl Info {
+    pub(crate) const fn new(unit: Unit) -> Self {
+        Self { unit }
+    }
+
+    pub(crate) fn unit(&self) -> Unit {
+        self.unit
+    }
 }
 
 /// An ADC instance with the temperature sensor and internal reference.
@@ -217,8 +238,9 @@ impl<A: Instance> Adc<A> {
         }
         rcc.enable(A::ENABLE);
         rcc.reset(A::ENABLE);
-        let unit = A::unit();
-        if let Err(error) = unit.power_up(&rcc.clocks(), A::BUS, A::INTERNAL, config.sample_cycles)
+        let unit = A::info().unit();
+        if let Err(error) =
+            unit.power_up(&rcc.clocks(), A::KERNEL, A::INTERNAL, config.sample_cycles)
         {
             return Err(Refused::new(error, token));
         }

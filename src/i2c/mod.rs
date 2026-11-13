@@ -64,23 +64,18 @@ const fn wire_bits(len: usize) -> u32 {
 /// per I2C.
 pub struct Info {
     unit: Unit,
-    enable: RccBit,
 }
 
 // SAFETY: `unit` is an address.
 unsafe impl Sync for Info {}
 
 impl Info {
-    pub(crate) const fn new(unit: Unit, enable: RccBit) -> Self {
-        Self { unit, enable }
+    pub(crate) const fn new(unit: Unit) -> Self {
+        Self { unit }
     }
 
     pub(crate) fn unit(&self) -> Unit {
         self.unit
-    }
-
-    pub(crate) fn enable(&self) -> RccBit {
-        self.enable
     }
 }
 
@@ -89,17 +84,14 @@ pub trait Instance: crate::Sealed + 'static {
     /// The bus whose clock is its kernel clock: APB1 everywhere but the
     /// H7's I2C4, which sits on APB4. `freeze` writes the H7's kernel
     /// muxes to match.
-    const KERNEL: Kernel;
+    const KERNEL: crate::rcc::Kernel;
     /// Its name in the reference manual.
     const NAME: &'static str;
+    /// Its RCC enable (and reset) bit.
+    const ENABLE: RccBit;
     #[doc(hidden)]
     fn info() -> &'static Info;
 }
-
-/// Where an I2C instance's kernel clock comes from. On every chip it is
-/// the clock of the bus the instance sits on, so this is the bus itself
-/// and `Clocks::bus` answers its frequency.
-pub type Kernel = crate::rcc::Bus;
 
 /// A pin, in the right alternate function, that carries `U`'s SCL.
 pub trait SclPin<U: Instance>: crate::Sealed {}
@@ -257,10 +249,22 @@ impl Health {
     }
 }
 
+/// What an I2C was opened from: the instance its handle names. Implemented
+/// by [`Wiring`] only, so a handle's type names the board's whole route.
+pub trait I2cParts: crate::Sealed {
+    type Instance: Instance;
+}
+
+impl<U, Scl, Sda> crate::Sealed for Wiring<U, Scl, Sda> {}
+impl<U: Instance, Scl, Sda> I2cParts for Wiring<U, Scl, Sda> {
+    type Instance = U;
+}
+
 /// An I2C master, blocking and bounded, for the `embedded-hal` bus trait
-/// the device drivers take. It carries the instance token:
-/// [`free`](Self::free) hands it back, so the same instance can open again.
-pub struct I2c<U> {
+/// the device drivers take. It keeps the board's wiring, the instance and
+/// both pins, and [`free`](I2c::free) hands it back, so the same parts open
+/// again.
+pub struct I2c<W: I2cParts> {
     info: &'static Info,
     kernel_clock: Hertz,
     speed: Hertz,
@@ -269,10 +273,15 @@ pub struct I2c<U> {
     clock: Option<&'static dyn CycleClock>,
     name: &'static str,
     health: Health,
-    token: U,
+    wiring: W,
 }
 
-impl<U: Instance> I2c<U> {
+impl<U, Scl, Sda> I2c<Wiring<U, Scl, Sda>>
+where
+    U: Instance,
+    Scl: SclPin<U> + AltPin,
+    Sda: SdaPin<U> + AltPin,
+{
     /// Opens `wiring` with `config`: enables and resets the I2C and
     /// computes its timing registers. Returns the SCL in use through
     /// [`frequency`](Self::frequency).
@@ -281,20 +290,16 @@ impl<U: Instance> I2c<U> {
     /// elsewhere. Every refusal comes before anything is written to
     /// hardware.
     ///
-    /// On success the instance token moves into the handle;
-    /// [`free`](Self::free) returns it.
-    pub fn new<Scl, Sda>(
+    /// On success the handle keeps the wiring; [`free`](Self::free) returns
+    /// it.
+    pub fn new(
         rcc: &mut Rcc,
         wiring: Wiring<U, Scl, Sda>,
         config: &Config,
-    ) -> Result<Self, Refused<ConfigError, Wiring<U, Scl, Sda>>>
-    where
-        Scl: SclPin<U> + AltPin,
-        Sda: SdaPin<U> + AltPin,
-    {
+    ) -> Result<Self, Refused<ConfigError, Wiring<U, Scl, Sda>>> {
         let info = U::info();
         let clocks = rcc.clocks();
-        let kernel_clock = clocks.bus(U::KERNEL);
+        let kernel_clock = U::KERNEL.clock(&clocks);
         let timing = match config.check(kernel_clock) {
             Ok(()) => Unit::timing(kernel_clock, config.speed),
             Err(error) => Err(error),
@@ -304,11 +309,8 @@ impl<U: Instance> I2c<U> {
             Err(error) => return Err(Refused::new(error, wiring)),
         };
         let speed = timing.speed();
-        // Past the last refusal: the wiring's tokens end when `new`
-        // returns.
-        let Wiring { i2c, .. } = wiring;
-        rcc.enable(info.enable());
-        rcc.reset(info.enable());
+        rcc.enable(U::ENABLE);
+        rcc.reset(U::ENABLE);
         info.unit().apply(&timing);
         Ok(Self {
             info,
@@ -318,20 +320,22 @@ impl<U: Instance> I2c<U> {
             clock: None,
             name: U::NAME,
             health: Health::default(),
-            token: i2c,
+            wiring,
         })
     }
 
-    /// Closes the I2C, and hands the instance token back: what a `Drop`
-    /// would do, made explicit so the token can move out. The bus is idle
-    /// between blocking transfers, so PE drops with nothing in flight; a
-    /// slave mid-byte sees a stop-like silence. A reopen runs `I2c::new`
-    /// again, from the same token.
-    pub fn free(self) -> U {
+    /// Closes the I2C and hands back what [`new`](Self::new) took, the
+    /// wiring: what a `Drop` would do, made explicit so the parts can move
+    /// out. The bus is idle between blocking transfers, so PE drops with
+    /// nothing in flight; a slave mid-byte sees a stop-like silence. A
+    /// reopen runs `I2c::new` again on the same parts.
+    pub fn free(self) -> Wiring<U, Scl, Sda> {
         self.info.unit().disable();
-        self.token
+        self.wiring
     }
+}
 
+impl<W: I2cParts> I2c<W> {
     /// The SCL in use.
     pub fn frequency(&self) -> Hertz {
         self.speed
@@ -530,11 +534,11 @@ impl<U: Instance> I2c<U> {
     }
 }
 
-impl<U: Instance> embedded_hal::i2c::ErrorType for I2c<U> {
+impl<W: I2cParts> embedded_hal::i2c::ErrorType for I2c<W> {
     type Error = Error;
 }
 
-impl<U: Instance> embedded_hal::i2c::I2c for I2c<U> {
+impl<W: I2cParts> embedded_hal::i2c::I2c for I2c<W> {
     fn transaction(
         &mut self,
         address: embedded_hal::i2c::SevenBitAddress,
