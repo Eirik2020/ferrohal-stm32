@@ -1,0 +1,22 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-m`
+     [38;5;10m[1mFinished[0m in 2.37s
+[INFO ] run M, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_m src/bin/run_m.rs:57)
+[INFO ] PASS USB CDC CN13: a freed port reopens from its token and pins, and the echo runs on it [API-002] (run_m ../common/tests.rs:379)
+[INFO ] USB CDC CN13: VBUS on PA9: true (run_m src/bin/run_m.rs:105)
+[INFO ] PASS USB CDC CN13: the host configured the device (run_m ../common/tests.rs:379)
+[INFO ] PASS USB CDC CN13: the host finished, every byte echoed but the marker (run_m ../common/tests.rs:379)
+[INFO ] USB CDC CN13: configured after 410 ms, 70473 bytes received, 70473 echoed (run_m src/bin/run_m.rs:165)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_m ../common/tests.rs:1436)
+[INFO ] all checks passed (run_m ../common/tests.rs:1444)
+Firmware exited successfully
+PASS host: port usb-FerroHAL_FerroHAL_CDC_bench_h753zi-if00
+PASS host: 1 bytes echoed
+PASS host: 63 bytes echoed
+PASS host: 64 bytes echoed
+PASS host: 65 bytes echoed
+PASS host: 128 bytes echoed
+PASS host: 512 bytes echoed
+PASS host: 4096 bytes echoed
+PASS host: 64 KiB echoed at 561 KiB/s

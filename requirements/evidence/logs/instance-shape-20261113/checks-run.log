@@ -1,0 +1,28 @@
+pass  rustfmt
+pass  clippy (stm32f401re)
+pass  clippy without usb (stm32f401re)
+pass  rustdoc (stm32f401re)
+pass  no reachable panic (stm32f401re)
+pass  clippy (stm32f405rg)
+pass  clippy without usb (stm32f405rg)
+pass  rustdoc (stm32f405rg)
+pass  no reachable panic (stm32f405rg)
+pass  clippy (stm32h743vi)
+pass  clippy without usb (stm32h743vi)
+pass  rustdoc (stm32h743vi)
+pass  no reachable panic (stm32h743vi)
+pass  clippy (stm32h753zi)
+pass  clippy without usb (stm32h753zi)
+pass  rustdoc (stm32h753zi)
+pass  no reachable panic (stm32h753zi)
+pass  glue matches stm32-metapac metadata
+pass  firmware crates enable rt
+pass  safe api (G5)
+pass  names (ADR-003)
+pass  no-metapac probes
+pass  docs index up to date
+pass  doc size limits
+pass  host unit tests (stm32f401re)
+pass  host unit tests (stm32f405rg)
+pass  host unit tests (stm32h743vi)
+pass  host unit tests (stm32h753zi)
