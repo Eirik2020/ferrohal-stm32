@@ -3,7 +3,7 @@
  "counts": {
   "documents": 63,
   "agent": 44,
-  "bytes": 233433
+  "bytes": 244349
  },
  "documents": [
   {
@@ -11,14 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4313
+   "bytes": 4386
   },
   {
    "path": "DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 22321
+   "bytes": 29825
   },
   {
    "path": "README.md",
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 33373
+   "bytes": 36120
   },
   {
    "path": "THIRD-PARTY.md",
@@ -198,14 +198,14 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 3815
+   "bytes": 3886
   },
   {
    "path": "docs/design/requirements-tooling.md",
    "class": "agent",
    "title": "Requirement format and reqtool",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2507
+   "bytes": 2741
   },
   {
    "path": "docs/design/scope.md",
@@ -338,14 +338,14 @@
    "class": "agent",
    "title": "API review: consistency, naming, structure, reuse (hub)",
    "purpose": "Merged 2026-11-11, every fact re-measured at ",
-   "bytes": 2866
+   "bytes": 3103
   },
   {
    "path": "docs/plans/2026-11-08-debt-sweep-gates.md",
    "class": "human",
    "title": "Debt sweep: detail, gates, cross-repo",
    "purpose": "Part of the plan2026-11-08-debt-sweep.md.",
-   "bytes": 2997
+   "bytes": 3047
   },
   {
    "path": "docs/plans/2026-11-08-debt-sweep.md",

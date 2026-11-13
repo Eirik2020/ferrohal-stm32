@@ -4,6 +4,41 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **Every library file owes tracing, and CI checks with the reqtool that records**
+  (2026-11-13). DEBT's "tracing isn't enforced per file" closed: `reqtool.toml` turns
+  on `every_file_traced` and leaves `hil/` out with `every_file_traced_except`, which
+  reqtool gained after the item was written. Turning it on changed no requirement's
+  status: every library file already declared its IDs. The sweep also found CI pinned
+  reqtool at `b28689a`, older than board evidence following files (reqtool#4, #5),
+  so CI validated with rules the evidence was not recorded under; the pin is now
+  `6b2e748`. The item's other halves are not debt: the diff-analysis record exists
+  (`reqtool review`), and the rustdoc requirement pages are a proposal
+  (`docs/design/requirements-tooling.md`).
+- **A file serving two IP versions has one hash; that is decided, not open**
+  (2026-11-13). DEBT's "five source files each serve two IP versions" asked whether a
+  module's hash covers shared sources. `docs/design/requirements-system.md` decides
+  it: a shared file has one hash, a change re-owes both versions, and under the car
+  rule each version needs its own chip. `docs/design/naming.md` lists the files
+  compiled under two names; the review's wider count stays open as K4 (DEBT §6).
+- **rustdoc is clean on all four chips, and `checks/run.sh` keeps it so** (2026-11-13).
+  Nine warnings no ledger held: links to the crate-internal `enter_bootloader`, to a
+  `UartIrq::verify` that is `UartInterrupts::verify`, to the H7-only
+  `start_windowed` from shared docs, register bit ranges read as links, and `Awg`'s
+  docs pointing at its private module (moved onto the type). New step
+  `rustdoc (<chip>)` denies warnings. Comments only: no requirement went stale.
+- **Two items reclassified as not FerroHAL debt** (2026-11-13). "No requirement covers
+  what's listed elsewhere in this file as missing or untested" restated a rule (a
+  requirement says only what is measured), not a gap. DEBT §6 "Transition items" held
+  only FerroWasp's compatibility adapters, which FerroHAL does not contain; ADR-005
+  and FerroWasp track them. §6 now holds the API review's findings.
+- **API review findings D5, K2, K3, K5-K8 closed** (2026-11-13). D5 (erasure or tokens):
+  the `free()` redesign put the token in every handle (`docs/design/free.md`). K2,
+  K3, K5, K6: W14 and #38 (`REVISION-001`, the part-family rule, wrapped trailers read
+  by reqtool and `tools/check_names.py`, `UARTDMA-011`/`-012` in the trailer). K7, K8:
+  fixed in place (`src/lib.rs` module list and comment, merged doc comments in
+  `gpio_v2` and `sdmmc_v2`, ADC `Config`'s doc, a SAFETY note naming the wrong field,
+  the plan's stale next-free IDs). The other 54 findings are DEBT §6.
+
 - **`Spi`, `BlockingSpi` and `I2c` hand their tokens back** (2026-11-12). DEBT's
   "`Spi` and `I2c` have no `free()`" closed the `free()` redesign
   ([ADR-002](docs/decisions/2026-11-08-free-teardown-brief.md)): `Spi<U>`,
