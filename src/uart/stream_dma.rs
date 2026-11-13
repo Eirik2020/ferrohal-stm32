@@ -50,7 +50,6 @@
 //! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UART-014, UART-015, UARTDMA-002, UARTDMA-008, UARTDMA-009, API-002, UARTDMA-011, UARTDMA-012
 
 use core::{
-    marker::PhantomData,
     ptr,
     sync::atomic::{AtomicBool, AtomicU8, AtomicU32, Ordering, fence},
 };
@@ -304,6 +303,48 @@ pub unsafe trait RxDma<U: Instance>: StreamInstance + StreamInterrupt {
     const REQUEST: u8;
 }
 
+/// What a UART was opened from, by role: the instance, the pins and the
+/// streams its handles keep, and [`Uart::free`] or [`UartRx::free`] hands
+/// back. Implemented by [`Wiring`] and [`RxWiring`] only, so a handle's type
+/// names the board's whole route.
+pub trait UartParts: crate::Sealed {
+    type Instance: Instance;
+    type TxPin;
+    type RxPin;
+    type TxDma;
+    type RxDma;
+}
+
+impl<U, TxP, RxP, TxD, RxD> crate::Sealed for Wiring<U, TxP, RxP, TxD, RxD> {}
+impl<U: Instance, TxP, RxP, TxD, RxD> UartParts for Wiring<U, TxP, RxP, TxD, RxD> {
+    type Instance = U;
+    type TxPin = TxP;
+    type RxPin = RxP;
+    type TxDma = TxD;
+    type RxDma = RxD;
+}
+
+impl<U, RxP, RxD> crate::Sealed for RxWiring<U, RxP, RxD> {}
+/// A receive-only UART has no transmit side: its transmit parts are `()`.
+impl<U: Instance, RxP, RxD> UartParts for RxWiring<U, RxP, RxD> {
+    type Instance = U;
+    type TxPin = ();
+    type RxPin = RxP;
+    type TxDma = ();
+    type RxDma = RxD;
+}
+
+/// Whether instance `U` can take `config` under `clocks`; see
+/// [`Config::check`]. A `const fn`, so a board can assert it while
+/// compiling: `const _: () = assert!(uart::check::<USART6>(&CLOCKS,
+/// &CRSF).is_ok());`.
+pub const fn check<U: Instance>(clocks: &Clocks, config: &Config) -> Result<(), ConfigError> {
+    match config.divider(clocks.bus(U::KERNEL), U::FRACTIONAL_STOP_BITS) {
+        Ok(_) => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
 /// A UART, both directions, and the keeper of its instance token: a second
 /// `Uart` for the same instance cannot be built, and [`free`](Self::free)
 /// hands the token back. Implements `embedded_io`'s `Read`, `Write`,
@@ -325,10 +366,10 @@ pub unsafe trait RxDma<U: Instance>: StreamInstance + StreamInterrupt {
 ///   receiver's** (ES0299 2.10.1, ES0182 2.11.1). A read that ends at idle,
 ///   such as [`UartRx::read_chunk`], needs a timeout fallback on v2, such
 ///   as a timer, not IDLE alone.
-pub struct Uart<U> {
-    line: Line<U>,
-    tx: UartTx<U>,
-    rx: UartRx<U>,
+pub struct Uart<W: UartParts> {
+    line: Line<W>,
+    tx: UartTx<W>,
+    rx: UartRx<W>,
 }
 
 /// The line's control registers: the frame, the interrupt enables and a
@@ -340,21 +381,21 @@ pub struct Uart<U> {
 ///
 /// A frame change and a break borrow the transmit half, so neither can run
 /// beside the other, beside a mask, or between two contexts.
-pub struct Line<U> {
+pub struct Line<W: UartParts> {
     info: &'static Info,
     /// The bus clock the baud rate divides.
     kernel_clock: Hertz,
     /// The instance's `FRACTIONAL_STOP_BITS`.
     fractional_stop: bool,
     cpu: Hertz,
-    token: U,
+    token: W::Instance,
 }
 
-impl<U> Line<U> {
+impl<W: UartParts> Line<W> {
     /// Changes the frame settings. Waits for transmission to finish first;
     /// the receive ring keeps running, but a byte arriving during the change
     /// is lost.
-    pub fn set_config(&mut self, tx: &mut UartTx<U>, config: &Config) -> Result<(), ConfigError> {
+    pub fn set_config(&mut self, tx: &mut UartTx<W>, config: &Config) -> Result<(), ConfigError> {
         let brr = config.divider(self.kernel_clock, self.fractional_stop)?;
         // A failed flush has already stopped the stream or halted the
         // transmit side, and the next write reports it.
@@ -371,7 +412,7 @@ impl<U> Line<U> {
     }
 
     /// Sends a break: the line held low for a frame and more.
-    pub fn send_break(&mut self, tx: &mut UartTx<U>) -> Result<(), Error> {
+    pub fn send_break(&mut self, tx: &mut UartTx<W>) -> Result<(), Error> {
         tx.flush()?;
         let port = self.info.regs;
         port.request_break();
@@ -403,11 +444,11 @@ impl<U> Line<U> {
 /// instance token. It is not a [`Line`]: there is no transmit half, so no
 /// frame change or break, and a full UART's line cannot stand in for it
 /// to free a receive half while the transmit half lives.
-pub struct RxLine<U> {
-    line: Line<U>,
+pub struct RxLine<W: UartParts> {
+    line: Line<W>,
 }
 
-impl<U> RxLine<U> {
+impl<W: UartParts> RxLine<W> {
     /// Stops the line raising its own interrupt; see [`Line::mask`].
     pub fn mask(&mut self) {
         self.line.mask();
@@ -420,9 +461,10 @@ impl<U> RxLine<U> {
 }
 
 /// The transmit half: a queue of whole frames in the transmit buffer. It
-/// belongs to instance `U` by type, so it rejoins, configures or breaks
-/// only its own line; the token itself rides with the line.
-pub struct UartTx<U> {
+/// keeps its pin and its stream's token, and belongs to its wiring by type,
+/// so it rejoins, configures or breaks only its own line; the instance token
+/// rides with the line.
+pub struct UartTx<W: UartParts> {
     info: &'static Info,
     dma: Channel,
     request: u8,
@@ -432,12 +474,14 @@ pub struct UartTx<U> {
     write: u16,
     timeouts: u32,
     clock: Option<&'static dyn CycleClock>,
-    instance: PhantomData<U>,
+    pin: W::TxPin,
+    stream: W::TxDma,
 }
 
-/// The receive half. It belongs to instance `U` by type, so it rejoins or
-/// frees only its own line; the token itself rides with the line.
-pub struct UartRx<U> {
+/// The receive half. It keeps its pin and its stream's token, and belongs to
+/// its wiring by type, so it rejoins or frees only its own line; the
+/// instance token rides with the line.
+pub struct UartRx<W: UartParts> {
     info: &'static Info,
     dma: Channel,
     request: u8,
@@ -454,7 +498,8 @@ pub struct UartRx<U> {
     /// The stream did not stop; reception is off for good.
     halted: bool,
     clock: Option<&'static dyn CycleClock>,
-    instance: PhantomData<U>,
+    pin: W::RxPin,
+    stream: W::RxDma,
 }
 
 /// The interrupt side: call [`on_interrupt`](Self::on_interrupt) from the
@@ -483,16 +528,34 @@ struct TxIrq {
 
 // SAFETY: the only owner of its buffer and its transmit stream; moving it
 // to another context moves that ownership. `UartIrq` shares both with it
-// only under `service_tx`'s protocol. `U` is a marker; no token is held.
-unsafe impl<U> Send for UartTx<U> {}
+// only under `service_tx`'s protocol. Its pin and stream tokens move with it.
+unsafe impl<W: UartParts> Send for UartTx<W>
+where
+    W::TxPin: Send,
+    W::TxDma: Send,
+{
+}
 // SAFETY: the only owner of its buffer and its receive stream; moving it to
-// another context moves that ownership. `U` is a marker; no token is held.
-unsafe impl<U> Send for UartRx<U> {}
+// another context moves that ownership. Its pin and stream tokens move with
+// it.
+unsafe impl<W: UartParts> Send for UartRx<W>
+where
+    W::RxPin: Send,
+    W::RxDma: Send,
+{
+}
 // SAFETY: shares the transmit stream and buffer with `UartTx` only under
 // `service_tx`'s protocol, and writes no register the halves own.
 unsafe impl Send for UartIrq {}
 
-impl<U: Instance> Uart<U> {
+impl<U, TxP, RxP, TxD, RxD> Uart<Wiring<U, TxP, RxP, TxD, RxD>>
+where
+    U: Instance,
+    TxP: TxPin<U>,
+    RxP: RxPin<U>,
+    TxD: TxDma<U>,
+    RxD: RxDma<U>,
+{
     /// Configures the USART and both DMA streams, and starts reception.
     ///
     /// `wiring` comes from the board file; its pins must already be in
@@ -516,63 +579,49 @@ impl<U: Instance> Uart<U> {
     ///   stopped, and the frame is written: UE, DMAT, DMAR and EIE set, PCE
     ///   and PEIE too with parity, and RE and TE off.
     ///
-    /// On success the instance token moves into the line handle; the pin
-    /// and stream tokens end here. [`free`](Self::free) returns the
-    /// instance token, so the same instance can open again.
+    /// On success the handles keep every part: the instance token in the
+    /// line, each pin and stream token in its half. [`free`](Self::free)
+    /// returns the wiring and the buffers whole, so the same parts open
+    /// again.
     #[allow(clippy::type_complexity)]
-    pub fn new<TxP, RxP, TxD, RxD>(
+    pub fn new(
         rcc: &mut Rcc,
         wiring: Wiring<U, TxP, RxP, TxD, RxD>,
         config: &Config,
         mut buffers: Buffers,
     ) -> Result<(Self, UartIrq), Refused<ConfigError, (Wiring<U, TxP, RxP, TxD, RxD>, Buffers)>>
-    where
-        TxP: TxPin<U>,
-        RxP: RxPin<U>,
-        TxD: TxDma<U>,
-        RxD: RxDma<U>,
     {
-        // Taken apart so a refusal can put the wiring back together. After
-        // `Ok` the driver is the only user of the streams and of the
+        // After `Ok` the driver is the only user of the streams and of the
         // buffers' memory: it keeps raw pointers into `buffers`, so nothing
         // here may touch `buffers` again once the open succeeds.
-        let Wiring {
-            uart,
-            tx,
-            rx,
-            tx_dma,
-            rx_dma,
-        } = wiring;
-        match Self::open(rcc, uart, &tx_dma, &rx_dma, config, &mut buffers) {
+        match Self::open(rcc, wiring, config, &mut buffers) {
             Ok(opened) => Ok(opened),
-            Err((error, uart)) => Err(Refused::new(
-                error,
-                (
-                    Wiring {
-                        uart,
-                        tx,
-                        rx,
-                        tx_dma,
-                        rx_dma,
-                    },
-                    buffers,
-                ),
-            )),
+            Err((error, wiring)) => Err(Refused::new(error, (wiring, buffers))),
         }
     }
 
-    fn open<TxD, RxD>(
-        rcc: &mut Rcc,
+    /// The wiring again, from the token and both halves' parts.
+    fn rejoin(
         uart: U,
-        tx_dma: &TxD,
-        rx_dma: &RxD,
+        tx: UartTx<Wiring<U, TxP, RxP, TxD, RxD>>,
+        rx: UartRx<Wiring<U, TxP, RxP, TxD, RxD>>,
+    ) -> Wiring<U, TxP, RxP, TxD, RxD> {
+        Wiring {
+            uart,
+            tx: tx.pin,
+            rx: rx.pin,
+            tx_dma: tx.stream,
+            rx_dma: rx.stream,
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn open(
+        rcc: &mut Rcc,
+        wiring: Wiring<U, TxP, RxP, TxD, RxD>,
         config: &Config,
         buffers: &mut Buffers,
-    ) -> Result<(Self, UartIrq), (ConfigError, U)>
-    where
-        TxD: TxDma<U>,
-        RxD: RxDma<U>,
-    {
+    ) -> Result<(Self, UartIrq), (ConfigError, Wiring<U, TxP, RxP, TxD, RxD>)> {
         let clocks = rcc.clocks();
         let checked = match check_open(
             clocks,
@@ -583,8 +632,15 @@ impl<U: Instance> Uart<U> {
             buffers.rx,
         ) {
             Ok(checked) => checked,
-            Err(error) => return Err((error, uart)),
+            Err(error) => return Err((error, wiring)),
         };
+        let Wiring {
+            uart,
+            tx: tx_pin,
+            rx: rx_pin,
+            tx_dma,
+            rx_dma,
+        } = wiring;
         let info = U::info();
         let kernel_clock = clocks.bus(U::KERNEL);
         reset(rcc, info, checked.rx_len);
@@ -593,26 +649,23 @@ impl<U: Instance> Uart<U> {
             .store(checked.frame_cycles, Ordering::Relaxed);
         let mut tx = UartTx {
             info,
-            dma: crate::dma::claim_channel(tx_dma),
+            dma: crate::dma::claim_channel(&tx_dma),
             request: TxD::REQUEST,
             buf: buffers.tx.as_mut_ptr(),
             cap: checked.tx_len,
             write: 0,
             timeouts: 0,
             clock: None,
-            instance: PhantomData,
+            pin: tx_pin,
+            stream: tx_dma,
         };
-        let rx = UartRx::<U>::assemble(
-            info,
-            crate::dma::claim_channel(rx_dma),
-            RxD::REQUEST,
-            buffers.rx,
-        );
+        let rx_channel = crate::dma::claim_channel(&rx_dma);
+        let rx = UartRx::assemble(info, rx_channel, RxD::REQUEST, buffers.rx, rx_pin, rx_dma);
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
         if tx.dma.stop(STOP_SPINS).is_err() {
-            return Err((ConfigError::DmaBusy, uart));
+            return Err((ConfigError::DmaBusy, Self::rejoin(uart, tx, rx)));
         }
         tx.dma.clear_flags(Flags::ALL);
         let tx_irq = TxIrq {
@@ -628,7 +681,7 @@ impl<U: Instance> Uart<U> {
         };
         let (rx, irq) = match rx.start(config, checked.brr, true, Some(tx_irq), vectors) {
             Ok(opened) => opened,
-            Err((error, _rx)) => return Err((error, uart)),
+            Err((error, rx)) => return Err((error, Self::rejoin(uart, tx, rx))),
         };
         Ok((
             Self {
@@ -646,17 +699,43 @@ impl<U: Instance> Uart<U> {
         ))
     }
 
-    /// Whether instance `U` can take `config` under `clocks`; see
-    /// [`Config::check`]. A `const fn`, so a board can assert it while
-    /// compiling: `const _: () = assert!(Uart::<USART6>::check(&CLOCKS,
-    /// &CRSF).is_ok());`.
-    pub const fn check(clocks: &Clocks, config: &Config) -> Result<(), ConfigError> {
-        match config.divider(clocks.bus(U::KERNEL), U::FRACTIONAL_STOP_BITS) {
-            Ok(_) => Ok(()),
-            Err(error) => Err(error),
-        }
+    /// Stops the line and both streams, and hands back what
+    /// [`new`](Self::new) took: the wiring (the instance, both pins, both
+    /// stream tokens) and the buffers. What a `Drop` would do, made
+    /// explicit so the parts can move out. The transmit queue is dropped.
+    /// The [`UartIrq`] keeps its vectors but finds a closed line: the USART
+    /// is disabled with its event enables cleared, and the transmit side is
+    /// marked halted, so a service that races this starts nothing. A reopen
+    /// runs `Uart::new` again on the same parts.
+    ///
+    /// A `Line` or `UartTx` split off earlier must be
+    /// [`join`](Uart::join)ed back first: this takes the whole UART.
+    #[allow(clippy::type_complexity)]
+    pub fn free(self) -> (Wiring<U, TxP, RxP, TxD, RxD>, Buffers) {
+        let Self {
+            line,
+            mut tx,
+            mut rx,
+        } = self;
+        tx.halt();
+        rx.halt();
+        line.info.regs.set_event_enables(false);
+        line.info.regs.disable();
+        // SAFETY: both were the caller's `'static` buffers, of these lengths
+        // (`check_open` refuses longer ones), and the driver was their only
+        // user since `new`; both streams have stopped, so nothing else will
+        // touch them again.
+        let buffers = unsafe {
+            Buffers {
+                tx: core::slice::from_raw_parts_mut(tx.buf, usize::from(tx.cap)),
+                rx: core::slice::from_raw_parts_mut(rx.ring, usize::from(rx.len)),
+            }
+        };
+        (Self::rejoin(line.token, tx, rx), buffers)
     }
+}
 
+impl<W: UartParts> Uart<W> {
     /// Changes the frame settings. Waits for transmission to finish first;
     /// the receive ring keeps running, but a byte arriving during the change
     /// is lost.
@@ -677,67 +756,42 @@ impl<U: Instance> Uart<U> {
     }
 
     /// The line and both data halves, each able to live in its own task.
-    /// The instance token rides with the line.
-    pub fn split(self) -> (Line<U>, UartTx<U>, UartRx<U>) {
+    /// The instance token rides with the line, each pin and stream token
+    /// with its half.
+    pub fn split(self) -> (Line<W>, UartTx<W>, UartRx<W>) {
         (self.line, self.tx, self.rx)
     }
 
     /// Puts a [`split`](Self::split) UART back together, and `free` with
     /// it: the three handles are the proof that the UART is whole again,
-    /// because nothing outside this module can make one. The token comes
-    /// back out of the line. All three carry the instance, so halves of
-    /// another UART do not compile here.
-    pub fn join(line: Line<U>, tx: UartTx<U>, rx: UartRx<U>) -> Self {
+    /// because nothing outside this module can make one. All three are
+    /// typed by the wiring, so halves of another UART do not compile here.
+    pub fn join(line: Line<W>, tx: UartTx<W>, rx: UartRx<W>) -> Self {
         Self { line, tx, rx }
-    }
-
-    /// Stops the line and both streams, and hands the instance token back:
-    /// what a `Drop` would do, made explicit so the token can move out.
-    /// The transmit queue is dropped; the buffers' memory and the DMA
-    /// channels end with the halves. The [`UartIrq`] keeps its vectors but
-    /// finds a closed line: the USART is disabled with its event enables
-    /// cleared, and the transmit side is marked halted, so a service that
-    /// races this starts nothing. A reopen runs `Uart::new` again, from
-    /// the same token and fresh stream tokens.
-    ///
-    /// A `Line` or `UartTx` split off earlier must be
-    /// [`join`](Self::join)ed back first: this takes the whole UART, and
-    /// the token rides in the line.
-    pub fn free(self) -> U {
-        let Self {
-            line,
-            mut tx,
-            mut rx,
-        } = self;
-        tx.halt();
-        rx.halt();
-        line.info.regs.set_event_enables(false);
-        line.info.regs.disable();
-        line.token
     }
 
     /// The line and both halves at once, borrowed: [`split`](Self::split)
     /// without giving the UART up.
-    pub fn halves(&mut self) -> (&mut Line<U>, &mut UartTx<U>, &mut UartRx<U>) {
+    pub fn halves(&mut self) -> (&mut Line<W>, &mut UartTx<W>, &mut UartRx<W>) {
         (&mut self.line, &mut self.tx, &mut self.rx)
     }
 
     /// The line's control handle: the frame, the interrupt enables and a
     /// break.
-    pub fn line(&mut self) -> &mut Line<U> {
+    pub fn line(&mut self) -> &mut Line<W> {
         &mut self.line
     }
 
-    pub fn tx(&mut self) -> &mut UartTx<U> {
+    pub fn tx(&mut self) -> &mut UartTx<W> {
         &mut self.tx
     }
 
-    pub fn rx(&mut self) -> &mut UartRx<U> {
+    pub fn rx(&mut self) -> &mut UartRx<W> {
         &mut self.rx
     }
 }
 
-impl<U> UartTx<U> {
+impl<W: UartParts> UartTx<W> {
     /// Queues `frame` whole, or not at all, and starts it if the line is
     /// free. Frames go out in order, back to back.
     ///
@@ -1041,7 +1095,12 @@ fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
     }
 }
 
-impl<U> UartRx<U> {
+impl<U, RxP, RxD> UartRx<RxWiring<U, RxP, RxD>>
+where
+    U: Instance,
+    RxP: RxPin<U>,
+    RxD: RxDma<U>,
+{
     /// Opens a receive-only UART: no TX pin, no transmit stream, the
     /// transmitter left off. The same receive half a full UART has, and a
     /// `UartIrq` to call from the USART's vector and the receive stream's.
@@ -1050,42 +1109,33 @@ impl<U> UartRx<U> {
     /// [`Uart::new`] does. A `DmaBusy` leaves the hardware as that
     /// describes for the receive stream, with no transmit stream.
     ///
-    /// On success the instance token moves into the line handle;
-    /// [`free`](Self::free) returns it.
+    /// On success the handles keep every part: the instance token in the
+    /// line, the pin and stream token in the receive half.
+    /// [`free`](Self::free) returns the wiring and the ring whole.
     #[allow(clippy::type_complexity)]
-    pub fn new<RxP, RxD>(
+    pub fn new(
         rcc: &mut Rcc,
         wiring: RxWiring<U, RxP, RxD>,
         config: &Config,
         ring: &'static mut [u8],
     ) -> Result<
-        (RxLine<U>, Self, UartIrq),
+        (RxLine<RxWiring<U, RxP, RxD>>, Self, UartIrq),
         Refused<ConfigError, (RxWiring<U, RxP, RxD>, &'static mut [u8])>,
-    >
-    where
-        U: Instance,
-        RxP: RxPin<U>,
-        RxD: RxDma<U>,
-    {
-        // Taken apart so a refusal can put the wiring back together; after
-        // `Ok` nothing here may touch `ring` again.
-        let RxWiring { uart, rx, rx_dma } = wiring;
-        match Self::open(rcc, uart, &rx_dma, config, ring) {
+    > {
+        // After `Ok` nothing here may touch `ring` again.
+        match Self::open(rcc, wiring, config, ring) {
             Ok(opened) => Ok(opened),
-            Err((error, uart)) => Err(Refused::new(error, (RxWiring { uart, rx, rx_dma }, ring))),
+            Err((error, wiring)) => Err(Refused::new(error, (wiring, ring))),
         }
     }
 
-    fn open<RxD>(
+    #[allow(clippy::type_complexity)]
+    fn open(
         rcc: &mut Rcc,
-        uart: U,
-        rx_dma: &RxD,
+        wiring: RxWiring<U, RxP, RxD>,
         config: &Config,
         ring: &mut [u8],
-    ) -> Result<(RxLine<U>, Self, UartIrq), (ConfigError, U)>
-    where
-        U: Instance,
-        RxD: RxDma<U>,
+    ) -> Result<(RxLine<RxWiring<U, RxP, RxD>>, Self, UartIrq), (ConfigError, RxWiring<U, RxP, RxD>)>
     {
         let clocks = rcc.clocks();
         let checked = match check_open(
@@ -1097,23 +1147,32 @@ impl<U> UartRx<U> {
             ring,
         ) {
             Ok(checked) => checked,
-            Err(error) => return Err((error, uart)),
+            Err(error) => return Err((error, wiring)),
         };
+        let RxWiring { uart, rx, rx_dma } = wiring;
         let info = U::info();
         let kernel_clock = clocks.bus(U::KERNEL);
         reset(rcc, info, checked.rx_len);
         info.state
             .frame_cycles
             .store(checked.frame_cycles, Ordering::Relaxed);
-        let rx = Self::assemble(info, crate::dma::claim_channel(rx_dma), RxD::REQUEST, ring);
+        let channel = crate::dma::claim_channel(&rx_dma);
+        let half = Self::assemble(info, channel, RxD::REQUEST, ring, rx, rx_dma);
         let vectors = UartInterrupts {
             line: U::INTERRUPT,
             rx_dma: RxD::INTERRUPT,
             tx_dma: None,
         };
-        let (rx, irq) = match rx.start(config, checked.brr, false, None, vectors) {
+        let (half, irq) = match half.start(config, checked.brr, false, None, vectors) {
             Ok(opened) => opened,
-            Err((error, _rx)) => return Err((error, uart)),
+            Err((error, half)) => {
+                let wiring = RxWiring {
+                    uart,
+                    rx: half.pin,
+                    rx_dma: half.stream,
+                };
+                return Err((error, wiring));
+            }
         };
         Ok((
             RxLine {
@@ -1125,32 +1184,53 @@ impl<U> UartRx<U> {
                     token: uart,
                 },
             },
-            rx,
+            half,
             irq,
         ))
     }
 
-    /// Stops the receive stream and closes the line, and hands the
-    /// instance token back: what a `Drop` would do, made explicit so the
-    /// token can move out. Takes the [`RxLine`] back, because the token
+    /// Stops the receive stream and closes the line, and hands back what
+    /// [`new`](Self::new) took: the wiring (the instance, the pin, the
+    /// stream token) and the ring. What a `Drop` would do, made explicit so
+    /// the parts can move out. Takes the [`RxLine`] back, because the token
     /// rides in it and leaves only when the handles that can touch the
     /// hardware are gone; the `UartIrq` stays, inert (see [`Uart::free`]).
     /// Only a receive-only UART has an `RxLine`, so a split UART's receive
     /// half cannot free the line under a live transmit half; it rejoins
-    /// with [`Uart::join`] instead. A reopen runs `UartRx::new` again, from
-    /// the same token and a fresh stream token.
-    pub fn free(mut self, line: RxLine<U>) -> U {
+    /// with [`Uart::join`] instead.
+    #[allow(clippy::type_complexity)]
+    pub fn free(
+        mut self,
+        line: RxLine<RxWiring<U, RxP, RxD>>,
+    ) -> (RxWiring<U, RxP, RxD>, &'static mut [u8]) {
         let RxLine { line } = line;
         self.halt();
         line.info.regs.set_event_enables(false);
         line.info.regs.disable();
-        line.token
+        // SAFETY: the caller's `'static` ring, of this length, whose only
+        // user since `new` was the driver; the stream has stopped.
+        let ring = unsafe { core::slice::from_raw_parts_mut(self.ring, usize::from(self.len)) };
+        let wiring = RxWiring {
+            uart: line.token,
+            rx: self.pin,
+            rx_dma: self.stream,
+        };
+        (wiring, ring)
     }
+}
 
+impl<W: UartParts> UartRx<W> {
     /// Keeps the ring's address and length only: the caller's `'static`
     /// reference ends once the UART is open, leaving the driver the ring's
     /// only user.
-    fn assemble(info: &'static Info, dma: Channel, request: u8, ring: &mut [u8]) -> Self {
+    fn assemble(
+        info: &'static Info,
+        dma: Channel,
+        request: u8,
+        ring: &mut [u8],
+        pin: W::RxPin,
+        stream: W::RxDma,
+    ) -> Self {
         Self {
             info,
             dma,
@@ -1165,7 +1245,8 @@ impl<U> UartRx<U> {
             restarts: 0,
             halted: false,
             clock: None,
-            instance: PhantomData,
+            pin,
+            stream,
         }
     }
 
@@ -1804,19 +1885,19 @@ where
     ];
 }
 
-impl<U> embedded_io::ErrorType for Uart<U> {
+impl<W: UartParts> embedded_io::ErrorType for Uart<W> {
     type Error = Error;
 }
 
-impl<U> embedded_io::ErrorType for UartTx<U> {
+impl<W: UartParts> embedded_io::ErrorType for UartTx<W> {
     type Error = Error;
 }
 
-impl<U> embedded_io::ErrorType for UartRx<U> {
+impl<W: UartParts> embedded_io::ErrorType for UartRx<W> {
     type Error = Error;
 }
 
-impl<U> embedded_io::Write for UartTx<U> {
+impl<W: UartParts> embedded_io::Write for UartTx<W> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
         UartTx::write(self, buf)
     }
@@ -1826,7 +1907,7 @@ impl<U> embedded_io::Write for UartTx<U> {
     }
 }
 
-impl<U> embedded_io::WriteReady for UartTx<U> {
+impl<W: UartParts> embedded_io::WriteReady for UartTx<W> {
     fn write_ready(&mut self) -> Result<bool, Error> {
         self.poll();
         self.take_error()?;
@@ -1836,7 +1917,7 @@ impl<U> embedded_io::WriteReady for UartTx<U> {
     }
 }
 
-impl<U> embedded_io::Read for UartRx<U> {
+impl<W: UartParts> embedded_io::Read for UartRx<W> {
     /// Blocks until at least one byte has arrived, as the trait requires.
     /// [`UartRx::read_within`] is the bounded form.
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
@@ -1849,13 +1930,13 @@ impl<U> embedded_io::Read for UartRx<U> {
     }
 }
 
-impl<U> embedded_io::ReadReady for UartRx<U> {
+impl<W: UartParts> embedded_io::ReadReady for UartRx<W> {
     fn read_ready(&mut self) -> Result<bool, Error> {
         Ok(self.available()? > 0)
     }
 }
 
-impl<U> embedded_io::Write for Uart<U> {
+impl<W: UartParts> embedded_io::Write for Uart<W> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
         self.tx.write(buf)
     }
@@ -1865,13 +1946,13 @@ impl<U> embedded_io::Write for Uart<U> {
     }
 }
 
-impl<U> embedded_io::WriteReady for Uart<U> {
+impl<W: UartParts> embedded_io::WriteReady for Uart<W> {
     fn write_ready(&mut self) -> Result<bool, Error> {
         embedded_io::WriteReady::write_ready(&mut self.tx)
     }
 }
 
-impl<U: Instance> embedded_io::Read for Uart<U> {
+impl<W: UartParts> embedded_io::Read for Uart<W> {
     /// Blocks until at least one byte has arrived, as the trait requires.
     /// [`UartRx::read_within`], through the [`halves`](Uart::halves), is the
     /// bounded form.
@@ -1880,7 +1961,7 @@ impl<U: Instance> embedded_io::Read for Uart<U> {
     }
 }
 
-impl<U: Instance> embedded_io::ReadReady for Uart<U> {
+impl<W: UartParts> embedded_io::ReadReady for Uart<W> {
     fn read_ready(&mut self) -> Result<bool, Error> {
         embedded_io::ReadReady::read_ready(&mut self.rx)
     }

@@ -24,7 +24,8 @@ use crate::{
     rcc_f4::{Bus, Limits, RCC, RccBit},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
-    usart_v2::{self, Info, LineRegs, RxDma, RxPin, TxDma, TxPin},
+    uart::{Info, RxDma, RxPin, TxDma, TxPin},
+    usart_v2::LineRegs,
 };
 
 #[path = "shared/macros.rs"]
@@ -244,7 +245,7 @@ macro_rules! usarts {
         $(
             static $info: Info = Info::new(LineRegs::new(pac::$name), RccBit::new(Bus::$bus, $bit));
 
-            impl usart_v2::Instance for $name {
+            impl crate::uart::Instance for $name {
                 const KERNEL: Bus = Bus::$bus;
                 const NAME: &'static str = stringify!($name);
                 const INTERRUPT: Interrupt = Interrupt::$name;
@@ -616,7 +617,7 @@ mod tests {
     fn example_manifest_routes_exist() {
         use crate::{
             timer::{ChannelPin, ChannelTimer, CompareDma, ComplementaryPin},
-            usart_v2::Instance,
+            uart::Instance,
         };
 
         type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;
@@ -725,15 +726,15 @@ mod tests {
         let one_and_half = half.with_stop_bits(StopBits::OneAndHalf);
         let two = half.with_stop_bits(StopBits::Two);
         assert_eq!(
-            Uart::<UART4>::check(&clocks, &half),
+            crate::uart::check::<UART4>(&clocks, &half),
             Err(crate::uart::ConfigError::Unsupported)
         );
         assert_eq!(
-            Uart::<UART5>::check(&clocks, &one_and_half),
+            crate::uart::check::<UART5>(&clocks, &one_and_half),
             Err(crate::uart::ConfigError::Unsupported)
         );
-        assert_eq!(Uart::<UART4>::check(&clocks, &two), Ok(()));
-        assert_eq!(Uart::<USART3>::check(&clocks, &half), Ok(()));
+        assert_eq!(crate::uart::check::<UART4>(&clocks, &two), Ok(()));
+        assert_eq!(crate::uart::check::<USART3>(&clocks, &half), Ok(()));
     }
 
     #[test]

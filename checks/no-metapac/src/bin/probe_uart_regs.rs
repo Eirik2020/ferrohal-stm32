@@ -10,7 +10,7 @@ use ferrohal_no_metapac as _;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    fn regs<U: ferrohal_stm32::uart::Instance>(line: &ferrohal_stm32::uart::Line<U>) {
+    fn regs<U: ferrohal_stm32::uart::UartParts>(line: &ferrohal_stm32::uart::Line<U>) {
         let _ = line.regs();
     }
     let _ = regs;

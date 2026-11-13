@@ -93,7 +93,7 @@ fn main() -> ! {
             .with_stop_bits(StopBits::Two)
             .with_inverted_rx(black_box(true)),
     );
-    keep(Uart::<chip::RxUart>::check(&black_box(rcc.clocks()), &sbus));
+    keep(ferrohal_stm32::uart::check::<chip::RxUart>(&black_box(rcc.clocks()), &sbus));
     // SAFETY: as TX and RX above.
     let ring = black_box(unsafe { &mut *addr_of_mut!(RX2) });
     let (rx_line, mut rx_only, mut rx_irq) = match UartRx::new(&mut rcc, rx_wiring, &sbus, ring) {
@@ -217,7 +217,7 @@ fn main() -> ! {
     park()
 }
 
-fn exercise_uart<U: ferrohal_stm32::uart::Instance>(uart: &mut Uart<U>) {
+fn exercise_uart<U: ferrohal_stm32::uart::UartParts>(uart: &mut Uart<U>) {
     use embedded_io::{Read, ReadReady, Write, WriteReady};
 
     let mut buf = [0u8; 32];

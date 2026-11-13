@@ -21,7 +21,8 @@ use crate::{
     rcc_h7_rm0433::{Bus, RCC, RccBit},
     sdmmc::{CkPin, CmdPin, D0Pin, D1Pin, D2Pin, D3Pin},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
-    usart_v4::{self, Info, LineRegs, RxDma, RxPin, TxDma, TxPin},
+    uart::{Info, RxDma, RxPin, TxDma, TxPin},
+    usart_v4::LineRegs,
 };
 
 #[path = "shared/macros.rs"]
@@ -320,7 +321,7 @@ macro_rules! usarts {
         $(
             static $info: Info = Info::new(LineRegs::new(pac::$name), RccBit::new(Bus::$bus, $bit));
 
-            impl usart_v4::Instance for $name {
+            impl crate::uart::Instance for $name {
                 const KERNEL: Bus = Bus::$bus;
                 const NAME: &'static str = stringify!($name);
                 const INTERRUPT: Interrupt = Interrupt::$name;

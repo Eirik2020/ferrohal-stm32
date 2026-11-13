@@ -30,7 +30,7 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
     use ferrohal_stm32::{
-        chip::{Interrupt, UART4, UART5, UART7, USART3},
+        chip::Interrupt,
         uart::{Config, Uart, UartInterrupts, UartIrq},
     };
 
@@ -57,13 +57,13 @@ mod app {
 
     #[local]
     struct Local {
-        uart4: Uart<UART4>,
+        uart4: Uart<board::Uart4B>,
         vectors_uart4: UartInterrupts,
-        uart5: Uart<UART5>,
+        uart5: Uart<board::Uart5B>,
         vectors_uart5: UartInterrupts,
-        uart7: Uart<UART7>,
+        uart7: Uart<board::Uart7B>,
         vectors_uart7: UartInterrupts,
-        usart3: Uart<USART3>,
+        usart3: Uart<board::Usart3B>,
         vectors_usart3: UartInterrupts,
         led: board::Led,
     }

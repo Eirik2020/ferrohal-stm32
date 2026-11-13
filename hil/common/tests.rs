@@ -18,8 +18,8 @@ use embedded_io::Write;
 use ferrohal_stm32::{
     time::CycleClock,
     uart::{
-        Chunk, ChunkEnd, Config, ConfigError, Error, Health, Instance, IrqError, Line, Parity,
-        SendError, StopBits, TxHealth, Uart, UartInterrupts, UartRx, UartTx,
+        Chunk, ChunkEnd, Config, ConfigError, Error, Health, IrqError, Line, Parity, SendError,
+        StopBits, TxHealth, Uart, UartInterrupts, UartParts, UartRx, UartTx,
     },
 };
 
@@ -33,7 +33,7 @@ pub trait TxHalf: Write<Error = Error> {
     fn health(&self) -> TxHealth;
 }
 
-impl<U> TxHalf for UartTx<U> {
+impl<U: UartParts> TxHalf for UartTx<U> {
     fn try_send(&mut self, frame: &[u8]) -> Result<(), SendError> {
         UartTx::try_send(self, frame)
     }
@@ -60,7 +60,7 @@ pub trait RxHalf {
     fn health(&self) -> Health;
 }
 
-impl<U> RxHalf for UartRx<U> {
+impl<U: UartParts> RxHalf for UartRx<U> {
     fn try_read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         UartRx::try_read(self, buf)
     }
@@ -224,12 +224,12 @@ pub trait Configurable: Link {
 }
 
 /// One UART, TX jumpered to its own RX.
-pub struct Loop<'a, U> {
+pub struct Loop<'a, U: UartParts> {
     pub name: &'static str,
     pub uart: &'a mut Uart<U>,
 }
 
-impl<U: Instance> Link for Loop<'_, U> {
+impl<U: UartParts> Link for Loop<'_, U> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -244,7 +244,7 @@ impl<U: Instance> Link for Loop<'_, U> {
     }
 }
 
-impl<U: Instance> Configurable for Loop<'_, U> {
+impl<U: UartParts> Configurable for Loop<'_, U> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.uart.set_config(config)
     }
@@ -252,12 +252,12 @@ impl<U: Instance> Configurable for Loop<'_, U> {
 
 /// One UART whose bytes the host sends back, through the ST-LINK's virtual
 /// COM port (`hil/vcp_echo.py`). USB adds milliseconds each way.
-pub struct HostEcho<'a, U> {
+pub struct HostEcho<'a, U: UartParts> {
     pub name: &'static str,
     pub uart: &'a mut Uart<U>,
 }
 
-impl<U: Instance> Link for HostEcho<'_, U> {
+impl<U: UartParts> Link for HostEcho<'_, U> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -279,20 +279,20 @@ impl<U: Instance> Link for HostEcho<'_, U> {
     }
 }
 
-impl<U: Instance> Configurable for HostEcho<'_, U> {
+impl<U: UartParts> Configurable for HostEcho<'_, U> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.uart.set_config(config)
     }
 }
 
 /// Two UARTs: `from`'s TX wired to `to`'s RX.
-pub struct Cross<'a, U, V> {
+pub struct Cross<'a, U: UartParts, V: UartParts> {
     pub name: &'static str,
     pub from: &'a mut Uart<U>,
     pub to: &'a mut Uart<V>,
 }
 
-impl<U: Instance, V: Instance> Link for Cross<'_, U, V> {
+impl<U: UartParts, V: UartParts> Link for Cross<'_, U, V> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -307,7 +307,7 @@ impl<U: Instance, V: Instance> Link for Cross<'_, U, V> {
     }
 }
 
-impl<U: Instance, V: Instance> Configurable for Cross<'_, U, V> {
+impl<U: UartParts, V: UartParts> Configurable for Cross<'_, U, V> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.from.set_config(config)?;
         self.to.set_config(config)
@@ -316,7 +316,7 @@ impl<U: Instance, V: Instance> Configurable for Cross<'_, U, V> {
 
 /// Borrowed halves of two UARTs: `U`'s transmit half wired to `V`'s
 /// receive half. It cannot change the frame, so it streams only.
-pub struct Pair<'a, U, V> {
+pub struct Pair<'a, U: UartParts, V: UartParts> {
     pub name: &'static str,
     /// The transmitting side's line.
     pub line: &'a mut Line<U>,
@@ -324,7 +324,7 @@ pub struct Pair<'a, U, V> {
     pub rx: &'a mut UartRx<V>,
 }
 
-impl<U: Instance, V: Instance> Link for Pair<'_, U, V> {
+impl<U: UartParts, V: UartParts> Link for Pair<'_, U, V> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -346,7 +346,7 @@ pub trait Maskable: Link {
     fn unmask(&mut self);
 }
 
-impl<U: Instance> Maskable for Loop<'_, U> {
+impl<U: UartParts> Maskable for Loop<'_, U> {
     fn mask(&mut self) {
         self.uart.line().mask();
     }
@@ -355,7 +355,7 @@ impl<U: Instance> Maskable for Loop<'_, U> {
     }
 }
 
-impl<U: Instance> Maskable for HostEcho<'_, U> {
+impl<U: UartParts> Maskable for HostEcho<'_, U> {
     fn mask(&mut self) {
         self.uart.line().mask();
     }
@@ -987,7 +987,9 @@ pub fn reconfigured(link: &mut dyn Configurable, config: &Config) -> Result<(), 
 
 /// The sender runs at half the receiver's baud rate and sends zeros: each
 /// one holds the line low past the receiver's stop bit, a framing error.
-pub fn framing_mismatch<U: Instance, V: Instance>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
+pub fn framing_mismatch<U: UartParts, V: UartParts>(
+    cross: &mut Cross<'_, U, V>,
+) -> Result<(), Fail> {
     cross.from.set_config(&Config::new(57_600))?;
     cross.to.set_config(&Config::new(115_200))?;
     drain(cross);
@@ -1001,7 +1003,9 @@ pub fn framing_mismatch<U: Instance, V: Instance>(cross: &mut Cross<'_, U, V>) -
 /// Even parity into a receiver expecting odd: every byte is a parity
 /// error. The receiver is not transmitting, so ES0299 2.10.2 (PE cleared by
 /// a write to DR) cannot hide it.
-pub fn parity_mismatch<U: Instance, V: Instance>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
+pub fn parity_mismatch<U: UartParts, V: UartParts>(
+    cross: &mut Cross<'_, U, V>,
+) -> Result<(), Fail> {
     let with = |parity| Config::new(115_200).with_parity(parity);
     cross.from.set_config(&with(Parity::Even))?;
     cross.to.set_config(&with(Parity::Odd))?;
@@ -1014,7 +1018,7 @@ pub fn parity_mismatch<U: Instance, V: Instance>(cross: &mut Cross<'_, U, V>) ->
 }
 
 /// Both ends back to 115200 8N1, and a line through to prove it.
-fn restore<U: Instance, V: Instance>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
+fn restore<U: UartParts, V: UartParts>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
     cross.set_config(&Config::new(115_200))?;
     drain(cross);
     echo(cross, b"restored")
