@@ -68,7 +68,7 @@ use ferrohal_stm32::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllSource, Rcc,
         Supply, Sysclk, VoltageScale,
     },
-    spi::{self, Spi},
+    spi::{self},
     time::Hertz,
     timer::{Tick, Timebase},
     uart::{self, Parity, RxWiring, StopBits, Wiring},
@@ -246,11 +246,11 @@ pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
 /// (SPI1 to SPI3 from PLL1Q at 100 MHz, SPI4 and SPI5 from PCLK2, / 16).
 pub const SPI: spi::Config = spi::Config::new(Hertz::mhz(10));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &SPI),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &SPI),
     Ok(Hertz(6_250_000))
 ));
 const _: () = assert!(matches!(
-    Spi::<SPI4>::check(&CLOCKS, &SPI),
+    ferrohal_stm32::spi::check::<SPI4>(&CLOCKS, &SPI),
     Ok(Hertz(6_250_000))
 ));
 

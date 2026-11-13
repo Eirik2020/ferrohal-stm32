@@ -106,7 +106,7 @@ macro_rules! spi_kernel {
 macro_rules! spis {
     ($($name:ident => $info:ident, $bus:ident, $bit:literal, $kernel:ident;)+) => {
         $(
-            static $info: crate::spi::stream_dma::Info = crate::spi::stream_dma::Info::new(
+            static $info: crate::spi::Info = crate::spi::Info::new(
                 crate::spi_ip::Unit::new(pac::$name),
                 RccBit::new(Bus::$bus, $bit),
             );
@@ -114,7 +114,7 @@ macro_rules! spis {
             impl crate::spi::Instance for $name {
                 const KERNEL: crate::spi::Kernel = spi_kernel!($kernel);
                 const NAME: &'static str = stringify!($name);
-                fn info() -> &'static crate::spi::stream_dma::Info {
+                fn info() -> &'static crate::spi::Info {
                     &$info
                 }
             }

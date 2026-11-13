@@ -140,7 +140,7 @@ fn main() -> ! {
             .with_mode(spi::MODE_3)
             .with_bit_order(spi::BitOrder::LsbFirst),
     );
-    keep(Spi::<chip::SpiUnit>::check(
+    keep(ferrohal_stm32::spi::check::<chip::SpiUnit>(
         &black_box(rcc.clocks()),
         &spi_config,
     ));
@@ -798,7 +798,7 @@ pub fn exercise_usb(
     keep(usb);
 }
 
-fn exercise_spi(bus: &mut Spi<chip::SpiUnit>) {
+fn exercise_spi<W: ferrohal_stm32::spi::SpiParts>(bus: &mut Spi<W>) {
     use embedded_hal::spi::SpiBus;
 
     let data = black_box(&[0xa5u8; 40][..]);

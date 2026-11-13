@@ -25,14 +25,17 @@
 //! Requirements: SPI-001, SPI-002, SPI-003, SPI-004, SPI-005, SPI-007, SPI-009
 
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+mod instance;
 mod polled;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub(crate) mod stream_dma;
 
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
-pub use polled::BlockingSpi;
+pub use instance::{Info, Instance, MisoPin, MosiPin, SckPin, SpiParts, SpiRxDma, SpiTxDma, check};
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
-pub use stream_dma::{Instance, MisoPin, MosiPin, SckPin, Spi, SpiRxDma, SpiTxDma};
+pub use polled::BlockingSpi;
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub use stream_dma::Spi;
 
 pub use embedded_hal::spi::{MODE_0, MODE_1, MODE_2, MODE_3, Mode, Phase, Polarity};
 

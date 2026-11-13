@@ -63,15 +63,15 @@ const NOR_BUS: spi::Config = spi::Config::new(Hertz::mhz(11));
 /// A config no clock can make: 0 Hz, for the constructor refusals.
 const SPI_ZERO: spi::Config = spi::Config::new(Hertz(0));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &IMU_SLOW),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &IMU_SLOW),
     Ok(Hertz(656_250))
 ));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &IMU_FAST),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &IMU_FAST),
     Ok(Hertz(10_500_000))
 ));
 const _: () = assert!(matches!(
-    Spi::<SPI2>::check(&CLOCKS, &NOR_BUS),
+    ferrohal_stm32::spi::check::<SPI2>(&CLOCKS, &NOR_BUS),
     Ok(Hertz(10_500_000))
 ));
 
@@ -207,7 +207,7 @@ impl From<spi::Error> for NorFail {
 
 /// The JEDEC commands FerroWasp's NOR driver sends, over the polled SPI.
 struct Nor {
-    spi: BlockingSpi<SPI2>,
+    spi: BlockingSpi<NorWiring>,
     cs: Pin<'B', 12, Output>,
 }
 

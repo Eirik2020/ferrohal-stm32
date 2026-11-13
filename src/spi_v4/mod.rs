@@ -16,9 +16,6 @@
 
 use stm32_metapac::spi::vals::{Comm, Cpha, Cpol, Fthlv, Lsbfirst, Master, Mbr, Sp};
 
-pub use crate::spi::stream_dma::{
-    Info, Instance, MisoPin, MosiPin, SckPin, Spi, SpiRxDma, SpiTxDma,
-};
 use crate::spi::{BitOrder, Config, Phase, Polarity};
 
 /// The register block.

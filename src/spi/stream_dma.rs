@@ -36,13 +36,16 @@ use core::sync::atomic::{Ordering, fence};
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, Flags, Interrupts, Priority, Stream, StreamInstance,
-        StreamInterrupt, Transfer, WordSize,
+        Channel, Direction, FifoMode, Flags, Interrupts, Priority, Stream, StreamInterrupt,
+        Transfer, WordSize,
     },
     gpio::AltPin,
-    rcc::{Rcc, RccBit},
+    rcc::Rcc,
     resource::{Refused, Resource, Signal},
-    spi::{Buffers, Config, ConfigError, Error, Health, Kernel, SpiInterrupts, Wiring},
+    spi::{
+        Buffers, Config, ConfigError, Error, Health, Info, Instance, MisoPin, MosiPin, SckPin,
+        SpiInterrupts, SpiParts, SpiRxDma, SpiTxDma, Wiring,
+    },
     spi_ip::Unit,
     time::{CycleClock, Hertz},
     wait::Deadline,
@@ -62,65 +65,6 @@ const PASS_CYCLES: u32 = 112;
 /// interrupt latency a transfer can see before its first SCK edge.
 const MARGIN_CYCLES: u32 = 20_000;
 
-/// Per-instance facts. Chip facts: the glue layer holds one static `Info`
-/// per SPI.
-pub struct Info {
-    unit: Unit,
-    enable: RccBit,
-}
-
-// SAFETY: `unit` is an address.
-unsafe impl Sync for Info {}
-
-impl Info {
-    pub(crate) const fn new(unit: Unit, enable: RccBit) -> Self {
-        Self { unit, enable }
-    }
-
-    pub(crate) fn unit(&self) -> Unit {
-        self.unit
-    }
-
-    pub(crate) fn enable(&self) -> RccBit {
-        self.enable
-    }
-}
-
-/// An SPI instance this chip has. Chip facts: the glue layer implements it.
-pub trait Instance: crate::Sealed + 'static {
-    /// Where its kernel clock comes from.
-    const KERNEL: Kernel;
-    /// Its name in the reference manual.
-    const NAME: &'static str;
-    #[doc(hidden)]
-    fn info() -> &'static Info;
-}
-
-/// A pin, in the right alternate function, that carries `U`'s SCK.
-pub trait SckPin<U: Instance>: crate::Sealed {}
-/// A pin, in the right alternate function, that carries `U`'s MISO.
-pub trait MisoPin<U: Instance>: crate::Sealed {}
-/// A pin, in the right alternate function, that carries `U`'s MOSI.
-pub trait MosiPin<U: Instance>: crate::Sealed {}
-
-/// A DMA stream that serves `U`'s transmit requests.
-///
-/// # Safety
-///
-/// `REQUEST` must be the request that routes `U`'s TX to this stream.
-pub unsafe trait SpiTxDma<U: Instance>: StreamInstance + StreamInterrupt {
-    const REQUEST: u8;
-}
-
-/// A DMA stream that serves `U`'s receive requests.
-///
-/// # Safety
-///
-/// As [`SpiTxDma`], for RX.
-pub unsafe trait SpiRxDma<U: Instance>: StreamInstance + StreamInterrupt {
-    const REQUEST: u8;
-}
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
     Idle,
@@ -128,10 +72,11 @@ enum State {
     Done(u16),
 }
 
-/// An SPI master, full duplex over two DMA streams. It carries the
-/// instance token: [`free`](Self::free) hands it back, so the same
-/// instance can open again.
-pub struct Spi<U> {
+/// An SPI master, full duplex over two DMA streams. It keeps the board's
+/// whole wiring, the instance, its three pins and both stream tokens, and
+/// [`free`](Spi::free) hands it back with the buffers, so the same parts
+/// open again.
+pub struct Spi<W: SpiParts> {
     info: &'static Info,
     tx: Channel,
     rx: Channel,
@@ -150,10 +95,18 @@ pub struct Spi<U> {
     clock: Option<&'static dyn CycleClock>,
     vector: Interrupt,
     health: Health,
-    token: U,
+    wiring: W,
 }
 
-impl<U: Instance> Spi<U> {
+impl<U, Sck, Miso, Mosi, TxD, RxD> Spi<Wiring<U, Sck, Miso, Mosi, TxD, RxD>>
+where
+    U: Instance,
+    Sck: SckPin<U>,
+    Miso: MisoPin<U>,
+    Mosi: MosiPin<U>,
+    TxD: SpiTxDma<U>,
+    RxD: SpiRxDma<U>,
+{
     /// Opens `wiring` with `config`: enables and resets the SPI, claims
     /// both streams and configures the bus as a master. Chip select is the
     /// firmware's GPIO. Returns the SCK in use through
@@ -169,64 +122,30 @@ impl<U: Instance> Spi<U> {
     /// If the receive stream is the one, the transmit stream has stopped; if
     /// the transmit stream is, the receive stream is as it was left.
     ///
-    /// On success the instance token moves into the handle;
-    /// [`free`](Self::free) returns it.
+    /// On success the handle keeps the wiring; [`free`](Self::free) returns
+    /// it with the buffers.
     #[allow(clippy::type_complexity)]
-    pub fn new<Sck, Miso, Mosi, TxD, RxD>(
+    pub fn new(
         rcc: &mut Rcc,
         wiring: Wiring<U, Sck, Miso, Mosi, TxD, RxD>,
         config: &Config,
         mut buffers: Buffers,
-    ) -> Result<Self, Refused<ConfigError, (Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers)>>
-    where
-        Sck: SckPin<U>,
-        Miso: MisoPin<U>,
-        Mosi: MosiPin<U>,
-        TxD: SpiTxDma<U>,
-        RxD: SpiRxDma<U>,
-    {
-        // `open` only borrows the parts, so a refusal can hand them back. On
-        // success it has taken the buffers, and the tokens end here.
-        let Wiring {
-            spi,
-            sck,
-            miso,
-            mosi,
-            tx_dma,
-            rx_dma,
-        } = wiring;
-        match Self::open::<TxD, RxD>(rcc, spi, &tx_dma, &rx_dma, config, &mut buffers) {
+    ) -> Result<Self, Refused<ConfigError, (Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers)>> {
+        // On success `open` has taken the buffers; a refusal hands both back.
+        match Self::open(rcc, wiring, config, &mut buffers) {
             Ok(handle) => Ok(handle),
-            Err((error, spi)) => Err(Refused::new(
-                error,
-                (
-                    Wiring {
-                        spi,
-                        sck,
-                        miso,
-                        mosi,
-                        tx_dma,
-                        rx_dma,
-                    },
-                    buffers,
-                ),
-            )),
+            Err((error, wiring)) => Err(Refused::new(error, (wiring, buffers))),
         }
     }
 
-    fn open<TxD, RxD>(
+    #[allow(clippy::type_complexity)]
+    fn open(
         rcc: &mut Rcc,
-        spi: U,
-        tx_dma: &TxD,
-        rx_dma: &RxD,
+        wiring: Wiring<U, Sck, Miso, Mosi, TxD, RxD>,
         config: &Config,
         buffers: &mut Buffers,
-    ) -> Result<Self, (ConfigError, U)>
-    where
-        TxD: SpiTxDma<U>,
-        RxD: SpiRxDma<U>,
-    {
-        // One bundled check phase, so the token comes back on any refusal.
+    ) -> Result<Self, (ConfigError, Wiring<U, Sck, Miso, Mosi, TxD, RxD>)> {
+        // One bundled check phase, so the wiring comes back on any refusal.
         let (info, clocks, kernel_clock, code, tx_len, rx_len) = match (|| {
             let info = U::info();
             let clocks = rcc.clocks();
@@ -247,24 +166,24 @@ impl<U: Instance> Spi<U> {
             Ok((info, clocks, kernel_clock, code, tx_len, rx_len))
         })() {
             Ok(checked) => checked,
-            Err(error) => return Err((error, spi)),
+            Err(error) => return Err((error, wiring)),
         };
 
-        rcc.enable(info.enable);
-        rcc.reset(info.enable);
-        let mut tx = crate::dma::claim_channel(tx_dma);
-        let mut rx = crate::dma::claim_channel(rx_dma);
+        rcc.enable(info.enable());
+        rcc.reset(info.enable());
+        let mut tx = crate::dma::claim_channel(&wiring.tx_dma);
+        let mut rx = crate::dma::claim_channel(&wiring.rx_dma);
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
         if tx.stop(STOP_SPINS).is_err() {
-            return Err((ConfigError::DmaBusy, spi));
+            return Err((ConfigError::DmaBusy, wiring));
         }
         if rx.stop(STOP_SPINS).is_err() {
-            return Err((ConfigError::DmaBusy, spi));
+            return Err((ConfigError::DmaBusy, wiring));
         }
         tx.clear_flags(Flags::ALL);
         rx.clear_flags(Flags::ALL);
-        info.unit.configure(code, config);
+        info.unit().configure(code, config);
 
         let frequency = Hertz(kernel_clock.0 >> (code + 1));
         Ok(Self {
@@ -285,27 +204,41 @@ impl<U: Instance> Spi<U> {
             clock: None,
             vector: RxD::INTERRUPT,
             health: Health::default(),
-            token: spi,
+            wiring,
         })
     }
 
-    /// The SCK `config` would give on this instance under `clocks`. A
-    /// `const fn`, so a board can assert its buses while compiling:
-    /// `const _: () = assert!(Spi::<SPI1>::check(&CLOCKS, &BUS).is_ok());`.
-    pub const fn check(clocks: &crate::rcc::Clocks, config: &Config) -> Result<Hertz, ConfigError> {
-        match U::KERNEL.frequency(clocks) {
-            Some(kernel_clock) => config.check(kernel_clock),
-            None => Err(ConfigError::KernelClock),
-        }
+    /// Stops both streams and closes the SPI, and hands back what
+    /// [`new`](Self::new) took: the wiring (the instance, the pins, both
+    /// stream tokens) and the buffers. What a `Drop` would do, made
+    /// explicit so the parts can move out. A transfer still running is
+    /// abandoned mid-frame: the streams stop and SPE drops, with ES0299
+    /// 2.11.1 / ES0182 2.12.1's BSY caveat on the dead peripheral, and the
+    /// vector finds an idle, disabled SPI that raises nothing. A reopen runs
+    /// `Spi::new` again on the same parts.
+    #[allow(clippy::type_complexity)]
+    pub fn free(mut self) -> (Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers) {
+        let _ = self.tx.stop(STOP_SPINS);
+        let _ = self.rx.stop(STOP_SPINS);
+        self.tx.clear_flags(Flags::ALL);
+        self.rx.clear_flags(Flags::ALL);
+        self.info.unit().disable();
+        let buffers = Buffers {
+            tx: core::mem::take(&mut self.tx_buf),
+            rx: core::mem::take(&mut self.rx_buf),
+        };
+        (self.wiring, buffers)
     }
+}
 
+impl<W: SpiParts> Spi<W> {
     /// Changes the bus settings between transfers. Returns the new SCK.
     pub fn set_config(&mut self, config: &Config) -> Result<Hertz, ConfigError> {
         if matches!(self.state, State::Running(_)) {
             return Err(ConfigError::Busy);
         }
         let code = config.divider(self.kernel_clock)?;
-        self.info.unit.configure(code, config);
+        self.info.unit().configure(code, config);
         self.frequency = Hertz(self.kernel_clock.0 >> (code + 1));
         self.sck_cycles = self.cpu.0.div_ceil(self.frequency.0.max(1));
         Ok(self.frequency)
@@ -324,23 +257,6 @@ impl<U: Instance> Spi<U> {
     /// Measures blocking waits with `clock` instead of counting passes.
     pub fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
         self.clock = clock;
-    }
-
-    /// Stops both streams and closes the SPI, and hands the instance token
-    /// back: what a `Drop` would do, made explicit so the token can move
-    /// out. The buffers' memory and the DMA channels end with the handle.
-    /// A transfer still running is abandoned mid-frame: the streams stop
-    /// and SPE drops, with ES0299 2.11.1 / ES0182 2.12.1's BSY caveat on
-    /// the dead peripheral, and the vector finds an idle, disabled SPI
-    /// that raises nothing. A reopen runs `Spi::new` again, from the same
-    /// token and fresh stream tokens.
-    pub fn free(mut self) -> U {
-        let _ = self.tx.stop(STOP_SPINS);
-        let _ = self.rx.stop(STOP_SPINS);
-        self.tx.clear_flags(Flags::ALL);
-        self.rx.clear_flags(Flags::ALL);
-        self.info.unit.disable();
-        self.token
     }
 
     /// The vector to bind to [`on_interrupt`](Self::on_interrupt).
@@ -378,7 +294,7 @@ impl<U: Instance> Spi<U> {
     }
 
     fn begin(&mut self, len: u16) -> Result<(), Error> {
-        let unit = self.info.unit;
+        let unit = self.info.unit();
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         unit.enable_rx_dma(len);
@@ -445,7 +361,7 @@ impl<U: Instance> Spi<U> {
         if !rx.complete {
             return None;
         }
-        let unit = self.info.unit;
+        let unit = self.info.unit();
         // The last byte is in; the SPI finishes its frame within an SCK or
         // two. Counted: a register read per pass, at least a cycle each.
         let mut deadline = Deadline::new(None, self.sck_cycles.saturating_mul(32), 1);
@@ -552,7 +468,7 @@ impl<U: Instance> Spi<U> {
         // Two frames in flight at most; a register read per spin, at least
         // a cycle each, so this bound covers them twice over.
         self.info
-            .unit
+            .unit()
             .reset_state(self.sck_cycles.saturating_mul(32));
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
@@ -597,14 +513,14 @@ fn copy(dst: &mut [u8], src: &[u8]) {
     }
 }
 
-impl<U: Instance> embedded_hal::spi::ErrorType for Spi<U> {
+impl<W: SpiParts> embedded_hal::spi::ErrorType for Spi<W> {
     type Error = Error;
 }
 
 /// Bounded: every operation is split into transfers of at most
 /// [`capacity`](Spi::capacity) bytes, each waited for within its bound.
 /// The bytes sent while reading are 0x00.
-impl<U: Instance> embedded_hal::spi::SpiBus<u8> for Spi<U> {
+impl<W: SpiParts> embedded_hal::spi::SpiBus<u8> for Spi<W> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Error> {
         let chunk = self.chunk();
         for part in words.chunks_mut(chunk) {

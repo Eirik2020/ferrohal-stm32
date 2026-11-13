@@ -68,11 +68,11 @@ const IMU_FAST: spi::Config = spi::Config::new(Hertz::mhz(24)).with_mode(spi::MO
 /// A config no clock can make: 0 Hz, for the constructor refusals.
 const SPI_ZERO: spi::Config = spi::Config::new(Hertz(0));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &IMU_SLOW),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &IMU_SLOW),
     Ok(Hertz(781_250))
 ));
 const _: () = assert!(matches!(
-    Spi::<SPI1>::check(&CLOCKS, &IMU_FAST),
+    ferrohal_stm32::spi::check::<SPI1>(&CLOCKS, &IMU_FAST),
     Ok(Hertz(12_500_000))
 ));
 

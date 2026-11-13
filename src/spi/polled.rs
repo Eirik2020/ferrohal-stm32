@@ -15,8 +15,8 @@ use crate::{
     rcc::Rcc,
     resource::{Refused, Resource, Signal},
     spi::{
-        BlockingWiring, Config, ConfigError, Error,
-        stream_dma::{Info, Instance, MisoPin, MosiPin, SckPin},
+        BlockingWiring, Config, ConfigError, Error, Info, Instance, MisoPin, MosiPin, SckPin,
+        SpiParts,
     },
     spi_ip::Unit,
     time::{CycleClock, Hertz},
@@ -28,10 +28,10 @@ const CHUNK: usize = 65_535;
 /// Added to every bound, in CPU cycles.
 const MARGIN_CYCLES: u32 = 20_000;
 
-/// An SPI master moving bytes by polling its data register. It carries the
-/// instance token: [`free`](Self::free) hands it back, so the same
-/// instance can open again.
-pub struct BlockingSpi<U> {
+/// An SPI master moving bytes by polling its data register. It keeps the
+/// board's wiring, the instance and its three pins, and
+/// [`free`](BlockingSpi::free) hands it back, so the same parts open again.
+pub struct BlockingSpi<W: SpiParts> {
     info: &'static Info,
     kernel_clock: Hertz,
     cpu: Hertz,
@@ -39,29 +39,30 @@ pub struct BlockingSpi<U> {
     sck_cycles: u32,
     clock: Option<&'static dyn CycleClock>,
     name: &'static str,
-    token: U,
+    wiring: W,
 }
 
-impl<U: Instance> BlockingSpi<U> {
+impl<U, Sck, Miso, Mosi> BlockingSpi<BlockingWiring<U, Sck, Miso, Mosi>>
+where
+    U: Instance,
+    Sck: SckPin<U>,
+    Miso: MisoPin<U>,
+    Mosi: MosiPin<U>,
+{
     /// Enables and resets the SPI and configures it as a master. Chip select
     /// is the firmware's GPIO.
     ///
     /// A refusal hands back `wiring` with the reason. Every refusal comes
     /// before anything is written to hardware.
     ///
-    /// On success the instance token moves into the handle;
-    /// [`free`](Self::free) returns it.
+    /// On success the handle keeps the wiring; [`free`](Self::free) returns
+    /// it.
     #[allow(clippy::type_complexity)]
-    pub fn new<Sck, Miso, Mosi>(
+    pub fn new(
         rcc: &mut Rcc,
         wiring: BlockingWiring<U, Sck, Miso, Mosi>,
         config: &Config,
-    ) -> Result<Self, Refused<ConfigError, BlockingWiring<U, Sck, Miso, Mosi>>>
-    where
-        Sck: SckPin<U>,
-        Miso: MisoPin<U>,
-        Mosi: MosiPin<U>,
-    {
+    ) -> Result<Self, Refused<ConfigError, BlockingWiring<U, Sck, Miso, Mosi>>> {
         let info = U::info();
         let clocks = rcc.clocks();
         let Some(kernel_clock) = U::KERNEL.frequency(&clocks) else {
@@ -71,8 +72,6 @@ impl<U: Instance> BlockingSpi<U> {
             Ok(code) => code,
             Err(error) => return Err(Refused::new(error, wiring)),
         };
-        // Past the last refusal: the wiring's tokens end when `new` returns.
-        let BlockingWiring { spi, .. } = wiring;
         rcc.enable(info.enable());
         rcc.reset(info.enable());
         info.unit().configure(code, config);
@@ -85,19 +84,21 @@ impl<U: Instance> BlockingSpi<U> {
             sck_cycles: clocks.cpu.0.div_ceil(frequency.0.max(1)),
             clock: None,
             name: U::NAME,
-            token: spi,
+            wiring,
         })
     }
 
-    /// Closes the SPI, and hands the instance token back: what a `Drop`
-    /// would do, made explicit so the token can move out. The SPI is idle
-    /// between polled transfers, so SPE drops with the bus quiet. A reopen
-    /// runs `BlockingSpi::new` again, from the same token.
-    pub fn free(self) -> U {
+    /// Closes the SPI and hands back what [`new`](Self::new) took, the
+    /// wiring: what a `Drop` would do, made explicit so the parts can move
+    /// out. The SPI is idle between polled transfers, so SPE drops with the
+    /// bus quiet. A reopen runs `BlockingSpi::new` again on the same parts.
+    pub fn free(self) -> BlockingWiring<U, Sck, Miso, Mosi> {
         self.info.unit().disable();
-        self.token
+        self.wiring
     }
+}
 
+impl<W: SpiParts> BlockingSpi<W> {
     /// Changes the bus settings. Returns the new SCK.
     pub fn set_config(&mut self, config: &Config) -> Result<Hertz, ConfigError> {
         let code = config.divider(self.kernel_clock)?;
@@ -186,12 +187,12 @@ impl<U: Instance> BlockingSpi<U> {
     }
 }
 
-impl<U: Instance> embedded_hal::spi::ErrorType for BlockingSpi<U> {
+impl<W: SpiParts> embedded_hal::spi::ErrorType for BlockingSpi<W> {
     type Error = Error;
 }
 
 /// Every operation is bounded. The bytes sent while reading are 0x00.
-impl<U: Instance> embedded_hal::spi::SpiBus<u8> for BlockingSpi<U> {
+impl<W: SpiParts> embedded_hal::spi::SpiBus<u8> for BlockingSpi<W> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Error> {
         for part in words.chunks_mut(CHUNK) {
             self.exchange(
