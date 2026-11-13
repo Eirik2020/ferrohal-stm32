@@ -10,19 +10,17 @@ a plain DuPont jumper and no resistor is fitted.
 The simulator's own documentation - register map, build and flashing - is
 [`pico-i2c-sim/README.md`](pico-i2c-sim/README.md).
 
-## Power: the Nucleo-H753ZI's CN13 cable
+## Power: the Pico and the Nucleo-H753ZI's CN13 cable
 
-The Pico 1 is powered and flashed over USB, with the cable taken from the
-H753's CN13 (USB OTG) connector:
+Since 2026-11-13 both stay connected, each on its own USB cable to the host:
 
-- Pico 1 `VBUS` (physical pin 40) is fed by its own micro-USB socket; no
-  3V3 jumper from either Nucleo is needed. The grounds below still tie the
-  I2C return paths short.
-- **The H753's run M (the USB device bench) needs that same cable**: it is
-  the only USB connector its OTG_FS device speaks through. While the cable
-  lives on the Pico, run M is off the H753 bench's default list
-  (`hil/run-h753.sh` no longer runs it); to re-verify USB-xxx, move the
-  cable back to CN13 and run `./run-h753.sh m`, then return it to the Pico.
+- Pico 1 `VBUS` (physical pin 40) is fed by its own micro-USB socket, which
+  also flashes it; no 3V3 jumper from either Nucleo is needed. The grounds
+  below still tie the I2C return paths short.
+- The H753's CN13 (USB OTG) carries its OTG_FS device, which run M (the USB
+  device bench) speaks through: it is always connected unless the owner says
+  otherwise, so run M is back on `hil/run-h753.sh`'s default list. (Before
+  2026-11-13 one cable served both, moved between them.)
 
 ## Pico 1 (I2C0) to Nucleo-F401RE — I2C3
 
@@ -71,7 +69,7 @@ kernel clock is the APB4/pclk4 path no other bench covers.
 ## Flashing and checking the Pico
 
 The Pico 1 W has no on-board debug probe, and this bench wires none:
-flashing goes over the USB cable (the one from the H753's CN13) through
+flashing goes over its own USB cable through
 the bootrom's UF2 drive. The **first** flash needs BOOTSEL by hand —
 after that the simulator reboots itself into its bootloader on request,
 so the button is never touched again.

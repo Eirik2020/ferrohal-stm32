@@ -3,7 +3,7 @@
  "counts": {
   "documents": 62,
   "agent": 43,
-  "bytes": 224265
+  "bytes": 227223
  },
  "documents": [
   {
@@ -11,14 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4154
+   "bytes": 4164
   },
   {
    "path": "DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 22339
+   "bytes": 22154
   },
   {
    "path": "README.md",
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 32860
+   "bytes": 33373
   },
   {
    "path": "THIRD-PARTY.md",
@@ -359,7 +359,7 @@
    "class": "human",
    "title": "W14: naming normalisation (ADR-003)",
    "purpose": "Split out of the free redesign plan2026-11-08",
-   "bytes": 1593
+   "bytes": 2022
   },
   {
    "path": "docs/plans/2026-11-10-doc-sweep.md",
@@ -394,7 +394,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 7239
+   "bytes": 8332
   },
   {
    "path": "hil/RIG.md",
@@ -408,7 +408,7 @@
    "class": "human",
    "title": "Bench wiring: the Pico 1 I2C simulator",
    "purpose": "The two Nucleo benches prove FerroHAL's I2C m",
-   "bytes": 4765
+   "bytes": 4667
   },
   {
    "path": "hil/pico-i2c-sim/README.md",
@@ -436,14 +436,14 @@
    "class": "human",
    "title": "Bench Procedures: the constructor refusals",
    "purpose": "The refusal runs of benches.mdbenches.md, spl",
-   "bytes": 2858
+   "bytes": 3120
   },
   {
    "path": "requirements/benches.md",
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 12026
+   "bytes": 12960
   },
   {
    "path": "requirements/goals.md",
