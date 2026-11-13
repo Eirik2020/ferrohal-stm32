@@ -122,13 +122,21 @@ ones that unblock a claim.
    that ends in the ROM and a host check that `dfu-util` then lists the
    H753's layout would prove RESET-004 on the H7. Run N reaches the request
    but leaves no DFU device behind as built (measured 2026-11-13).
-4. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
+4. **Every bench says what it is, over USB** (owner, 2026-11-13). Each bench firmware
+   answers an identity query on its USB serial port, the ST-LINK's virtual COM port on a
+   Nucleo, the board's own port on a flashed board, and its own CDC port on the Pico:
+   the part, the board, the die and its revision (`DEV_ID`, `REV_ID`), the UID, and the
+   firmware (crate, run, git revision, image hash). A host script polls every attached
+   bench for an overview of the rig. It would have shown on 2026-11-13 that the Pico was
+   connected: its simulator firmware has no USB device, so its absence on USB meant
+   nothing. Today the identity reaches only each run's RTT log, after a run.
+5. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
-5. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
+6. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
    the drift and lock-up classes a 300 s run cannot.
-6. **Environmental corners.** Temperature and supply extremes only where a
+7. **Environmental corners.** Temperature and supply extremes only where a
    flight-relevant claim needs them.
-7. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
+8. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
    claims get tight enough that read-back is not enough.
 
 ## Using it

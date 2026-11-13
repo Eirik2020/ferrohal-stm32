@@ -3,7 +3,7 @@
  "counts": {
   "documents": 67,
   "agent": 50,
-  "bytes": 258022
+  "bytes": 258708
  },
  "documents": [
   {
@@ -428,7 +428,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 8783
+   "bytes": 9469
   },
   {
    "path": "hil/COVERAGE.md",
