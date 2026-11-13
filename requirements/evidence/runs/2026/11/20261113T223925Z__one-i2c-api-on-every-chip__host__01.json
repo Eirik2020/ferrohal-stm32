@@ -1,0 +1,101 @@
+{
+  "schema_version": 5,
+  "run_id": "20261113T223925Z__one-i2c-api-on-every-chip__host__01",
+  "recorded_at_utc": "2026-11-13T22:39:25Z",
+  "board": null,
+  "revision": "14bed8371c045ea85c983a3f3e435df8d898beaf",
+  "working_tree": "clean",
+  "modules": {
+    "src/i2c/mod.rs": [
+      "extern:defmt@1.2.0",
+      "extern:embedded-hal@1.0.0",
+      "src/adc_v2/mod.rs",
+      "src/adc_v4/mod.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/gpio_v2/mod.rs",
+      "src/i2c_v1/mod.rs",
+      "src/i2c_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7_rm0433/mod.rs",
+      "src/rcc_kernel.rs",
+      "src/resource.rs",
+      "src/spi/instance.rs",
+      "src/spi_v2/mod.rs",
+      "src/spi_v4/mod.rs",
+      "src/time.rs",
+      "src/uart/stream_dma.rs",
+      "src/wait.rs"
+    ]
+  },
+  "identities": {
+    "extern:defmt@1.2.0": "1.2.0",
+    "extern:embedded-hal@1.0.0": "1.0.0",
+    "src/adc_v2/mod.rs": "8b2cfefa57cf0b99b1a5b4e5bf8c27d3213654ba8efd8c8b106bce2f0c4e39d7",
+    "src/adc_v4/mod.rs": "a5ff812ecb3470663ad6253a44336fb6dab71be9903d2bc23650c3139dafab93",
+    "src/chips/stm32f401re.rs": "2b6efe0a85362513c1500a4f8e34b0a54da9af71ba55544d2854ae818de4cb59",
+    "src/chips/stm32f405rg.rs": "ee53b143e01be326249ac04c9e8c72d0fa13e571412a2f4bfedc44cc19fd3c3a",
+    "src/chips/stm32h743vi.rs": "7c5597659b916fb9d6dbf7390f599af75c43b2f8c2a8fd00203af45919e9852f",
+    "src/chips/stm32h753zi.rs": "506412ea5413db94b78faa287c4101b45bc4fe069f89ec9cf5168f604b432448",
+    "src/dma_stream.rs": "cf53f1d9e01581424c3391bdcf1e56dce9e6f5c3d8e6de002ca655f63da46010",
+    "src/gpio_v2/mod.rs": "52fe7e4799fdab2bf7bb35bb50e94f01f7d49d2069fabdd7daa3c6eb5df6753f",
+    "src/i2c/mod.rs": "58dc141bbeaa9291712cc3158804a1b2b0a7664988bab47e7bf2289619b119d9",
+    "src/i2c_v1/mod.rs": "747c3734d7308b90d0962928f28e3e7990a8f0e2930a92d868598c4cb06df8fc",
+    "src/i2c_v2/mod.rs": "213a1c16596e7c581ffc7d2690c03d60eab76d915594eb8ee9c5e1a25138a8f7",
+    "src/lib.rs": "16d83293c9062eb07b46924d1889dfa8dd4bf048c7d7429f8f31012c0d482eb6",
+    "src/rcc_f4/mod.rs": "4c4629437040ee2f8e7808d27e81de96358a8209682634607c7530976e4e21bc",
+    "src/rcc_h7_rm0433/mod.rs": "f3a41e8e3c4ad65a006cfc6c9f4a653674a1af84fbb171599a20736ececf09e5",
+    "src/rcc_kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+    "src/resource.rs": "f7b5a325a2e4c025da1418063138e3865fe3f9b9cd53d54a387ac66d5611fbc6",
+    "src/spi/instance.rs": "d3ed3c1b4902aa67faf7e7ea7c9d71522fcb9f8355dd49358aad9db631febb90",
+    "src/spi_v2/mod.rs": "b456bf774eb80094d1688a015da2bdf6df204822aeb99d8414c1132ed89adf6f",
+    "src/spi_v4/mod.rs": "c19c87204132a242214040afc36c83b5e7d4db17353b2be4cc4440359a86e8e3",
+    "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+    "src/uart/stream_dma.rs": "b93fcb75e4b605207f39c85169b6f7ee03bba5e9cc1aff0d80da0201e84344c2",
+    "src/wait.rs": "9f62d55f6c02ccb3e72ad35b181e8f5add4efb3bbf2a56d1c80cb0959e07a76b"
+  },
+  "results": [
+    {
+      "requirement": "I2C-001",
+      "method": {
+        "procedure": "requirements/benches-analysis.md#One I2C API on every chip"
+      },
+      "level": "analysis",
+      "environment": "host",
+      "hazard": "none",
+      "claim": "fcc19b17c7da1f422ead037143a0954d0f2771fb080b282a2d933760b0af54b4",
+      "exercised": [
+        "src/i2c/mod.rs"
+      ],
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "commands": [
+      {
+        "command": "checks/run.sh",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "checks-run",
+        "kind": "log",
+        "path": "requirements/evidence/logs/instance-shape-20261113/checks-run.log",
+        "bytes": 880,
+        "sha256": "ed34686c02a8519ecd08c24a239f3486eb99239b3487826d3894e6339782fb1f"
+      }
+    ]
+  }
+}
