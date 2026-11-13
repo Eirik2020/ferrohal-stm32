@@ -5,7 +5,7 @@ Public repo. Bench-verified.
 
 ## Authority
 
-- This file governs this tree only. Workspace `CLAUDE.md` = siblings. `ferrohal-handover.md` = history, not rules.
+- This file governs this tree only. Workspace `CLAUDE.md` = siblings. The old workspace handover is archived (restricted): history, not rules.
 - Normative: `docs/policies/{safety,documentation,agent-docs}.md`, `docs/design/`, `requirements/goals.md`.
 
 ## Read when

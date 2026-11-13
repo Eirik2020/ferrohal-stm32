@@ -3,7 +3,7 @@
  "counts": {
   "documents": 63,
   "agent": 44,
-  "bytes": 247171
+  "bytes": 247199
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4599
+   "bytes": 4627
   },
   {
    "path": "README.md",
