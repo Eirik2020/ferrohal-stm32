@@ -15,9 +15,9 @@
 | a | docs/design/naming.md | 3958 B | Source: ADR-003, ../decisions/2026-11-08-nami |
 | a | docs/design/ownership.md | 2029 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-ids.md | 1789 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/requirements-system.md | 3815 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/requirements-tooling.md | 2507 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/scope.md | 2527 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/requirements-system.md | 3886 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/requirements-tooling.md | 2741 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/scope.md | 2915 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/structure.md | 1497 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/uart-ferrowasp.md | 1402 B | Source: ADR-005, ../decisions/2026-10-31-ferr |
 | a | docs/design/uart-ownership.md | 1710 B | Source: ADR-004, ../decisions/2026-11-09-uart |

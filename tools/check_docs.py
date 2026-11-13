@@ -17,6 +17,10 @@ document, the code or a requirement, unless it is an entry or a hub. A split's
 second document is linked from the first.
 
 Dates: documents under docs/ must be named YYYY-MM-DD-topic.md.
+
+Root: a committed markdown file at the repository root must be README.md,
+AGENTS.md or THIRD-PARTY.md; any other root .md is temporary, stays uncommitted,
+and is neither budgeted nor indexed.
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ from __future__ import annotations
 import datetime
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -46,8 +51,8 @@ AGENT_FACING = (
 ENTRY = {
     "AGENTS.md",
     "README.md",
-    "DEBT.md",
-    "RESOLVED.md",
+    "docs/DEBT.md",
+    "docs/RESOLVED.md",
     "docs/decisions/README.md",
     "docs/housekeeping/README.md",
     "docs/housekeeping/state.md",
@@ -55,12 +60,14 @@ ENTRY = {
 HUBS = ("docs/decisions/index/",)
 LINK = re.compile(r"\]\(([^)\s#]+\.md)(?:#[^)]*)?\)")
 
-# Never part of a commit decision: drafts and evidence.
+# The only markdown a commit may hold at the repository root (owner, 2026-11-13).
+# Any other root `.md` is temporary - a review record, a draft - and stays
+# uncommitted: no budget, no index.
+ROOT_FILES = {"README.md", "AGENTS.md", "THIRD-PARTY.md"}
+
+# Never part of a commit decision: evidence and build output.
 EXEMPT = (
-    r"^ferrosmith-board-schema\.md$",  # untracked draft
-    # Review records: kept for the owner to cross-check a review against its
-    # commits, then deleted; not part of the documentation set or its index.
-    r"^REVIEW-\d{4}-\d{2}-\d{2}(-[a-z0-9-]+)?\.md$",
+    r"^review/",  # the owner's reviews and drafts: uncommitted, not ours to write
     r"^requirements/evidence/",
     r"^target/",
     r"^\.git/",
@@ -73,6 +80,26 @@ GENERATED = re.compile(r"^docs/index/")
 DATE_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9][a-z0-9-]*\.md$")
 
 
+def committed_root_docs() -> set[str] | None:
+    """The root `.md` files git tracks, or None where there is no git."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(ROOT), "ls-files", "--", "*.md"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return {line for line in out.splitlines() if "/" not in line}
+
+
+def temporary(relative: str) -> bool:
+    """An uncommitted root `.md`: a review record or a draft."""
+    if "/" in relative:
+        return False
+    committed = committed_root_docs()
+    return committed is not None and relative not in committed
+
+
 def documents() -> list[Path]:
     """Every markdown document the budgets cover, in path order."""
     found = []
@@ -80,8 +107,16 @@ def documents() -> list[Path]:
         relative = path.relative_to(ROOT).as_posix()
         if any(re.search(pattern, relative) for pattern in EXEMPT):
             continue
+        if temporary(relative):
+            continue
         found.append(path)
     return found
+
+
+def root_files() -> list[str]:
+    """Committed root documents outside ROOT_FILES."""
+    committed = committed_root_docs() or set()
+    return sorted(name for name in committed - ROOT_FILES if (ROOT / name).exists())
 
 
 def budget_for(relative: str) -> int:
@@ -155,6 +190,13 @@ def main() -> int:
             stem = relative.rsplit("/", 1)[1]
             if not DATE_NAME.match(stem):
                 failures.append(f"{relative}: name it YYYY-MM-DD-topic.md")
+
+    # The root holds only a repository's expected files; documents live in docs/.
+    for name in root_files():
+        failures.append(
+            f"{name}: a committed document at the root; move it under docs/ "
+            "(root: " + ", ".join(sorted(ROOT_FILES)) + ")"
+        )
 
     # No orphans: a split's second document is linked from the first.
     for orphan in orphans(

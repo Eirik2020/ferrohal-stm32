@@ -9,6 +9,12 @@ What it enforces (docs/policies/safety.md):
   `#[cfg(feature = "rtic")]`;
 - the feature table keeps that exception opt-in: `default = []`,
   `rtic = ["rt"]`, and no other feature implies `rtic`;
+- the `rtic` feature adds that one item and nothing else: the only mention of
+  `feature = "rtic"` in `src/` is its gate (owner, 2026-11-13: RTIC gets the
+  absolute minimum it needs);
+- the `device` module RTIC's `device = ...` names exports exactly what RTIC's
+  generated code uses: `Interrupt` (and `interrupt`), `NVIC_PRIO_BITS` and
+  `Peripherals`;
 - metapac imports stay confined to the chip glue, the RTIC `device` module
   and the IP modules that speak registers, so no new module can quietly
   grow a dependency on the PAC.
@@ -65,6 +71,39 @@ for name, enables in features.items():
     if name != "rtic" and "rtic" in enables:
         offenders.append(f"Cargo.toml: feature {name} implies rtic")
 
+# The rtic feature gates the allowlist entry and nothing else.
+gates = []
+for path in sorted(root.glob("src/**/*.rs")):
+    relative = path.relative_to(root).as_posix()
+    for index, line in enumerate(path.read_text().splitlines()):
+        if re.search(r'feature\s*=\s*"rtic"', line):
+            gates.append((relative, index))
+steal_gate = []
+for relative, name in ALLOWED_UNSAFE.items():
+    lines = (root / relative).read_text().splitlines()
+    for index, line in enumerate(lines):
+        if re.match(rf"\s*pub unsafe fn {name}\b", line):
+            steal_gate += [(relative, i) for i in range(max(0, index - 4), index)]
+for relative, index in gates:
+    if (relative, index) not in steal_gate:
+        offenders.append(f"{relative}:{index + 1}: the rtic feature gates more than steal")
+
+# The device module exports exactly what RTIC's generated code names
+# (rtic-macros 2.4.0: codegen/module.rs, codegen/bindings/cortex.rs).
+RTIC_NAMES = {"Interrupt", "interrupt", "NVIC_PRIO_BITS", "Peripherals"}
+device = (root / "src/device.rs").read_text()
+code = "\n".join(l for l in device.splitlines() if not l.lstrip().startswith("//"))
+exported: set[str] = set()
+for group in re.findall(r"pub use [\w:]+::\{([^}]*)\};", code):
+    exported |= {name.strip().split(" as ")[-1] for name in group.split(",") if name.strip()}
+exported |= set(re.findall(r"pub use [\w:]+::(\w+);", code))
+exported |= set(re.findall(r"pub use [\w:]+ as (\w+);", code))
+others = re.findall(r"^\s*pub (?:fn|struct|enum|const|static|mod|type|trait|macro) (\w+)", code, re.M)
+if exported != RTIC_NAMES or others:
+    offenders.append(
+        f"src/device.rs: exports {sorted(exported | set(others))}, RTIC names {sorted(RTIC_NAMES)}"
+    )
+
 # Metapac imports confined.
 for path in sorted(root.glob("src/**/*.rs")):
     if "stm32_metapac" not in path.read_text():
@@ -86,5 +125,6 @@ if offenders:
 
 print(
     "pass  safe api (G5): pub unsafe fn only Peripherals::steal behind rtic;"
+    " rtic gates nothing else; device exports only what RTIC names;"
     " metapac confined to chips/ + the register-speaking modules"
 )

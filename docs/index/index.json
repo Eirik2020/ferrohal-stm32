@@ -3,7 +3,7 @@
  "counts": {
   "documents": 63,
   "agent": 44,
-  "bytes": 233433
+  "bytes": 247199
  },
  "documents": [
   {
@@ -11,35 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4313
-  },
-  {
-   "path": "DEBT.md",
-   "class": "human",
-   "title": "FerroHAL: open debt and issues",
-   "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 22321
+   "bytes": 4627
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 4885
-  },
-  {
-   "path": "RESOLVED-chips-and-features.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt, by chip and feature",
-   "purpose": "The chip and feature sections of RESOLVED.mdR",
-   "bytes": 8495
-  },
-  {
-   "path": "RESOLVED.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt",
-   "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 33373
+   "bytes": 4895
   },
   {
    "path": "THIRD-PARTY.md",
@@ -49,11 +28,32 @@
    "bytes": 3046
   },
   {
+   "path": "docs/DEBT.md",
+   "class": "human",
+   "title": "FerroHAL: open debt and issues",
+   "purpose": "Open items only. Finished work moves to RESOL",
+   "bytes": 29546
+  },
+  {
+   "path": "docs/RESOLVED-chips-and-features.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, by chip and feature",
+   "purpose": "The chip and feature sections of RESOLVED.mdR",
+   "bytes": 8495
+  },
+  {
+   "path": "docs/RESOLVED.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt",
+   "purpose": "History: items moved out of DEBT.mdDEBT.md on",
+   "bytes": 36113
+  },
+  {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
    "class": "agent",
    "title": "ADR-005: FerroWasp integration and scope (2026-10-31)",
    "purpose": "ADR-005 - Status: accepted",
-   "bytes": 2935,
+   "bytes": 3408,
    "adr": "ADR-005",
    "status": "accepted"
   },
@@ -62,7 +62,7 @@
    "class": "agent",
    "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
    "purpose": "ADR-002 - Status: accepted",
-   "bytes": 2685,
+   "bytes": 2743,
    "adr": "ADR-002",
    "status": "accepted"
   },
@@ -71,7 +71,7 @@
    "class": "agent",
    "title": "ADR-001: G5, safe by default (2026-11-08)",
    "purpose": "ADR-001 - Status: promoted",
-   "bytes": 2409,
+   "bytes": 2606,
    "adr": "ADR-001",
    "status": "promoted"
   },
@@ -80,7 +80,7 @@
    "class": "agent",
    "title": "Decision: naming scheme (2026-11-08)",
    "purpose": "ADR-003 - Status: promoted",
-   "bytes": 2990,
+   "bytes": 3269,
    "adr": "ADR-003",
    "status": "promoted"
   },
@@ -198,21 +198,21 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 3815
+   "bytes": 3886
   },
   {
    "path": "docs/design/requirements-tooling.md",
    "class": "agent",
    "title": "Requirement format and reqtool",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2507
+   "bytes": 2741
   },
   {
    "path": "docs/design/scope.md",
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2527
+   "bytes": 2915
   },
   {
    "path": "docs/design/structure.md",
@@ -268,7 +268,7 @@
    "class": "agent",
    "title": "IP versions across families (stm32-metapac 21, measured)",
    "purpose": "From the architecture map's section 11, disso",
-   "bytes": 1262
+   "bytes": 1259
   },
   {
    "path": "docs/notes/2026-11-10-reference-implementations.md",
@@ -338,14 +338,14 @@
    "class": "agent",
    "title": "API review: consistency, naming, structure, reuse (hub)",
    "purpose": "Merged 2026-11-11, every fact re-measured at ",
-   "bytes": 2866
+   "bytes": 3112
   },
   {
    "path": "docs/plans/2026-11-08-debt-sweep-gates.md",
    "class": "human",
    "title": "Debt sweep: detail, gates, cross-repo",
    "purpose": "Part of the plan2026-11-08-debt-sweep.md.",
-   "bytes": 2997
+   "bytes": 3047
   },
   {
    "path": "docs/plans/2026-11-08-debt-sweep.md",
@@ -380,21 +380,21 @@
    "class": "agent",
    "title": "Agent-doc style",
    "purpose": "Agent docs = AGENTS.md + docs/{policies,decis",
-   "bytes": 1153
+   "bytes": 1164
   },
   {
    "path": "docs/policies/documentation.md",
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 3241
+   "bytes": 4201
   },
   {
    "path": "docs/policies/safety.md",
    "class": "agent",
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
-   "bytes": 2522
+   "bytes": 3035
   },
   {
    "path": "hil/CAPABILITIES.md",

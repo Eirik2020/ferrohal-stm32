@@ -39,6 +39,10 @@ for chip in "${chips[@]}"; do
         cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb" -- -D warnings
     step "clippy without usb ($chip)" \
         cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit" -- -D warnings
+    # A broken intra-doc link, or one into a private item, is a doc that
+    # points nowhere for the crate's users.
+    step "rustdoc ($chip)" \
+        env RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb"
     # From its own directory: cargo reads .cargo/config.toml from where it
     # runs, and without that package's link.x the linker can discard
     # everything, panics included, and pass for nothing. A linker warning

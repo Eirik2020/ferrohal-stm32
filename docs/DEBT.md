@@ -2,20 +2,23 @@
 
 Open items only. Finished work moves to [RESOLVED.md](RESOLVED.md), which is history and needn't be read to work on the crate.
 
-Status as of 2026-11-10:
+Status as of 2026-11-13:
 
-- **F401:** `hil/run-f401.sh` passes its twenty-one default runs, 318 checks (2026-11-12); the runs, their links and their checks are in `requirements/benches.md`.
-- **H753ZI:** `hil/run-h753.sh` passes its twenty-one default runs, 532 checks (2026-11-12); run M, off the list while its CN13 cable powers the Pico, passed 11 of 11 on 2026-11-09.
-- **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). UARTs and real motor output haven't run on it from this bench.
-- **H743VI:** `hil/run-lucid.sh` passes 51 of 51 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 592 and 590 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams, its UID and rev V (2026-11-10). Its DFU entry came from FerroWasp's `reboot dfu`, no BOOT hold.
-- **All four chips:** `checks/run.sh` (clippy, no reachable panic, glue against metapac, host tests) passes.
+- **F401:** `hil/run-f401.sh` passes its twenty-one default runs, 331 checks (2026-11-13); the runs, their links and their checks are in `requirements/benches.md`.
+- **H753ZI:** `hil/run-h753.sh` passes its twenty-three default runs, 560 checks, run M (USB, on CN13) and run Y included (2026-11-13).
+- **F405RG:** `hil/run-foxeer.sh` passes 39 of 39 checks on the Foxeer F405 V2, plus the host's USB echo: its crystal and voltage scale, IMU over DMA with EXTI data ready, real SPI NOR, its battery inputs, and its motor timers and streams in the flight arrangement (TIM1 starting TIM8, 100 frames on DMA2). A smoke test: it carries no evidence (`docs/design/requirements-system.md`).
+- **H743VI:** `hil/run-lucid.sh` passes 51 of 51 with a card on the TBS Lucid H7 (STM32H743VIH6, TFBGA100), plus USB echo at 592 and 590 KiB/s, polled and interrupt: crystal, IMU over DMA with EXTI data ready, battery inputs, a real SD card, motor timers and streams, its UID and rev V (2026-11-10). A smoke test, as the Foxeer.
+- **All four chips:** `checks/run.sh` (28 steps: clippy, rustdoc, no reachable panic, names, glue against metapac, docs, host tests) passes.
+- **Requirements:** reqtool reads 117 of 122 verified, 0 stale; the 5 unverified wait on rig upgrades the owner holds (`hil/CAPABILITIES.md`).
 
-| Chip | Board | IP versions | Hardware-tested |
-|---|---|---|---|
-| STM32F401RE | Nucleo-F401RE | `usart_v2`, `spi_v2`, `exti_v1`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 USART DMA routes; USART2 through a host echo on the ST-LINK VCP. All three SPIs on all 15 pin entries and all 10 SPI DMA routes. EXTI on PA12 and on every SPI SCK pin. |
-| STM32F405RG | Foxeer F405 V2 | as the F401 | HSE crystal to 168 MHz, checked against the host's USB frames. USB CDC on OTG_FS. SPI1 on the IMU's pins and DMA2 streams, EXTI4 from its data-ready, SPI2 polled on the real NOR. TIM2 timebase; the watchdog started and fed. |
-| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7_rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
-| STM32H743VI | TBS Lucid H7 | as the H753ZI | HSE crystal to 400 MHz, checked against the host's USB frames. USB CDC on OTG_FS from HSI48. SPI1 on the IMU's pins and DMA1 streams 4 and 5, EXTI2 from its data-ready. |
+IP versions per chip: [`docs/design/naming.md`](design/naming.md#features).
+
+| Chip | Board | Hardware-tested |
+|---|---|---|
+| STM32F401RE | Nucleo-F401RE | All three USARTs, all 10 TX/RX pin entries, all 9 USART DMA routes; USART2 through a host echo on the ST-LINK VCP. All three SPIs on all 15 pin entries and all 10 SPI DMA routes. EXTI on PA12 and on every SPI SCK pin. |
+| STM32F405RG | Foxeer F405 V2 | HSE crystal to 168 MHz, checked against the host's USB frames. USB CDC on OTG_FS. SPI1 on the IMU's pins and DMA2 streams, EXTI4 from its data-ready, SPI2 polled on the real NOR. TIM2 timebase; the watchdog started and fed. |
+| STM32H753ZI | Nucleo-H753ZI | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
+| STM32H743VI | TBS Lucid H7 | HSE crystal to 400 MHz, checked against the host's USB frames. USB CDC on OTG_FS from HSI48. SPI1 on the IMU's pins and DMA1 streams 4 and 5, EXTI2 from its data-ready. |
 
 Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp). **Medium** is a gap someone will hit soon. **Low** is cleanup, or a limit worth knowing.
 
@@ -25,7 +28,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ### Correctness
 
-- **Medium: the v2 error clear can take a good byte** ([usart_v2](src/usart_v2/mod.rs), `Line::take_errors`).
+- **Medium: the v2 error clear can take a good byte** ([usart_v2](../src/usart_v2/mod.rs), `Line::take_errors`).
   - Clearing errors needs an SR read then a DR read; if DMA hasn't taken the byte in DR yet, the DR read consumes it. Inherent to v2 (v4 clears through ICR). A limit: "one byte may be lost per reported line error" is documented on `Uart`.
 - **Low: the v2 parity clear is measured at one speed.** Run B saw the DMA already holding the bad byte with RXNE clear, and the next frame intact, one sample each way at 115200. A faster line leaves less time before the clear's DR read, which is the one-byte loss above; 420000 (CRSF) hasn't been measured.
 - **Medium: parity errors can be lost while transmitting** (`usart_v2`; ES0299 2.10.2, ES0182 2.11.2).
@@ -57,7 +60,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: a tick or timebase rate must divide the timer clock exactly.** `Tick` and `Timebase` refuse a rate they would have to round (`ConfigError::Inexact`) rather than drift.
 - **Low: some timers share their update vector** (the F4's `TIM1_UP_TIM10`, the H7's `TIM8_UP_TIM13`). `Tick::on_interrupt` returns `false` for another's flag; firmware calls every sharer's handler.
 - **Low: `verify()` can't check task priorities.** It checks a UART's vectors are enabled at one priority; "above every task that uses it" is the application's job.
-- **Low: no `free()` returns its pins,** only the token: no second role on its pins ([free.md](docs/design/free.md)).
+- **Low: no `free()` returns its pins,** only the token: no second role on its pins ([free.md](design/free.md)).
 - **Low: DMA double buffering and FIFO threshold mode are untested,** and unreachable outside the crate since W6b2 made `Channel::start` internal.
 - **Medium: the ADC is regular conversions by software start only.** No timer trigger, injected channels, watchdogs, oversampling, or differential inputs; ADC2 isn't offered, nor the H7's `_C` pads. An `AdcScan` holds its ADC for good, and one sample time serves every channel.
 - **Low: the H7's ADC runs at a fixed 4 MHz,** per_ck (HSI) over 16, FerroWasp's speed, with BOOST left at its reset value, which suits that clock on both silicon revisions. ES0392 2.9.8 limits ADC3's resolution while the LSE runs; nothing here starts it. The Nucleo's bench reads 16 bits to within a few hundred counts on the rails, with no accuracy figure beyond that.
@@ -71,18 +74,15 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 ### Architecture and process
 
 - **Medium: the routing generator doesn't exist** (`docs/design/api-surface.md`, `docs/design/scope.md`). Glue rows are hand-written; `tools/check_glue.py` checks them against metapac (U(S)ARTs, SPIs, timers, USB, ADCs, SDMMC, DMA and EXTI vectors: 127 facts on the F401, 173 on the F405, 180 on the H743, 184 on the H753) by reading the rows as text, so their layout must stay as it is. The metadata doesn't hold the USB FIFO depth, endpoint count or core kind, the clock limits or the memory map, so those stay checked by hand against the manuals.
-- **Medium: five source files each serve two IP versions** (`docs/design/structure.md`, `docs/design/requirements-system.md`). [dma_stream.rs](src/dma_stream.rs) serves `dma_v1` and `dma_v2`, [exti.rs](src/exti.rs) `exti_v1` and `exti_h7`, [timer.rs](src/timer.rs) `timer_v1` and `timer_v3`; the engines [uart/stream_dma.rs](src/uart/stream_dma.rs) and [spi/stream_dma.rs](src/spi/stream_dma.rs) serve two IP versions each through their `Line`/`Unit`. Decide whether a module's hash covers shared sources, or split once they diverge.
 - **Medium: the feature hierarchy departs from `docs/design/structure.md`.** Chip features turn on their family marker, and two chip features together are caught only by a `compile_error!` listing every pair (six at four chips).
 - **Low: the bench isn't on FerroForge yet.** Decided (2026-11-02): no fork is needed, since FerroForge's macros don't depend on a HAL and FerroHAL provides the RTIC device module; only its CLI backends name stm32f4xx-hal and stm32h7xx-hal. When FerroWasp's swap nears, add a FerroHAL backend to the FerroForge CLI and move the bench runs onto FerroForge tasks, which should cut 15-25 % of the run binaries' lines and prove the pair together.
-- **Medium: every driver has requirements, but tracing isn't enforced per file** (`docs/design/requirements-tooling.md`). `every_file_traced` in `reqtool.toml` stays off, because reqtool applies it to the bench crates under `hil/` as well as the library, and calls every file safety-critical. Neither the catalog links nor the diff analysis record is built.
-- **Medium: no requirement covers what's listed elsewhere in this file as missing or untested,** such as DMA double buffering or SPI bit order. A requirement says only what's measured.
 - **Medium: a UART fault still has no evidence** (`UARTDMA-009`): no bench makes a DMA stream refuse to stop. The owner set it aside until after the swap (2026-11-03): file it under the swap's follow-ups, not as a blocker.
 - **Low: kernel clock equals bus clock.** True on F4; on H7 only because `freeze` forces the kernel muxes. Add a kernel-clock field to `Info` before offering other muxes.
 
 ### GPIO
 
 - **Low: a bonded port still splits into every pin.** `Port::split` hands out all sixteen pins, so an unbonded one (PB11 on the F401's LQFP64, a second PH pin on the H7s) can be split out as GPIO though no routing row may name it; `BONDED` and `check_glue.py` enforce the rows, not the split. A per-package `Parts` would remove the fields.
-- **Medium: an I2C wiring accepts a push-pull pin:** both `into_alternate` forms return the same type ([gpio_v2](src/gpio_v2/mod.rs)), and push-pull NACKs every transfer (RESOLVED, 2026-11-08). Fix: an open-drain type state.
+- **Medium: an I2C wiring accepts a push-pull pin:** both `into_alternate` forms return the same type ([gpio_v2](../src/gpio_v2/mod.rs)), and push-pull NACKs every transfer (RESOLVED, 2026-11-08). Fix: an open-drain type state.
 - **Low: missing GPIO features:** an open-drain output, runtime mode switching.
 
 ### Test harness (`hil/`)
@@ -153,11 +153,69 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 
 ---
 
-## 6. Transition items
+## 6. API review findings (2026-11-11)
 
-Code that exists only while FerroWasp's transports run through the compatibility adapters (ADR-005). Each is marked `TRANSITION:` in its documentation and is removed once the transports move to FerroHAL's native model.
+Open findings of the API review, one line each; the evidence and the proposed fix are in
+its notes, hub [`docs/notes/2026-11-11-api-review.md`](notes/2026-11-11-api-review.md), which gives the order. The review measured at
+`d2bdccd`; re-measure a finding before fixing it. Closed: D5, K2, K3, K5-K8 (RESOLVED.md).
+Gate each fix: `checks/run.sh` and both Nucleo benches.
 
-- FerroWasp's UART and SPI adapters, in its `ferrowasp-stm32-critical`, marked `TRANSITION:` there. They go when its transports move to FerroHAL's native model. FerroHAL itself holds no transition code.
+| id | severity | finding | notes |
+|---|---|---|---|
+| D1 | Medium | Instance traits have five or more shapes, and nothing records which differences are deliberate. | [driver-traits](notes/2026-11-11-api-review-driver-traits.md) |
+| D2 | Medium | The kernel clock has three types and a `BUS` constant (with §1's kernel-clock item). | [driver-traits](notes/2026-11-11-api-review-driver-traits.md) |
+| D3 | Medium | The neutral drivers expose themselves three ways, so generic board code must name the IP version. | [driver-traits](notes/2026-11-11-api-review-driver-traits.md) |
+| D4 | Low | SPI's `Instance`, `Info` and pin traits live in its DMA engine, and the polled driver imports them from there. | [driver-traits](notes/2026-11-11-api-review-driver-traits.md) |
+| D6 | Medium | `uart::ConfigError` doubles as the crate's DMA-buffer error, reaching timers, PWM, SPI and ADC. | [driver-behaviour](notes/2026-11-11-api-review-driver-behaviour.md) |
+| D7 | Medium | A bad sampler rate refuses with `uart::ConfigError::Unsupported`, not the timer's error. | [driver-behaviour](notes/2026-11-11-api-review-driver-behaviour.md) |
+| D8 | Low | Refusals carry three error families: `ConfigError`, `Error`, `ClockError`. | [driver-behaviour](notes/2026-11-11-api-review-driver-behaviour.md) |
+| D9 | Low | The neutral `usb.rs` hard-codes PA11/PA12 AF10, a chip fact outside the glue. | [driver-behaviour](notes/2026-11-11-api-review-driver-behaviour.md) |
+| D10 | Low | USB and SDMMC wirings have no `RESOURCES`; the other five drivers do. | [driver-behaviour](notes/2026-11-11-api-review-driver-behaviour.md) |
+| D11 | Medium | Two wait mechanisms: `wait::Deadline`, and raw spin loops in nine files. | [driver-behaviour](notes/2026-11-11-api-review-driver-behaviour.md) |
+| D12 | Low | Interrupt service is not uniform (`on_interrupt` results, `poll` on some drivers only). | [driver-behaviour](notes/2026-11-11-api-review-driver-behaviour.md) |
+| D13 | Low | Vectors to bind come in four shapes, and `verify()` exists on five of nine. | [driver-behaviour](notes/2026-11-11-api-review-driver-behaviour.md) |
+| N1 | Medium | Refusal type aliases follow four naming patterns. | [naming](notes/2026-11-11-api-review-naming.md) |
+| N2 | Low | Module-prefix stutter is mixed (`UartRx` beside `Health`); 17 clippy `module_name_repetitions` hits. | [naming](notes/2026-11-11-api-review-naming.md) |
+| N3 | Medium | One quantity has four names: speed, frequency, rate, baudrate. | [naming](notes/2026-11-11-api-review-naming.md) |
+| N4 | Medium | `dma::Channel` is an erased stream, and "channel" means three things in one module. | [naming](notes/2026-11-11-api-review-naming.md) |
+| N5 | Low | "Handle" has no fixed shape. | [naming](notes/2026-11-11-api-review-naming.md) |
+| N6 | Low | Small naming leftovers: used `_` bindings, `usart` vs `*_ip` aliases, `vdda_mv`, an unused `Block` alias. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N7 | Low | The register wrapper is `Unit` in three drivers and `LineRegs` in the UART, with different visibility. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N8 | Low | Routing traits and wirings are named outside N2's rule; USB has no wiring. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N9 | Low | Vector-name constants differ by driver. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N10 | Low | The DMA fault variant is `DmaTransfer`/`DmaOverrun` in the UART, `Dma` elsewhere. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N11 | Low | The buffer refusal is split in the UART and SPI, one `Buffer` in the ADC. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N12 | Low | Health counters differ in plurality, type and overflow handling. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N13 | Low | RCC error variants differ between the F4 and the H7. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N14 | Low | Giving a token back is `free` on timers, `release` on `Exti`. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N15 | Low | Stopping a transfer is `abort` on four types, `stop` on `Sampler`. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N16 | Low | Masking events is `mask`/`unmask` on the UART, `listen`/`unlisten` on EXTI, where `listen` also means capture. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N17 | Low | The watchdog's constructor is `start` and its token `WatchdogPeripheral`, unlike every other driver. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N18 | Low | Accessors (`name`, `kernel_clock`, `health`, `check`) are present on some drivers only. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| N19 | Low | `Config` builders and `defmt` derives differ by driver. | [naming-drift](notes/2026-11-11-api-review-naming-drift.md) |
+| S1 | Medium | F4 glue repeats per die what the H7 glue shares in `chips/shared/h7.rs` (owner: after the routing generator). | [structure](notes/2026-11-11-api-review-structure.md) |
+| S2 | Low | Timer submodules sit beside their parent through `#[path]`, and twelve directories hold a lone `mod.rs`. | [structure](notes/2026-11-11-api-review-structure.md) |
+| S3 | Low | The UART engine is one file (`uart/stream_dma.rs`, 1,887 lines on 2026-11-13). | [structure](notes/2026-11-11-api-review-structure.md) |
+| S4 | Low | `Wiring::RESOURCES` sits in the engine for UART and SPI, beside the struct for I2C and ADC. | [structure](notes/2026-11-11-api-review-structure.md) |
+| S5 | Low | Clock-solver tests live in chip files, named after boards. | [structure](notes/2026-11-11-api-review-structure.md) |
+| S6 | Low | Chip exclusion is one `compile_error!` listing every pair (the §1 feature-hierarchy item). | [structure](notes/2026-11-11-api-review-structure.md) |
+| S7 | Low | Code leftovers: `Tick::free` repeats `Tick::stop`'s writes; F4 RCC `enable`/`reset` are hand-written matches. | [structure](notes/2026-11-11-api-review-structure.md) |
+| U1 | Medium | Chip glue repeats across dies of a family (owner: after the routing generator). | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U2 | Medium | Six RCC types and the wait helper are identical in `rcc_f4` and `rcc_h7_rm0433`. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U3 | Medium | Four drivers each hand-write the one-shot DMA transfer. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U4 | Medium | Lane assembly has four near-identical bodies in `timer_pwm.rs`. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U5 | Low | `Resource::Pin` rows are written out 13 times in five files. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U6 | Low | DMA and polled SPI repeat their clock and divider logic; `spi::Info` equals `i2c::Info`. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U7 | Low | Three unsafe slice-to-bytes casts exist only to call `check_dma_buffer`. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U8 | Low | Wait constants (`STOP_SPINS`, `PASS_CYCLES`, `MARGIN_CYCLES`) are repeated per file. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U9 | Low | `rcc.enable(x); rcc.reset(x)` is repeated eleven times. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U10 | Low | The vector check `interrupt()` + `verify_vectors` is repeated three times (with D13). | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| U11 | Low | The Foxeer's and the Lucid's `usb_irq.rs` differ in 3 of 101 lines. | [reuse](notes/2026-11-11-api-review-reuse.md) |
+| K1 | Medium | The bootloader path breaks two stated absolutes (NVIC, shared registers); justified but unrecorded in `scope.md`/`ownership.md`. | [docs](notes/2026-11-11-api-review-docs.md) |
+| K4 | Low | The list of shared sources differs between `docs/design/naming.md` and the review's count of nine. | [docs](notes/2026-11-11-api-review-docs.md) |
+| B1 | Low | A run letter means a different test on each bench; only S and W match. | [bench](notes/2026-11-11-api-review-bench.md) |
+| B2 | Low | H753 runs are generated (`tools/gen_h753_runs.py`), F401 runs hand-written. | [bench](notes/2026-11-11-api-review-bench.md) |
+| B3 | Low | F401 run V asserts D7's wrong error type, so it changes with D7. | [bench](notes/2026-11-11-api-review-bench.md) |
 
 ## 7. Deferred: no bench can prove it yet
 

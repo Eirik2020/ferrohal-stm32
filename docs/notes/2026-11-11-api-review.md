@@ -1,7 +1,7 @@
 # API review: consistency, naming, structure, reuse (hub)
 
 Merged 2026-11-11, every fact re-measured at `main` `d2bdccd`, from:
-- review 2026-11-10 at `7d1af83` (`REVIEW-2026-11-10-consistency.md`, repo root; host checks only);
+- review 2026-11-10 at `7d1af83` (`review/REVIEW-2026-11-10-consistency.md`, uncommitted; host checks only);
 - scan 2026-11-11: all 41 `src/` files (17 657 lines), `hil/`, `tools/`, both Nucleo benches.
 
 Scope: Rust API shape. ADR-003/W14 covers catalogs, IDs, features, scripts, doc names.
@@ -38,8 +38,13 @@ Per-IP directories with a lone `mod.rs`: 12, not 7. Shared sources: 9, not 8. Ca
 
 - Owner 2026-11-11: routing generator before chip-glue sharing (U1, S1).
 - Owner 2026-11-11: generated index split per area into `docs/index/`.
-- Open: driver genericity (D5), with the `free()` redesign.
+- ~~Open: driver genericity (D5)~~ closed 2026-11-13: every handle carries its token (`docs/design/free.md`).
 - Open: run identity (B1).
+
+## Status 2026-11-13
+
+Closed: D5, K2, K3, K5-K8 (`RESOLVED.md`). The other 54 are open, one line each in
+`DEBT.md` §6, which is the ledger; these notes keep the evidence and the fixes.
 
 ## Order (opinion)
 

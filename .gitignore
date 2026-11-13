@@ -7,3 +7,14 @@ hil/logs/
 # Python byte-code from tools/check_docs.py and tools/housekeeping.py.
 __pycache__/
 *.pyc
+
+# The owner's review records and architecture drafts: never committed, and agents
+# may not write there without the owner's permission (review/AGENTS.md, kept locally).
+/review/
+
+# The root holds only these documents; any other root .md is temporary (a review
+# record, a draft) and never committed (docs/policies/documentation.md).
+/*.md
+!/README.md
+!/AGENTS.md
+!/THIRD-PARTY.md

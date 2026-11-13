@@ -18,7 +18,7 @@ Part of [the plan](2026-11-08-debt-sweep.md).
   `Peripherals::steal().DMAx.split(rcc)`; `usb_bench`/no-panic use `reboot_to_bootloader()`;
   `API-001` is declared by `src/lib.rs` and measured by the no-panic link. Hardware: runs L, N, A.
 - W12: safe-api rules (1) no `pub unsafe fn` outside chip glue beyond the allowlist; (2) item carries `cfg(rtic)`; (3) `default = []`, `rtic = ["rt"]`, nothing implies it; (4) metapac imports only `src/chips/` + 12 drivers.
-- Next free IDs: IWDG-007, PWM-008, USART-006, API-002.
+- Next free IDs then (2026-11-09; W14 renamed the families since): IWDG-007, PWM-008, USART-006, API-002.
 - Masked vectors must not fail `UartIrq::verify()`.
 - `checks/no-panic` gains every new public fn: `start_windowed`, `start_with_lsi`, `start_one_pulse`, `mask`, `unmask`.
 

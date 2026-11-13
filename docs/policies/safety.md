@@ -17,7 +17,12 @@ Normative. Goal **G5** (`requirements/goals.md`). Rationale:
 - `unsafe` required by soundness, not RTIC: a safe steal aliases one peripheral twice and breaks exclusivity; the call sits in a generated `pub unsafe fn new` (`module.rs:294-299`).
 - Safe alternative: `take()`. Internal path: `steal_unchecked()`.
 - Metapac's own `steal()`/`from_ptr` on PAC types = "take the PAC", not a FerroHAL exception.
-- `device` keeps `Interrupt`, `NVIC_PRIO_BITS`, `interrupt!`, `Peripherals`.
+- RTIC gets the absolute minimum it needs (owner, 2026-11-13). The `rtic` feature adds this one
+  item and gates nothing else. Everything else RTIC's generated code names (rtic-macros 2.4.0
+  `codegen/module.rs`, `codegen/bindings/cortex.rs`) is `rt`'s `device` module, and `device`
+  exports exactly that: `Interrupt` (and its alias `interrupt`, which metapac also gives as
+  cortex-m-rt's attribute), `NVIC_PRIO_BITS`, `Peripherals`. `rt` itself is not RTIC's: every
+  firmware needs the vector table and `set-vtor`.
 
 ## Never public (crate-internal, no feature)
 
@@ -36,7 +41,7 @@ Normative. Goal **G5** (`requirements/goals.md`). Rationale:
 ## Enforce
 
 - Deny `clippy::undocumented_unsafe_blocks`, `unsafe_op_in_unsafe_fn`.
-- `tools/check_safe_api.py`: no `pub unsafe fn` outside chip glue beyond the allowlist; allowlist item must carry `#[cfg(feature = "rtic")]`; `default = []`, `rtic = ["rt"]`, nothing implies `rtic`; metapac imports confined.
+- `tools/check_safe_api.py`: no `pub unsafe fn` outside chip glue beyond the allowlist; allowlist item must carry `#[cfg(feature = "rtic")]`, the only `rtic` gate in `src/`; `device` exports exactly RTIC's names; `default = []`, `rtic = ["rt"]`, nothing implies `rtic`; metapac imports confined.
 - `checks/no-metapac`: compile-fail probes for the six accessors + a `ferrohal_stm32::pac` path.
 - New public function -> add to `checks/no-panic`. Requirement **API-001**.
 

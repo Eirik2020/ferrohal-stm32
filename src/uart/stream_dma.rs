@@ -108,7 +108,7 @@ pub struct Info {
     state: State,
 }
 
-// SAFETY: `port` is an address, and `State` is atomics.
+// SAFETY: `regs` is an address, and `State` is atomics.
 unsafe impl Sync for Info {}
 
 impl Info {
@@ -385,7 +385,7 @@ impl<U> Line<U> {
 
     /// Stops the line raising its own interrupt: clears the idle, parity and
     /// error enables. The vectors stay enabled in the NVIC, so
-    /// [`UartIrq::verify`] still passes, and an event that arrives while
+    /// [`UartInterrupts::verify`](crate::uart::UartInterrupts::verify) still passes, and an event that arrives while
     /// masked stays pending in the USART and is reported after
     /// [`unmask`](Self::unmask).
     pub fn mask(&mut self) {

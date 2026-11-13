@@ -13,8 +13,8 @@ env:
   FIRMWARE_TARGET: thumbv7em-none-eabihf
   # The toolchain the benches and checks have been running on.
   RUST_TOOLCHAIN: 1.98.1
-  # reqtool's main at the time this workflow was written. Bump it on purpose.
-  REQTOOL_REV: b28689a283248d90ff5d595c16395c80f6c4deba
+  # reqtool's main on 2026-11-13: board evidence follows files (#4, #5). Bump it on purpose.
+  REQTOOL_REV: 6b2e7482b47968d82fc1cd3e559b1215f4dcf175
 
 jobs:
   checks:

@@ -36,7 +36,6 @@ impl<const P: char> Port<P> {
     }
 }
 
-/// A port this chip has. Chip facts: the glue layer implements it.
 /// One port's register block. Crate-internal: a public bound naming it would
 /// hand metapac out.
 pub(crate) trait PortRegisters {

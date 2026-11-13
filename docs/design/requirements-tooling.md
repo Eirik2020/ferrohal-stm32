@@ -14,6 +14,7 @@ is [requirements-system.md](requirements-system.md).
 - **[Proposal]** Validation has three layers: the schema (structure), a text lint (vague words, exactly one "shall" per requirement) and a resolver (IDs match real items; every public item in a verified file is covered). These run in a separate publish tool, never in a build script.
 - **[Proposal]** The publish tool generates `requirements/index.json` (file hashes and a feature → file → requirement map) and a `requirements.md` per module. CI checks they are in sync with the sources.
 - **[Decided]** The tool is `reqtool`, its own crate shared by FerroWasp, FerroForge and FerroHAL (2026-11-03). It evidences a file and its pinned dependencies, without local imports or the compiler.
+- **[Decided 2026-11-13]** Every library file owes tracing: `every_file_traced`, with `hil/` left out by `every_file_traced_except` (`reqtool.toml`). Turning it on changed no requirement's status; every file already declared its IDs.
 - **[Decided]** `reqtool` speaks only generic terms, drawn from ordinary requirements practice, and knows nothing of any project. FerroWasp turns on more of it than FerroHAL does (2026-11-03).
 - **[Decided]** The hazard decides who runs a test: an agent may run and record what has none, and a person runs what is dangerous or could damage expensive equipment, with its preconditions stated (2026-11-03).
 

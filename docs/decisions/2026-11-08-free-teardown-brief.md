@@ -20,7 +20,8 @@ contract. Ecosystem precedent exists: `stm32h7xx-hal-0.16` has 11 `free(...)` me
    borrow their timer (or a split timer handle), `UartRx`/`UartTx` rejoin into `Uart`.
 3. Until then, the six bench "second use" checks move into fresh-boot runs so
    `tokens!::steal` can be deleted in the debt sweep (W4b).
-4. The naming normalisation (W14) travels with this project, not the sweep.
+4. The naming normalisation (W14) travels with this project, not the sweep. (Went
+   otherwise: W14 became its own PR, #39, 2026-11-13.)
 
 ## Proven blockers (do not rediscover)
 
@@ -47,4 +48,4 @@ contract. Ecosystem precedent exists: `stm32h7xx-hal-0.16` has 11 `free(...)` me
 - The fresh-boot bench runs stay valid; they simply become redundant and can be folded
   back once `free()` exists.
 - `DEBT.md`'s "no `release()`/`free()`" entry closes only when the redesign lands
-  (closed 2026-11-12, moved to [RESOLVED.md](../../RESOLVED.md)).
+  (closed 2026-11-12, moved to [RESOLVED.md](../RESOLVED.md)).

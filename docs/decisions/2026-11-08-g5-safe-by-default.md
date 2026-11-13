@@ -3,7 +3,9 @@
 ADR-001 - Status: promoted
 
 Promoted to: [`../policies/safety.md`](../policies/safety.md) (policy). This record keeps
-the rationale and the rejected alternatives. Approved 2026-11-08.
+the rationale and the rejected alternatives. Approved 2026-11-08. Reaffirmed by the owner
+2026-11-13, with one addition: the `rtic` feature exposes only the absolute minimum RTIC
+needs (`../policies/safety.md`, Exception 1; checked by `tools/check_safe_api.py`).
 
 ## Context
 
