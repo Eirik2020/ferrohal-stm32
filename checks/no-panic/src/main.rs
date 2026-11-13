@@ -789,6 +789,12 @@ pub fn exercise_usb(
             }
         }
     };
+    // Freed, and reopened from what came back.
+    let (token, dm, dp) = usb.free();
+    let usb = match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+        Ok(usb) => usb,
+        Err(_) => park(),
+    };
     keep(usb);
 }
 
@@ -1498,6 +1504,19 @@ pub fn exercise_adc<A, P, S>(
     keep(scan.interrupt());
     keep(scan.max_sample());
     keep(scan.to_millivolts(black_box(1), black_box(3300)));
+    // Freed back to the parts, a second scan from them, then the ADC freed
+    // and reopened from its token.
+    let (adc, stream, buffer) = scan.free();
+    let scan = match adc.into_scan(stream, &[channel], buffer) {
+        Ok(scan) => scan,
+        Err(_) => park(),
+    };
+    let (adc, _stream, _buffer) = scan.free();
+    let token = adc.free();
+    match Adc::new(rcc, token, &Config::slow_source()) {
+        Ok(adc) => keep(adc.free()),
+        Err(_) => park(),
+    }
 }
 
 /// The internal channels, on the ADC that has them.
@@ -1577,4 +1596,10 @@ pub fn exercise_sdmmc<U, Ck, Cmd, D0, D1, D2, D3>(
     let [block, _] = &mut blocks;
     keep(sd.read_block(lba, block));
     keep(sd.write_block(lba, block));
+    // Freed back to its wiring, and reopened from it.
+    let wiring = sd.free();
+    match Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) {
+        Ok(sd) => keep(sd.free()),
+        Err(_) => park(),
+    }
 }

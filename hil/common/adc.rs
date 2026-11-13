@@ -5,7 +5,10 @@
 // Each run binary compiles this file and uses what it needs.
 #![allow(dead_code)]
 
-use ferrohal_stm32::adc::{self, Adc, AdcScan, Channel, Error, InternalChannels};
+use ferrohal_stm32::{
+    adc::{self, Adc, AdcDma, AdcScan, Channel, Config, Error, InternalChannels},
+    rcc::Rcc,
+};
 
 use crate::tests::{Fail, Report};
 
@@ -154,10 +157,10 @@ pub fn internal<A: InternalChannels>(report: &mut Report, name: &str, adc: &mut 
 }
 
 /// `check` judges one finished sequence; `drive` sets the link's level.
-pub fn scan<A: adc::Instance>(
+pub fn scan<A: adc::Instance, S>(
     report: &mut Report,
     name: &str,
-    scan: &mut AdcScan<A>,
+    scan: &mut AdcScan<A, S>,
     settle_cycles: u32,
     bound_cycles: u32,
     mut drive: impl FnMut(bool),
@@ -212,4 +215,79 @@ pub fn scan<A: adc::Instance>(
         1,
     );
     drive(false);
+}
+
+/// One sequence, polled within `bound_cycles`.
+fn once<A: adc::Instance, S>(scan: &mut AdcScan<A, S>, bound_cycles: u32) -> bool {
+    if scan.start().is_err() {
+        return false;
+    }
+    for _ in 0..bound_cycles / 8 {
+        if let Some(done) = scan.poll() {
+            return done.is_ok_and(|samples| !samples.is_empty());
+        }
+    }
+    scan.abort();
+    false
+}
+
+/// Frees `scan` back to the ADC, its stream and its buffer, runs a sequence
+/// from those parts, then frees the ADC and reopens it from its token.
+/// `powered` reads the ADC's own enable bit, so the check sees it off.
+pub fn freed<A: InternalChannels, S: AdcDma<A>>(
+    report: &mut Report,
+    name: &str,
+    rcc: &mut Rcc,
+    scan: AdcScan<A, S>,
+    channels: &[Channel<A>],
+    bound_cycles: u32,
+    powered: impl Fn() -> bool,
+) {
+    let (adc, stream, buffer) = scan.free();
+    let adc = match adc.into_scan(stream, channels, buffer) {
+        Ok(mut again) => {
+            let ran = once(&mut again, bound_cycles);
+            expect(
+                report,
+                name,
+                "a freed scan's ADC, stream and buffer scan again [API-002]",
+                ran,
+                u32::from(ran),
+                1,
+            );
+            let (adc, _stream, _buffer) = again.free();
+            adc
+        }
+        Err(refused) => {
+            expect(
+                report,
+                name,
+                "a freed scan's ADC, stream and buffer scan again [API-002]",
+                false,
+                0,
+                1,
+            );
+            let (adc, _stream, _buffer) = refused.into_parts();
+            adc
+        }
+    };
+    let token = adc.free();
+    let on = powered();
+    expect(report, name, "a freed ADC is powered down [API-002]", !on, u32::from(on), 0);
+    let mv = match Adc::new(rcc, token, &Config::slow_source()) {
+        Ok(mut adc) => {
+            let mv = adc.vdda_millivolts().unwrap_or(0);
+            let _token = adc.free();
+            mv
+        }
+        Err(_) => 0,
+    };
+    expect(
+        report,
+        name,
+        "its token reopens it, VDDA about 3.3 V [API-002]",
+        (3000..=3600).contains(&mv),
+        mv,
+        3300,
+    );
 }

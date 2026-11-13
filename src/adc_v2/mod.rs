@@ -4,7 +4,7 @@
 //! Single conversions and sequences share the sequence registers, so a `read`
 //! between sequences isn't offered once an `AdcScan` holds the ADC.
 //!
-//! Requirements: ADC-001
+//! Requirements: ADC-001, API-002
 
 use stm32_metapac::{
     adc::{
@@ -161,5 +161,15 @@ impl Unit {
         self.regs.cr2().modify(|w| w.set_dma(false));
         self.regs.sr().write_value(Sr(0));
         overrun
+    }
+
+    /// Powers the ADC down: DMA requests off, ADON cleared, which stops any
+    /// conversion (RM0090 13.3.1, RM0368 11.3.1). A reopen powers it up again.
+    pub(crate) fn power_down(&self) {
+        self.regs.cr2().modify(|w| {
+            w.set_dma(false);
+            w.set_adon(false);
+        });
+        self.regs.sr().write_value(Sr(0));
     }
 }

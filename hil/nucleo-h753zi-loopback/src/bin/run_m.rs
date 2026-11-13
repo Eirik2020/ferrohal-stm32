@@ -63,6 +63,13 @@ fn main() -> ! {
         Ok(usb) => usb,
         Err(error) => defmt::panic!("USB clock: {}", error),
     };
+    // Freed to its token and pins, and reopened from them: the echo below
+    // runs on the reopened port.
+    let (token, dm, dp) = usb.free();
+    let (reopened, usb) = match UsbFs::new(&mut run.rcc, token, dm, dp) {
+        Ok(usb) => (true, usb),
+        Err(error) => defmt::panic!("USB reopen: {}", error),
+    };
     // SAFETY: `main` runs once, and these are the only references.
     let bus: &'static UsbBusAllocator<UsbBus> = unsafe {
         let memory = &mut *addr_of_mut!(EP_MEMORY);
@@ -81,6 +88,18 @@ fn main() -> ! {
 
     let mut report = Report::new();
     let name = "USB CDC CN13";
+    report.check(
+        name,
+        "a freed port reopens from its token and pins, and the echo runs on it [API-002]",
+        if reopened {
+            Ok(())
+        } else {
+            Err(Fail::Count {
+                expected: 1,
+                got: 0,
+            })
+        },
+    );
     // For the log only: the controller doesn't need VBUS to run.
     let vbus = embedded_hal::digital::InputPin::is_high(&mut run.vbus).unwrap_or(false);
     defmt::info!("{=str}: VBUS on PA9: {=bool}", name, vbus);

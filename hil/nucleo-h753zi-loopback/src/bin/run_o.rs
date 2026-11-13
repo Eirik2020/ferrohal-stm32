@@ -165,6 +165,15 @@ fn main() -> ! {
             pin_ok && (20_000..=28_000).contains(reference)
         },
     );
+    adc::freed(
+        &mut report,
+        "ADC3 freed",
+        &mut run.rcc,
+        scan,
+        &channels,
+        BOUND,
+        || stm32_metapac::ADC3.cr().read().aden(),
+    );
     let led = &mut run.led;
     tests::finish(&report, || led.set_high());
 }

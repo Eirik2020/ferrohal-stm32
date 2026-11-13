@@ -102,7 +102,7 @@ static mut IMU_TX: [u8; 16] = [0; 16];
 static mut IMU_RX: [u8; 16] = [0; 16];
 
 /// The SD card, if there's one in the slot.
-fn sd_suite(report: &mut Report, link: &mut Link, sd: &mut Sdmmc) {
+fn sd_suite<W>(report: &mut Report, link: &mut Link, sd: &mut Sdmmc<W>) {
     link.service();
     let card = match sd.init_card() {
         Ok(card) => card,
@@ -509,9 +509,17 @@ fn main() -> ! {
             }
             Ok(_) => reboot_to_dfu(),
         };
-    let Ok(mut sd) = Sdmmc::new(&mut rcc, sd_wiring, &sdmmc::Config::new(Hertz::mhz(25))) else {
+    let Ok(sd) = Sdmmc::new(&mut rcc, sd_wiring, &sdmmc::Config::new(Hertz::mhz(25))) else {
         reboot_to_dfu()
     };
+    // Freed to its wiring and reopened from it: the card suite runs on the
+    // reopened controller.
+    let sd_wiring = sd.free();
+    let (sd_reopened, mut sd) =
+        match Sdmmc::new(&mut rcc, sd_wiring, &sdmmc::Config::new(Hertz::mhz(25))) {
+            Ok(sd) => (true, sd),
+            Err(_) => reboot_to_dfu(),
+        };
 
     let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
     dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
@@ -582,6 +590,12 @@ fn main() -> ! {
             link,
             sd_refused,
             "refusals: a bus speed past the card's default limit refuses, and the wiring opened the real card [API-001]"
+        );
+        check!(
+            report,
+            link,
+            sd_reopened,
+            "sd: freed to its wiring and reopened; the card suite runs on it [API-002]"
         );
         rcc_suite(report, link);
         usb_bench::clock_suite(report, link, OTG_FS_DSTS, CLOCKS.cpu.0);

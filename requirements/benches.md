@@ -45,7 +45,7 @@ framing error.
 ## USB on the Nucleo-H753ZI
 
 `hil/run-h753.sh m`, with the CN13 cable on the H753, as the rig keeps it
-(`hil/WIRING.md`). Pass: every check passes and the script exits zero.
+(`hil/WIRING.md`). Pass: every check passes and the script exits zero. Before the echo, the port is freed to its token and both pins and reopened from them, so the echo runs on the reopened port [API-002].
 
 Run M (USB CDC over CN13) builds `run-m` before starting `hil/usb_cdc_host.py`, so the host's wait for a port
 is not spent compiling, and the host opens only a port that appeared after the one
@@ -86,11 +86,11 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## ADC on the Nucleo-F401RE
 
-`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDCODE REV_ID, read directly, and a code RM0368 lists [REVISION-001]. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDCODE REV_ID, read directly, and a code RM0368 lists [REVISION-001]. Pass: every check in every run passes and the script exits zero. Last, the scan is freed: the ADC, its stream and its buffer come back and run a sequence again, then ADC1 is freed, reads as powered down (ADON, read directly), and its token reopens it with VDDA about 3.3 V [API-002].
 
 ## ADC on the Nucleo-H753ZI
 
-`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDC REV_ID, read directly, and a code RM0433 lists [REVISION-001]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDC REV_ID, read directly, and a code RM0433 lists [REVISION-001]. Pass: every check in every run passes and the script exits zero. Last, ADC3's scan is freed: the ADC, its stream and its buffer come back and run a sequence again, then ADC3 is freed, reads as powered down (ADEN, read directly), and its token reopens it with VDDA about 3.3 V [API-002].
 
 ## The Foxeer F405 V2 board bench
 
@@ -100,7 +100,7 @@ A smoke test of the F405: no requirement names it (see the car rule in `docs/des
 ## The TBS Lucid H7 board bench
 
 A smoke test of the H743: no requirement names it (see the car rule in `docs/design/requirements-system.md`).
-`hil/run-lucid.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its SD checks need a card in the slot. Nine refusals lead the report, as the Foxeer's through the H7's constructors, with a DTCM lane buffer in place of the CCM one; the ninth is the SDMMC: a bus speed past the card's default limit refuses before the peripheral is touched, and the wiring that comes back opens the real card. Pass: every check in every run passes and the script exits zero.
+`hil/run-lucid.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its SD checks need a card in the slot. Nine refusals lead the report, as the Foxeer's through the H7's constructors, with a DTCM lane buffer in place of the CCM one; the ninth is the SDMMC: a bus speed past the card's default limit refuses before the peripheral is touched, and the wiring that comes back opens the real card. Pass: every check in every run passes and the script exits zero. The SDMMC is freed to its wiring and reopened before its card suite, which then runs on the reopened controller.
 
 ## The TBS Lucid H7 with its slot empty
 
