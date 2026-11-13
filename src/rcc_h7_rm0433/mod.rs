@@ -1,4 +1,4 @@
-//! RCC on the H742/H743/H753/H750 clock tree (`rcc_h7rm0433`): the explicit
+//! RCC on the H742/H743/H753/H750 clock tree (`rcc_h7_rm0433`): the explicit
 //! clock configuration, the power settings it depends on, and the single
 //! owner of every shared RCC register.
 //!
@@ -19,7 +19,7 @@
 //! Apache-2.0, Embassy project contributors): the power-up order, the PLL
 //! programming and the flash table. See `THIRD-PARTY.md`.
 //!
-//! Requirements: RCC-001, RCC-002, RESET-001
+//! Requirements: RCC-001, RCC-002, RCC-003, RESET-001
 
 use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,

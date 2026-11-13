@@ -212,7 +212,7 @@ requirements:
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
 
-  - id: SPIV2-001
+  - id: SPI-V2-001
     title: SPI v2 holds SCK between transfers
     statement: >-
       SPI v2 shall hold SCK at its idle level between transfers.
@@ -226,7 +226,7 @@ requirements:
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
 
-  - id: SPIV4-001
+  - id: SPI-V4-001
     title: SPI v4 holds SCK between transfers
     statement: >-
       SPI v4 shall hold SCK at its idle level between transfers, while the

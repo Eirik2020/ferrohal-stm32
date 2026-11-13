@@ -8,9 +8,9 @@
 //!
 //! Boot 2 then starts a 100 ms watchdog whose last 30 ms are its window,
 //! and feeds it five times 85 ms after each reload, inside the window: the
-//! chip must keep running [IWDG-007]. It then feeds at once, with the
+//! chip must keep running [IWDG-V2-002]. It then feeds at once, with the
 //! counter just reloaded and above the window, and that feed must reset
-//! the chip [IWDG-005]. Boot 3 reports it. At the board's 31.7 kHz the
+//! the chip [IWDG-V2-001]. Boot 3 reports it. At the board's 31.7 kHz the
 //! window opens about 71 ms after a reload and closes at about 101 ms.
 //!
 //! The window phase's progress survives the resets in one doubleword of
@@ -227,7 +227,7 @@ fn window_phase(
     }
     report.check(
         window,
-        "fed 5 times 85 ms after each reload, inside the window: no reset [IWDG-007]",
+        "fed 5 times 85 ms after each reload, inside the window: no reset [IWDG-V2-002]",
         Ok(()),
     );
     // Keep feeding inside the window while the host drains RTT: the early
@@ -245,7 +245,7 @@ fn window_phase(
     wait_ms(5);
     report.check(
         window,
-        "a feed before the window opens resets the chip [IWDG-005]",
+        "a feed before the window opens resets the chip [IWDG-V2-001]",
         Err(Fail::Count {
             expected: 1,
             got: 0,
@@ -271,14 +271,14 @@ fn report_window(report: &mut Report, window: &str, phase: Phase, cause: ResetCa
     match phase {
         Phase::Starting => report.check(
             window,
-            "start_windowed returned without a reset [IWDG-007]",
+            "start_windowed returned without a reset [IWDG-V2-002]",
             Err(Fail::Level {
                 expected_high: true,
             }),
         ),
         Phase::InWindow => report.check(
             window,
-            "fed inside the window: no reset [IWDG-007]",
+            "fed inside the window: no reset [IWDG-V2-002]",
             Err(Fail::Count {
                 expected: 0,
                 got: 1,
@@ -286,7 +286,7 @@ fn report_window(report: &mut Report, window: &str, phase: Phase, cause: ResetCa
         ),
         Phase::Early => report.check(
             window,
-            "a feed before the window opens resets the chip [IWDG-005]",
+            "a feed before the window opens resets the chip [IWDG-V2-001]",
             if cause.independent_watchdog {
                 Ok(())
             } else {

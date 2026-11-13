@@ -27,7 +27,7 @@ use crate::{
     dma_v1::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{SclPin, SdaPin},
-    rcc_h7rm0433::{Bus, RCC, RccBit},
+    rcc_h7_rm0433::{Bus, RCC, RccBit},
     sdmmc::{CkPin, CmdPin, D0Pin, D1Pin, D2Pin, D3Pin},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     usart_v4::{self, Info, LineRegs, RxDma, RxPin, TxDma, TxPin},

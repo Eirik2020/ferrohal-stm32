@@ -1,6 +1,8 @@
 # Decision: naming scheme (2026-11-08)
 
-ADR-003 - Status: accepted
+ADR-003 - Status: promoted
+
+Promoted to: [naming.md](../design/naming.md) (design), when W14 applied it on 2026-11-13.
 
 Applied as **W14**, its own PR since 2026-11-13 ([plan](../plans/2026-11-08-w14-naming.md)); scheduled with the `free()` redesign, it did not travel with it. Promotion target when W14 lands: a topic
 design document at `docs/design/naming.md` (the chip-to-feature table and the naming

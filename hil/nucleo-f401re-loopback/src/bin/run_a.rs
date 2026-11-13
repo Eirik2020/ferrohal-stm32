@@ -195,19 +195,19 @@ mod app {
         let mut report = Report::new();
         report.check_for(
             "USART1",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors1),
         );
         report.check_for(
             "USART6",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );
         report.check_for(
             "USART2",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors2),
         );
@@ -234,7 +234,7 @@ mod app {
 
         report.check_for(
             "USART1 PA9->PA10",
-            "USART-005",
+            "UART-020",
             "a masked line keeps its events out until unmasking",
             tests::line_mask(&mut loop1),
         );
@@ -266,7 +266,7 @@ mod app {
         tests::drain(&mut host);
         report.check_for(
             name,
-            "UART-001 UART-002 USART-001",
+            "UART-001 UART-002 UART-016",
             "echo",
             tests::echo(&mut host, b"hello host\n"),
         );

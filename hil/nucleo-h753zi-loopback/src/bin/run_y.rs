@@ -4,7 +4,7 @@
 //! takes its RX on PB11 (Z7) and UART4 its TX on PD1 (Z5), and nothing
 //! listens on those. Even parity into odd must reach UART4's reader as a
 //! parity error [UART-014], and half the baud rate as a framing error
-//! [UART-005 USART-002]; then both ends go back to 8N1 and a line must
+//! [UART-005 UART-017]; then both ends go back to 8N1 and a line must
 //! cross again.
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
@@ -147,13 +147,13 @@ mod app {
         let mut report = Report::new();
         report.check_for(
             "USART3 PC10",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_usart3),
         );
         report.check_for(
             "UART4 PC11",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_uart4),
         );
@@ -176,7 +176,7 @@ mod app {
         );
         report.check_for(
             NAME,
-            "UART-005 USART-002",
+            "UART-005 UART-017",
             "half baud rate reported as framing error",
             tests::framing_mismatch(&mut cross),
         );

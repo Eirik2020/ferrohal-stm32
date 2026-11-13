@@ -1,0 +1,17 @@
+schema_version: 2
+requirements:
+  - id: RESOURCE-001
+    title: A driver can see its vectors are enabled
+    statement: >-
+      A driver shall report whether the vectors it needs are enabled at one
+      priority.
+    rationale: >-
+      The caller binds vectors, so a missing one should show at start, not
+      as silence.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE

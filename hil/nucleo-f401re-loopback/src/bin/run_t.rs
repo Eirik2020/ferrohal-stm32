@@ -1,6 +1,6 @@
 //! Run T: asks the Pico simulator to reboot into its USB bootloader, the
 //! request that spares the next flash a finger on the BOOTSEL button.
-//! `hil/run-i2c-sim.sh flash` runs it when the RPI-RP2 drive is not
+//! `hil/pico-i2c-sim.sh flash` runs it when the RPI-RP2 drive is not
 //! mounted: one write to the map's BOOT register over I2C3, and the drive
 //! appears a moment later. There is nothing else to check here — the
 //! live suite covers the bus; this run exists so the host can reach the

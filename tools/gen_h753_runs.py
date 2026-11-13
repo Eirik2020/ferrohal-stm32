@@ -76,7 +76,8 @@ for run, (summary, uarts) in RUNS.items():
         for _, label, line, dma, txdma, _ in uarts
     )
     shared = "\n".join(f"        #[lock_free]\n        irq_{f}: UartIrq," for f, *_ in uarts)
-    local_uarts = "\n".join(f"        {f}: Uart,\n        vectors_{f}: UartInterrupts," for f, *_ in uarts)
+    local_uarts = "\n".join(f"        {f}: Uart<{line}>,\n        vectors_{f}: UartInterrupts," for f, _, line, *_ in uarts)
+    instances = ", ".join(line for _, _, line, *_ in uarts)
     opens = "\n".join(
         f"        let (uart_{f}, irq_{f}) =\n            board::open(&mut run.rcc, \"{label}\", run.{f}, &{cfg}, buffers.next().unwrap());"
         for f, label, _, _, _, cfg in uarts
@@ -84,20 +85,21 @@ for run, (summary, uarts) in RUNS.items():
     shared_init = ", ".join(f"irq_{f}" for f, *_ in uarts)
     vector_lets = "\n".join(f"        let vectors_{f} = irq_{f}.interrupts();" for f, *_ in uarts)
     local_init = "\n".join(f"                {f}: uart_{f},\n                vectors_{f}," for f, *_ in uarts)
+    split = run == "a"
     tasks = "\n\n".join(
         f"""    #[task(binds = {line}, priority = 2, shared = [irq_{f}])]
     fn {f}_line(cx: {f}_line::Context) {{
-        cx.shared.irq_{f}.on_interrupt();
+        cx.shared.irq_{f}.{'on_uart' if split and f == 'usart1' else 'on_interrupt'}();
     }}
 
     #[task(binds = {dma}, priority = 2, shared = [irq_{f}])]
     fn {f}_rx(cx: {f}_rx::Context) {{
-        cx.shared.irq_{f}.on_interrupt();
+        cx.shared.irq_{f}.{'on_rx_dma' if split and f == 'usart1' else 'on_interrupt'}();
     }}
 
     #[task(binds = {txdma}, priority = 2, shared = [irq_{f}])]
     fn {f}_tx(cx: {f}_tx::Context) {{
-        cx.shared.irq_{f}.on_interrupt();
+        cx.shared.irq_{f}.{'on_tx_dma' if split and f == 'usart1' else 'on_interrupt'}();
     }}"""
         for f, label, line, dma, txdma, cfg in uarts
     )
@@ -115,7 +117,16 @@ for run, (summary, uarts) in RUNS.items():
             &mut tests::nvic_mask(Interrupt::{dma}),
             &mut tests::nvic_mask_all([Interrupt::{line}, Interrupt::{dma}, Interrupt::{txdma}]),
             true,
-        );"""
+        );""" + (f"""
+        report.check_for(
+            "{label}",
+            "UART-020",
+            "a masked line keeps its events out until unmasking",
+            tests::line_mask(&mut Loop {{
+                name: "{label}",
+                uart: &mut *{f},
+            }}),
+        );""" if split and f == "usart1" else "")
         for f, label, line, dma, txdma, cfg in uarts
     )
     together_name = " + ".join(label.split(" ")[0] for _, label, *_ in uarts)
@@ -126,8 +137,9 @@ for run, (summary, uarts) in RUNS.items():
                 }},"""
         for f, label, *_ in uarts
     )
-    streams = f"""        report.check(
+    streams = f"""        report.check_for(
             "{together_name}",
+            "UART-002",
             "8 KiB each, all at once",
             tests::streams(
                 &mut [
@@ -137,8 +149,9 @@ for run, (summary, uarts) in RUNS.items():
             ),
         );"""
     bounds = "\n".join(
-        f"""        report.check(
+        f"""        report.check_for(
             "{label}",
+            "UART-006 WAIT-001",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {{
@@ -165,22 +178,24 @@ for run, (summary, uarts) in RUNS.items():
         );
         // The stack is ordinary, cached AXI SRAM.
         let cached = core::hint::black_box([0u8; 32]);
-        report.check(
+        report.check_for(
             "D-cache on",
+            "GLUE-003",
             "buffer in cached RAM refused",
             tests::expect_refusal(check_dma_buffer(&cached), ConfigError::BufferCacheable),
         );
         // SAFETY: never read; only its address is checked.
         let dtcm = unsafe {{ core::slice::from_raw_parts(0x2000_0000 as *const u8, 32) }};
-        report.check(
+        report.check_for(
             "D-cache on",
+            "GLUE-003",
             "buffer in DTCM refused",
             tests::expect_refusal(check_dma_buffer(dtcm), ConfigError::BufferUnreachable),
         );
 {streams.replace('"8 KiB each, all at once"', '"8 KiB each, all at once, caches on"')}
 {bounds}
 """
-        extra_uses = "        chip::check_dma_buffer,\n"
+        extra_uses = ", check_dma_buffer"
         extra_uses2 = "        uart::{Config, ConfigError, Parity, StopBits, Uart, UartInterrupts, UartIrq},\n"
         core_uses = "    use cortex_m::peripheral::{CPUID, SCB};\n"
         consts = """
@@ -204,8 +219,9 @@ for run, (summary, uarts) in RUNS.items():
         consts = "\n    const PLAIN: Config = Config::new(115_200);\n"
     rebind = "\n".join(
         f"""        let {f} = cx.local.{f};
-        report.check(
+        report.check_for(
             "{label}",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_{f}),
         );"""
@@ -238,7 +254,7 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {{
 {core_uses}    use ferrohal_stm32::{{
-{extra_uses}        device::Interrupt,
+        chip::{{Interrupt, {instances}{extra_uses}}},
 {extra_uses2}    }};
 
     use crate::{{

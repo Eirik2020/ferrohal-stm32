@@ -3,7 +3,7 @@
 Normative. Two classes:
 
 - **Human-readable** (prose, citations, people read them): `requirements/**` (`goals.md`,
-  `benches.md`, `evidence/`), `src/**/requirements.yaml`,
+  `benches.md`, `evidence/`), `src/requirements/*.yaml`,
   `DEBT.md`, `RESOLVED.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
 - Agent-facing (token-optimised, [agent-docs.md](agent-docs.md) style): `AGENTS.md`,
   `docs/{policies,decisions,notes,housekeeping,design}/**`.
@@ -19,7 +19,7 @@ Normative. Two classes:
 | bench fact about the instrument | that instrument's crate docs |
 | tooling workaround | script comment + `requirements/benches.md`; `DEBT.md` pointer only |
 | open limitation | `DEBT.md`: severity, one sentence, pointer, verification |
-| requirement | owning `requirements.yaml`, one `shall`, verified by a `benches.md#anchor` or host test |
+| requirement | its IP's catalog, `src/requirements/<ip>.yaml`, one `shall`, verified by a `benches.md#anchor` or host test |
 
 Measurement wins for what the code does; record both; divergence -> erratum candidate in
 `DEBT.md`. Nothing documented only in commit/PR/chat.
@@ -27,13 +27,13 @@ Measurement wins for what the code does; record both; divergence -> erratum cand
 ## Requirements
 
 - A file states its requirements; the `Requirements:` trailer names the IDs; `docs/design/requirements-system.md` hashes it.
-- One `shall` per statement. A single-part requirement gets its own family (`USARTV4-001`).
+- One `shall` per statement. A single-part requirement gets its own family (`USART-V4-001`).
 
 ## Decision records
 
 Event, not rule. `ADR-NNN - Status:` line; statuses `accepted|promoted|superseded|rejected`.
 Promotion: policy -> `docs/policies/`; design -> `docs/design/<topic>.md`; behaviour ->
-`requirements.yaml`. Promoted records carry `Promoted to: [path](path)` (resolved by the checker).
+a catalog in `src/requirements/`. Promoted records carry `Promoted to: [path](path)` (resolved by the checker).
 Exactly one `index/<year>.md` row per record; row id+status must match. Superseded/rejected
 move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 `docs/decisions/README.md`.

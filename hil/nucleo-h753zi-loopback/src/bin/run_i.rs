@@ -166,6 +166,34 @@ mod app {
         let bench = &mut cx.shared.bench;
         let khz = Hertz::khz(1);
 
+        // The voltage scale: D3CR VOS resets to scale 3 (0b01, RM0433), so
+        // reading the configuration's scale 1 (0b11) with VOSRDY set shows
+        // `freeze` wrote it.
+        let d3cr = stm32_metapac::PWR.d3cr().read();
+        let vos = u32::from(d3cr.vos().to_bits());
+        defmt::info!(
+            "PWR_D3CR VOS {=u32:#04b}, VOSRDY {=bool}",
+            vos,
+            d3cr.vosrdy()
+        );
+        report.check_for(
+            "PWR",
+            "RCC-003",
+            "voltage scale 1 (VOS 0b11), the configuration's, and VOSRDY set",
+            if vos != 0b11 {
+                Err(Fail::Count {
+                    expected: 0b11,
+                    got: vos,
+                })
+            } else if !d3cr.vosrdy() {
+                Err(Fail::Level {
+                    expected_high: true,
+                })
+            } else {
+                Ok(())
+            },
+        );
+
         macro_rules! tick {
             ($name:literal, $variant:ident, $timer:expr, $rate:expr, $ticks:expr) => {
                 match $timer.map(|timer| Tick::new(&mut run.rcc, timer, $rate)) {

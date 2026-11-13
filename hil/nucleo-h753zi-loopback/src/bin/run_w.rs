@@ -124,7 +124,7 @@ fn inject_overrun<U: ferrohal_stm32::uart::Instance>(report: &mut Report, loop_:
     );
     report.check_for(
         name,
-        "UART-015 USART-004",
+        "UART-015 UART-019",
         "overrun: reported once, by the reader and in Health",
         if let Some(error) = other {
             Err(Fail::Uart(error))
@@ -362,7 +362,7 @@ mod app {
         let mut report = Report::new();
         report.check_for(
             "USART6",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );

@@ -1,0 +1,9 @@
+   Compiling nucleo-f401re-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.86s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/run-o`
+     [38;5;10m[1mFinished[0m in 0.98s
+[INFO ] PASS TIM4 CH1 PB6 -> J3 -> PC7: AWG out over the wire: samples read back at the far end [AWG-008] (run_o ../common/tests.rs:367)
+[INFO ] PASS TIM4 CH1 PB6 -> J3 -> PC7: AWG: with the output off, nothing crosses the wire [AWG-011] (run_o ../common/tests.rs:367)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (run_o ../common/tests.rs:1420)
+[INFO ] all checks passed (run_o ../common/tests.rs:1428)
+Firmware exited successfully

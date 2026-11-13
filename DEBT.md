@@ -14,7 +14,7 @@ Status as of 2026-11-10:
 |---|---|---|---|
 | STM32F401RE | Nucleo-F401RE | `usart_v2`, `spi_v2`, `exti_v1`, `dma_v2`, `gpio_v2`, `rcc_f4` | All three USARTs, all 10 TX/RX pin entries, all 9 USART DMA routes; USART2 through a host echo on the ST-LINK VCP. All three SPIs on all 15 pin entries and all 10 SPI DMA routes. EXTI on PA12 and on every SPI SCK pin. |
 | STM32F405RG | Foxeer F405 V2 | as the F401 | HSE crystal to 168 MHz, checked against the host's USB frames. USB CDC on OTG_FS. SPI1 on the IMU's pins and DMA2 streams, EXTI4 from its data-ready, SPI2 polled on the real NOR. TIM2 timebase; the watchdog started and fed. |
-| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
+| STM32H753ZI | Nucleo-H753ZI | `usart_v4`, `spi_v4`, `exti_h7`, `dma_v1` + DMAMUX1, `gpio_v2`, `rcc_h7_rm0433` | 7 of 8 U(S)ARTs, 24 of 46 TX/RX pin entries (Zio only), all 16 DMA1/DMA2 streams. Run A mirrors the TBS Lucid H7 (CRSF 420000, SBUS 100000 8E2 inverted, MSP 115200, its streams and clock tree). SPI1 to SPI5 on the Zio-reachable pins (SPI1 on the Lucid's pins and streams). EXTI on PD6 and on every SPI SCK pin. |
 | STM32H743VI | TBS Lucid H7 | as the H753ZI | HSE crystal to 400 MHz, checked against the host's USB frames. USB CDC on OTG_FS from HSI48. SPI1 on the IMU's pins and DMA1 streams 4 and 5, EXTI2 from its data-ready. |
 
 Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp). **Medium** is a gap someone will hit soon. **Low** is cleanup, or a limit worth knowing.
@@ -45,7 +45,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Low: the flight boards' I2C has carried bytes only on the Lucid.** Its barometer answers at `0x76` on I2C2 (PB10/PB11); the SpeedyBee's SPA06-001 and the Foxeer's I2C1 wiring use the same open-drain pins, but nothing has answered.
 - **Low: the I2C scope is master, 7-bit, no SMBus, no DMA.** SMBA isn't routed; slave mode or 10-bit addressing isn't asked for. A held-low line is [`Error::Busy`], not repaired: nine-clock recovery is firmware's.
 - **Medium: USB sits outside the no-panic proof.** `synopsys-usb-otg` has about 30 panic/unwrap sites and unbounded register spins; behind the `usb` feature, the check covers only FerroHAL's clock and constructor. Flight firmware should keep USB away from critical paths.
-- **Medium: USB is device-mode CDC, proven on the H753ZI's OTG_HS core at full speed (run M).** The F4's OTG_FS core has only the F405 smoke test, which carries no evidence: `USBF4-001` is open until an F4 USB bench exists (`hil/CAPABILITIES.md`, queue item 1). No OTG_HS high speed, no host mode; the F401's Nucleo has no USB connector.
+- **Medium: USB is device-mode CDC, proven on the H753ZI's OTG_HS core at full speed (run M).** The F4's OTG_FS core has only the F405 smoke test, which carries no evidence: `USB-F4-001` is open until an F4 USB bench exists (`hil/CAPABILITIES.md`, queue item 1). No OTG_HS high speed, no host mode; the F401's Nucleo has no USB connector.
 - **Medium: the frame format is limited:** 8 data bits (parity as a ninth); no 7/9-bit data, RTS/CTS, half-duplex, RS-485 DE or LIN.
 - **Medium: no timer hand-over to rtic-monotonics** (`docs/design/layering.md` hook 5, `docs/design/ferroforge-seam.md` foot-gun 1): `Tick` and `Timebase` run timers, but rtic-monotonics 3 can't take a FerroHAL token as its monotonic.
 - **Low: only the trigger routes in use are in the glue:** TIM1→TIM3 everywhere, TIM1→TIM8 where TIM8 exists, TIM3→TIM2 on the F4s (run R). `check_glue.py` can't check them (no such metadata table); each follows RM0090 table 94, RM0368 table 54 or RM0433 table 336, and hardware exercises it.
@@ -90,7 +90,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the H753ZI bench reaches the Zio headers only.** No morpho headers (CN11, CN12): UART8 TX, the Lucid's USART1 RX, PA8, PA9, PB14 and PG9 are unreachable, and UART5's PB13 needs SB7; PA1, PA2, PA11, PA12 need rework.
 - **Low: USART2 on the F401 goes through the ST-LINK,** so break, baud and parity changes aren't checked there; SB13/SB14 off and SB62/SB63 on would allow a direct link.
 - **Low: clock checks are indirect:** `freeze`'s record matching the `const` one, plus working baud rates (and the F401 host echo). Nothing measures MCO.
-- **Low: `hil/run-i2c-sim.sh` with two probes attached needs both `F401_PROBE` and `H753_PROBE`;** `PROBE_RS_PROBE` would send both runs to one probe, as `hil/probe.sh` ranks it first.
+- **Low: `hil/pico-i2c-sim.sh` with two probes attached needs both `F401_PROBE` and `H753_PROBE`;** `PROBE_RS_PROBE` would send both runs to one probe, as `hil/probe.sh` ranks it first.
 
 ---
 
@@ -118,7 +118,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the DTCM goes unused.** DMA1/DMA2 can't reach it, so the test firmware puts everything in AXI SRAM. A firmware that wants the DTCM needs a linker section for DMA buffers.
 - **Low: MPU reads.** `check_dma_buffer` steps RNR (and restores it), so the firmware must not reprogram the MPU while a `Uart` is being opened. There's no cache-maintenance mode for buffers in cacheable memory.
 
-### Clocks and power (`rcc_h7rm0433`)
+### Clocks and power (`rcc_h7_rm0433`)
 
 - **Medium: no VOS0 (480 MHz).** It exists only on rev V, needs SYSCFG ODEN and its own flash table; `freeze` doesn't read `signature::revision`.
 - **Medium: limits are the lowest common denominator:** the wide VCO is capped at 836 MHz (rev Y, DS12117 table 39 / DS12110 table 40) though rev V allows 960 MHz. `signature::revision` tells, if the headroom matters.

@@ -23,6 +23,7 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
+
   - id: API-002
     title: A freed handle stops and hands its token back
     statement: >-

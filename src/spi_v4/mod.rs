@@ -12,7 +12,7 @@
 //! between EOT and disabling (ES0392 2.22.6). FIFO and DMA requests are
 //! one byte each.
 //!
-//! Requirements: SPIV4-001, SPIPOLL-001, SPIPOLL-002
+//! Requirements: SPI-V4-001, SPIPOLL-001, SPIPOLL-002
 
 use stm32_metapac::spi::vals::{Comm, Cpha, Cpol, Fthlv, Lsbfirst, Master, Mbr, Sp};
 

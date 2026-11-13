@@ -1,0 +1,15 @@
+schema_version: 2
+requirements:
+  - id: GPIO-001
+    title: Pins carry what they are set to
+    statement: >-
+      A pin shall carry the signal its mode and alternate function select.
+    rationale: >-
+      Every driver reaches the outside through this.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE

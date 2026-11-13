@@ -20,11 +20,11 @@ The wiring it needs is in [`../WIRING.md`](../WIRING.md).
   Hold BOOTSEL while plugging the Pico's USB cable and drop the UF2
   onto the `RPI-RP2` drive — that is the **first** flash only. After
   it, the map's `0x3D` BOOT register reboots the simulator into its
-  bootloader on request, and `../run-i2c-sim.sh flash` sends that
+  bootloader on request, and `../pico-i2c-sim.sh flash` sends that
   request itself (run T on the F401), so the button is never needed
   again.
 
-`../run-i2c-sim.sh` then runs the two bench runs that speak to this
+`../pico-i2c-sim.sh` then runs the two bench runs that speak to this
 firmware, F401 run S and H753 run S, writing one log. The firmware
 keeps its state across runs: each run resets the counters through the
 map's CLEAR register, not by power-cycling the Pico — and a warden task

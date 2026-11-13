@@ -24,7 +24,7 @@ script exits zero. Covers `usart_v2` on all three USARTs, all 10 TX and RX pin
 entries and all 9 USART DMA routes, and the checks in `hil/common/tests.rs`. Run A
 also masks USART1's line, sends one byte and unmasks it: no chunk ends while the
 line is masked, and the idle that arrived meanwhile delivers the byte after
-unmasking [USART-005]. Run B
+unmasking [UART-020]. Run B
 also checks the parity error's clear, each way: one byte with a parity error, then
 a good frame straight after it, which must arrive whole and in order, with the one
 parity error reported right after the bad byte, and PE seen by the UART's vectors,
@@ -37,7 +37,7 @@ saw PE, and how many bytes the receive DMA had taken by then.
 `hil/nucleo-h753zi-loopback/src/board.rs` fitted. Pass: every check in every run
 passes and the script exits zero. Covers `usart_v4` with the caches off and on, and
 the same checks in `hil/common/tests.rs`; run A also masks USART1's line for the
-USART-005 drill, as the F401's run A does. Run Y crosses two UARTs over Z6, USART3's
+UART-020 drill, as the F401's run A does. Run Y crosses two UARTs over Z6, USART3's
 TX on PC10 into UART4's RX on PC11, for what a loop cannot show: even parity into
 odd reaches UART4's reader as a parity error [UART-014], half the baud rate as a
 framing error.
@@ -66,7 +66,7 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## Timers on the Nucleo-H753ZI
 
-`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 generator as run I does on the F401 [AWG-007 API-002]. Run P ends with a generator over TIM1 and TIM8, linked, a lane on each with its output off, and every lane of both must finish [AWG-005]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Run I first reads back PWR: the voltage scale `freeze` wrote must be the configuration's scale 1 (D3CR VOS 0b11, from the reset's 0b01) with VOSRDY set [RCC-003]. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 generator as run I does on the F401 [AWG-007 API-002]. Run P ends with a generator over TIM1 and TIM8, linked, a lane on each with its output off, and every lane of both must finish [AWG-005]. Pass: every check in every run passes and the script exits zero.
 
 ## Watchdog on the Nucleo-F401RE
 
@@ -74,7 +74,7 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## Watchdog on the Nucleo-H753ZI
 
-`hil/run-h753.sh k`. Resets the chip on purpose, three boots in all. Also checks that starting the watchdog froze it for the debugger [IWDG-004]. After the starvation report it starts a 100 ms watchdog whose last 30 ms are its window, feeds it five times 85 ms after each reload, inside the window, and checks that the chip kept running [IWDG-007]; then it feeds 10 ms after a reload, above the window, and the next boot checks that the feed caused the reset [IWDG-005]. The window phase's progress and failures cross the resets in one magic-tagged doubleword, and the first boot's checks in the shared watchdog marker, so a reset anywhere is named and every boot counts in the exit status. probe-rs can lose its session at one of the resets (`SwdApFault`, 1 run in 8 on 2026-11-10); that run exits non-zero with no FAIL line and is rerun. The starvation run starts at the board's measured LSI, 31.7 kHz, and requires the reset within 5% of 50 ms [IWDG-006]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh k`. Resets the chip on purpose, three boots in all. Also checks that starting the watchdog froze it for the debugger [IWDG-004]. After the starvation report it starts a 100 ms watchdog whose last 30 ms are its window, feeds it five times 85 ms after each reload, inside the window, and checks that the chip kept running [IWDG-V2-002]; then it feeds 10 ms after a reload, above the window, and the next boot checks that the feed caused the reset [IWDG-V2-001]. The window phase's progress and failures cross the resets in one magic-tagged doubleword, and the first boot's checks in the shared watchdog marker, so a reset anywhere is named and every boot counts in the exit status. probe-rs can lose its session at one of the resets (`SwdApFault`, 1 run in 8 on 2026-11-10); that run exits non-zero with no FAIL line and is rerun. The starvation run starts at the board's measured LSI, 31.7 kHz, and requires the reset within 5% of 50 ms [IWDG-006]. Pass: every check in every run passes and the script exits zero.
 
 ## Bootloader request on the Nucleo-F401RE
 
@@ -82,15 +82,15 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## Bootloader request on the Nucleo-H753ZI
 
-`hil/run-h753.sh n`. Resets the chip on purpose. Its request crosses the reset with the data cache on, as whole doublewords [RESETH7-001]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh n`. Resets the chip on purpose. Its request crosses the reset with the data cache on, as whole doublewords [RESET-H7-001]. Pass: every check in every run passes and the script exits zero.
 
 ## ADC on the Nucleo-F401RE
 
-`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDCODE REV_ID, read directly, and a code RM0368 lists [SIG-002]. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDCODE REV_ID, read directly, and a code RM0368 lists [REVISION-001]. Pass: every check in every run passes and the script exits zero.
 
 ## ADC on the Nucleo-H753ZI
 
-`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDC REV_ID, read directly, and a code RM0433 lists [SIG-002]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDC REV_ID, read directly, and a code RM0433 lists [REVISION-001]. Pass: every check in every run passes and the script exits zero.
 
 ## The Foxeer F405 V2 board bench
 

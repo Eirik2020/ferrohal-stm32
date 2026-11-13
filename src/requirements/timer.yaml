@@ -298,7 +298,6 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-
   - id: AWG-007
     title: An abort leaves the generator ready
     statement: >-

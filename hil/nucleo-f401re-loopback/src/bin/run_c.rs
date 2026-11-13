@@ -106,7 +106,7 @@ mod app {
         let mut report = Report::new();
         report.check_for(
             "USART6",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );

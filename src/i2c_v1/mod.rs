@@ -25,7 +25,7 @@
 //! resets the state machines and releases the lines while the timing
 //! registers keep their values (RM0368 §27.6.2).
 //!
-//! Requirements: I2C-005, I2CV1-001, I2C-002, I2C-004, I2C-006
+//! Requirements: I2C-005, I2C-V1-001, I2C-002, I2C-004, I2C-006
 
 use stm32_metapac::i2c::I2c as Regs;
 

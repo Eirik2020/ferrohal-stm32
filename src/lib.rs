@@ -11,7 +11,7 @@
 //! - One module per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`,
 //!   `spi_v4`, `i2c_v1`, `i2c_v2`, `dma_v1`, `dma_v2`, `exti_v1`,
 //!   `exti_h7`, `timer_v1`, `timer_v3`, `iwdg_v1`, `iwdg_v2`, `gpio_v2`,
-//!   `rcc_f4`, `rcc_h7rm0433`), each behind its own feature. They speak
+//!   `rcc_f4`, `rcc_h7_rm0433`), each behind its own feature. They speak
 //!   registers only.
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
@@ -109,8 +109,8 @@ pub mod i2c_v1;
 pub mod i2c_v2;
 #[cfg(feature = "rcc_f4")]
 pub mod rcc_f4;
-#[cfg(feature = "rcc_h7rm0433")]
-pub mod rcc_h7rm0433;
+#[cfg(feature = "rcc_h7_rm0433")]
+pub mod rcc_h7_rm0433;
 #[cfg(feature = "sdmmc_v2")]
 pub mod sdmmc_v2;
 #[cfg(feature = "spi_v2")]
@@ -146,8 +146,8 @@ pub use iwdg_v1 as iwdg;
 pub use iwdg_v2 as iwdg;
 #[cfg(feature = "rcc_f4")]
 pub use rcc_f4 as rcc;
-#[cfg(feature = "rcc_h7rm0433")]
-pub use rcc_h7rm0433 as rcc;
+#[cfg(feature = "rcc_h7_rm0433")]
+pub use rcc_h7_rm0433 as rcc;
 #[cfg(feature = "sdmmc_v2")]
 pub use sdmmc_v2 as sdmmc;
 #[cfg(feature = "spi_v2")]

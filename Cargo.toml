@@ -70,7 +70,7 @@ dma_v1 = []
 dma_v2 = []
 gpio_v2 = []
 rcc_f4 = []
-rcc_h7rm0433 = []
+rcc_h7_rm0433 = []
 adc_v2 = []
 adc_v4 = []
 sdmmc_v2 = []
@@ -118,7 +118,7 @@ stm32h743vi = [
     "synopsys-usb-otg?/hs",
     "dma_v1",
     "gpio_v2",
-    "rcc_h7rm0433",
+    "rcc_h7_rm0433",
     "adc_v4",
     "sdmmc_v2",
 ]
@@ -134,7 +134,7 @@ stm32h753zi = [
     "synopsys-usb-otg?/hs",
     "dma_v1",
     "gpio_v2",
-    "rcc_h7rm0433",
+    "rcc_h7_rm0433",
     "adc_v4",
     "sdmmc_v2",
 ]

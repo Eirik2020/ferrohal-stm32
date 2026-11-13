@@ -146,14 +146,14 @@ mod app {
         let uart4 = cx.local.uart4;
         report.check_for(
             "UART4 PC10->PC11",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_uart4),
         );
         let uart7 = cx.local.uart7;
         report.check_for(
             "UART7 PA15->PB3",
-            "UART-003 RES-001",
+            "UART-003 RESOURCE-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors_uart7),
         );

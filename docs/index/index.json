@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 62,
-  "agent": 43,
-  "bytes": 228405
+  "documents": 63,
+  "agent": 44,
+  "bytes": 233433
  },
  "documents": [
   {
@@ -11,21 +11,21 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4164
+   "bytes": 4313
   },
   {
    "path": "DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt and issues",
    "purpose": "Open items only. Finished work moves to RESOL",
-   "bytes": 22317
+   "bytes": 22321
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 4883
+   "bytes": 4885
   },
   {
    "path": "RESOLVED-chips-and-features.md",
@@ -46,7 +46,7 @@
    "class": "human",
    "title": "Third-party code",
    "purpose": "FerroHAL is licensed under MIT OR Apache-2.0 ",
-   "bytes": 3045
+   "bytes": 3046
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -79,10 +79,10 @@
    "path": "docs/decisions/2026-11-08-naming-scheme.md",
    "class": "agent",
    "title": "Decision: naming scheme (2026-11-08)",
-   "purpose": "ADR-003 - Status: accepted",
-   "bytes": 2898,
+   "purpose": "ADR-003 - Status: promoted",
+   "bytes": 2990,
    "adr": "ADR-003",
-   "status": "accepted"
+   "status": "promoted"
   },
   {
    "path": "docs/decisions/2026-11-09-uart-capabilities.md",
@@ -107,7 +107,7 @@
    "class": "agent",
    "title": "Decision records (ADR hub)",
    "purpose": "Record = event what, why, rejected, date, not",
-   "bytes": 1416
+   "bytes": 1418
   },
   {
    "path": "docs/decisions/index/2026.md",
@@ -173,6 +173,13 @@
    "bytes": 1634
   },
   {
+   "path": "docs/design/naming.md",
+   "class": "agent",
+   "title": "Naming: catalogs, IDs, features, modules, benches",
+   "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
+   "bytes": 3958
+  },
+  {
    "path": "docs/design/ownership.md",
    "class": "agent",
    "title": "Ownership and shared registers",
@@ -198,7 +205,7 @@
    "class": "agent",
    "title": "Requirement format and reqtool",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2325
+   "bytes": 2507
   },
   {
    "path": "docs/design/scope.md",
@@ -359,7 +366,7 @@
    "class": "human",
    "title": "W14: naming normalisation (ADR-003)",
    "purpose": "Split out of the free redesign plan2026-11-08",
-   "bytes": 2022
+   "bytes": 2442
   },
   {
    "path": "docs/plans/2026-11-10-doc-sweep.md",
@@ -373,28 +380,28 @@
    "class": "agent",
    "title": "Agent-doc style",
    "purpose": "Agent docs = AGENTS.md + docs/{policies,decis",
-   "bytes": 1154
+   "bytes": 1153
   },
   {
    "path": "docs/policies/documentation.md",
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 3208
+   "bytes": 3241
   },
   {
    "path": "docs/policies/safety.md",
    "class": "agent",
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
-   "bytes": 2521
+   "bytes": 2522
   },
   {
    "path": "hil/CAPABILITIES.md",
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 8669
+   "bytes": 8671
   },
   {
    "path": "hil/RIG.md",
@@ -408,14 +415,14 @@
    "class": "human",
    "title": "Bench wiring: the Pico 1 I2C simulator",
    "purpose": "The two Nucleo benches prove FerroHAL's I2C m",
-   "bytes": 4667
+   "bytes": 4670
   },
   {
    "path": "hil/pico-i2c-sim/README.md",
    "class": "human",
    "title": "pico-i2c-sim",
    "purpose": "A Raspberry Pi Pico 1 RP2040 standing in for ",
-   "bytes": 1483
+   "bytes": 1485
   },
   {
    "path": "requirements/benches-analysis.md",
@@ -443,7 +450,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 12960
+   "bytes": 13138
   },
   {
    "path": "requirements/goals.md",

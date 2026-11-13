@@ -1,0 +1,40 @@
+schema_version: 2
+requirements:
+  - id: UID-001
+    title: The unique ID is readable
+    statement: >-
+      The driver shall read the chip's factory unique ID.
+    rationale: >-
+      Boards identify themselves by it.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
+
+  - id: REVISION-001
+    title: The die revision is readable
+    statement: >-
+      The driver shall read the chip's die revision code from its family's
+      DBGMCU, IDCODE on the F4 and IDC on the H7.
+    rationale: >-
+      ES0392 2.2.10 and 2.2.21 depend on the silicon revision, so a board must
+      know which part it carries. Each family's glue reads its own register
+      at its own address, so each family needs its own proof.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#ADC on the Nucleo-H753ZI

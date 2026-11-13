@@ -264,7 +264,7 @@ async fn serve<T: embassy_rp::i2c::Instance>(
 /// datasheet §2.8.3): 'M', 'u', 0x01 at 0x10, the function-table pointer
 /// at 0x14, and the lookup helper at 0x18. Functions are named by
 /// `(c2 << 8) | c1`, so reset-to-USB-boot is `('B' << 8) | 'U'`. Never
-/// returns: the RPI-RP2 drive appears and `run-i2c-sim.sh flash` copies
+/// returns: the RPI-RP2 drive appears and `pico-i2c-sim.sh flash` copies
 /// the next image without a finger on the button.
 fn reboot_to_bootsel() -> ! {
     unsafe {

@@ -533,7 +533,7 @@ requirements:
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI
 
-  - id: USART-001
+  - id: UART-016
     title: Frame settings leave the line ready
     statement: >-
       Writing the frame settings shall leave the transmitter and receiver
@@ -552,7 +552,7 @@ requirements:
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
-  - id: USART-002
+  - id: UART-017
     title: Framing and idle events are reported and cleared
     statement: >-
       Taking a line's events shall report framing and idle, and clear them.
@@ -571,7 +571,7 @@ requirements:
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
-  - id: USART-003
+  - id: UART-018
     title: A requested break is sent once
     statement: >-
       Requesting a break shall send one, and show it pending until its stop
@@ -590,7 +590,7 @@ requirements:
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
-  - id: USART-004
+  - id: UART-019
     title: Other line faults are reported and cleared
     statement: >-
       Taking a line's events shall report parity, noise and overrun, and
@@ -609,7 +609,7 @@ requirements:
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI
 
-  - id: USART-005
+  - id: UART-020
     title: The line's events can be masked and restored
     statement: >-
       Masking the line shall clear its idle, parity and error interrupt
@@ -629,7 +629,7 @@ requirements:
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
-  - id: USARTV2-001
+  - id: USART-V2-001
     title: USART v2 refuses inversion
     statement: >-
       USART v2 shall refuse a frame asking for line inversion, since it has
@@ -644,7 +644,7 @@ requirements:
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
 
-  - id: USARTV4-001
+  - id: USART-V4-001
     title: USART v4 inverts both directions
     statement: >-
       USART v4 shall carry traffic with both directions inverted when asked.
@@ -657,96 +657,3 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
-
-  - id: GLUE-001
-    title: Routing rows match the metadata
-    statement: >-
-      Each chip's routing rows shall match the metadata of the pinned
-      register crate.
-    rationale: >-
-      The rows are written by hand, and a wrong one routes a signal to the
-      wrong pin or stream.
-    derived_from: [G3]
-    verification:
-      entries:
-        - level: analysis
-          environment: host
-          method:
-            procedure: requirements/benches-analysis.md#Chip glue against metapac
-
-  - id: GLUE-002
-    title: A wiring describes itself
-    statement: >-
-      A UART wiring shall report the instance, pins and DMA streams the
-      board chose.
-    rationale: >-
-      A board can then be checked against its manifest without running.
-    derived_from: [G3]
-    verification:
-      entries:
-        - level: unit
-          environment: host
-          method:
-            test: ferrohal_stm32::chip::tests::wiring_describes_itself
-
-  - id: GLUE-003
-    title: An H7 DMA buffer it cannot use is refused
-    statement: >-
-      An H7 shall refuse a DMA buffer in tightly coupled memory, or in cached
-      memory while the data cache is on.
-    rationale: >-
-      DMA to such an address fails without a useful report, so the check has
-      to come first.
-    derived_from: [G2]
-    verification:
-      entries:
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
-
-  - id: GLUE-004
-    title: An F405 DMA buffer in CCM RAM is refused
-    statement: >-
-      An F405 shall refuse a DMA buffer that reaches outside the memory its
-      DMA can use.
-    rationale: >-
-      DMA to such an address fails without a useful report, so the check has
-      to come first.
-    derived_from: [G2]
-    verification:
-      entries:
-        - level: unit
-          environment: host
-          method:
-            test: ferrohal_stm32::chip::tests::ccm_ram_is_refused
-
-  - id: GLUE-005
-    title: An SPI wiring describes itself
-    statement: >-
-      An SPI wiring shall report the instance, pins and streams it was
-      built from.
-    rationale: >-
-      A board can then be checked against its manifest without running.
-    derived_from: [G3]
-    verification:
-      entries:
-        - level: unit
-          environment: host
-          method:
-            test: ferrohal_stm32::chip::tests::spi_wiring_describes_itself
-
-  - id: GLUE-006
-    title: A board manifest's routes exist
-    statement: >-
-      Every route a board manifest names shall exist on the chip it names.
-    rationale: >-
-      A manifest route with no hardware behind it would fail only on the
-      bench.
-    derived_from: [G3]
-    verification:
-      entries:
-        - level: unit
-          environment: host
-          method:
-            test: ferrohal_stm32::chip::tests::example_manifest_routes_exist

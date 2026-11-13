@@ -77,9 +77,9 @@ so the button is never touched again.
     cd hil/pico-i2c-sim
     cargo build --release
     cargo install elf2uf2-rs --locked    # once
-    ./../run-i2c-sim.sh flash
+    ./../pico-i2c-sim.sh flash
 
-`run-i2c-sim.sh flash` builds the firmware, writes the UF2 next to it,
+`pico-i2c-sim.sh flash` builds the firmware, writes the UF2 next to it,
 and copies it onto the Pico's `RPI-RP2` drive. When the drive is not
 mounted it first runs **run T** on the F401 bench, which writes the
 map's `0x3D` BOOT register: the running simulator calls the bootrom's
@@ -89,7 +89,7 @@ BOOTSEL while plugging the cable instead.) One flash serves any number
 of bench runs: the runs reset the simulator's counters through the
 map's CLEAR register, not by power-cycling it.
 
-`hil/run-i2c-sim.sh` then runs F401 run S and H753 run S and writes the
+`hil/pico-i2c-sim.sh` then runs F401 run S and H753 run S and writes the
 combined log to `hil/logs/`. The runs' ID checks are the wiring test:
 a bus answering with `[0xA1, tag]` is the Pico, wired right.
 

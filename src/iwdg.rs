@@ -22,8 +22,8 @@
 //! works from the nominal 32 kHz; [`Watchdog::start_with_lsi`] takes the
 //! frequency a board measured, since the LSI varies from chip to chip.
 //!
-//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004, IWDG-005, IWDG-006,
-//! IWDG-007
+//! Requirements: IWDG-001, IWDG-002, IWDG-003, IWDG-004, IWDG-V2-001, IWDG-006,
+//! IWDG-V2-002
 
 use stm32_metapac::iwdg::vals::{Key, Pr};
 
