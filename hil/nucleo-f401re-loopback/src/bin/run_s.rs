@@ -123,11 +123,27 @@ fn main() -> ! {
                 },
             );
             bus.set_clock(Some(&tests::DWT_CLOCK));
+            let failed_before = report.failed;
             i2c::suite(&mut report, link, &mut bus, cpu);
             // The v1 recovery's BUSY spin: ten thousand SR2 reads while the
             // simulator still holds the line, past the deadline the
             // out-of-bound stretch check's ceiling must cover.
             i2c_live::suite(&mut report, link, &mut bus, cpu, TAG, 120_000);
+            // Every transfer above walked this IP version's register
+            // sequence; the version's own requirement stands on them all.
+            report.check_for(
+                link,
+                "I2CV1-001",
+                "every transfer above walked this version's register sequence",
+                if report.failed == failed_before {
+                    Ok(())
+                } else {
+                    Err(Fail::Count {
+                        expected: 0,
+                        got: report.failed - failed_before,
+                    })
+                },
+            );
         }
         Err(_) => report.check(link, "the handed-back wiring opens the bus", {
             Err(Fail::I2cConfig(ConfigError::Speed))

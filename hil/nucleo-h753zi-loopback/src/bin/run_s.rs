@@ -143,10 +143,26 @@ fn main() -> ! {
                 },
             );
             bus.set_clock(Some(&tests::DWT_CLOCK));
+            let failed_before = report.failed;
             i2c::suite(&mut report, link, &mut bus, cpu);
             // The v2 recovery is a PE cycle and the ICR clear: a few
             // register writes past the deadline, and nothing more.
             i2c_live::suite(&mut report, link, &mut bus, cpu, TAG, 2_000);
+            // Every transfer above walked this IP version's register
+            // sequence; the version's own requirement stands on them all.
+            report.check_for(
+                link,
+                "I2CV2-001",
+                "every transfer above walked this version's register sequence",
+                if report.failed == failed_before {
+                    Ok(())
+                } else {
+                    Err(Fail::Count {
+                        expected: 0,
+                        got: report.failed - failed_before,
+                    })
+                },
+            );
         }
         Err(_) => report.check(link, "the handed-back wiring opens the bus", {
             Err(Fail::I2cConfig(ConfigError::Speed))

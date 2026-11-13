@@ -176,6 +176,13 @@ pub type Uart7C = Wiring<UART7, Af<'E', 8, 7>, Af<'E', 7, 7>, Stream<2, 5>, Stre
 pub type Uart4D = Wiring<UART4, Af<'C', 10, 8>, Af<'C', 11, 8>, Stream<1, 2>, Stream<2, 1>>;
 pub type Uart7D = Wiring<UART7, Af<'A', 15, 11>, Af<'B', 3, 11>, Stream<2, 6>, Stream<1, 3>>;
 
+// Run Y: USART3 into UART4 over Z6, the one link two different UARTs reach:
+// PC10 carries USART3's TX, PC11 UART4's RX. USART3 takes its RX on PB11
+// (Z7) and UART4 its TX on PD1 (Z5); nothing listens on those here.
+
+pub type Usart3Y = Wiring<USART3, Af<'C', 10, 7>, Af<'B', 11, 7>, Stream<2, 7>, Stream<2, 6>>;
+pub type Uart4Y = Wiring<UART4, Af<'D', 1, 8>, Af<'C', 11, 8>, Stream<1, 7>, Stream<1, 5>>;
+
 /// LD1, the green user LED.
 pub type Led = Pin<'B', 0, Output>;
 
@@ -1075,6 +1082,48 @@ pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
             rx: rx7,
             tx_dma: dma2.s6,
             rx_dma: dma1.s3,
+        },
+    })
+}
+
+pub struct RunY {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub usart3: Usart3Y,
+    pub uart4: Uart4Y,
+}
+
+pub fn run_y(p: Peripherals) -> Result<RunY, ClockError> {
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
+    let mut b = p.GPIOB.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let mut d = p.GPIOD.split(&mut rcc);
+    let dma1 = p.DMA1.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    let led = b.p0.into_push_pull_output(&mut b.ctrl);
+    let tx3 = tx_pin(c.p10, &mut c.ctrl);
+    let rx4 = rx_pin(c.p11, &mut c.ctrl);
+    let rx3 = rx_pin(b.p11, &mut b.ctrl);
+    let tx4 = tx_pin(d.p1, &mut d.ctrl);
+    Ok(RunY {
+        rcc,
+        led,
+        usart3: Wiring {
+            uart: p.USART3,
+            tx: tx3,
+            rx: rx3,
+            tx_dma: dma2.s7,
+            rx_dma: dma2.s6,
+        },
+        uart4: Wiring {
+            uart: p.UART4,
+            tx: tx4,
+            rx: rx4,
+            tx_dma: dma1.s7,
+            rx_dma: dma1.s5,
         },
     })
 }

@@ -9,7 +9,7 @@
 //! `UsbDevice::poll` from one context; FerroHAL enables nothing in the NVIC.
 //! Set both pins to very high speed.
 //!
-//! Requirements: USB-001
+//! Requirements: USB-001, USBF4-001
 
 pub use usb_device;
 

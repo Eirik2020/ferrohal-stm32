@@ -214,6 +214,10 @@ requirements:
         - level: target
           environment: development
           method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
   - id: AWG-001
@@ -324,7 +328,23 @@ requirements:
       trigger route.
     derived_from: [AWG-002]
     verification:
-      entries: []
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
 
   - id: AWG-006
     title: Each channel opens its own request

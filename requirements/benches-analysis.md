@@ -16,3 +16,11 @@ added to that crate [API-001].
 `python3 -I tools/check_glue.py`, which compares each chip's routing rows with
 stm32-metapac's metadata. Pass: it exits zero. It reads the rows as text, so their
 layout must stay as it is.
+
+## One I2C API on every chip
+
+`checks/run.sh`'s `no reachable panic` step builds `checks/no-panic`, one source,
+for each of the four chips: F4s on `i2c_v1`, H7s on `i2c_v2`. That source opens the
+bus as `ferrohal_stm32::i2c::I2c::new` and runs every operation of the embedded-hal
+bus trait through it, so it compiles only if every chip reaches the same driver API
+by the same name. Pass: the step passes for every chip [I2C-001].

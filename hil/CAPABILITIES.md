@@ -18,8 +18,8 @@ moves to `benches.md` and the deferral comes out.
 | Host | this machine | `hil/run-*.sh`, `probe.sh`, `usb_cdc_host.py`, `vcp_echo.py`, `dfu-util`, `probe-rs`; logs in `hil/logs/` |
 
 Links, jumpers and shared cables are in `hil/WIRING.md` and each board's
-`board.rs` header. Two cables are shared by hand: the H753's CN13 with the Pico,
-and the Lucid's CN13 with its DFU runs.
+`board.rs` header. The H753's CN13 and the Pico each keep their own USB cable
+(since 2026-11-13); the Lucid's CN13 is shared by hand with its DFU runs.
 
 ## What it can prove today
 
@@ -99,16 +99,35 @@ Grouped by why; each is a candidate for the queue below.
 
 ## The improvement queue
 
-In order; each names what it unlocks. Cheap ones first, then the ones that
-unblock a claim.
+In order; each names what it unlocks. The owner holds rig upgrades for now
+(2026-11-13): items 1 and 2 wait on hardware. The first three each give a requirement
+with no method today its proof, one chip per IP version (the car rule,
+`docs/design/requirements-system.md`); the rest are cheap ones first, then the
+ones that unblock a claim.
 
-1. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
+1. **An F4 USB bench.** The F4's OTG_FS core then has a bench: USBF4-001, and
+   RESET-004 on the F4 through the ROM's USB DFU. Either a USB breakout on the
+   F401's PA11/PA12 (morpho CN10, with VBUS and ground), or the STM32F407
+   Discovery the owner has, whose USB connector serves the same F4 IP versions.
+   Both need one more USB cable than the rig has (owner, 2026-11-13). The
+   Nucleo-F401RE has no USB connector of its own.
+2. **A microSD breakout module wired to the H753's SDMMC1 pins** (PC8 to
+   PC12 and PD2, on the Zio CN8 header; the Nucleo has the pins but no card
+   slot). `sdmmc_v2` then has a Nucleo bench: SDMMC-001 to 004, empty slot
+   included, which only the Lucid smoke test reaches today. The owner has no
+   such module (2026-11-13). PC10/PC11 are Z6 and PC12/PD2 Z8, so it would be
+   its own procedure with those links lifted.
+3. **The H753's ROM DFU, no hardware needed.** CN13 stays connected, so a run
+   that ends in the ROM and a host check that `dfu-util` then lists the
+   H753's layout would prove RESET-004 on the H7. Run N reaches the request
+   but leaves no DFU device behind as built (measured 2026-11-13).
+4. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
-2. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
+5. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
    the drift and lock-up classes a 300 s run cannot.
-3. **Environmental corners.** Temperature and supply extremes only where a
+6. **Environmental corners.** Temperature and supply extremes only where a
    flight-relevant claim needs them.
-4. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
+7. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
    claims get tight enough that read-back is not enough.
 
 ## Using it

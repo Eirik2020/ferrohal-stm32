@@ -319,6 +319,18 @@ mod app {
                 true,
                 cpu,
             );
+            // The four lanes as one generator, TIM3 starting TIM2 through its
+            // trigger: every lane of both finishes.
+            match ferrohal_stm32::timer::Awg::linked(pwm3, pwm2, (lane3, lane4), (lane23, lane22)) {
+                Ok(mut awg) => {
+                    pwm::awg_pair_check(&mut report, "TIM3 starts TIM2, linked", &mut awg, cpu)
+                }
+                Err(refused) => report.check(
+                    "TIM3 starts TIM2, linked",
+                    "AWG: every lane on both timers finishes [AWG-005]",
+                    Err(Fail::Timer(refused.error())),
+                ),
+            }
         }
         let led = &mut run.led;
         tests::finish(&report, || led.set_high());

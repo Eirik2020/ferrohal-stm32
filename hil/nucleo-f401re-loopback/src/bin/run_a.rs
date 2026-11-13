@@ -195,19 +195,19 @@ mod app {
         let mut report = Report::new();
         report.check_for(
             "USART1",
-            "UART-003",
+            "UART-003 RES-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors1),
         );
         report.check_for(
             "USART6",
-            "UART-003",
+            "UART-003 RES-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );
         report.check_for(
             "USART2",
-            "UART-003",
+            "UART-003 RES-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors2),
         );

@@ -14,6 +14,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
   did. The bench's six second-use timer checks folded back into runs H and I
   from the freed tokens, so the fresh-boot runs U and T are gone and no token
   is stolen anywhere.
+- **`usart_v4` parity has hardware evidence** (2026-11-13). DEBT's "two UART faults
+  still have no evidence" kept only `UARTDMA-009`: the H753's links looked all
+  loopbacks, but Z6 (PC10 to PC11) reaches two different UARTs, USART3's TX and
+  UART4's RX, with their other pins on Z7 and Z5. H753 run Y crosses them: even
+  parity into odd reaches UART4's reader as a parity error [UART-014], half the
+  baud rate as a framing error, and a line crosses again after both go back to
+  8N1. Measured: run Y 5 of 5.
 - **An `Awg` frees its timers, and a stop holds the lines low** (2026-11-13).
   DEBT's "an `Awg` has no teardown" closed: `Awg::free` runs `abort` and hands
   both timer tokens back. Its bench check found a worse fault: a stopped timer

@@ -1,0 +1,95 @@
+{
+  "schema_version": 5,
+  "run_id": "20261113T101034Z__no-reachable-panic__host__01",
+  "recorded_at_utc": "2026-11-13T10:10:34Z",
+  "board": null,
+  "revision": "57ae1b3cf6544262ed7d9a2d4c526daf7b7770a0",
+  "working_tree": "clean",
+  "modules": {
+    "src/lib.rs": [
+      "src/adc_v2/mod.rs",
+      "src/adc_v4/mod.rs",
+      "src/chips/stm32f401re.rs",
+      "src/chips/stm32f405rg.rs",
+      "src/chips/stm32h743vi.rs",
+      "src/chips/stm32h753zi.rs",
+      "src/dma_stream.rs",
+      "src/exti.rs",
+      "src/gpio_v2/mod.rs",
+      "src/i2c_v1/mod.rs",
+      "src/i2c_v2/mod.rs",
+      "src/iwdg.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_h7rm0433/mod.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi_v2/mod.rs",
+      "src/spi_v4/mod.rs",
+      "src/timer.rs",
+      "src/usart_v2/mod.rs",
+      "src/usart_v4/mod.rs"
+    ]
+  },
+  "identities": {
+    "src/adc_v2/mod.rs": "63d8da380a40883c1fa08ace773570005dd5a66332ff39a15534a6cfa0c5bf06",
+    "src/adc_v4/mod.rs": "183430c9c611cf88cad32ebcf1a139468a565eb6c6c4e68b6c2d9ee2a4df5c0c",
+    "src/chips/stm32f401re.rs": "00d3117c73bc7dae30145bba1aff43de8ac8f3776a297ca255bbae1f59dcb099",
+    "src/chips/stm32f405rg.rs": "b52e8bf92e4a85fc18d92b096795fa0bfcca13174f16bfc0b92c7d0c995d0147",
+    "src/chips/stm32h743vi.rs": "ae1e2665c3062f6ffdc76fb931809a766d6a97d48fcd621582c15472bcaa7a4a",
+    "src/chips/stm32h753zi.rs": "ac8047e0fee32c699f6e5bbc2eeb6653442cdd9ac4137ac8a41c43d2b283d285",
+    "src/dma_stream.rs": "b00885beb50627b0ecca5c3947666b3dafdc69fa4ef0cf8524be1e53834c06d0",
+    "src/exti.rs": "149cced8cf0459865a3dc39ac43eb60d1d8dd795d218c833818b69c54970c5cd",
+    "src/gpio_v2/mod.rs": "52fe7e4799fdab2bf7bb35bb50e94f01f7d49d2069fabdd7daa3c6eb5df6753f",
+    "src/i2c_v1/mod.rs": "747c3734d7308b90d0962928f28e3e7990a8f0e2930a92d868598c4cb06df8fc",
+    "src/i2c_v2/mod.rs": "213a1c16596e7c581ffc7d2690c03d60eab76d915594eb8ee9c5e1a25138a8f7",
+    "src/iwdg.rs": "912cb70a7931f0ae9b048e2ad284296b05be47d38e95813e12daa3e34fa388b2",
+    "src/lib.rs": "51e89f682fe69b4322d263c35421bc716bb7a57a204cd06f85412293d783bc49",
+    "src/rcc_f4/mod.rs": "31603ad0bb3706192a47f3b66d633aacf5dcc897d58b84ed52aa7339d47e2943",
+    "src/rcc_h7rm0433/mod.rs": "6df7695ed4d90bd31c72541d6f525d386c67f64d1c8361bbf6348eb4db5ac1c3",
+    "src/sdmmc_v2/mod.rs": "4479a471af98af5c812a53f6d3ce85e27f04c0b3b2ce603ad1557fc9c167687e",
+    "src/spi_v2/mod.rs": "e3f6a46ca70302fac256c843aa3aa94c18c38a590b3f112f99e8bf9c6b6d966f",
+    "src/spi_v4/mod.rs": "ce3fc22c8f1c8c4614e112e740bd98883aa3eb5948187772089b714a88215276",
+    "src/timer.rs": "94fec1bc3be18c3fe06dad5bffe6802ca75909ce40400cebc21559bfe00438b5",
+    "src/usart_v2/mod.rs": "6708e046c3a8666fde76853e10086e3737649255ff330c10e5aeb3366dce0f91",
+    "src/usart_v4/mod.rs": "e81d1e9ec0d3a961c4462ac1d19300f5a40993a2fb4ed2441b9477e5f0a8ea67"
+  },
+  "results": [
+    {
+      "requirement": "API-001",
+      "method": {
+        "procedure": "requirements/benches-analysis.md#No reachable panic"
+      },
+      "level": "analysis",
+      "environment": "host",
+      "hazard": "none",
+      "claim": "0a385f664b18d9d520008d95c4f39d67a7b0cb074035b0feca2b3f8324f92818",
+      "exercised": [
+        "src/lib.rs"
+      ],
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "commands": [
+      {
+        "command": "checks/run.sh",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "checks-run",
+        "kind": "log",
+        "path": "requirements/evidence/logs/free-redesign-20261113-coverage/checks-run.log",
+        "bytes": 746,
+        "sha256": "6fc993aaf1a392874b6487cd0fdc179a154ccb92616658f9ed9a8b830d67e775"
+      }
+    ]
+  }
+}
