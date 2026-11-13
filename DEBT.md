@@ -90,7 +90,7 @@ Severity: **High** can give wrong behaviour or blocks a planned use (FerroWasp).
 - **Medium: the H753ZI bench reaches the Zio headers only.** No morpho headers (CN11, CN12): UART8 TX, the Lucid's USART1 RX, PA8, PA9, PB14 and PG9 are unreachable, and UART5's PB13 needs SB7; PA1, PA2, PA11, PA12 need rework.
 - **Low: USART2 on the F401 goes through the ST-LINK,** so break, baud and parity changes aren't checked there; SB13/SB14 off and SB62/SB63 on would allow a direct link.
 - **Low: clock checks are indirect:** `freeze`'s record matching the `const` one, plus working baud rates (and the F401 host echo). Nothing measures MCO.
-- **Low: `hil/run-i2c-sim.sh` with two probes attached needs both `F401_PROBE` and `H753_PROBE`;** `PROBE_RS_PROBE` would send both runs to one probe, as `hil/probe.sh` ranks it first.
+- **Low: `hil/pico-i2c-sim.sh` with two probes attached needs both `F401_PROBE` and `H753_PROBE`;** `PROBE_RS_PROBE` would send both runs to one probe, as `hil/probe.sh` ranks it first.
 
 ---
 

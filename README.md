@@ -43,7 +43,7 @@ hil/run-f401.sh      # the Nucleo-F401RE bench
 hil/run-h753.sh      # the Nucleo-H753ZI bench
 hil/run-foxeer.sh    # the Foxeer F405 V2 bench, over its USB port
 hil/run-lucid.sh     # the TBS Lucid H7 bench, over its USB port
-hil/run-i2c-sim.sh   # the Pico 1 I2C simulator: flash it, then the two I2C live runs
+hil/pico-i2c-sim.sh   # the Pico 1 I2C simulator: flash it, then the two I2C live runs
 ```
 
 The benches flash RTIC firmwares over probe-rs and need the jumpers listed at the top of each board's `hil/*/src/board.rs` (UART TX-to-RX links, SPI MOSI-to-MISO links). The flight controllers have no probe: their firmware is flashed through the ROM DFU bootloader and reports over USB, against each board's own crystal, IMU, battery inputs and, on the Foxeer, SPI NOR. The Pico 1 simulator ([hil/WIRING.md](hil/WIRING.md)) is flashed once over BOOTSEL/UF2 and serves both Nucleo benches' I2C live runs across power cycles.

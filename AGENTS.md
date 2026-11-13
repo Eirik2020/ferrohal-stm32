@@ -36,8 +36,8 @@ python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap
 python3 -I tools/housekeeping.py # the review report
 hil/run-f401.sh [runs]           # Nucleo-F401RE
 hil/run-h753.sh [runs]           # Nucleo-H753ZI
-hil/run-dfu.sh <board>
-hil/run-i2c-sim.sh [flash|run]   # Pico 1 I2C slave, both benches
+hil/flash-dfu.sh <board>         # a DFU-flashed board: the flight smoke tests
+hil/pico-i2c-sim.sh [flash|run]   # Pico 1 I2C slave, both benches
 ```
 
 Bench traps: watchdog/bootloader runs need `--no-catch-reset`; run M + DFU use the H753's

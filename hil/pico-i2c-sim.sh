@@ -6,10 +6,10 @@
 # PD12/PD13). One combined log lands in hil/logs/i2c-sim.log. Exits
 # non-zero if the build or either run failed.
 #
-# `run-i2c-sim.sh flash` builds the firmware and writes the UF2 next to
+# `pico-i2c-sim.sh flash` builds the firmware and writes the UF2 next to
 # it (and onto the Pico's RPI-RP2 drive, if it is mounted); the Pico
 # keeps its state across runs, so one flash serves any number of them.
-# `run-i2c-sim.sh` without arguments assumes the Pico already runs the
+# `pico-i2c-sim.sh` without arguments assumes the Pico already runs the
 # firmware and just runs the benches.
 
 set -u
@@ -45,7 +45,7 @@ if [ "${1:-}" = flash ]; then
         fi
         if [ -z "$drive" ]; then
             echo "== the drive never appeared; hold BOOTSEL while plugging the"
-            echo "   Pico's USB cable, then run 'run-i2c-sim.sh flash' again"
+            echo "   Pico's USB cable, then run 'pico-i2c-sim.sh flash' again"
             exit 1
         fi
         echo "== copying onto $drive"

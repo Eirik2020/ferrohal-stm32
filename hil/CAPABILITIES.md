@@ -95,7 +95,7 @@ Grouped by why; each is a candidate for the queue below.
   power cycling.
 - **Absent interfaces**: RF, GPS, CAN, Ethernet, real ESCs with props on.
 - **DFU convenience**: entry needs a running FerroWasp CLI (`reboot dfu`) or a
-  hand on BOOT; `run-dfu.sh`'s own request only works from a FerroHAL image.
+  hand on BOOT; `flash-dfu.sh`'s own request only works from a FerroHAL image.
 
 ## The improvement queue
 

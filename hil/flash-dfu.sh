@@ -3,7 +3,7 @@
 # through the ROM DFU bootloader over the board's USB port, then reports over
 # that port. Exits non-zero if flashing or any check failed.
 #
-#     run-dfu.sh <crate and USB serial> <its flash layout in the DFU listing>
+#     flash-dfu.sh <crate and USB serial> <its flash layout in the DFU listing>
 #
 # The layout keeps one board's image off another: only a DFU device showing it
 # gets flashed. Boards can share a layout (the H753ZI and the Lucid both say

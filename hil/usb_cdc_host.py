@@ -11,7 +11,7 @@ run its checks and prints its report first, then asks it to echo.
 before the host opens anything, so a rerun cannot talk to the image it is about
 to replace. Without it the host takes the first port that matches, which is the
 flashed image's own when the caller flashed first and waited for the old port to
-go (run-dfu.sh). `FERROHAL_SERIAL_GLOB` overrides the by-id pattern (a bench
+go (flash-dfu.sh). `FERROHAL_SERIAL_GLOB` overrides the by-id pattern (a bench
 whose udev names differ, or a self-test with a fake directory).
 
 The sizes around 64 bytes straddle the full-speed packet size, where a
