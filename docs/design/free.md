@@ -10,6 +10,15 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 
 ## The rules, and what meets them
 
+0. **[Decided 2026-11-13, owner]** `free()` is the inverse of the constructor: it hands
+   back exactly what `new` took, as a refusal already does. A UART opened with its pins
+   and DMA streams frees to its token, both pins and both typed stream tokens; a handle
+   keeps those parts typed so they come back typed. **Met:** `Adc` (its token),
+   `AdcScan` (the ADC, its stream, its buffer), `Sdmmc` (its wiring), `UsbFs` (its token
+   and both pins), timers. **Not yet:** UART, SPI, I2C and the timer lanes return only
+   the token; they move in the instance-shape step
+   (`../plans/2026-11-13-glue-generator.md`, step 3).
+
 1. Every handle that can touch a peripheral carries the token, or a borrow of it; a
    second handle is a compile error, not a runtime rule. **Met:** the token lives in
    `Pwm<T>`, `Tick<T>`, `Timebase<T>`, `Line<U>`/`RxLine<U>`, `Spi<U>`,
@@ -28,11 +37,9 @@ line and that halves do not cross instances (E0308); `checks/no-panic` runs ever
 
 ## Open
 
-- No `free()` returns its pins, so a second role on the same pins is not
-  reachable: only the instance token comes back (`DEBT.md`, API gaps).
-- The DMA stream tokens stay transport-owned: a `Channel` erases the stream
-  identity, so it cannot return one; every driver that claims streams stops and
-  releases them in its own `free()`.
+- UART, SPI, I2C and the timer lanes still erase their stream tokens into a
+  `Channel` and return only the instance token, so their pins and streams are
+  stranded after `free()`; rule 0 retires this in plan step 3.
 
 ## Gate
 

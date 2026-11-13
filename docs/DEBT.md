@@ -160,6 +160,11 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 - `bench` **Medium: RESET-004 has no method on the H7.** Run N reaches the ROM, but no
   DFU device appears on CN13; the cause is not yet known (`hil/CAPABILITIES.md` queue
   3). *Spawned:* the coverage pass of 2026-11-13 (`57ae1b3`), measured.
+- `tool` **Low: SDMMC's `free()` has only the Lucid's flashed run.** The Lucid bench frees
+  and reopens the SDMMC, but reqtool records only `host`, `development` and `product`
+  runs, so a `FLSH` run cannot count until plan step 7 gives it a tier; SDMMC's API-002
+  stands on the H753 runs that compile it. *Spawned:* `free()` for SDMMC (2026-11-13),
+  whose only slot is on a flashed board.
 - `bench` **Low: the `usart_v2` parity clear is measured at one speed.** 115200 only; a
   faster line leaves less time before the clear's DR read. *Spawned:* run B's
   measurement when the parity-clear item closed (`f9794ed`, 2026-11-05).

@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 50,
-  "bytes": 272565
+  "bytes": 274493
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 16511
+   "bytes": 16904
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -190,7 +190,7 @@
    "class": "agent",
    "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 2524
+   "bytes": 3030
   },
   {
    "path": "docs/design/glue-generator.md",
@@ -428,7 +428,7 @@
    "class": "human",
    "title": "The glue generator, and the work before it - plan of record",
    "purpose": "Status: agreed 2026-11-13, not started. Decis",
-   "bytes": 3246
+   "bytes": 3586
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -519,7 +519,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 13138
+   "bytes": 13827
   },
   {
    "path": "requirements/goals.md",
