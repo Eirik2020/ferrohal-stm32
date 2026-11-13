@@ -528,15 +528,13 @@ mod app {
         // touches it.
         let ccm: &'static mut [u32] =
             unsafe { core::slice::from_raw_parts_mut(0x1000_0000 as *mut u32, 16) };
-        let (mut lane3, lane_refusal) = match pwm3
-            .channel::<3, _>(run.ch3)
-            .into_lane(run.lane3_stream, ccm)
+        let (mut lane3, lane_refusal) = match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3_stream).assemble(&pwm3, ccm)
         {
             Ok(_) => defmt::panic!("a CCM buffer was accepted"),
             Err(refused) => {
                 let error = refused.error();
-                let (channel, stream, _ccm) = refused.into_parts();
-                match channel.into_lane(stream, lane3_buf) {
+                let (wiring, _ccm) = refused.into_parts();
+                match wiring.assemble(&pwm3, lane3_buf) {
                     Ok(lane) => (lane, Some(error)),
                     Err(refused) => defmt::panic!("the TIM3 lane: {}", refused.error()),
                 }
@@ -553,7 +551,7 @@ mod app {
         );
 
         // Sampler: a 0 rate refuses; the timer, stream and buffer come back.
-        let (mut sampler, sampler_refusal) = match Sampler::new::<_, 'B'>(
+        let (mut sampler, sampler_refusal) = match Sampler::new::<'B'>(
             &mut run.rcc,
             run.tim1,
             run.sampler_stream,
@@ -564,7 +562,7 @@ mod app {
             Err(refused) => {
                 let error = refused.error();
                 let (tim1, stream, buffer) = refused.into_parts();
-                match Sampler::new::<_, 'B'>(&mut run.rcc, tim1, stream, Hertz::mhz(1), buffer) {
+                match Sampler::new::<'B'>(&mut run.rcc, tim1, stream, Hertz::mhz(1), buffer) {
                     Ok(sampler) => (sampler, Some(error)),
                     Err(refused) => defmt::panic!("the TIM1 sampler: {}", refused.error()),
                 }
@@ -627,18 +625,14 @@ mod app {
             Ok(pwm) => pwm,
             Err(refused) => defmt::panic!("TIM4 PWM: {}", refused.error()),
         };
-        let lane4 = match pwm4
-            .channel::<1, _>(run.pb6)
-            .into_lane(run.lane4_stream, lane4_buf)
+        let lane4 = match ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pb6, run.lane4_stream).assemble(&pwm4, lane4_buf)
         {
             Ok(lane) => lane,
             Err(refused) => defmt::panic!("the TIM4 lane: {}", refused.error()),
         };
         let (mut awg, awg_refusal) = match Pwm::new(&mut run.rcc, run.tim2, Hertz::khz(100)) {
             Ok(pwm2) => {
-                let lane2 = match pwm2
-                    .channel::<3, _>(run.pb10)
-                    .into_lane(run.lane2_stream, lane2_buf)
+                let lane2 = match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.pb10, run.lane2_stream).assemble(&pwm2, lane2_buf)
                 {
                     Ok(lane) => lane,
                     Err(refused) => defmt::panic!("the TIM2 lane: {}", refused.error()),

@@ -49,7 +49,7 @@ use ferrohal_stm32::{
     sdmmc::{self, BLOCK_SIZE, Sdmmc},
     spi::{self, Buffers, Spi, Wiring},
     time::Hertz,
-    timer::{Awg, Pwm, Timebase},
+    timer::{Awg, LaneWiring, Pwm, Timebase},
     usb::UsbFs,
 };
 
@@ -384,20 +384,16 @@ fn main() -> ! {
     };
     let mut pad1 = b.p0.into_alternate::<2>(&mut b.ctrl);
     pad1.set_pull(&mut b.ctrl, Pull::Up);
-    let channel3 = tim3.channel::<3, _>(pad1);
-    tim3.set_output::<3>(false);
+    let channel3 = pad1;
     let mut pad2 = b.p1.into_alternate::<2>(&mut b.ctrl);
     pad2.set_pull(&mut b.ctrl, Pull::Up);
-    let channel4 = tim3.channel::<4, _>(pad2);
-    tim3.set_output::<4>(false);
+    let channel4 = pad2;
     let mut pad3 = a.p0.into_alternate::<2>(&mut a.ctrl);
     pad3.set_pull(&mut a.ctrl, Pull::Up);
-    let channel1 = tim5.channel::<1, _>(pad3);
-    tim5.set_output::<1>(false);
+    let channel1 = pad3;
     let mut pad4 = a.p1.into_alternate::<2>(&mut a.ctrl);
     pad4.set_pull(&mut a.ctrl, Pull::Up);
-    let channel2 = tim5.channel::<2, _>(pad4);
-    tim5.set_output::<2>(false);
+    let channel2 = pad4;
     // SAFETY: `main` runs once, and these are the only references.
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
     let [read1, read2, read3, read4] = unsafe { &mut *addr_of_mut!(LANE_READS) };
@@ -407,28 +403,45 @@ fn main() -> ! {
     // buffer before programming anything. Nothing else touches it.
     let dtcm: &'static mut [u32] =
         unsafe { core::slice::from_raw_parts_mut(0x2001_0000 as *mut u32, 16) };
-    let (lane_refused, channel3, stream3, lane_read1) =
-        match channel3.into_two_way_lane::<_, 'B'>(dma2.s0, dtcm, &mut read1[..]) {
-            Err(refused) => {
-                let refused_dtcm = matches!(
-                    refused.error(),
-                    ferrohal_stm32::timer::ConfigError::Buffer(
-                        ferrohal_stm32::dma::BufferError::Unreachable
-                    )
-                );
-                let (channel, stream, _dtcm, read) = refused.into_parts();
-                (refused_dtcm, channel, stream, read)
-            }
-            Ok(_) => reboot_to_dfu(),
-        };
+    let (lane_refused, wiring3, lane_read1) = match LaneWiring::<_, 3, _, _>::new(channel3, dma2.s0)
+        .assemble_two_way::<'B'>(&tim3, dtcm, &mut read1[..])
+    {
+        Err(refused) => {
+            let refused_dtcm = matches!(
+                refused.error(),
+                ferrohal_stm32::timer::ConfigError::Buffer(ferrohal_stm32::dma::BufferError::Unreachable)
+            );
+            let (wiring, (_dtcm, read)) = refused.into_parts();
+            (refused_dtcm, wiring, read)
+        }
+        Ok(_) => reboot_to_dfu(),
+    };
     let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
-        channel3.into_two_way_lane::<_, 'B'>(stream3, &mut one[..], lane_read1),
-        channel4.into_two_way_lane::<_, 'B'>(dma2.s1, &mut two[..], &mut read2[..]),
-        channel1.into_two_way_lane::<_, 'A'>(dma2.s2, &mut three[..], &mut read3[..]),
-        channel2.into_two_way_lane::<_, 'A'>(dma2.s3, &mut four[..], &mut read4[..]),
+        wiring3.assemble_two_way::<'B'>(&tim3, &mut one[..], lane_read1),
+        LaneWiring::<_, 4, _, _>::new(channel4, dma2.s1).assemble_two_way::<'B'>(
+            &tim3,
+            &mut two[..],
+            &mut read2[..],
+        ),
+        LaneWiring::<_, 1, _, _>::new(channel1, dma2.s2).assemble_two_way::<'A'>(
+            &tim5,
+            &mut three[..],
+            &mut read3[..],
+        ),
+        LaneWiring::<_, 2, _, _>::new(channel2, dma2.s3).assemble_two_way::<'A'>(
+            &tim5,
+            &mut four[..],
+            &mut read4[..],
+        ),
     ) else {
         reboot_to_dfu()
     };
+    // Assembly opens each channel's output; the motor pins lose theirs at
+    // once, before any counter runs, as before.
+    tim3.set_output::<3>(false);
+    tim3.set_output::<4>(false);
+    tim5.set_output::<1>(false);
+    tim5.set_output::<2>(false);
     // The waveform generator: TIM3 and TIM5 at different periods refuse;
     // both PWMs and both lane pairs come back, TIM5 re-rated, and the
     // independent pair is what the lane checks use.

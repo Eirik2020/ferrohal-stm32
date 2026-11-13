@@ -65,8 +65,8 @@ impl<T: ChannelTimer> Lanes<T> for () {
 }
 
 macro_rules! lanes {
-    ($count:literal: $($index:tt $C:ident),+) => {
-        impl<T: ChannelTimer, $(const $C: u8),+> Lanes<T> for ($(CompareLane<T, $C>,)+) {
+    ($count:literal: $($index:tt $C:ident $W:ident),+) => {
+        impl<T: ChannelTimer, $(const $C: u8, $W),+> Lanes<T> for ($(CompareLane<T, $C, $W>,)+) {
             const COUNT: usize = $count;
             fn channel(index: usize) -> u8 {
                 match index {
@@ -118,10 +118,10 @@ macro_rules! lanes {
     };
 }
 
-lanes!(1: 0 A);
-lanes!(2: 0 A, 1 B);
-lanes!(3: 0 A, 1 B, 2 C);
-lanes!(4: 0 A, 1 B, 2 C, 3 D);
+lanes!(1: 0 A WA);
+lanes!(2: 0 A WA, 1 B WB);
+lanes!(3: 0 A WA, 1 B WB, 2 C WC);
+lanes!(4: 0 A WA, 1 B WB, 2 C WC, 3 D WD);
 
 /// The bit in `stage`'s mask for `channel`, numbered from 1. 0 for no channel.
 const fn channel_bit(channel: u8) -> u8 {
@@ -499,18 +499,25 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
     }
 
-    /// Stops everything and hands the timer tokens back: [`abort`](Self::abort)'s
-    /// sequence (every lane at duty 0 with its stream stopped, the timers stopped,
-    /// their compare requests closed), then each [`Pwm::free`]. The lanes end
-    /// here, their streams released with them and their pins kept: the DMA stream
-    /// tokens stay transport-owned (`docs/design/free.md`). The second token is
-    /// `None` on a generator built with [`single`](Awg::single). A reopen runs
-    /// `Pwm::new` again, whose reset clears the second timer's slave mode.
-    pub fn free(self) -> (A, Option<B>) {
+    /// Stops everything and hands back what the constructor took: the timer
+    /// handles and both lane sets, after [`abort`](Self::abort)'s sequence
+    /// (every lane at duty 0 with its stream stopped, the timers stopped,
+    /// their compare requests closed). Each lane then frees to its wiring and
+    /// buffers ([`CompareLane::free`]), and each timer to its token
+    /// ([`Pwm::free`]). The second timer is `None` on a generator built with
+    /// [`single`](Awg::single).
+    #[allow(clippy::type_complexity)]
+    pub fn free(self) -> (Pwm<A>, Option<Pwm<B>>, LA, LB) {
         let mut awg = self;
         awg.abort();
-        let Self { first, second, .. } = awg;
-        (first.free(), second.map(Pwm::free))
+        let Self {
+            first,
+            second,
+            first_lanes,
+            second_lanes,
+            ..
+        } = awg;
+        (first, second, first_lanes, second_lanes)
     }
 
     fn halt(&mut self) {

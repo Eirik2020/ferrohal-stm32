@@ -139,14 +139,15 @@ pub fn lane_pair_check<
     U: ferrohal_stm32::timer::Instance,
     const A: u8,
     const B: u8,
+    SU, WA, WB,
 >(
     report: &mut Report,
     name: &str,
     pwm: &mut Pwm<T>,
-    lanes: (&mut CompareLane<T, A>, &mut CompareLane<T, B>),
+    lanes: (&mut CompareLane<T, A, WA>, &mut CompareLane<T, B, WB>),
     pins: (u8, u8),
     patterns: (u16, u16),
-    sampler: &mut Sampler<U>,
+    sampler: &mut Sampler<U, SU>,
     cpu: Hertz,
 ) {
     let period = pwm.period();
@@ -223,12 +224,12 @@ pub fn lane_pair_check<
 
 /// The waveform generator on two lanes of one timer, read back by `sampler`:
 /// each lane's own samples, a ramp, one lane alone, and what it refuses.
-pub fn awg_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u8, const B: u8>(
+pub fn awg_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u8, const B: u8, SU, WA, WB>(
     report: &mut Report,
     name: &str,
-    awg: &mut Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>,
+    awg: &mut Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
     pins: (u8, u8),
-    sampler: &mut Sampler<U>,
+    sampler: &mut Sampler<U, SU>,
     cpu: Hertz,
 ) {
     let period = awg.period();
@@ -238,8 +239,8 @@ pub fn awg_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u
     let budget = cpu.0 / 100;
 
     // Plays what's loaded, sampling it; `Err` if anything didn't finish.
-    let play = |awg: &mut Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>,
-                sampler: &mut Sampler<U>,
+    let play = |awg: &mut Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
+                sampler: &mut Sampler<U, SU>,
                 lanes: u8|
      -> Result<(), Fail> {
         let unfinished = Fail::Count {
@@ -450,12 +451,13 @@ pub fn awg_free_check<
     U: ferrohal_stm32::timer::Instance,
     const A: u8,
     const B: u8,
+    SU, WA, WB,
 >(
     report: &mut Report,
     name: &str,
-    awg: Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>,
+    awg: Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
     pins: (u8, u8),
-    sampler: &mut Sampler<U>,
+    sampler: &mut Sampler<U, SU>,
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     cpu: Hertz,
 ) {
@@ -464,12 +466,12 @@ pub fn awg_free_check<
     let rate = awg.sample_rate();
     let mask = (1u16 << pins.0) | (1u16 << pins.1);
     // Every bit a 1, so each period is mostly high: a stop lands mid-pulse.
-    let start = |awg: &mut Awg<T, T, (CompareLane<T, A>, CompareLane<T, B>), ()>| {
+    let start = |awg: &mut Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>| {
         awg.load(0, &duties(0xffff, period)).is_ok()
             && awg.load(1, &duties(0xffff, period)).is_ok()
             && awg.play().is_ok()
     };
-    let quiet = |sampler: &mut Sampler<U>, started: bool| -> Result<(), Fail> {
+    let quiet = |sampler: &mut Sampler<U, SU>, started: bool| -> Result<(), Fail> {
         if !started {
             return Err(Fail::Count {
                 expected: 2,
@@ -506,12 +508,16 @@ pub fn awg_free_check<
     );
 
     let started = start(&mut awg);
-    let (token, _) = awg.free();
+    let (pwm, _, (lane_a, lane_b), ()) = awg.free();
     report.check(
         name,
         "AWG: free mid-waveform holds both lines low [API-002]",
         quiet(sampler, started),
     );
+    // The lanes free to their wirings and buffers, the timer to its token.
+    let _ = lane_a.free(&pwm);
+    let _ = lane_b.free(&pwm);
+    let token = pwm.free();
     report.check(
         name,
         "the freed token opens the timer again, at the generator's period [API-002]",
@@ -587,8 +593,8 @@ fn recovered(
 }
 
 /// Plays `wave` on one lane of `awg`, waiting for it to end.
-fn play_one<T: ChannelTimer, const C: u8>(
-    awg: &mut Awg<T, T, (CompareLane<T, C>,), ()>,
+fn play_one<T: ChannelTimer, const C: u8, WC>(
+    awg: &mut Awg<T, T, (CompareLane<T, C, WC>,), ()>,
     samples: &[u32; 8],
     budget: u32,
 ) -> Result<(), Fail> {
@@ -610,11 +616,11 @@ fn play_one<T: ChannelTimer, const C: u8>(
 
 /// Out over a wire: `awg`'s lane plays, and `sampler` reads the far end of the
 /// wire, on bit `far_pin` of its port.
-pub fn awg_wire_out_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const C: u8>(
+pub fn awg_wire_out_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const C: u8, SU, WC>(
     report: &mut Report,
     name: &str,
-    awg: &mut Awg<T, T, (CompareLane<T, C>,), ()>,
-    sampler: &mut Sampler<U>,
+    awg: &mut Awg<T, T, (CompareLane<T, C, WC>,), ()>,
+    sampler: &mut Sampler<U, SU>,
     far_pin: u8,
     cpu: Hertz,
 ) {
@@ -689,12 +695,12 @@ pub fn awg_wire_out_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, c
 
 /// In over a wire: `far` plays active low, and `near` listens on its own lane's
 /// pin, at bit `near_pin` of its port.
-pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8>(
+pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8, WFC, WNC>(
     report: &mut Report,
     name: &str,
-    near: &mut Awg<N, N, (CompareLane<N, NC>,), ()>,
+    near: &mut Awg<N, N, (CompareLane<N, NC, WNC>,), ()>,
     near_pin: u8,
-    far: &mut Awg<F, F, (CompareLane<F, FC>,), ()>,
+    far: &mut Awg<F, F, (CompareLane<F, FC, WFC>,), ()>,
     cpu: Hertz,
 ) {
     near.set_active_low(true);
@@ -744,12 +750,12 @@ pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
 /// One wire, both ways, both ends two-way and active low, as a bidirectional
 /// protocol runs: `near` sends and `far` listens, then they swap. And with `near`'s
 /// output off, nothing crosses.
-pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8>(
+pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8, WFC, WNC>(
     report: &mut Report,
     name: &str,
-    near: &mut Awg<N, N, (CompareLane<N, NC>,), ()>,
+    near: &mut Awg<N, N, (CompareLane<N, NC, WNC>,), ()>,
     near_pin: u8,
-    far: &mut Awg<F, F, (CompareLane<F, FC>,), ()>,
+    far: &mut Awg<F, F, (CompareLane<F, FC, WFC>,), ()>,
     far_pin: u8,
     cpu: Hertz,
 ) {
@@ -850,10 +856,10 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
 
 /// A running PWM output's duty, read from `samples` of its pin: high for
 /// `sixteenths`/16 of the time, to within 1/16.
-pub fn duty_check<T: ferrohal_stm32::timer::Instance>(
+pub fn duty_check<T: ferrohal_stm32::timer::Instance, ST>(
     report: &mut Report,
     name: &str,
-    sampler: &mut Sampler<T>,
+    sampler: &mut Sampler<T, ST>,
     pin: u8,
     sixteenths: u32,
     cpu: Hertz,
@@ -889,13 +895,13 @@ pub fn duty_check<T: ferrohal_stm32::timer::Instance>(
 
 /// One period from `Pwm::start_one_pulse`: the first period carries the set
 /// duty, then the line holds still and the counter has stopped itself.
-pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance>(
+pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, SU>(
     report: &mut Report,
     name: &str,
     pwm: &mut Pwm<T>,
     pin: u8,
     sixteenths: u32,
-    sampler: &mut Sampler<U>,
+    sampler: &mut Sampler<U, SU>,
     cpu: Hertz,
 ) {
     let per_period = (u64::from(sampler.rate().0) / u64::from(pwm.frequency().0)).max(1) as usize;

@@ -95,17 +95,17 @@ mod app {
     /// them — both in software, or TIM3 alone when `linked` (TIM2 starts from
     /// its trigger) — and decodes every lane's pin from the sampler.
     #[allow(clippy::too_many_arguments)]
-    fn four_lanes(
+    fn four_lanes<W3, W4, W23, W22, S1>(
         report: &mut Report,
         name: &str,
         pwm3: &mut Pwm<TIM3>,
         pwm2: &mut Pwm<TIM2>,
-        lane3: &mut CompareLane<TIM3, 3>,
-        lane4: &mut CompareLane<TIM3, 4>,
-        lane23: &mut CompareLane<TIM2, 3>,
-        lane22: &mut CompareLane<TIM2, 2>,
+        lane3: &mut CompareLane<TIM3, 3, W3>,
+        lane4: &mut CompareLane<TIM3, 4, W4>,
+        lane23: &mut CompareLane<TIM2, 3, W23>,
+        lane22: &mut CompareLane<TIM2, 2, W22>,
         patterns: (u16, u16, u16, u16),
-        sampler: &mut Sampler<TIM1>,
+        sampler: &mut Sampler<TIM1, S1>,
         linked: bool,
         active_low: bool,
         cpu: Hertz,
@@ -227,18 +227,14 @@ mod app {
             defmt::panic!("motor timers")
         };
         let (Ok(mut lane3), Ok(mut lane4), Ok(mut lane23), Ok(mut lane22)) = (
-            pwm3.channel::<3, _>(run.ch3)
-                .into_lane(run.lane3, core::mem::take(cx.local.lane3)),
-            pwm3.channel::<4, _>(run.ch4)
-                .into_lane(run.lane4, core::mem::take(cx.local.lane4)),
-            pwm2.channel::<3, _>(run.ch23)
-                .into_lane(run.lane23, core::mem::take(cx.local.lane23)),
-            pwm2.channel::<2, _>(run.ch22)
-                .into_lane(run.lane22, core::mem::take(cx.local.lane22)),
+            ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3).assemble(&pwm3, core::mem::take(cx.local.lane3)),
+            ferrohal_stm32::timer::LaneWiring::<_, 4, _, _>::new(run.ch4, run.lane4).assemble(&pwm3, core::mem::take(cx.local.lane4)),
+            ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch23, run.lane23).assemble(&pwm2, core::mem::take(cx.local.lane23)),
+            ferrohal_stm32::timer::LaneWiring::<_, 2, _, _>::new(run.ch22, run.lane22).assemble(&pwm2, core::mem::take(cx.local.lane22)),
         ) else {
             defmt::panic!("motor lanes")
         };
-        let Ok(mut sampler) = Sampler::new::<_, 'B'>(
+        let Ok(mut sampler) = Sampler::new::<'B'>(
             &mut run.rcc,
             run.tim1,
             run.sampler,

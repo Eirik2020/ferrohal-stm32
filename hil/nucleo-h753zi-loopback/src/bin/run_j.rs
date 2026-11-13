@@ -88,14 +88,14 @@ mod app {
             defmt::unreachable!()
         };
         let [b0, b1, a0, a3] = lanes.each_mut();
-        let sampler_b = Sampler::new::<_, 'B'>(
+        let sampler_b = Sampler::new::<'B'>(
             &mut run.rcc,
             run.tim8,
             run.port_b,
             Hertz::mhz(1),
             core::mem::take(cx.local.port_b),
         );
-        let sampler_a = Sampler::new::<_, 'A'>(
+        let sampler_a = Sampler::new::<'A'>(
             &mut run.rcc,
             run.tim2,
             run.port_a,
@@ -109,24 +109,16 @@ mod app {
         let Ok(mut tim3) = Pwm::new(&mut run.rcc, run.tim3, Hertz::khz(150)) else {
             defmt::panic!("TIM3 PWM")
         };
-        let ch3 = tim3
-            .channel::<3, _>(run.pb0)
-            .into_lane(run.tim3_lanes.0, b0);
-        let ch4 = tim3
-            .channel::<4, _>(run.pb1)
-            .into_lane(run.tim3_lanes.1, b1);
+        let ch3 = ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.pb0, run.tim3_lanes.0).assemble(&tim3, b0);
+        let ch4 = ferrohal_stm32::timer::LaneWiring::<_, 4, _, _>::new(run.pb1, run.tim3_lanes.1).assemble(&tim3, b1);
         let (Ok(mut ch3), Ok(mut ch4)) = (ch3, ch4) else {
             defmt::panic!("TIM3 lanes")
         };
         let Ok(mut tim5) = Pwm::new(&mut run.rcc, run.tim5, Hertz::khz(150)) else {
             defmt::panic!("TIM5 PWM")
         };
-        let ch1 = tim5
-            .channel::<1, _>(run.pa0)
-            .into_lane(run.tim5_lanes.0, a0);
-        let ch4_5 = tim5
-            .channel::<4, _>(run.pa3)
-            .into_lane(run.tim5_lanes.1, a3);
+        let ch1 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pa0, run.tim5_lanes.0).assemble(&tim5, a0);
+        let ch4_5 = ferrohal_stm32::timer::LaneWiring::<_, 4, _, _>::new(run.pa3, run.tim5_lanes.1).assemble(&tim5, a3);
         let (Ok(mut ch1), Ok(mut ch4_5)) = (ch1, ch4_5) else {
             defmt::panic!("TIM5 lanes")
         };

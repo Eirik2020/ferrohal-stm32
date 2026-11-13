@@ -179,7 +179,7 @@ pub type ComplementaryLaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
 /// What a two-way lane's assembly returns: the lane, or the refusal with
 /// everything it took.
 pub type TwoWayLaneAssembly<T, const C: u8, Pin, Stream> = Result<
-    CompareLane<T, C>,
+    CompareLane<T, C, LaneWiring<T, C, Pin, Stream>>,
     LaneRefusal<T, C, Pin, Stream, (&'static mut [u32], &'static mut [u16])>,
 >;
 
