@@ -1,6 +1,7 @@
 # The glue generator, and the work before it - plan of record
 
-Status: **agreed 2026-11-13, not started.** Decisions: ADR-008 (the generator) and ADR-009
+Status: **agreed 2026-11-13; steps 1 and 2 of the order built (PR #43), their hardware runs
+pending.** Decisions: ADR-008 (the generator) and ADR-009
 (maturity). Design: `docs/design/glue-generator.md` and `docs/design/maturity.md`.
 
 ## Order

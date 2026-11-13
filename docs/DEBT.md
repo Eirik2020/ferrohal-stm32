@@ -101,8 +101,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | D2 | `code` `api` | M | The kernel clock has three types and a `BUS` constant. | `024179f` UART `KERNEL: Bus`; `99e6404` SPI `Kernel` enum |
 | D3 | `code` `api` `bench` | M | Neutral drivers expose themselves three ways, so board code names the IP version. | each driver's own re-exports, as above |
 | D4 | `code` | L | SPI's traits live in its DMA engine; the polled driver imports them. | `99e6404` before the polled SPI (`66afdaa`, 2026-11-02) |
-| D6 | `code` `api` `bench` | M | `uart::ConfigError` doubles as the crate's DMA-buffer error. | `ea7a9f8` timer lanes reused the UART's error |
-| D7 | `code` `api` `bench` | M | A bad sampler rate refuses with `uart::ConfigError::Unsupported`. | `ea7a9f8` reused `024179f`'s variant |
 | D8 | `code` `api` | L | Refusals carry three error families. | `af65cad` `ClockError`, `1e1bbdf` IWDG, `a8a3a05` ADC, `4237048` SDMMC |
 | D9 | `code` | L | `usb.rs` hard-codes PA11/PA12 AF10 outside the glue. | `9bd9d1e` 2026-11-02 |
 | D10 | `code` | L | USB and SDMMC wirings have no `RESOURCES`. | `9bd9d1e`, `4237048` did not follow `2e7f7fe`'s descriptors |
@@ -119,7 +117,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | N8 | `code` `api` | L | Routing traits and wirings named outside N2; USB has no wiring. | `ea7a9f8`, `9bd9d1e` |
 | N9 | `code` `api` | L | Vector-name constants differ by driver. | `2e7f7fe`, `4070cd8` |
 | N10 | `code` `api` | L | DMA fault variant `DmaTransfer`/`DmaOverrun` vs `Dma`. | `42cbcaf` UART, then `99e6404` |
-| N11 | `code` `api` | L | Buffer refusal split vs one `Buffer`. | `af65cad` UART, `a8a3a05` ADC |
 | N12 | `code` `api` | L | Health counters differ in plurality, type and overflow. | `42cbcaf`, `99e6404`, `cdfe190` |
 | N13 | `code` `api` | L | RCC error variants differ F4/H7. | `af65cad`, two RCC modules |
 | N14 | `code` `api` | L | `free` vs `release` (`Exti`). | `b55c640` `release`; `free` from ADR-002 |
@@ -149,7 +146,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | K4 | `docs` | L | Shared-source lists disagree (`naming.md` vs nine). | `af65cad`'s count of five; `naming.md` 2026-11-13 |
 | B1 | `bench` `owner` | L | A run letter means a different test on each bench. | `55025e8` the H753 bench numbered its own runs |
 | B2 | `bench` `tool` | L | H753 runs generated, F401 runs by hand. | `8b0266b` generator for the H753 only |
-| B3 | `bench` | L | F401 run V asserts D7's error type. | `c334df1` 2026-11-10 |
 
 ## 3. Shipped code without hardware proof: bench work
 

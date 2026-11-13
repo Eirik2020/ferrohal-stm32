@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 50,
-  "bytes": 274493
+  "bytes": 274919
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 16904
+   "bytes": 16437
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -53,7 +53,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 37551
+   "bytes": 38331
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -386,7 +386,7 @@
    "class": "agent",
    "title": "API review: consistency, naming, structure, reuse (hub)",
    "purpose": "Merged 2026-11-11, every fact re-measured at ",
-   "bytes": 3117
+   "bytes": 3149
   },
   {
    "path": "docs/plans/2026-11-08-debt-sweep-gates.md",
@@ -427,8 +427,8 @@
    "path": "docs/plans/2026-11-13-glue-generator.md",
    "class": "human",
    "title": "The glue generator, and the work before it - plan of record",
-   "purpose": "Status: agreed 2026-11-13, not started. Decis",
-   "bytes": 3586
+   "purpose": "Status: agreed 2026-11-13; steps 1 and 2 of t",
+   "bytes": 3645
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -505,7 +505,7 @@
    "class": "human",
    "title": "Bench Procedures: the injected faults and the cache matrix",
    "purpose": "The fault-injection and cache-matrix runs of ",
-   "bytes": 4543
+   "bytes": 4565
   },
   {
    "path": "requirements/benches-refusals.md",
