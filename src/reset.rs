@@ -9,8 +9,9 @@
 //!
 //! The bootloader wants the chip as reset left it, so getting there takes a
 //! reset: [`reboot_to_bootloader`] leaves a request in RAM and resets, and
-//! the next boot, first thing in `main`, checks [`bootloader_requested`] and
-//! calls [`enter_bootloader`]. Before the clocks are set up, no `Rcc` exists
+//! the next boot, first thing in `main`, calls
+//! [`enter_bootloader_if_requested`], which checks [`bootloader_requested`]
+//! and jumps. Before the clocks are set up, no `Rcc` exists
 //! yet: [`peek_cause`] reads the reset flags without one.
 //!
 //! The F4's bootloader leaves for the application by jumping there, with no

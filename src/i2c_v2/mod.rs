@@ -29,8 +29,8 @@ pub type Block = Regs;
 #[derive(Clone, Copy)]
 pub struct Unit(Regs);
 
-/// TIMINGR as one value (RM0433 §47.6.8): PRESC[31:28], SCLDEL[23:20],
-/// SDADEL[19:16], SCLH[15:8], SCLL[7:0], and the SCL it runs.
+/// TIMINGR as one value (RM0433 §47.6.8): PRESC\[31:28\], SCLDEL\[23:20\],
+/// SDADEL\[19:16\], SCLH\[15:8\], SCLL\[7:0\], and the SCL it runs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Timing {
     /// The whole TIMINGR value, packed.

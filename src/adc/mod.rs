@@ -45,7 +45,7 @@ const CAL_VDDA_MV: u32 = 3300;
 const TS_CAL1_C: i32 = 30;
 const TS_CAL2_C: i32 = 110;
 
-/// The bus settings.
+/// The conversion settings: sample time.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Config {

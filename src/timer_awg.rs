@@ -1,28 +1,5 @@
-//! An arbitrary waveform generator: compare lanes on one or two timers, each
-//! playing its own sequence of samples, all from one start. Part of the timer
-//! module, for both IP versions.
-//!
-//! A sample is a duty in timer counts, held for one period of the timer, so the
-//! sample rate is the timer's rate and full scale is [`Awg::period`]. A waveform
-//! ends at duty 0: the lane appends it, so the output falls and stays low. What
-//! the samples mean is the caller's. A protocol encodes its frames as samples.
-//!
-//! Lanes built two-way read as well. [`Awg::listen`] releases the outputs, runs
-//! the timers at the capture rate and has each lane's stream copy its port's input
-//! register into memory, paced by its own channel's compare request, so a lane can
-//! answer on the pin it sends on. [`Awg::speak`] turns them back. [`recover`] turns
-//! what was read back into samples. Outputs can be active low, for a line that
-//! idles high.
-//!
-//! With two timers, either the first starts the second through its trigger
-//! output, on one edge ([`Awg::linked`]), or both start in software, one after
-//! the other, for timers with no trigger route between them
-//! ([`Awg::independent`]). Both timers must run at one period, so a sample means
-//! the same on every lane.
-//!
-//! Lanes are numbered in the order they were given: the first timer's, then the
-//! second's. The firmware binds each lane's stream vector, or polls, and calls
-//! [`Awg::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
+//! The arbitrary waveform generator, [`Awg`]; its documentation is on the type,
+//! since this module is private. Part of the timer module, for both IP versions.
 //!
 //! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, API-002
 
@@ -179,7 +156,31 @@ enum Start {
     Independent,
 }
 
-/// See the [module documentation](self).
+/// An arbitrary waveform generator: compare lanes on one or two timers, each
+/// playing its own sequence of samples, all from one start. Part of the timer
+/// module, for both IP versions.
+///
+/// A sample is a duty in timer counts, held for one period of the timer, so the
+/// sample rate is the timer's rate and full scale is [`Awg::period`]. A waveform
+/// ends at duty 0: the lane appends it, so the output falls and stays low. What
+/// the samples mean is the caller's. A protocol encodes its frames as samples.
+///
+/// Lanes built two-way read as well. [`Awg::listen`] releases the outputs, runs
+/// the timers at the capture rate and has each lane's stream copy its port's input
+/// register into memory, paced by its own channel's compare request, so a lane can
+/// answer on the pin it sends on. [`Awg::speak`] turns them back. [`recover`] turns
+/// what was read back into samples. Outputs can be active low, for a line that
+/// idles high.
+///
+/// With two timers, either the first starts the second through its trigger
+/// output, on one edge ([`Awg::linked`]), or both start in software, one after
+/// the other, for timers with no trigger route between them
+/// ([`Awg::independent`]). Both timers must run at one period, so a sample means
+/// the same on every lane.
+///
+/// Lanes are numbered in the order they were given: the first timer's, then the
+/// second's. The firmware binds each lane's stream vector, or polls, and calls
+/// [`Awg::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
 pub struct Awg<A: ChannelTimer, B: ChannelTimer, LA, LB> {
     first: Pwm<A>,
     second: Option<Pwm<B>>,

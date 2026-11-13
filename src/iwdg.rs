@@ -13,7 +13,7 @@
 //!
 //! Starting also freezes the counter while a debugger holds the core
 //! halted (`DBGMCU`), so a breakpoint inside a session does not become a
-//! reset. `iwdg_v2` adds a window register: [`Watchdog::start_windowed`]
+//! reset. `iwdg_v2` adds a window register: `Watchdog::start_windowed`
 //! resets the chip if fed before the window opens, which catches firmware
 //! that feeds in a tight loop without doing its work, and keeps it running
 //! when fed inside the window. The window is written last, after the
