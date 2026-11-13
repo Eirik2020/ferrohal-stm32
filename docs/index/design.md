@@ -1,6 +1,6 @@
 # Document index: design (generated)
 
-16 documents in docs/design/. Hub: [README.md](README.md).
+17 documents in docs/design/. Hub: [README.md](README.md).
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -12,6 +12,7 @@
 | a | docs/design/free.md | 2524 B | Every driver handle that owns a peripheral to |
 | a | docs/design/h7-errata.md | 2988 B | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/naming.md | 3958 B | Source: ADR-003, ../decisions/2026-11-08-nami |
 | a | docs/design/ownership.md | 2029 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-ids.md | 1789 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-system.md | 3815 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
