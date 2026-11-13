@@ -7,18 +7,15 @@ requirements:
       whatever I2C version its chip has.
     rationale: >-
       A single unified HAL: code above the driver must not change when the
-      chip does.
+      chip does. Reaching one API is a property of the build, so an analysis
+      of one source built for every chip proves it, not a bench.
     derived_from: [G3]
     verification:
       entries:
-        - level: target
-          environment: development
+        - level: analysis
+          environment: host
           method:
-            procedure: requirements/benches.md#I2C on the Nucleo-F401RE
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
+            procedure: requirements/benches-analysis.md#One I2C API on every chip
 
   - id: I2C-002
     title: A start that cannot run is refused

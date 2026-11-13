@@ -1044,7 +1044,12 @@ pub fn full_suite(
         "echo, buffer-sized",
         echo(link, &[0xa5; 64][..tx_len.min(64)]),
     );
-    report.check_for(name, "UART-002", "stream 8 KiB", stream(link, 8 * 1024));
+    report.check_for(
+        name,
+        "UART-002 DMA-001",
+        "stream 8 KiB",
+        stream(link, 8 * 1024),
+    );
     report.check_for(
         name,
         "UART-009",
@@ -1053,7 +1058,7 @@ pub fn full_suite(
     );
     report.check_for(
         name,
-        "UART-006",
+        "UART-006 WAIT-001",
         "counted and clocked waits within their bounds",
         wait_bounds(
             link,

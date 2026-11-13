@@ -254,7 +254,7 @@ fn inject_timeout<U: ferrohal_stm32::uart::Instance>(report: &mut Report, loop_:
     );
     report.check_for(
         name,
-        "UARTDMA-011",
+        "UARTDMA-012",
         "timeout: the bound expired, the queue dropped and counted",
         match (&flushed, after.timeouts.wrapping_sub(before)) {
             (Err(Error::Timeout), 1) => Ok(()),
@@ -362,7 +362,7 @@ mod app {
         let mut report = Report::new();
         report.check_for(
             "USART6",
-            "UART-003",
+            "UART-003 RES-001",
             "vectors enabled at one priority",
             tests::vectors_verified(cx.local.vectors6),
         );
