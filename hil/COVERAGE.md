@@ -50,7 +50,7 @@ checks; reqtool 117 of 122 verified.
 | Caches and MPU shapes (H7) | H753: X; A to E with caches on | the SPI runs with caches on |
 | Constructor refusals | F401: V; H753: U; both smoke benches | – |
 | Injected faults | F401: W; H753: W | – |
-| No reachable panic, glue against metapac, host tests | `checks/run.sh`, no board | USB inside the proof |
+| No reachable panic, glue against metapac, host tests | `checks/run.sh`, no board | the `usb` dependency (a listed G2 exception) |
 
 ## Chip glue
 

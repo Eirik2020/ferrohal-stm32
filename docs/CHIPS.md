@@ -48,6 +48,7 @@ own boards are smoke tests.
 | **USB** device CDC, full speed | OTG_FS | OTG_FS | OTG (FS) | OTG (FS) |
 | **SDMMC**, 4-bit, polled | n/a (SDIO: –) | n/a (SDIO: –) | SDMMC1 | SDMMC1 |
 | **System**: reset cause, ROM bootloader entry, UID, die revision | ✓ | ✓ | ✓ | ✓ |
+| **Adapters** (features): `fugit` rate conversions | ✓ | ✓ | ✓ | ✓ |
 | tokens only, no driver: CAN/FDCAN, DAC, RNG, CRC, RTC, WWDG, SAI, ETH, QSPI, FMC, LTDC | – | – | – | – |
 
 ## Limits
@@ -128,6 +129,11 @@ names where the code documents it.
 **SDMMC**
 - Polled through the FIFO, up to 25 MHz, 4-bit, 3.3 V, high-capacity v2 cards.
 
+**USB**
+- The `usb` feature can panic: `synopsys-usb-otg` has about 30 panic and unwrap sites and
+  unbounded register spins. It is G2's listed exception, off by default
+  (`policies/features.md`).
+
 ## Not supported yet
 
 The roadmap: features FerroHAL does not offer. None is debt; the owner sets the order.
@@ -137,13 +143,16 @@ The roadmap: features FerroHAL does not offer. None is debt; the owner sets the 
 - **SPI:** slave, simplex, half-duplex, 16-bit frames, hardware NSS, CRC; SPI6.
 - **I2C:** slave, 10-bit addresses, SMBus, DMA.
 - **Timers:** input capture, dead time, the break input, trigger routes beyond those in
-  use, a hand-over to rtic-monotonics 3 as its monotonic.
+  use.
+- **Time adapters** (allowed by G1, behind features; `policies/features.md`): a FerroHAL
+  timer as rtic-monotonics' monotonic (rtic-time), an embassy-time driver.
 - **EXTI:** event mode, the internal lines (PVD, RTC, USB wake-up).
 - **GPIO:** an open-drain output type, runtime mode switching; `free()` returning pins.
 - **DMA:** BDMA, MDMA.
 - **ADC:** timer triggers, injected channels, analog watchdogs, oversampling,
   differential inputs, ADC2, the H7's `_C` pads, per-channel sample times.
-- **USB:** OTG_HS at high speed, host mode.
+- **USB:** OTG_HS at high speed, host mode; a panic-free device core, retiring the `usb`
+  feature's G2 exception.
 - **SDMMC:** DMA, card detect, above 25 MHz, 1.8 V; SDIO on the F4.
 - **Clocks and power:** other supply ranges on the F401; the H7's VOS0 (480 MHz, rev V),
   the SMPS, PLL2/PLL3, fractional mode, CSI, HSIDIV other than 1, TIMPRE, other kernel

@@ -6,13 +6,14 @@ Public repo. Bench-verified.
 ## Authority
 
 - This file governs this tree only. Workspace `CLAUDE.md` = siblings. The old workspace handover is archived (restricted): history, not rules.
-- Normative: `docs/policies/{safety,documentation,agent-docs}.md`, `docs/design/`, `requirements/goals.md`.
+- Normative: `docs/policies/{safety,features,documentation,agent-docs}.md`, `docs/design/`, `requirements/goals.md`.
 
 ## Read when
 
 | task | docs |
 |---|---|
 | change public API | `docs/policies/safety.md`, `docs/design/api-surface.md` |
+| add a feature or adapter | `docs/policies/features.md` (G1, G2; ADR-007) |
 | add/move requirements | `docs/policies/documentation.md`, `requirements/goals.md`, `src/requirements/<ip>.yaml` |
 | fix/close debt | `docs/DEBT.md` (tagged; each item's origin), `docs/RESOLVED.md` -> owning file |
 | what chips support; limits; roadmap | `docs/CHIPS.md` |

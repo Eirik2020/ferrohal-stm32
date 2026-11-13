@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **USB's panics are G2's listed exception, not debt** (2026-11-13, ADR-007). The owner
+  rewrote G2 as no panic by default, with a feature that can panic allowed when off by
+  default and listed in `docs/policies/features.md`. DEBT's "USB sits outside the
+  no-panic proof" (`9bd9d1e`, 2026-11-02) is that list's first entry, `usb`; a panic-free
+  USB core is on the roadmap (`docs/CHIPS.md`).
+
 - **DEBT holds debt only: tagged, each with its recorded origin** (2026-11-13, owner).
   Of DEBT's 80 limitation items, 29 stay as debt (as 27 entries) and 51 leave it. Moved:
   silicon limits and documented contracts (UART v2 errata, wait floors, ring and

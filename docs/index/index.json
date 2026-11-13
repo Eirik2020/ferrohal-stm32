@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 65,
-  "agent": 44,
-  "bytes": 248586
+  "documents": 67,
+  "agent": 46,
+  "bytes": 254321
  },
  "documents": [
   {
@@ -11,14 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 4907
+   "bytes": 4993
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5063
+   "bytes": 5367
   },
   {
    "path": "THIRD-PARTY.md",
@@ -32,14 +32,14 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 8365
+   "bytes": 8826
   },
   {
    "path": "docs/DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 16305
+   "bytes": 16100
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -53,7 +53,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 37155
+   "bytes": 37551
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -110,6 +110,15 @@
    "status": "accepted"
   },
   {
+   "path": "docs/decisions/2026-11-13-adapters-behind-features.md",
+   "class": "agent",
+   "title": "ADR-007: Time and panic adapters behind features (2026-11-13)",
+   "purpose": "ADR-007 - Status: promoted",
+   "bytes": 1805,
+   "adr": "ADR-007",
+   "status": "promoted"
+  },
+  {
    "path": "docs/decisions/README.md",
    "class": "agent",
    "title": "Decision records (ADR hub)",
@@ -121,7 +130,7 @@
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 978
+   "bytes": 1109
   },
   {
    "path": "docs/design/api-surface.md",
@@ -142,7 +151,7 @@
    "class": "agent",
    "title": "Execution model: scheduler-agnostic",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 778
+   "bytes": 890
   },
   {
    "path": "docs/design/ferroforge-seam.md",
@@ -219,7 +228,7 @@
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2915
+   "bytes": 3122
   },
   {
    "path": "docs/design/structure.md",
@@ -397,6 +406,13 @@
    "bytes": 4602
   },
   {
+   "path": "docs/policies/features.md",
+   "class": "agent",
+   "title": "Features policy",
+   "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
+   "bytes": 1945
+  },
+  {
    "path": "docs/policies/safety.md",
    "class": "agent",
    "title": "Safety policy",
@@ -415,7 +431,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 4244
+   "bytes": 4268
   },
   {
    "path": "hil/RIG.md",
@@ -471,7 +487,7 @@
    "class": "human",
    "title": "FerroHAL's Goals",
    "purpose": "Every requirement derives from one of these, ",
-   "bytes": 1207
+   "bytes": 1676
   }
  ]
 }
