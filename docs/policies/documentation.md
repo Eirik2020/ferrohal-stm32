@@ -19,6 +19,7 @@ Normative. Two classes:
 | bench fact about the instrument | that instrument's crate docs |
 | tooling workaround | script comment + `requirements/benches.md`; `DEBT.md` pointer only |
 | open limitation | `DEBT.md`: severity, one sentence, pointer, verification |
+| review or audit finding | the review's note (evidence, proposed fix); `DEBT.md` a one-line row pointing at it, added when the review lands: DEBT is the one ledger of open work |
 | requirement | its IP's catalog, `src/requirements/<ip>.yaml`, one `shall`, verified by a `benches.md#anchor` or host test |
 
 Measurement wins for what the code does; record both; divergence -> erratum candidate in
