@@ -3,7 +3,7 @@
  "counts": {
   "documents": 67,
   "agent": 50,
-  "bytes": 258708
+  "bytes": 260018
  },
  "documents": [
   {
@@ -197,7 +197,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 4726
+   "bytes": 5615
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -393,7 +393,7 @@
    "class": "human",
    "title": "The glue generator, and the work before it - plan of record",
    "purpose": "Status: agreed 2026-11-13; steps 1 and 2 of t",
-   "bytes": 4190
+   "bytes": 4611
   },
   {
    "path": "docs/policies/agent-docs.md",

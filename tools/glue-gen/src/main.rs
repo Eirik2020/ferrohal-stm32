@@ -4,7 +4,9 @@
 //!
 //! Commands: `parts` lists the parts a selector names; `dump` reads each
 //! one's metadata through `glue-dump` and writes it to
-//! `tools/glue-gen/target/parts/<part>.json`. Selectors: `all`,
+//! `tools/glue-gen/target/parts/<part>.json`; `model` builds the die table of
+//! every die the selector touches, from all of that die's registered parts,
+//! and fails on any fact two of them disagree on (`silicon.rs`). Selectors: `all`,
 //! `series F4`, `die 0x413` (or a line cut from it, `die STM32F407`),
 //! `part stm32f405rg`.
 //!
@@ -13,6 +15,7 @@
 //! the library builds against.
 
 mod registry;
+mod silicon;
 
 use std::{
     fs,
@@ -68,7 +71,63 @@ fn run(args: &[String]) -> Result<(), String> {
             }
             Ok(())
         }
-        other => Err(format!("unknown command {other}: parts or dump")),
+        "model" => {
+            let version = same_metapac()?;
+            let mut dies: Vec<u16> = parts.iter().map(|part| part.die).collect();
+            dies.sort_unstable();
+            dies.dedup();
+            for id in dies {
+                let mut dumped = Vec::new();
+                for part in registry::PARTS.iter().filter(|part| part.die == id) {
+                    dumped.push((*part, dump(part)?));
+                }
+                let die = silicon::merge(id, &dumped).map_err(|conflicts| {
+                    format!(
+                        "die {id:#05x} (metapac {version}): {} conflict(s):\n  {}",
+                        conflicts.len(),
+                        conflicts.join("\n  ")
+                    )
+                })?;
+                report(&die);
+            }
+            Ok(())
+        }
+        other => Err(format!("unknown command {other}: parts, dump or model")),
+    }
+}
+
+/// One die table, summarised: what every part has, and what only some do.
+fn report(die: &silicon::Die) {
+    let rows: usize = die.peripherals.values().map(|p| p.pins.len()).sum();
+    let routes: usize = die.peripherals.values().map(|p| p.dma.len()).sum();
+    println!(
+        "die {:#05x}: parts {}; {} peripherals, {} pin rows, {} DMA routes, {} vectors",
+        die.id,
+        die.parts.join(", "),
+        die.peripherals.len(),
+        rows,
+        routes,
+        die.interrupts.len()
+    );
+    for (package, pins) in &die.packages {
+        println!("  package {package}: {} bonded pins", pins.len());
+    }
+    for (device, peripherals) in &die.devices {
+        println!("  device {device}: {} peripherals", peripherals.len());
+    }
+    let partial: Vec<String> = die
+        .peripherals
+        .iter()
+        .filter(|(_, p)| p.parts.len() < die.parts.len())
+        .map(|(name, p)| {
+            format!(
+                "{name} ({})",
+                p.parts.iter().cloned().collect::<Vec<_>>().join(", ")
+            )
+        })
+        .collect();
+    if !partial.is_empty() {
+        println!("  on some parts only: {}", partial.join("; "));
     }
 }
 

@@ -22,6 +22,17 @@ emits: [maturity.md](maturity.md).
 - **[Decided]** A package is the bonded-pin set; `Port::split` follows it, so an unbonded
   pin cannot be named.
 - Die IDs: F401xD/E 0x433, F405/F407/F415/F417 0x413, H742/H743/H750/H753 0x450.
+- **[Measured 2026-11-13, metapac 21]** What the die fixes and parts agree on: each
+  peripheral's address, IP and register block, RCC fields, a pin's alternate function for
+  a signal, and the set of DMAMUX requests per signal. What does not: a fixed-request
+  DMA stream can serve one signal through two channel selections (the F405's TIM1 CH3,
+  TIM8 CH1), so a route's request is part of the route; metapac gives several requests
+  one signal name (HRTIM1's five `TIMER`s), so requests compare as sets; a vector's name
+  can be the device's (RNG's is `HASH_RNG` on the H753, `RNG` on the H743); the H7's
+  `_C` analog pads are not GPIO and are not in a package's pin list.
+- **[Measured]** metapac's per-part peripheral list mixes device and package: the H743VI
+  lacks CRYP and HASH (its line) and SPI5 (its LQFP100 bonds none of SPI5's pins). The
+  emitted glue tells the two apart.
 
 ## The generator
 
