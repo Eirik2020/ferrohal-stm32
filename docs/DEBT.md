@@ -55,14 +55,13 @@ Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/r
   2026-11-08), recorded `f20ccc8`.
 - `code` `api` **Medium: the feature hierarchy departs from `docs/design/structure.md`.**
   Chip features turn on their family marker, and two chips at once are caught only by a
-  `compile_error!` listing every pair (6 at four chips, 15 at six). Same as review S6.
+  `compile_error!` listing every pair (10 at five chips, 15 at six). Same as review S6.
   *Spawned:* `af65cad` 2026-10-31, two chips; each chip since added a row.
-- `code` `tool` **Medium: the routing generator doesn't exist.** Glue rows are
-  hand-written; `tools/check_glue.py` reads them as text against metapac, so their
-  layout is frozen, and what metapac lacks (USB FIFO depth, clock limits, memory map) is
-  checked by hand. *Spawned:* `af65cad` 2026-10-31, hand-written glue for the prototype
-  with the generator left open; parked by `docs/design/scope.md`. Planned: ADR-008,
-  `docs/plans/2026-11-13-glue-generator.md`.
+- `code` `tool` **Medium: the generated glue has no merge gate yet.** `glue-gen emit`
+  writes the routing glue (plan step 4), but nothing fails a pull request whose
+  `src/chips/gen/` or `docs/CHIPS.md` tables differ from a regeneration, and
+  `tools/check_glue.py` still reads the rows as text. *Spawned:* step 4 landing before
+  step 6 (2026-11-14), by the plan's order. Planned: step 6.
 - `code` `errata` `rig` **Medium: no ES0392 2.2.10 workaround for rev-Y/W H7s.** DMA
   buffers sit in AXI SRAM, where those revisions can corrupt reads;
   `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it and metapac lacks the register. Both H7s
@@ -122,13 +121,11 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | N17 | `code` `api` | L | Watchdog's `start` and `WatchdogPeripheral`. | `1e1bbdf` 2026-10-31 |
 | N18 | `code` `api` | L | Accessors present on some drivers only. | per driver |
 | N19 | `code` `api` | L | `Config` builders and `defmt` derives differ. | per driver |
-| S1 | `code` | M | F4 glue repeats per die what H7 shares (owner: after the generator). | `74a8dcd` F405/H743 glue copied per file; `036a7d2` |
 | S2 | `code` | L | Timer submodules by `#[path]`; twelve lone `mod.rs`. | `ea7a9f8` |
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
 | S4 | `code` | L | `RESOURCES` placement differs. | `2e7f7fe` vs `cdfe190` |
 | S5 | `code` | L | Clock-solver tests in chip files, named by board. | `8ad4510` 2026-11-06 |
 | S7 | `code` | L | `Tick::free` repeats `stop`; F4 RCC matches by hand. | ADR-002 `free` (2026-11-10); `af65cad` |
-| U1 | `code` `tool` | M | Chip glue repeats across a family's dies (owner: after the generator). | `74a8dcd` |
 | U2 | `code` | M | Six RCC types identical in both RCC modules. | `af65cad`, written separately |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
 | U5 | `code` | L | `Resource::Pin` rows written 13 times. | from `2e7f7fe` |

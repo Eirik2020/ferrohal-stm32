@@ -17,6 +17,7 @@
 mod emit;
 mod registry;
 mod silicon;
+mod tables;
 
 use std::{
     fs,
@@ -99,12 +100,38 @@ fn run(args: &[String]) -> Result<(), String> {
                     if !status.success() {
                         return Err(format!("rustfmt failed on {}", path.display()));
                     }
-                    println!("{:<12} -> src/chips/gen/{}.rs ({} lines)", part.feature, part.feature, text.lines().count());
+                    println!(
+                        "{:<12} -> src/chips/gen/{}.rs ({} lines)",
+                        part.feature,
+                        part.feature,
+                        text.lines().count()
+                    );
                 }
             }
             Ok(())
         }
-        other => Err(format!("unknown command {other}: parts, dump, model or emit")),
+        "tables" => {
+            let version = same_metapac()?;
+            let root = tool_dir().join("../..");
+            let mut dies = std::collections::BTreeMap::new();
+            for id in dies_of(registry::PARTS) {
+                dies.insert(id, merged(id, &version)?);
+            }
+            let (silicon, instances) = tables::tables(&root, &dies, registry::PARTS)?;
+            let path = root.join("docs/CHIPS.md");
+            let doc = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let doc = tables::splice(&doc, "silicon", &silicon)?;
+            let doc = tables::splice(&doc, "instances", &instances)?;
+            fs::write(&path, doc).map_err(|e| format!("{}: {e}", path.display()))?;
+            println!(
+                "docs/CHIPS.md: silicon and instance tables for {} parts",
+                registry::PARTS.len()
+            );
+            Ok(())
+        }
+        other => Err(format!(
+            "unknown command {other}: parts, dump, model, emit or tables"
+        )),
     }
 }
 

@@ -1,8 +1,9 @@
 # The glue generator, and the work before it - plan of record
 
-Status: **agreed 2026-11-13. Steps 1 and 2 of the order and the generator's step 1 merged
-(#43, verified 2026-11-13); generator steps 2 and 3 built on PR #44, their hardware runs
-pending; step 4 next.** The owner chose
+Status: **agreed 2026-11-13. Steps 1 and 2 of the order and the generator's steps 1 to 3
+merged (#43, #44, both verified on the rig). Step 4 built on branch `glue-gen-emit`, with
+`stm32f407vg` added; `Port::split` following the package is open (owner's call on the shape).
+Steps 5 to 7 next.** The owner chose
 2026-11-13: handles generic over their whole wiring (`Uart<W>`), and `free()` the inverse
 of `new` for every driver. Decisions: ADR-008 (the generator) and ADR-009
 (maturity). Design: `docs/design/glue-generator.md` and `docs/design/maturity.md`.
@@ -52,7 +53,10 @@ both Nucleo suites.
    compared row by row with today's hand glue, and every difference is explained. Then
    the part files switch to the generated glue plus their hand facts, and the generator
    also writes `docs/CHIPS.md`'s silicon and capability tables, between generated
-   markers, replacing the hand tables.
+   markers, replacing the hand tables. **Built 2026-11-14:** `glue-gen emit <selector>` and
+   `glue-gen tables all`; the comparison found no hand row missing or different
+   (`docs/design/glue-generator.md`); `stm32f407vg` is the first part with no hand
+   routing glue. Open: `Port::split` per package.
 5. **The glue probe.** A run per Nucleo, debugger only: the die ID, each peripheral's
    enable and reset bits, each vector, each pin's mode and alternate function. It is the
    die axis's evidence for 0x433 and 0x450.

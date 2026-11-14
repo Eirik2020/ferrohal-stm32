@@ -199,7 +199,10 @@ mod tests {
     #[test]
     fn selectors_resolve_to_parts() {
         assert_eq!(features("all").len(), PARTS.len());
-        assert_eq!(features("series F4"), ["stm32f401re", "stm32f405rg", "stm32f407vg"]);
+        assert_eq!(
+            features("series F4"),
+            ["stm32f401re", "stm32f405rg", "stm32f407vg"]
+        );
         assert_eq!(features("series h7"), ["stm32h743vi", "stm32h753zi"]);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);
     }
