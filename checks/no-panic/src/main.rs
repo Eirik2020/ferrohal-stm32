@@ -1047,8 +1047,9 @@ mod chip {
     }
 }
 
-/// The Foxeer F405 V2's ports, from its 8 MHz crystal: HSE in the path.
-#[cfg(feature = "stm32f405rg")]
+/// The Foxeer F405 V2's ports, from its 8 MHz crystal: HSE in the path. The
+/// F407 is the same die, and bonds every pin these name.
+#[cfg(any(feature = "stm32f405rg", feature = "stm32f407vg"))]
 mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, UART4, USART2},

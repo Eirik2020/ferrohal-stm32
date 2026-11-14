@@ -194,9 +194,8 @@ class Glue:
         # generator's merge gate replaces it (step 6).
         generated = path.parent / "gen" / path.name
         self.text = path.read_text() + (generated.read_text() if generated.exists() else "")
-        family = re.search(r'#\[path = "(shared/\w+_macros\.rs)"\]', self.text)
-        if family:
-            self.text += (path.parent / family.group(1)).read_text()
+        for shared in re.findall(r'#\[path = "(shared/\w+\.rs)"\]', path.read_text()):
+            self.text += (path.parent / shared).read_text()
         self.problems = []
 
     def rows(self, macro):
