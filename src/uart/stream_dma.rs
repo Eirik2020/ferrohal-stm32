@@ -1278,6 +1278,11 @@ impl<W: UartParts> UartRx<W> {
     /// Stops the receive stream and clears its flags. Private: the
     /// sequence `free` runs.
     fn halt(&mut self) {
+        // Interrupts off first, as the transmit half does: a stream that is
+        // stopping can still set its transfer-complete flag after `stop`
+        // (measured on the F407, 2026-11-14), and a freed stream's vector may
+        // serve another UART by then.
+        self.dma.set_interrupts(Interrupts::default());
         let _ = self.dma.stop(STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
     }

@@ -4,6 +4,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **A freed UART's receive stream stops interrupting** (2026-11-14). `Uart::free` halted
+  the receive stream without clearing its interrupt enables, which the transmit half
+  already did (`af65cad`'s receive halt, kept by the `free()` redesign). The STM32F4
+  Discovery's run A, the first bench to hand a freed UART's vectors to another UART,
+  measured it: after USART3 was freed, DMA1 stream 1 set its transfer-complete flag
+  once stopped and stormed (ICSR's active vector 28, IRQ 12), starving the next route.
+  The receive halt now turns the stream's interrupts off first; run A passes all 14
+  checks.
+
 - **The routing glue is generated** (2026-11-14, plan step 4; API review S1, U1). The
   glue rows had been hand-copied from metapac per chip file since the prototype
   (`af65cad`), the F405's and H743's copied per file (`74a8dcd`). `glue-gen emit` now
