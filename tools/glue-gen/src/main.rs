@@ -14,6 +14,7 @@
 //! library's `Cargo.lock` pins, so the glue is generated from the metadata
 //! the library builds against.
 
+mod emit;
 mod registry;
 mod silicon;
 
@@ -40,7 +41,7 @@ fn main() -> ExitCode {
 fn run(args: &[String]) -> Result<(), String> {
     let (command, selector) = args
         .split_first()
-        .ok_or("usage: glue-gen <parts | dump> <selector>")?;
+        .ok_or("usage: glue-gen <parts | dump | model | emit> <selector>")?;
     registry::check()?;
     let parts = Selector::parse(selector)?.parts()?;
     match command.as_str() {
@@ -73,30 +74,64 @@ fn run(args: &[String]) -> Result<(), String> {
         }
         "model" => {
             let version = same_metapac()?;
-            let mut dies: Vec<u16> = parts.iter().map(|part| part.die).collect();
-            dies.sort_unstable();
-            dies.dedup();
-            for id in dies {
-                let mut dumped = Vec::new();
-                for part in registry::PARTS.iter().filter(|part| part.die == id) {
-                    dumped.push((*part, dump(part)?));
-                }
-                let die = silicon::merge(id, &dumped).map_err(|conflicts| {
-                    format!(
-                        "die {id:#05x} (metapac {version}): {} conflict(s):\n  {}",
-                        conflicts.len(),
-                        conflicts.join("\n  ")
-                    )
-                })?;
-                report(&die);
+            for id in dies_of(&parts) {
+                report(&merged(id, &version)?);
             }
             Ok(())
         }
-        other => Err(format!("unknown command {other}: parts, dump or model")),
+        "emit" => {
+            let version = same_metapac()?;
+            let out = tool_dir().join("../../src/chips/gen");
+            fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+            for id in dies_of(&parts) {
+                let die = merged(id, &version)?;
+                for part in parts.iter().filter(|part| part.die == id) {
+                    let text = emit::emit(&die, part, &version)?;
+                    let path = out.join(format!("{}.rs", part.feature));
+                    fs::write(&path, &text).map_err(|e| format!("{}: {e}", path.display()))?;
+                    // As `cargo fmt` leaves it, so the merge gate's regeneration
+                    // compares equal.
+                    let status = Command::new("rustfmt")
+                        .args(["--edition", "2024"])
+                        .arg(&path)
+                        .status()
+                        .map_err(|e| format!("running rustfmt: {e}"))?;
+                    if !status.success() {
+                        return Err(format!("rustfmt failed on {}", path.display()));
+                    }
+                    println!("{:<12} -> src/chips/gen/{}.rs ({} lines)", part.feature, part.feature, text.lines().count());
+                }
+            }
+            Ok(())
+        }
+        other => Err(format!("unknown command {other}: parts, dump, model or emit")),
     }
 }
 
 /// One die table, summarised: what every part has, and what only some do.
+/// The dies `parts` are cut from, each once.
+fn dies_of(parts: &[Part]) -> Vec<u16> {
+    let mut dies: Vec<u16> = parts.iter().map(|part| part.die).collect();
+    dies.sort_unstable();
+    dies.dedup();
+    dies
+}
+
+/// A die's table, merged from every registered part cut from it.
+fn merged(id: u16, version: &str) -> Result<silicon::Die, String> {
+    let mut dumped = Vec::new();
+    for part in registry::PARTS.iter().filter(|part| part.die == id) {
+        dumped.push((*part, dump(part)?));
+    }
+    silicon::merge(id, &dumped).map_err(|conflicts| {
+        format!(
+            "die {id:#05x} (metapac {version}): {} conflict(s):\n  {}",
+            conflicts.len(),
+            conflicts.join("\n  ")
+        )
+    })
+}
+
 fn report(die: &silicon::Die) {
     let rows: usize = die.peripherals.values().map(|p| p.pins.len()).sum();
     let routes: usize = die.peripherals.values().map(|p| p.dma.len()).sum();

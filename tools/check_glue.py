@@ -46,8 +46,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # A SPI's kernel clock in the metadata to the glue's column. The muxes are the
-# choice `freeze` makes on the H7: SPI123SEL stays PLL1Q, SPI45SEL goes to PCLK2.
-SPI_KERNEL = {"PCLK1": "Apb1", "PCLK2": "Apb2", "SPI123SEL": "Pll1Q", "SPI45SEL": "Apb2"}
+# choice `freeze` makes on the H7: SPI123SEL stays PLL1Q, SPI45SEL goes to PCLK2;
+# SPI6SEL stays at its reset value, PCLK4 (RM0433 D3CCIPR).
+SPI_KERNEL = {"PCLK1": "Apb1", "PCLK2": "Apb2", "SPI123SEL": "Pll1Q", "SPI45SEL": "Apb2", "SPI6SEL": "Apb4"}
 
 # An I2C's kernel clock to the glue's bus column, which is the kernel: no
 # column of its own. The muxes are the choice `freeze` makes on the H7:
@@ -188,7 +189,14 @@ class Glue:
     """The facts a chip's glue file states, parsed from its macro rows."""
 
     def __init__(self, path):
-        self.text = path.read_text()
+        # The routing rows are generated into gen/<part>.rs (plan step 4);
+        # this check reads them with the chip module's hand facts until the
+        # generator's merge gate replaces it (step 6).
+        generated = path.parent / "gen" / path.name
+        self.text = path.read_text() + (generated.read_text() if generated.exists() else "")
+        family = re.search(r'#\[path = "(shared/\w+_macros\.rs)"\]', self.text)
+        if family:
+            self.text += (path.parent / family.group(1)).read_text()
         self.problems = []
 
     def rows(self, macro):
@@ -381,16 +389,16 @@ class Glue:
 
     def dma_controllers(self):
         found = {}
-        for n, bus, bit in re.findall(
-            r"impl DmaInstance for Dma<(\d)> \{.*?RccBit::new\(Bus::(\w+), (\d+)\)", self.text, re.S
-        ):
-            found[f"DMA{n}"] = (bus, int(bit))
+        for body in self.rows("dmas"):
+            for n, bus, bit in re.findall(r"(\d) => DMA\d, (\w+), (\d+)", body):
+                found[f"DMA{n}"] = (bus, int(bit))
         return found
 
     def mux_bases(self):
         return {
             f"DMA{n}": int(base)
-            for n, base in re.findall(r"impl DmaInstance for Dma<(\d)> \{.*?const MUX_BASE: u8 = (\d+);", self.text, re.S)
+            for body in self.rows("dmas")
+            for n, base in re.findall(r"(\d) => DMA\d, \w+, \d+, mux (\d+)", body)
         }
 
 
