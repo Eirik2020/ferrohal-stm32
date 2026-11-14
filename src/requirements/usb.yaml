@@ -25,7 +25,11 @@ requirements:
     rationale: >-
       The F4's USB core is different IP from the H7's, behind the same
       driver, so it needs its own proof. No Nucleo here has an F4 USB
-      connector: hil/CAPABILITIES.md's queue, item 1.
+      connector; the STM32F4 Discovery's CN5 is the F4's.
     derived_from: [USB-001]
     verification:
-      entries: []
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#USB on the STM32F4 Discovery

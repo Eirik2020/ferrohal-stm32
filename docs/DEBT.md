@@ -183,10 +183,11 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 
 ## 4. Shipped code without hardware proof: rig work
 
-- `rig` **Medium: USB-F4-001: the F4's OTG_FS core has no evidence.** The Nucleo-F401RE
-  has no USB connector; the F407 Discovery needs a cable the rig lacks (queue 1).
-  *Spawned:* the car-rule review split the F4 core out of USB-001 (`b15b497`,
-  2026-11-13).
+- `bench` **Medium: USB-F4-001 and the F4's RESET-004 have a bench but no run yet.** The
+  STM32F4 Discovery bench (runs B and C, `hil/run-discovery.sh`) is built; its probe
+  dropped off the host's USB before the first run (2026-11-14). *Spawned:* the car-rule
+  review split the F4 core out of USB-001 (`b15b497`, 2026-11-13); the Nucleo-F401RE has
+  no USB connector.
 - `rig` **Medium: the H753 bench reaches the Zio headers only.** UART8 TX, PA8, PA9,
   PB14, PG9 and 22 of 46 TX/RX entries are unreachable without morpho headers; UART5's
   PB13 needs SB7. Their rows are glue-checked only. *Spawned:* `55025e8` 2026-10-31,
@@ -205,10 +206,10 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   *Spawned:* `af65cad`.
 - `rig` **Low: clock checks are indirect.** `freeze`'s record, working baud rates and the
   host echo; nothing measures MCO. *Spawned:* `af65cad`.
-- `rig` **Low: die 0x413 (F405, F407) has no debugger bench.** Its glue rests on the
-  Foxeer's flashed runs (`FLSH`); the generator's glue probe needs `DBG` or better, which
-  the F407 Discovery gives once wired with a cable. Owner accepted, 2026-11-13; rig parts
-  ordered. *Spawned:* ADR-009's die axis (2026-11-13), which made the gap visible.
+- `bench` **Low: die 0x413 (F405, F407) has a debugger bench but no run yet.** Its glue
+  rests on the Foxeer's flashed runs (`FLSH`) until the STM32F4 Discovery's run A records
+  (built 2026-11-14, links D1 to D3 fitted). *Spawned:* ADR-009's die axis (2026-11-13),
+  which made the gap visible.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. *Spawned:* the
   W11 audit (`ff3af8d`, 2026-11-10).

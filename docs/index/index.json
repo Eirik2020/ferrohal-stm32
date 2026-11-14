@@ -3,7 +3,7 @@
  "counts": {
   "documents": 68,
   "agent": 50,
-  "bytes": 265352
+  "bytes": 267554
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 15503
+   "bytes": 15560
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -449,14 +449,14 @@
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 2586
+   "bytes": 2632
   },
   {
    "path": "hil/WIRING.md",
    "class": "human",
    "title": "Bench wiring: the Pico 1 I2C simulator",
    "purpose": "The two Nucleo benches prove FerroHAL's I2C m",
-   "bytes": 4670
+   "bytes": 5441
   },
   {
    "path": "hil/pico-i2c-sim/README.md",
@@ -491,7 +491,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 13827
+   "bytes": 15155
   },
   {
    "path": "requirements/goals.md",

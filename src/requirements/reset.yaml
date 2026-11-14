@@ -84,4 +84,8 @@ requirements:
       probe.
     derived_from: [G3]
     verification:
-      entries: []
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#The ROM bootloader on the STM32F4 Discovery

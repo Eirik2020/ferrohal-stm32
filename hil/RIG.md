@@ -8,7 +8,8 @@ its budget; the text is unchanged.
 
 `hil/probe.sh` picks the probe by its serial, as `probe-rs list` prints it after
 `--` (`VID:PID:Serial`): `PROBE_RS_PROBE` if already set, else the board's own
-variable (`F401_PROBE` for `hil/run-f401.sh`, `H753_PROBE` for `hil/run-h753.sh`),
+variable (`F401_PROBE` for `hil/run-f401.sh`, `H753_PROBE` for `hil/run-h753.sh`,
+`DISCOVERY_PROBE` for `hil/run-discovery.sh`),
 else the only probe attached. With more than one attached and none chosen it lists
 them and exits before building, so a shared bench says which board it flashes. The
 choice reaches probe-rs through its `PROBE_RS_PROBE` variable, which the crate
