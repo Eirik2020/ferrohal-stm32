@@ -3,7 +3,7 @@
  "counts": {
   "documents": 68,
   "agent": 50,
-  "bytes": 270456
+  "bytes": 271302
  },
  "documents": [
   {
@@ -18,14 +18,14 @@
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5367
+   "bytes": 5436
   },
   {
    "path": "THIRD-PARTY.md",
    "class": "human",
    "title": "Third-party code",
    "purpose": "FerroHAL is licensed under MIT OR Apache-2.0 ",
-   "bytes": 3046
+   "bytes": 3055
   },
   {
    "path": "docs/CHIPS.md",
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 14592
+   "bytes": 14201
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 15647
+   "bytes": 16116
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -204,7 +204,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 7387
+   "bytes": 7750
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -400,7 +400,7 @@
    "class": "human",
    "title": "The glue generator, and the work before it - plan of record",
    "purpose": "Status: agreed 2026-11-13. Steps 1 and 2 of t",
-   "bytes": 5153
+   "bytes": 5237
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -442,7 +442,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 4556
+   "bytes": 4645
   },
   {
    "path": "hil/RIG.md",
@@ -470,7 +470,7 @@
    "class": "human",
    "title": "Bench Procedures: the host analyses",
    "purpose": "The checks of benches.mdbenches.md that run o",
-   "bytes": 1198
+   "bytes": 1352
   },
   {
    "path": "requirements/benches-faults.md",

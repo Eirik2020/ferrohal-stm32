@@ -64,8 +64,10 @@ emits: [maturity.md](maturity.md).
   four proven parts is generated, none differs; the additions are the policy above (H7
   SDMMC2 and SPI6, the basic timers' update DMA) and two tokens the H753's hand list
   missed (DFSDM1, SWPMI1).
-- **[Decided]** It runs on demand, and as a required check on pull requests into `main`
-  (regenerate, fail on any difference). It does not run on development-branch pushes.
+- **[Decided, built 2026-11-15]** It runs on demand, and as a check on pull requests into `main`
+  (`tools/glue-gate.sh`, CI's "Generated glue" job: regenerate, fail on any difference). It
+  does not run on development-branch pushes. Making it required is the owner's branch
+  protection setting.
 
 ## Generated documentation
 
@@ -106,4 +108,7 @@ emits: [maturity.md](maturity.md).
   die 0x433, 116 on 0x413, 154 on 0x450, all pass. Not probed, by design: a pin's
   alternate function, which AFR accepts on any pin with any value, and a vector being
   raised by its peripheral; the bench runs prove both on the wire.
-- **[Decided]** `tools/check_glue.py` retires once the generator is merged into `main`.
+- **[Decided, done 2026-11-15]** `tools/check_glue.py` is retired: `tools/glue-gate.sh`, the merge gate, regenerates
+  every part's glue and the CHIPS.md tables and fails on any difference, and the glue
+  probe checks the facts on the silicon. The generated `BONDED` tables went with it; the
+  per-port parts carry the package.

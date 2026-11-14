@@ -3,8 +3,8 @@
 Status: **agreed 2026-11-13. Steps 1 and 2 of the order and the generator's steps 1 to 3
 merged (#43, #44, both verified on the rig). Step 4 built on branch `glue-gen-emit`, with
 `stm32f407vg` added and `Port::split` following the package (the owner chose generated
-per-port parts). Step 5 built: the glue probe passes on all three dies. Steps 6 and 7
-next.** The owner chose
+per-port parts). Step 5 built: the glue probe passes on all three dies. Step 6 built: `tools/glue-gate.sh` and
+CI's "Generated glue" job; `check_glue.py` retired. Step 7 next.** The owner chose
 2026-11-13: handles generic over their whole wiring (`Uart<W>`), and `free()` the inverse
 of `new` for every driver. Decisions: ADR-008 (the generator) and ADR-009
 (maturity). Design: `docs/design/glue-generator.md` and `docs/design/maturity.md`.

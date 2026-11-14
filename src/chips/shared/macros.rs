@@ -1,6 +1,6 @@
 //! The macros every chip's glue builds from. They carry shapes only; the
 //! facts (which peripherals, pins, streams and vectors) are the rows each
-//! chip file passes them, which `tools/check_glue.py` reads.
+//! chip's generated module passes them (`src/chips/gen/`, `tools/glue-gen`).
 //!
 //! Names in the expansions (`Pin`, `Alternate`, `Interrupt`) resolve in the
 //! chip file that invokes them, so each chip brings its own IP versions.
@@ -238,13 +238,13 @@ macro_rules! timer_dma {
     ($tim:ident $signal:ident: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
         $(
             // SAFETY: the chip's DMA request table, matching stm32-metapac
-            // 21's metadata (check_glue).
+            // 21's metadata (generated).
             timer_dma_impl!($signal, $tim, crate::dma::Stream<$dma, $stream>, $request);
         )+
     };
     ($tim:ident $signal:ident: mux $request:literal) => {
         // SAFETY: the DMAMUX1 request ID, from stm32-metapac 21's metadata
-        // (check_glue); through DMAMUX any stream serves it.
+        // (generated); through DMAMUX any stream serves it.
         timer_dma_impl!($signal, $tim, crate::dma::Stream<D, N>, $request, D, N);
     };
 }
@@ -252,8 +252,8 @@ macro_rules! timer_dma {
 macro_rules! timer_dma_impl {
     (UP, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
         // SAFETY: the update request ID this row names comes from
-        // stm32-metapac 21's metadata, which tools/check_glue.py holds
-        // against the chip file.
+        // stm32-metapac 21's metadata, from which `tools/glue-gen` generates
+        // the row.
         unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::UpdateDma<$tim> for $stream
         $(where
             crate::dma::Dma<$d>: crate::dma::DmaInstance,
@@ -264,8 +264,8 @@ macro_rules! timer_dma_impl {
     };
     ($signal:ident, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
         // SAFETY: the compare request ID this row names comes from
-        // stm32-metapac 21's metadata, which tools/check_glue.py holds
-        // against the chip file.
+        // stm32-metapac 21's metadata, from which `tools/glue-gen` generates
+        // the row.
         unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::CompareDma<$tim, { timer_channel!($signal) }> for $stream
         $(where
             crate::dma::Dma<$d>: crate::dma::DmaInstance,

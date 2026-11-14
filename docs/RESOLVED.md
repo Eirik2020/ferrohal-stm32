@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The generated glue has a merge gate** (2026-11-15, plan step 6). Step 4 landed the
+  generator before its gate, by the plan's order, and `tools/check_glue.py` kept reading
+  the rows as text. `tools/glue-gate.sh` regenerates every part's glue and CHIPS.md's
+  tables and fails on any difference; CI runs it on pull requests into `main`.
+  `check_glue.py` and the `BONDED` tables it read are gone; the glue probe (step 5)
+  checks the facts on the silicon instead.
+
 - **A freed UART's receive stream stops interrupting** (2026-11-14). `Uart::free` halted
   the receive stream without clearing its interrupt enables, which the transmit half
   already did (`af65cad`'s receive halt, kept by the `free()` redesign). The STM32F4

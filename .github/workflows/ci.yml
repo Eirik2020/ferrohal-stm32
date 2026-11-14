@@ -13,10 +13,30 @@ env:
   FIRMWARE_TARGET: thumbv7em-none-eabihf
   # The toolchain the benches and checks have been running on.
   RUST_TOOLCHAIN: 1.98.1
-  # reqtool's main on 2026-11-13: board evidence follows files (#4, #5). Bump it on purpose.
+  # reqtool's main on 2026-11-15: board evidence follows files (#4, #5), and host
+  # evidence covers every cfg alternative (#6). Bump it on purpose.
   REQTOOL_REV: ab14b953c3e690536704652c374235acee5f657e
 
 jobs:
+  glue:
+    name: Generated glue
+    # The merge gate (ADR-008): pull requests into main only, not branch pushes.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/glue-gen -> target
+      - name: Regenerate the glue and CHIPS.md's tables, fail on any difference
+        run: tools/glue-gate.sh
+
   checks:
     name: Checks without hardware
     runs-on: ubuntu-latest

@@ -79,6 +79,9 @@ def prepare(folder):
     out = subprocess.run(["checks/run.sh"], cwd=ROOT, capture_output=True, text=True)
     (folder / "checks-run.log").write_text(out.stdout + out.stderr)
     print("checks/run.sh exit", out.returncode)
+    out = subprocess.run(["tools/glue-gate.sh"], cwd=ROOT, capture_output=True, text=True)
+    (folder / "glue-gate.log").write_text(out.stdout + out.stderr)
+    print("tools/glue-gate.sh exit", out.returncode)
 
 
 def artifact(folder, name, kind):
@@ -125,10 +128,11 @@ def record(folder, dry, only=None):
     for heading in ANALYSIS:
         if only and heading != only:
             continue
+        command, log = ("tools/glue-gate.sh", "glue-gate.log") if heading == "Chip glue against metapac" else ("checks/run.sh", "checks-run.log")
         details = {
             "execution": {"performed_by": "agent", "user_confirmed": False},
-            "commands": [{"command": "checks/run.sh", "exit_code": 0}],
-            "artifacts": [artifact(folder, "checks-run.log", "log")],
+            "commands": [{"command": command, "exit_code": 0}],
+            "artifacts": [artifact(folder, log, "log")],
         }
         out = reqtool_record(f"requirements/benches-analysis.md#{heading}", details, None, dry)
         print(("ok    " if out.returncode == 0 else "FAIL  ") + heading, out.stderr.strip()[-200:])

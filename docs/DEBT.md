@@ -57,11 +57,6 @@ Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/r
   Chip features turn on their family marker, and two chips at once are caught only by a
   `compile_error!` listing every pair (10 at five chips, 15 at six). Same as review S6.
   *Spawned:* `af65cad` 2026-10-31, two chips; each chip since added a row.
-- `code` `tool` **Medium: the generated glue has no merge gate yet.** `glue-gen emit`
-  writes the routing glue (plan step 4), but nothing fails a pull request whose
-  `src/chips/gen/` or `docs/CHIPS.md` tables differ from a regeneration, and
-  `tools/check_glue.py` still reads the rows as text. *Spawned:* step 4 landing before
-  step 6 (2026-11-14), by the plan's order. Planned: step 6.
 - `code` `errata` `rig` **Medium: no ES0392 2.2.10 workaround for rev-Y/W H7s.** DMA
   buffers sit in AXI SRAM, where those revisions can corrupt reads;
   `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it and metapac lacks the register. Both H7s

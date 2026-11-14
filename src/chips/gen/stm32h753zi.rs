@@ -230,19 +230,6 @@ port_parts!(
     'H' => PartsH [p0: 0, p1: 1];
 );
 
-/// The package's bonded pins, as (port, pin mask).
-#[allow(dead_code)] // Read by tools/check_glue.py.
-pub(crate) const BONDED: &[(char, u16)] = &[
-    ('A', 0xffff),
-    ('B', 0xffff),
-    ('C', 0xffff),
-    ('D', 0xffff),
-    ('E', 0xffff),
-    ('F', 0xffff),
-    ('G', 0xffff),
-    ('H', 0x0003),
-];
-
 dmas!(
     1 => DMA1, Ahb1, 0, mux 0;
     2 => DMA2, Ahb1, 1, mux 8;

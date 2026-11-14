@@ -58,9 +58,10 @@ evidence (ADR-008, item 7); then they must not be edited by hand.
 
 ## Chip glue
 
-One chip proves a family's shared glue; the other chip's own rows are checked against
-stm32-metapac by `tools/check_glue.py` (127 facts on the F401, 173 on the F405, 180 on
-the H743, 184 on the H753).
+One chip proves a family's shared glue. Every part's rows are generated from stm32-metapac
+(`tools/glue-gen`, regenerated at the merge gate), and the glue probe checks each die's
+RCC bits, peripheral addresses and vectors on the silicon: 87 checks on die 0x433, 116 on
+0x413, 154 on 0x450.
 
 | family | proven on | rows on glue check only |
 |---|---|---|

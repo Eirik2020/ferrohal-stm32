@@ -15,6 +15,7 @@
 //! the library builds against.
 
 mod emit;
+#[cfg(feature = "probe")]
 mod probe;
 mod registry;
 mod silicon;
@@ -130,6 +131,7 @@ fn run(args: &[String]) -> Result<(), String> {
             );
             Ok(())
         }
+        #[cfg(feature = "probe")]
         "probe" => {
             let version = same_metapac()?;
             let selector = std::env::var("PROBE_RS_PROBE").map_err(|_| {

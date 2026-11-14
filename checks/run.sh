@@ -5,7 +5,6 @@
 # - the formatting (rustfmt), as CI checks it;
 # - clippy on the crate, per chip, with warnings as errors;
 # - no reachable panic in the public API, per chip (checks/no-panic);
-# - the chip glue against stm32-metapac's metadata (tools/check_glue.py);
 # - every firmware crate linking FerroHAL enables `rt` for VTOR
 #   (tools/check_firmware_features.py);
 # - the names of docs/design/naming.md (tools/check_names.py);
@@ -50,7 +49,6 @@ for chip in "${chips[@]}"; do
     step "no reachable panic ($chip)" \
         bash -c 'cd "$1" || exit 1; out=$(cargo build --release --features "$2" 2>&1); if grep -q "warning: linker stderr" <<< "$out"; then printf "%s\n" "$out"; exit 1; fi; cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
 done
-step "glue matches stm32-metapac metadata" python3 -I "$root/tools/check_glue.py"
 step "firmware crates enable rt" python3 -I "$root/tools/check_firmware_features.py"
 step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
 step "names (ADR-003)" python3 -I "$root/tools/check_names.py"
