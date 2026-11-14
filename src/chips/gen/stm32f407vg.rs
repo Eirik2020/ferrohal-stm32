@@ -2,7 +2,7 @@
 //! die 0x413, device STM32F407, package LQFP100. Do not edit: `glue-gen emit part stm32f407vg`
 //! rewrites it.
 //!
-//! Requirements: GLUE-001, GLUE-002, GLUE-004
+//! Requirements: GLUE-001, GLUE-002
 
 use super::*;
 

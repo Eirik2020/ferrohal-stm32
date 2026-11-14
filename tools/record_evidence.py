@@ -1,7 +1,7 @@
 """Records the debugger benches' runs as reqtool evidence.
 
     python3 -I tools/record_evidence.py prepare <folder>
-    python3 -I tools/record_evidence.py record <folder> [--dry-run]
+    python3 -I tools/record_evidence.py record <folder> [--dry-run] [--only <heading>]
 
 <folder> is a new directory under requirements/evidence/logs/.
 
@@ -100,8 +100,10 @@ def reqtool_record(procedure, details, board, dry):
     return out
 
 
-def record(folder, dry):
+def record(folder, dry, only=None):
     for file, heading, bench, rs in procedures():
+        if only and heading != only:
+            continue
         crate = BENCH[bench]
         logs = [folder / f"{crate}-run-{r}.log" for r in rs]
         missing = [r for r, log in zip(rs, logs) if not passed(log)]
@@ -121,6 +123,8 @@ def record(folder, dry):
         out = reqtool_record(f"{file}#{heading}", details, crate, dry)
         print(("ok    " if out.returncode == 0 else "FAIL  ") + heading, out.stderr.strip()[-200:])
     for heading in ANALYSIS:
+        if only and heading != only:
+            continue
         details = {
             "execution": {"performed_by": "agent", "user_confirmed": False},
             "commands": [{"command": "checks/run.sh", "exit_code": 0}],
@@ -137,4 +141,5 @@ if __name__ == "__main__":
     if sys.argv[1] == "prepare":
         prepare(target)
     else:
-        record(target, "--dry-run" in sys.argv)
+        only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
+        record(target, "--dry-run" in sys.argv, only)

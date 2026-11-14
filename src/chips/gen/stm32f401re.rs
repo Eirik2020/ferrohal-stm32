@@ -2,7 +2,7 @@
 //! die 0x433, device STM32F401, package LQFP64. Do not edit: `glue-gen emit part stm32f401re`
 //! rewrites it.
 //!
-//! Requirements: GLUE-001, GLUE-002, GLUE-004
+//! Requirements: GLUE-001, GLUE-002
 
 use super::*;
 

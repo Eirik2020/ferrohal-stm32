@@ -284,7 +284,7 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
     .ok();
     writeln!(w, "//! rewrites it.").ok();
     writeln!(w, "//!").ok();
-    writeln!(w, "//! Requirements: GLUE-001, GLUE-002, GLUE-004").ok();
+    writeln!(w, "//! Requirements: GLUE-001, GLUE-002").ok();
     writeln!(w, "\nuse super::*;").ok();
 
     // Tokens: every peripheral the device enables, but the GPIO ports and the

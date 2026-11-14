@@ -9,7 +9,7 @@
 //! The STM32F4 Discovery (MB997) carries this chip: die 0x413's debugger
 //! bench.
 //!
-//! Requirements: GLUE-001, GLUE-002, GLUE-004
+//! Requirements: GLUE-001, GLUE-002
 
 use stm32_metapac as pac;
 

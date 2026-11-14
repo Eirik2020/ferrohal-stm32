@@ -2,7 +2,7 @@
 //! not carry, each citing its manual. Every part cut from this die mounts
 //! this module beside its generated routing module (`gen/<part>.rs`).
 //!
-//! Requirements: GLUE-001, GLUE-002, GLUE-004, GLUE-005, GLUE-006
+//! Requirements: GLUE-004
 
 use super::*;
 

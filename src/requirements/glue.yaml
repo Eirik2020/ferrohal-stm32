@@ -58,6 +58,10 @@ requirements:
     derived_from: [G2]
     verification:
       entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Die 0x413 on the STM32F4 Discovery
         - level: unit
           environment: host
           method:

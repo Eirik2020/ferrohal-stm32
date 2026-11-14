@@ -2,7 +2,7 @@
 //! die 0x450, device STM32H743, package LQFP100. Do not edit: `glue-gen emit part stm32h743vi`
 //! rewrites it.
 //!
-//! Requirements: GLUE-001, GLUE-002, GLUE-004
+//! Requirements: GLUE-001, GLUE-002
 
 use super::*;
 
