@@ -184,3 +184,32 @@ bootloader and resets; the next boot jumps to it before touching any clock. Pass
 `dfu-util` lists the ROM's DFU device on CN5 under the serial the ROM derives from this
 chip's UID within 30 s, and the script exits zero.
 
+## The glue probe on the Nucleo-F401RE
+
+`hil/run-f401.sh probe`: `tools/glue-gen`'s probe of stm32f401re (die 0x433) through this
+board's debug probe, the core reset and halted, no firmware. `DEV_ID` is the die's; for
+every peripheral the generated glue offers and every bonded GPIO port, a scratch register
+ignores a write while its RCC enable bit is clear, keeps it once set, and returns to its
+earlier value when its reset bit is pulsed; every vector those peripherals and the DMA
+streams raise pends and clears in the NVIC. Pass: every check passes and the script exits
+zero.
+
+## The glue probe on the Nucleo-H753ZI
+
+`hil/run-h753.sh probe`: `tools/glue-gen`'s probe of stm32h753zi (die 0x450) through this
+board's debug probe, the core reset and halted, no firmware. `DEV_ID` is the die's; for
+every peripheral the generated glue offers and every bonded GPIO port, a scratch register
+ignores a write while its RCC enable bit is clear, keeps it once set, and returns to its
+earlier value when its reset bit is pulsed; every vector those peripherals and the DMA
+streams raise pends and clears in the NVIC. Pass: every check passes and the script exits
+zero.
+
+## The glue probe on the STM32F4 Discovery
+
+`hil/run-discovery.sh probe`: `tools/glue-gen`'s probe of stm32f407vg (die 0x413) through this
+board's debug probe, the core reset and halted, no firmware. `DEV_ID` is the die's; for
+every peripheral the generated glue offers and every bonded GPIO port, a scratch register
+ignores a write while its RCC enable bit is clear, keeps it once set, and returns to its
+earlier value when its reset bit is pulsed; every vector those peripherals and the DMA
+streams raise pends and clears in the NVIC. Pass: every check passes and the script exits
+zero.

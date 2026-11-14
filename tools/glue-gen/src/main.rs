@@ -15,6 +15,7 @@
 //! the library builds against.
 
 mod emit;
+mod probe;
 mod registry;
 mod silicon;
 mod tables;
@@ -42,7 +43,7 @@ fn main() -> ExitCode {
 fn run(args: &[String]) -> Result<(), String> {
     let (command, selector) = args
         .split_first()
-        .ok_or("usage: glue-gen <parts | dump | model | emit> <selector>")?;
+        .ok_or("usage: glue-gen <parts | dump | model | emit | tables | probe> <selector>")?;
     registry::check()?;
     let parts = Selector::parse(selector)?.parts()?;
     match command.as_str() {
@@ -129,8 +130,29 @@ fn run(args: &[String]) -> Result<(), String> {
             );
             Ok(())
         }
+        "probe" => {
+            let version = same_metapac()?;
+            let selector = std::env::var("PROBE_RS_PROBE").map_err(|_| {
+                "set PROBE_RS_PROBE to the board's probe, VID:PID:Serial as probe-rs list prints it"
+            })?;
+            let mut failed = 0;
+            for part in &parts {
+                let die = merged(part.die, &version)?;
+                let (passed, fails) = probe::probe(&die, part, &selector)?;
+                println!(
+                    "{}: {passed} passed, {fails} failed (metapac {version})",
+                    part.feature
+                );
+                failed += fails;
+            }
+            if failed == 0 {
+                Ok(())
+            } else {
+                Err(format!("{failed} glue fact(s) failed on the silicon"))
+            }
+        }
         other => Err(format!(
-            "unknown command {other}: parts, dump, model, emit or tables"
+            "unknown command {other}: parts, dump, model, emit, tables or probe"
         )),
     }
 }

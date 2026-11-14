@@ -56,6 +56,16 @@ pub struct Peripheral {
     pub pins: Vec<PeripheralPin>,
     pub dma: Vec<PeripheralDma>,
     pub interrupts: Vec<PeripheralInterrupt>,
+    /// Its block's registers, by name, at their byte offsets: what the glue
+    /// probe writes and reads (plan step 5). Arrays are left out.
+    #[serde(default)]
+    pub registers: Vec<Register>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Register {
+    pub name: String,
+    pub offset: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -81,6 +91,9 @@ pub struct RccField {
     pub register: String,
     pub field: String,
     pub bit: Option<u32>,
+    /// The register's byte offset in RCC's block.
+    #[serde(default)]
+    pub offset: Option<u32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

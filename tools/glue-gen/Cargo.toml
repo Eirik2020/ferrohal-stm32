@@ -10,6 +10,8 @@ description = "Generates FerroHAL's chip glue from stm32-metapac's metadata."
 
 [dependencies]
 glue-model = { path = "model" }
+# The glue probe (plan step 5) talks to the board through the debugger.
+probe-rs = "=0.32.0"
 serde_json = "=1.0.150"
 
 [workspace]

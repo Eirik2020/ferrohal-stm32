@@ -4,4 +4,4 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| h | docs/plans/2026-11-13-glue-generator.md | 5097 B | Status: agreed 2026-11-13. Steps 1 and 2 of t |
+| h | docs/plans/2026-11-13-glue-generator.md | 5153 B | Status: agreed 2026-11-13. Steps 1 and 2 of t |

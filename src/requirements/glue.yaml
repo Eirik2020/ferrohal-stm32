@@ -11,6 +11,18 @@ requirements:
     derived_from: [G3]
     verification:
       entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#The glue probe on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#The glue probe on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#The glue probe on the STM32F4 Discovery
         - level: analysis
           environment: host
           method:

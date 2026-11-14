@@ -95,9 +95,15 @@ emits: [maturity.md](maturity.md).
   its package bonds; a metadata kind it does not know fails loudly.
 - **[Decided]** Migration, once: the generated glue compared row by row with the hand glue
   it replaces, which the benches proved; each difference explained before the swap.
-- **[Decided]** A glue probe run per die, on target, debugger only (tier `DBG` or better):
-  `DEV_ID` against the die table; each peripheral enabled by its generated RCC bit, a
-  scratch register written and read back, reset by its reset bit to its reset value;
-  each generated vector pended and seen in the bench's handler; each pin's mode and
-  alternate function set and read back. Signal-level proof stays with the bench runs.
+- **[Decided, built 2026-11-14]** A glue probe per die, from the host through the
+  debugger, the core reset and halted, no firmware (owner chose the host side):
+  `glue-gen probe part <part>` with `PROBE_RS_PROBE` set, a `probe` run on each debugger
+  bench's script. `DEV_ID` against the die table; for each offered peripheral and bonded
+  port, a scratch register (one per IP version, found by name in metapac's register map)
+  ignores a write with its RCC enable bit clear, keeps it once set, and returns to its
+  earlier value when its reset bit is pulsed; each vector the offered peripherals and DMA
+  streams raise pends and clears in the NVIC, so its number exists. Measured: 87 checks on
+  die 0x433, 116 on 0x413, 154 on 0x450, all pass. Not probed, by design: a pin's
+  alternate function, which AFR accepts on any pin with any value, and a vector being
+  raised by its peripheral; the bench runs prove both on the wire.
 - **[Decided]** `tools/check_glue.py` retires once the generator is merged into `main`.

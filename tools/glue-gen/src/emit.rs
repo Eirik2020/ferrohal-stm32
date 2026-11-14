@@ -337,7 +337,10 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
     writeln!(w, ");").ok();
     writeln!(w, "\nport_parts!(").ok();
     for (port, mask) in &ports {
-        let fields: Vec<String> = (0..16).filter(|n| mask & (1 << n) != 0).map(|n| format!("p{n}: {n}")).collect();
+        let fields: Vec<String> = (0..16)
+            .filter(|n| mask & (1 << n) != 0)
+            .map(|n| format!("p{n}: {n}"))
+            .collect();
         writeln!(w, "    '{port}' => Parts{port} [{}];", fields.join(", ")).ok();
     }
     writeln!(w, ");").ok();

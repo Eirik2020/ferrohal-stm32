@@ -25,7 +25,7 @@ print(f"{(w[0] + w[2]) & 0xFFFFFFFF:08X}{w[1] >> 16:04X}")'
 }
 
 status=0
-for run in ${*:-a b c}; do
+for run in ${*:-probe a b c}; do
     log="$here/logs/discovery-run-$run.log"
     : > "$log"
     code=0
@@ -70,7 +70,13 @@ for run in ${*:-a b c}; do
             probe-rs erase --chip "$chip" >> "$log" 2>&1 || code=1
         fi
     else
-        (cd "$crate" && timeout 300 cargo run --release --bin "run-$run") >> "$log" 2>&1 || code=$?
+        if [ "$run" = probe ]; then
+            # The glue probe (plan step 5): the generated facts on the silicon,
+            # through this board's probe, no firmware.
+            (cd "$here/../tools/glue-gen" && timeout 300 cargo run -q --release -- probe part stm32f407vg) >> "$log" 2>&1 || code=$?
+        else
+            (cd "$crate" && timeout 300 cargo run --release --bin "run-$run") >> "$log" 2>&1 || code=$?
+        fi
     fi
     pass=$(grep -c "PASS" "$log")
     fail=$(grep -c "FAIL" "$log")
