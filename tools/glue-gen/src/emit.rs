@@ -335,6 +335,12 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         writeln!(w, "    '{port}' => {name}, {bit};").ok();
     }
     writeln!(w, ");").ok();
+    writeln!(w, "\nport_parts!(").ok();
+    for (port, mask) in &ports {
+        let fields: Vec<String> = (0..16).filter(|n| mask & (1 << n) != 0).map(|n| format!("p{n}: {n}")).collect();
+        writeln!(w, "    '{port}' => Parts{port} [{}];", fields.join(", ")).ok();
+    }
+    writeln!(w, ");").ok();
     writeln!(w, "\n/// The package's bonded pins, as (port, pin mask).").ok();
     writeln!(w, "#[allow(dead_code)] // Read by tools/check_glue.py.").ok();
     writeln!(w, "pub(crate) const BONDED: &[(char, u16)] = &[").ok();

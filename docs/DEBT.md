@@ -70,10 +70,6 @@ Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/r
 - `code` `api` **Low: EXTI owns the whole SYSCFG token.** It needs EXTICR only; the H7's
   I/O compensation cell and the F4's memory remap sit in SYSCFG too. *Spawned:*
   `b55c640` 2026-10-31, EXTI written as SYSCFG's only user.
-- `code` `api` **Low: a bonded port still splits into every pin.** `Port::split` hands out
-  all sixteen, so an unbonded pin (PB11 on the LQFP64) can be named. Fix: a per-package
-  `Parts`. *Spawned:* ports per register map in `af65cad`; W7 (`8c7c909`, 2026-11-09)
-  removed phantom ports, not pins.
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.

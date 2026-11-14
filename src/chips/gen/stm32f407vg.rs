@@ -127,6 +127,15 @@ ports!(
     'H' => GPIOH, 7;
 );
 
+port_parts!(
+    'A' => PartsA [p0: 0, p1: 1, p2: 2, p3: 3, p4: 4, p5: 5, p6: 6, p7: 7, p8: 8, p9: 9, p10: 10, p11: 11, p12: 12, p13: 13, p14: 14, p15: 15];
+    'B' => PartsB [p0: 0, p1: 1, p2: 2, p3: 3, p4: 4, p5: 5, p6: 6, p7: 7, p8: 8, p9: 9, p10: 10, p11: 11, p12: 12, p13: 13, p14: 14, p15: 15];
+    'C' => PartsC [p0: 0, p1: 1, p2: 2, p3: 3, p4: 4, p5: 5, p6: 6, p7: 7, p8: 8, p9: 9, p10: 10, p11: 11, p12: 12, p13: 13, p14: 14, p15: 15];
+    'D' => PartsD [p0: 0, p1: 1, p2: 2, p3: 3, p4: 4, p5: 5, p6: 6, p7: 7, p8: 8, p9: 9, p10: 10, p11: 11, p12: 12, p13: 13, p14: 14, p15: 15];
+    'E' => PartsE [p0: 0, p1: 1, p2: 2, p3: 3, p4: 4, p5: 5, p6: 6, p7: 7, p8: 8, p9: 9, p10: 10, p11: 11, p12: 12, p13: 13, p14: 14, p15: 15];
+    'H' => PartsH [p0: 0, p1: 1];
+);
+
 /// The package's bonded pins, as (port, pin mask).
 #[allow(dead_code)] // Read by tools/check_glue.py.
 pub(crate) const BONDED: &[(char, u16)] = &[

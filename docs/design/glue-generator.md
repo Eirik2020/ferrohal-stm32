@@ -20,8 +20,8 @@ emits: [maturity.md](maturity.md).
 - **[Decided]** The device layer exists now, thin, and is pruned if it stays redundant:
   F405 vs F407 and H743 vs H753 differ only in peripherals FerroHAL has no driver for.
 - **[Decided]** A package is the bonded-pin set; `Port::split` follows it, so an unbonded
-  pin cannot be named. Open (2026-11-14): the glue emits each package's `BONDED` table, but
-  `Parts<P>` still has sixteen pins; following the package needs a parts type per port.
+  pin cannot be named. Built 2026-11-14 (owner chose the shape): the glue emits one parts
+  type per bonded port, a field per bonded pin, behind a sealed `gpio::Split`.
 - Die IDs: F401xD/E 0x433, F405/F407/F415/F417 0x413, H742/H743/H750/H753 0x450.
 - **[Measured 2026-11-13, metapac 21]** What the die fixes and parts agree on: each
   peripheral's address, IP and register block, RCC fields, a pin's alternate function for

@@ -3,7 +3,7 @@
  "counts": {
   "documents": 68,
   "agent": 50,
-  "bytes": 267554
+  "bytes": 268425
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 15560
+   "bytes": 15260
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 14496
+   "bytes": 15647
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -204,7 +204,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 6898
+   "bytes": 6887
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -400,7 +400,7 @@
    "class": "human",
    "title": "The glue generator, and the work before it - plan of record",
    "purpose": "Status: agreed 2026-11-13. Steps 1 and 2 of t",
-   "bytes": 5066
+   "bytes": 5097
   },
   {
    "path": "docs/policies/agent-docs.md",

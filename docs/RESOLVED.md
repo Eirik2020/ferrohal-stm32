@@ -20,8 +20,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
   the comparison against the hand rows the benches proved found none missing or
   different. A die's hand facts are written once (`shared/die_0x413.rs`, `shared/h7.rs`),
   and `stm32f407vg` was added with no hand routing at all. `docs/CHIPS.md`'s silicon and
-  instance tables are generated. What stays open: the merge gate (step 6) and
-  `Port::split` per package.
+  instance tables are generated. What stays open: the merge gate (step 6).
+
+- **A port splits into its bonded pins only** (2026-11-14, owner chose the generated
+  shape). `Port::split` handed out all sixteen pins of any port the package bonds at
+  all (`af65cad`; W7, `8c7c909`, removed phantom ports, not pins), so an unbonded pin
+  (PB11 on the F401RE, PD3 to PD15 on the F405RG) could be named and driven to no
+  effect. The generated glue now emits one parts type per bonded port, with a field per
+  bonded pin, behind a sealed `gpio::Split`; `gpio::Parts<P>` names it. A no-metapac
+  probe holds it: the H743VI's PH2 does not compile (E0609).
 
 - **One instance shape, and every handle frees what it was opened from** (2026-11-13,
   plan step 3; API review D1, D2, D4, U4, D3 in part). Every driver's `Instance` now

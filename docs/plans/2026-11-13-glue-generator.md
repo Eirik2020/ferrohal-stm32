@@ -2,7 +2,8 @@
 
 Status: **agreed 2026-11-13. Steps 1 and 2 of the order and the generator's steps 1 to 3
 merged (#43, #44, both verified on the rig). Step 4 built on branch `glue-gen-emit`, with
-`stm32f407vg` added; `Port::split` following the package is open (owner's call on the shape).
+`stm32f407vg` added and `Port::split` following the package (the owner chose generated
+per-port parts).
 Steps 5 to 7 next.** The owner chose
 2026-11-13: handles generic over their whole wiring (`Uart<W>`), and `free()` the inverse
 of `new` for every driver. Decisions: ADR-008 (the generator) and ADR-009
@@ -56,7 +57,7 @@ both Nucleo suites.
    markers, replacing the hand tables. **Built 2026-11-14:** `glue-gen emit <selector>` and
    `glue-gen tables all`; the comparison found no hand row missing or different
    (`docs/design/glue-generator.md`); `stm32f407vg` is the first part with no hand
-   routing glue. Open: `Port::split` per package.
+   routing glue. `Port::split` hands out each port's bonded pins only.
 5. **The glue probe.** A run per Nucleo, debugger only: the die ID, each peripheral's
    enable and reset bits, each vector, each pin's mode and alternate function. It is the
    die axis's evidence for 0x433 and 0x450.

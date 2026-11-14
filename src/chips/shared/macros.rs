@@ -441,3 +441,28 @@ macro_rules! sdmmcs {
         )+
     };
 }
+
+/// Each bonded port's parts: `'D' => PartsD [p2: 2];`, one field per pin its
+/// package bonds. Generated.
+macro_rules! port_parts {
+    ($($letter:literal => $parts:ident [$($field:ident: $n:literal),+];)+) => {
+        $(
+            #[doc = concat!("Port ", $letter, "'s parts on this part: its `Ctrl` and its bonded pins.")]
+            pub struct $parts {
+                pub ctrl: crate::gpio::Ctrl<$letter>,
+                $(pub $field: Pin<$letter, $n>,)+
+            }
+
+            impl crate::gpio::Split for Port<$letter> {
+                type Parts = $parts;
+                fn split_parts(self, rcc: &mut crate::rcc::Rcc) -> $parts {
+                    rcc.enable(<Port<$letter> as PortInstance>::ENABLE);
+                    $parts {
+                        ctrl: crate::gpio::Ctrl::new(),
+                        $($field: Pin::new(),)+
+                    }
+                }
+            }
+        )+
+    };
+}
