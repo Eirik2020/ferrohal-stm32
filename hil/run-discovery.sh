@@ -63,8 +63,11 @@ for run in ${*:-a b c}; do
                 echo "FAIL rom: no DFU device $serial on CN5 within 30 s [RESET-004]" >> "$log"
                 code=1
             fi
-            # Out of the ROM, back to the flashed image.
-            probe-rs reset --chip "$chip" >> "$log" 2>&1
+            # Out of the ROM for good: run C's image asks for the ROM on every
+            # boot, so a reset alone would bring it back, and an F4 ROM on USB
+            # makes the Foxeer's DFU flashing ambiguous (same flash layout).
+            # A blank chip enumerates as nothing; the next run flashes it.
+            probe-rs erase --chip "$chip" >> "$log" 2>&1 || code=1
         fi
     else
         (cd "$crate" && timeout 300 cargo run --release --bin "run-$run") >> "$log" 2>&1 || code=$?
