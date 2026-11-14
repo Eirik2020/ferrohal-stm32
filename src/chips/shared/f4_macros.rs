@@ -1,7 +1,7 @@
 //! Macros the F4 parts' generated glue (`src/chips/gen/`) is written in:
 //! fixed-request DMA, one routing row per (controller, stream, channel).
 //!
-//! Requirements: GLUE-001, GLUE-002
+//! Requirements: GLUE-001
 
 macro_rules! ports {
     ($($letter:literal => $regs:ident, $bit:literal;)+) => {

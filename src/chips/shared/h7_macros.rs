@@ -1,7 +1,7 @@
 //! Macros the H7 parts' generated glue (`src/chips/gen/`) is written in:
 //! DMAMUX1, one request ID per instance and direction, any DMA1 or DMA2 stream.
 //!
-//! Requirements: GLUE-001, GLUE-002
+//! Requirements: GLUE-001
 
 macro_rules! ports {
     ($($letter:literal => $regs:ident, $bit:literal;)+) => {

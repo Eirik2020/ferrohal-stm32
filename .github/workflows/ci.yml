@@ -14,7 +14,7 @@ env:
   # The toolchain the benches and checks have been running on.
   RUST_TOOLCHAIN: 1.98.1
   # reqtool's main on 2026-11-13: board evidence follows files (#4, #5). Bump it on purpose.
-  REQTOOL_REV: 6b2e7482b47968d82fc1cd3e559b1215f4dcf175
+  REQTOOL_REV: ab14b953c3e690536704652c374235acee5f657e
 
 jobs:
   checks:
