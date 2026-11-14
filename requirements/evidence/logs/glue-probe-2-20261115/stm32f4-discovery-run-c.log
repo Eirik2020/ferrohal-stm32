@@ -1,0 +1,4 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --no-catch-reset --chip STM32F407VGTx target/thumbv7em-none-eabihf/release/run-c`
+PASS rom: the ROM's DFU device 3677346F3235 is listed on CN5 [RESET-004]
