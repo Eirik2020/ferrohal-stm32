@@ -46,6 +46,13 @@ pub const PARTS: &[Part] = &[
         package: "LQFP64",
     },
     Part {
+        feature: "stm32f407vg",
+        series: "F4",
+        die: 0x413,
+        device: "STM32F407",
+        package: "LQFP100",
+    },
+    Part {
         feature: "stm32h743vi",
         series: "H7",
         die: 0x450,
@@ -192,7 +199,7 @@ mod tests {
     #[test]
     fn selectors_resolve_to_parts() {
         assert_eq!(features("all").len(), PARTS.len());
-        assert_eq!(features("series F4"), ["stm32f401re", "stm32f405rg"]);
+        assert_eq!(features("series F4"), ["stm32f401re", "stm32f405rg", "stm32f407vg"]);
         assert_eq!(features("series h7"), ["stm32h743vi", "stm32h753zi"]);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);
     }
@@ -200,8 +207,9 @@ mod tests {
     #[test]
     fn a_die_is_named_by_its_id_or_any_line_cut_from_it() {
         assert_eq!(features("die 0x450"), ["stm32h743vi", "stm32h753zi"]);
-        // The F407 shares the F405's die, so it selects the F405's parts.
-        assert_eq!(features("die STM32F407"), ["stm32f405rg"]);
+        // The F407 shares the F405's die, so either line selects both parts.
+        assert_eq!(features("die STM32F407"), ["stm32f405rg", "stm32f407vg"]);
+        assert_eq!(features("die 0x413"), ["stm32f405rg", "stm32f407vg"]);
         assert_eq!(features("die stm32h750"), ["stm32h743vi", "stm32h753zi"]);
     }
 
