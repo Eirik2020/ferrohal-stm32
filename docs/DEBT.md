@@ -138,10 +138,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 - `bench` **Low: the `usart_v2` parity clear is measured at one speed.** 115200 only; a
   faster line leaves less time before the clear's DR read. *Spawned:* run B's
   measurement when the parity-clear item closed (`f9794ed`, 2026-11-05).
-- `bench` **Low: the SPI runs run with the caches off.** The UART runs cover the D-cache;
-  the SPI's do not, and `PASS_CYCLES`' cached floor (233 cycles) was measured once.
-  *Spawned:* the H753 SPI bench copied a caches-off board's setup (`e6c2362`), and the
-  floor's one measurement (`2f09258`), both 2026-10-31.
 - `bench` **Low: FIFO error handling is unconfirmed on hardware.** Transmit FIFO errors
   are cleared and ignored, receive ones are `DmaOverrun`; neither has been provoked.
   *Spawned:* `af65cad`, which took the transmit policy from the firmware the prototype

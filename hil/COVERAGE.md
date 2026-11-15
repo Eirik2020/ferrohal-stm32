@@ -55,7 +55,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | `usart_v2` | F401, F405 | F401: A, B, C, D, V, W | – | USART2's break, baud and parity (ST-LINK); parity clear above 115200 |
 | `usart_v4` | H743, H753 | H753: A, B, C, D, E, U, W, Y | – | UART8 TX and the morpho-only pins |
 | `spi_v2` | F401, F405 | F401: E, F, G (DMA), K (polled); E samples the wire (bit order, phase) | Foxeer: IMU, NOR | – |
-| `spi_v4` | H743, H753 | H753: F, G, H (DMA), L (polled); F samples the wire (bit order, phase) | Lucid: IMU | caches on |
+| `spi_v4` | H743, H753 | H753: F, G, H (DMA), L (polled); F samples the wire (bit order, phase); H again with caches on | Lucid: IMU | – |
 | `i2c_v1` | F401, F405 | F401: Q, S (Pico simulator) | – | – |
 | `i2c_v2` | H743, H753 | H753: R, S (Pico simulator) | Lucid: barometer | – |
 | `timer_v1` | F401, F405, F407 | F401: H, I, N, O, P, R; Discovery: D (CHxN) | Foxeer: motor timers, outputs off | – |

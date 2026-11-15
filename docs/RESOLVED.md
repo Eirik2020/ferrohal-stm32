@@ -4,6 +4,11 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The SPI runs with the caches on** (2026-11-15). H753 run H turns both caches on after
+  its caches-off suites and runs SPI2's suite again: 30 of 30 pass, and the fastest
+  polling pass is 228 cycles over 2258 passes, so `PASS_CYCLES` (112) keeps its factor of
+  two (the source's note says 233, the one earlier measurement).
+
 - **`hil/pico-i2c-sim.sh` no longer needs both probe variables** (2026-11-15). With
   several probes attached and no `*_PROBE` set, `hil/probe.sh` now picks the probe whose
   die has the bench's DEV_ID, and the simulator script clears `PROBE_RS_PROBE` for each
