@@ -1,6 +1,6 @@
 """Records the debugger benches' runs as reqtool evidence.
 
-    python3 -I tools/record_evidence.py prepare <folder>
+    python3 -I tools/record_evidence.py prepare <folder> [--analysis]
     python3 -I tools/record_evidence.py record <folder> [--dry-run] [--only <heading>]
 
 <folder> is a new directory under requirements/evidence/logs/.
@@ -61,11 +61,15 @@ def passed(path):
     return "PASS" in text and "FAIL" not in text
 
 
-def prepare(folder):
+def prepare(folder, analysis_only=False):
     folder.mkdir(parents=True)
     runs = {bench: set() for bench in BENCH}
     for _, _, bench, rs in procedures():
         runs[bench].update(rs)
+    if analysis_only:
+        # Only checks/run.sh and the glue gate: no bench log is copied, so
+        # none from another tree lands beside this one's evidence.
+        runs = {}
     for bench, rs in runs.items():
         crate = BENCH[bench]
         lines = []
@@ -149,7 +153,7 @@ if __name__ == "__main__":
         sys.exit(__doc__)
     target = ROOT / "requirements/evidence/logs" / sys.argv[2]
     if sys.argv[1] == "prepare":
-        prepare(target)
+        prepare(target, "--analysis" in sys.argv)
     else:
         only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
         record(target, "--dry-run" in sys.argv, only)
