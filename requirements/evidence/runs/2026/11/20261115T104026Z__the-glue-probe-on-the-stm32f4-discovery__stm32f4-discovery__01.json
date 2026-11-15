@@ -1,0 +1,164 @@
+{
+  "schema_version": 5,
+  "run_id": "20261115T104026Z__the-glue-probe-on-the-stm32f4-discovery__stm32f4-discovery__01",
+  "recorded_at_utc": "2026-11-15T10:40:26Z",
+  "board": "stm32f4-discovery",
+  "tier": "HIL",
+  "revision": "bd8d41d83349bdb0c5e02c781b517e03e7ed877e",
+  "working_tree": "dirty",
+  "configuration": {
+    "board": "stm32f4-discovery",
+    "features": [],
+    "files": {
+      "hil/stm32f4-discovery/.cargo/config.toml": "670d352a14855eca575d92053c6519ebd5e439d6fd60558be0bff3a138302890",
+      "hil/stm32f4-discovery/Cargo.toml": "9f5fbe326d6a7b5e84feb8edbbdf0f8d6bd73ac367541c079b1056f389fc50b6",
+      "hil/stm32f4-discovery/src/bin/../../../common/pwm.rs": "b87f3163d61fe1d30ca189f593d5f04c2dfa8a39e0826bb3cbc9e9cd4bbd5e83",
+      "hil/stm32f4-discovery/src/bin/../../../common/tests.rs": "1ae3dd5417c36fa12cebba9cee796a767d9f247c4468a0a4f45e30b2fe0b96d8",
+      "hil/stm32f4-discovery/src/bin/../board.rs": "2aa5eca8ed3c2dbb706c819d3101ed4a3efd53d68fac608fe76373f759823c68",
+      "hil/stm32f4-discovery/src/bin/run_a.rs": "0b994701718b6ea3f92b9a789382997fbe04c521d3b74a96fb9b82d9d63ebe9e",
+      "hil/stm32f4-discovery/src/bin/run_b.rs": "80c2a161e62a17762b24feb2d4b44a4717bf3fcfb35ddbee41416dc7ddaecaff",
+      "hil/stm32f4-discovery/src/bin/run_c.rs": "f8ec8ca02618c29cdd26977c66c5225729c608346fabcc981d19a6a962cb38a7",
+      "hil/stm32f4-discovery/src/bin/run_d.rs": "2633520929cbc6cdf617cc1b298b546ac23897d943262d74e36ef089c8089e7d",
+      "src/adc/mod.rs": "5257d12c2cac1a9969593881d009096df4f6ec2510ad1307d1b3332dc6728e6b",
+      "src/adc_v2/mod.rs": "8b2cfefa57cf0b99b1a5b4e5bf8c27d3213654ba8efd8c8b106bce2f0c4e39d7",
+      "src/chips/gen/stm32f407vg.rs": "4fcefd89da2d34caa8d387ead3f637038a864b4aa5ec9e489e99f74c82c2f931",
+      "src/chips/shared/die_0x413.rs": "1926ce6513f58a8ed1c6832e2a0acf88acff8a8b38a6be1777bc26565bb1ba43",
+      "src/chips/shared/errata_es0182.rs": "377e8c0b27f6186b4d380c6f1ad6a845663f482bd9e8076742c02a603b660554",
+      "src/chips/shared/f4_macros.rs": "75c98bf51a481259061a49c996b8ca94379d85c46a8b414b4f137ff8a90bf7e2",
+      "src/chips/shared/macros.rs": "37443f12a8dc77a89aef41d90abf3e37c77f24d96fd161e2873f9372e2c5d97b",
+      "src/chips/stm32f407vg.rs": "329a46ae513cd2104be29ef29aad02493006febb0f144e1ca6d3521b43e87ee3",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma_stream.rs": "cf53f1d9e01581424c3391bdcf1e56dce9e6f5c3d8e6de002ca655f63da46010",
+      "src/errata.rs": "800114cb735e801adcccb9e66f348538e0b18201134356bb97e7a9b5288f7da3",
+      "src/exti.rs": "149cced8cf0459865a3dc39ac43eb60d1d8dd795d218c833818b69c54970c5cd",
+      "src/gpio_v2/mod.rs": "0475a8884facb57f09703f20f0c812e4ab1ee7686b1fdfb6253283c05adc25f6",
+      "src/i2c/mod.rs": "58dc141bbeaa9291712cc3158804a1b2b0a7664988bab47e7bf2289619b119d9",
+      "src/i2c_v1/mod.rs": "747c3734d7308b90d0962928f28e3e7990a8f0e2930a92d868598c4cb06df8fc",
+      "src/iwdg.rs": "912cb70a7931f0ae9b048e2ad284296b05be47d38e95813e12daa3e34fa388b2",
+      "src/lib.rs": "806d69e098fd566f71a68f5f1f5eef1b2a144beb1db38c9604eb5a066a994423",
+      "src/rcc_f4/mod.rs": "a82f88cf57c37f350a8e040bb4b61dc640e0bd32da69e5e49e1ec333a48d15ee",
+      "src/rcc_kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+      "src/reset.rs": "620f0afa3cb661bc0f609a921a68d8f9f0ede80a0fd10d1a7141474734f73a3f",
+      "src/resource.rs": "f7b5a325a2e4c025da1418063138e3865fe3f9b9cd53d54a387ac66d5611fbc6",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/instance.rs": "d3ed3c1b4902aa67faf7e7ea7c9d71522fcb9f8355dd49358aad9db631febb90",
+      "src/spi/mod.rs": "bd03fc78ee827d0d65e3a90a7a25d54e7d9eaceadbce9a8131ed3b8c7f7b3af4",
+      "src/spi/polled.rs": "6f386fe3fed602795af087497d3a1297bc737565dd1a1bc7cd4053ec3753b41a",
+      "src/spi/stream_dma.rs": "05e5c4d67187fe2fa3ff776e65791ccd285fe06019d3ad1f63b8eccb02ab9d14",
+      "src/spi_v2/mod.rs": "b456bf774eb80094d1688a015da2bdf6df204822aeb99d8414c1132ed89adf6f",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer.rs": "61d427c768616115030aaba37cac7e83ab53da4bc7b24966f6f7f0d3b62d91cd",
+      "src/timer_awg.rs": "b70601a4e3eae06b9a0e1b6c98beff793fedc09855c3a765d9cbbe06dc27fb9c",
+      "src/timer_pwm.rs": "7f566ac58b953bc0bd518be9fbfdeb394f470b1612df69f23bbf592ab497799f",
+      "src/uart/mod.rs": "7a5c004c5d929b2349711fc0782df09aaa96bfd018a007ce4809f9b331c2316b",
+      "src/uart/ring.rs": "6e93c664a105cc570e3893309c131294e5975244b044401f1cc85402433328bc",
+      "src/uart/stream_dma.rs": "422c307bdb9498dcd39c1a3af00bd3a097fa60b271567f272384fc511966243f",
+      "src/uart/tx_ring.rs": "8e75e58d60f7da72902bebca74f88ee9b974ea0acfe22e825f97c56308ae8b05",
+      "src/usart_v2/mod.rs": "c562b8863ba6e806301631f6200ae08c24da727d160ec0022bdef0f902a1478e",
+      "src/usb.rs": "fcad28b5cc85509a080130a88cbf35fe4ec62af1f9288b33bbe1b2942d89aa56",
+      "src/wait.rs": "9f62d55f6c02ccb3e72ad35b181e8f5add4efb3bbf2a56d1c80cb0959e07a76b"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "bitflags": "1.3.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "cortex-m-semihosting": "0.5.0",
+      "critical-section": "1.2.0",
+      "defmt": "0.3.101, 1.2.0",
+      "defmt-macros": "1.2.0",
+      "defmt-parser": "1.1.0",
+      "defmt-rtt": "1.3.1",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.6.1, 0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "panic-probe": "1.0.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.10",
+      "synopsys-usb-otg": "0.4.0",
+      "thiserror": "2.0.21",
+      "thiserror-impl": "2.0.21",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "usbd-serial": "0.2.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "DEFMT_LOG": "info"
+    }
+  },
+  "results": [
+    {
+      "requirement": "GLUE-001",
+      "method": {
+        "procedure": "requirements/benches.md#The glue probe on the STM32F4 Discovery"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "c6df180ce41d34c9b4de4e174024220d8683201e713d0d8cb0c71ab8ab5de31c",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "82596883fd056cd5330df9942b75207cb26815af9f57d85bd49c0b72e401b057",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-discovery.sh probe",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "stm32f4-discovery-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/reset-pwm-20261115-probe/stm32f4-discovery-images.sha256",
+        "bytes": 288,
+        "sha256": "82596883fd056cd5330df9942b75207cb26815af9f57d85bd49c0b72e401b057"
+      },
+      {
+        "id": "stm32f4-discovery-run-probe",
+        "kind": "log",
+        "path": "requirements/evidence/logs/reset-pwm-20261115-probe/stm32f4-discovery-run-probe.log",
+        "bytes": 8675,
+        "sha256": "a624dc15194ac7dfb74a847e0adb63383219ac463985ad9c9780df3f9c2af6cf"
+      }
+    ],
+    "observations": [
+      "Every check in every run of the subset passed (PASS lines in the logs; no FAIL)."
+    ]
+  }
+}
