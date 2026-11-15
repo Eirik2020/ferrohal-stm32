@@ -49,3 +49,24 @@ manual and chip module name:
 
 ES0392's per-part rules — 2.2.10's AXI SRAM reads, revision Y/W only, and
 2.2.21's 480 MHz — are decided off the revision: both H7s here are V.
+
+## Identity
+
+`python3 -I hil/rig_status.py` lists what is on the rig without disturbing it: every
+debug probe with its die (IDCODE, UID) and the identity of the image it runs, and every
+USB serial port other than an ST-LINK's with its answer to `FERRO-ID?`. Nothing is
+flashed, reset or halted.
+
+The identity is one line, `FERRO-ID v=1` and then `key=value` pairs separated by
+spaces: `board`, `part`, `crate`, `run`, `git` (the short commit, `+dirty` when tracked
+files differed). Readers ignore keys they do not know; a new key needs no new version,
+a changed meaning does.
+
+- **Over the debug probe** (the Nucleos, the STM32F4 Discovery): every bench image
+  carries the line NUL-padded to 256 bytes at 0x0800_0400, just after the vector table
+  (`hil/common/ident.rs`, each bench's `memory.x` and `build.rs`). The host adds the die
+  it reads itself, so an erased chip still shows its IDCODE and UID.
+- **Over USB serial** (boards with no probe: the Pico, flashed boards): the firmware
+  answers the query `FERRO-ID?` and a newline with the line, adding `dev`, `rev` and
+  `uid` it reads itself.
+

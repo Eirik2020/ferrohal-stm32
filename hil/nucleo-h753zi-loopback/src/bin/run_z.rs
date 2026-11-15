@@ -9,6 +9,10 @@
 #![no_std]
 #![no_main]
 
+// For its identity block only; the run uses no board part.
+#[path = "../board.rs"]
+mod board;
+
 use cortex_m_rt::entry;
 use defmt_rtt as _;
 use ferrohal_stm32::reset;

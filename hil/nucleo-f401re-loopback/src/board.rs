@@ -34,6 +34,21 @@
 // Every run binary compiles this file and uses its own run's wiring only.
 #![allow(dead_code)]
 
+#[path = "../../common/ident.rs"]
+mod ident;
+
+/// This image's identity block, at 0x0800_0400 (`memory.x`).
+#[used]
+#[unsafe(link_section = ".ferro_ident")]
+static FERRO_IDENT: [u8; ident::LEN] = ident::block(concat!(
+    "FERRO-ID v=1 board=nucleo-f401re part=STM32F401RE crate=",
+    env!("CARGO_PKG_NAME"),
+    " run=",
+    env!("CARGO_BIN_NAME"),
+    " git=",
+    env!("FERRO_GIT"),
+));
+
 use ferrohal_stm32::{
     chip::{
         I2C1, I2C3, Peripherals, SPI1, SPI2, SPI3, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10,

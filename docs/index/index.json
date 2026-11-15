@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 318651
+  "bytes": 319388
  },
  "documents": [
   {
@@ -465,7 +465,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9398
+   "bytes": 9033
   },
   {
    "path": "hil/COVERAGE.md",
@@ -479,7 +479,7 @@
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 2632
+   "bytes": 3734
   },
   {
    "path": "hil/WIRING.md",
