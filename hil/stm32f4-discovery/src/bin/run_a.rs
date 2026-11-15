@@ -157,7 +157,10 @@ mod app {
                 tests::stream(&mut link, 4 * 1024),
             );
             $slot.lock(|slot| *slot = None);
-            uart.free()
+            match uart.free() {
+                Ok(parts) => parts,
+                Err(_) => defmt::panic!("{}: free refused, a stream did not stop", name),
+            }
         }};
     }
 

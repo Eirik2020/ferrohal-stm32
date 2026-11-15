@@ -4,6 +4,14 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **UARTDMA-009 has a method, and `free` no longer hands out buffers under a running
+  stream** (2026-11-15). No bench could make a stream refuse to stop (DEBT, since
+  2026-11-03). The owner chose a bench-only `fault-injection` feature: `dma::fault`
+  makes a stream ignore stop requests. Run T on the H753 proves the UART fails closed
+  in the stuck direction and keeps the other. Building it found that every DMA
+  driver's `free` ignored a failed stop yet returned its buffers as `&'static mut`;
+  they now refuse with the handle (API-003, owner's choice of shape).
+
 - **RESET-004 holds on the H7** (2026-11-15). Run N asks for the ROM across resets but
   ends with the core halted, so no DFU device ever appeared and the cause stayed open
   (`57ae1b3`, 2026-11-13). Run Z ends in the ROM: a new DFU device with the die's IDCODE

@@ -476,7 +476,11 @@ requirements:
       the only safe answer.
     derived_from: [UART-006]
     verification:
-      entries: []
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches-faults.md#Streams that will not stop on the Nucleo-H753ZI
 
   - id: UARTDMA-010
     title: The ring refuses a frame it can never hold

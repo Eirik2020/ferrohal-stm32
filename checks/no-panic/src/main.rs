@@ -93,7 +93,10 @@ fn main() -> ! {
             .with_stop_bits(StopBits::Two)
             .with_inverted_rx(black_box(true)),
     );
-    keep(ferrohal_stm32::uart::check::<chip::RxUart>(&black_box(rcc.clocks()), &sbus));
+    keep(ferrohal_stm32::uart::check::<chip::RxUart>(
+        &black_box(rcc.clocks()),
+        &sbus,
+    ));
     // SAFETY: as TX and RX above.
     let ring = black_box(unsafe { &mut *addr_of_mut!(RX2) });
     let (rx_line, mut rx_only, mut rx_irq) = match UartRx::new(&mut rcc, rx_wiring, &sbus, ring) {
@@ -408,7 +411,9 @@ pub fn exercise_lane_free<T, P, const CD: u8, const SN: u8>(
     };
     keep(lane.arm(&pwm, black_box(&[1, 2, 3][..])));
     lane.abort(&pwm);
-    let (wiring, buffer, _) = lane.free(&pwm);
+    let Ok((wiring, buffer, _)) = lane.free(&pwm) else {
+        park()
+    };
     match wiring.assemble(&pwm, buffer) {
         Ok(lane) => keep(lane.free(&pwm)),
         Err(_) => park(),
@@ -1519,12 +1524,16 @@ pub fn exercise_adc<A, P, S>(
     keep(scan.to_millivolts(black_box(1), black_box(3300)));
     // Freed back to the parts, a second scan from them, then the ADC freed
     // and reopened from its token.
-    let (adc, stream, buffer) = scan.free();
+    let Ok((adc, stream, buffer)) = scan.free() else {
+        park()
+    };
     let scan = match adc.into_scan(stream, &[channel], buffer) {
         Ok(scan) => scan,
         Err(_) => park(),
     };
-    let (adc, _stream, _buffer) = scan.free();
+    let Ok((adc, _stream, _buffer)) = scan.free() else {
+        park()
+    };
     let token = adc.free();
     match Adc::new(rcc, token, &Config::slow_source()) {
         Ok(adc) => keep(adc.free()),

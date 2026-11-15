@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 315944
+  "bytes": 318241
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 15116
+   "bytes": 14812
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 18172
+   "bytes": 18743
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -213,7 +213,7 @@
    "class": "agent",
    "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3098
+   "bytes": 3547
   },
   {
    "path": "docs/design/glue-generator.md",
@@ -451,7 +451,7 @@
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 1945
+   "bytes": 2137
   },
   {
    "path": "docs/policies/safety.md",
@@ -472,7 +472,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6249
+   "bytes": 6300
   },
   {
    "path": "hil/RIG.md",
@@ -507,7 +507,7 @@
    "class": "human",
    "title": "Bench Procedures: the injected faults and the cache matrix",
    "purpose": "The fault-injection and cache-matrix runs of ",
-   "bytes": 4565
+   "bytes": 5903
   },
   {
    "path": "requirements/benches-refusals.md",

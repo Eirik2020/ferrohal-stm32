@@ -86,7 +86,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | UID and die revision | every run's closing log line | – |
 | Caches and MPU shapes (H7) | H753: X; A to E with caches on | the SPI runs with caches on |
 | Constructor refusals | F401: V; H753: U; both smoke benches | – |
-| Injected faults | F401: W; H753: W | – |
+| Injected faults | F401: W; H753: W, T (streams that will not stop, `fault-injection`) | – |
 | No reachable panic, glue against metapac, host tests | `checks/run.sh`, no board | the `usb` dependency (a listed G2 exception) |
 
 ## Chip glue

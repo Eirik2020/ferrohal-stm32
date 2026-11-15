@@ -137,10 +137,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 
 ## 3. Shipped code without hardware proof: bench work
 
-- `bench` `owner` **Medium: UARTDMA-009 has no method.** No bench makes a DMA stream
-  refuse to stop. The owner set it aside until after FerroWasp's move to FerroHAL
-  (2026-11-03); that move landed on 2026-11-06. *Spawned:* recording the UART's host
-  evidence (`d905095`, 2026-11-03) found no method.
 - `tool` **Low: SDMMC's `free()` has only the Lucid's flashed run.** The Lucid bench frees
   and reopens the SDMMC, but reqtool records only `host`, `development` and `product`
   runs, so a `FLSH` run cannot count until plan step 7 gives it a tier; SDMMC's API-002

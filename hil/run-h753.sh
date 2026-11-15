@@ -33,7 +33,7 @@ dfu_serials() {
     dfu-util -d 0483:df11 -l 2>/dev/null | sed -n 's/.*serial="\([^"]*\)".*/\1/p' | sort -u
 }
 
-for run in ${*:-probe a b c d e f g h i j k l m n o p q r s u w x y z}; do
+for run in ${*:-probe a b c d e f g h i j k l m n o p q r s t u w x y z}; do
     log="$here/logs/h753-run-$run.log"
     : > "$log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
@@ -89,7 +89,10 @@ for run in ${*:-probe a b c d e f g h i j k l m n o p q r s u w x y z}; do
             # through this board's probe, no firmware.
             (cd "$here/../tools/glue-gen" && timeout 300 cargo run -q --release -- probe part stm32h753zi) >> "$log" 2>&1
         else
-            (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") >> "$log" 2>&1
+            features=()
+            # Run T alone builds with the library's bench fault injection.
+            [ "$run" = t ] && features=(--features fault-injection)
+            (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release "${features[@]}" --bin "run-$run") >> "$log" 2>&1
         fi
         code=$?
     fi

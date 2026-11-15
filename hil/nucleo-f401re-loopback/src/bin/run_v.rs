@@ -308,12 +308,12 @@ mod app {
             tests::echo(&mut loop1, b"refusal\n"),
         );
         // `free` stops the line and both streams, and hands the token back.
-        let _token = usart1.free();
+        let handed_back = usart1.free().is_ok();
         report.check(
             "USART1 PA9->PA10",
             "free leaves the USART off and both streams stopped [API-002]",
             crate::freed(
-                true,
+                handed_back,
                 !stm32_metapac::USART1.cr1().read().ue(),
                 &[(stm32_metapac::DMA2, 7), (stm32_metapac::DMA2, 2)],
             ),
@@ -351,8 +351,7 @@ mod app {
                                     }),
                                     Err(error) => Err(Fail::Spi(error)),
                                 };
-                                let _token = spi.free();
-                                spi_freed = true;
+                                spi_freed = spi.free().is_ok();
                                 echoed
                             }
                             Err(refused) => Err(Fail::SpiConfig(refused.error())),

@@ -21,6 +21,12 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
    `Sampler` (its timer, stream and buffer), `Awg` (its `Pwm`s and lanes), timers. A
    handle is generic over its whole wiring (`Uart<W>`, owner 2026-11-13), so a board
    names its route once, as a type alias.
+   **[Decided 2026-11-15, owner]** A handle that owns DMA buffers (`Uart`, `UartRx`,
+   `Spi`, `CompareLane`, `Sampler`, `AdcScan`) refuses to free while one of its
+   streams does not stop: `free` returns `Result<parts, Refused<StopTimeout, Self>>`,
+   so the buffers never leave under a running stream, and the handle comes back to try
+   again (API-003, run T on the H753). Before, a failed stop was ignored and the buffers
+   handed out anyway.
 
 1. Every handle that can touch a peripheral carries the token, or a borrow of it; a
    second handle is a compile error, not a runtime rule. **Met:** the token lives in

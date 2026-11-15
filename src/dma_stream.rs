@@ -26,9 +26,45 @@
 //! DMAMUX channel's configuration register outright. The controller's clock
 //! is the only shared write, made through [`Rcc`].
 //!
+//! With the `fault-injection` feature, `fault` makes a stream ignore
+//! requests to stop, for benches that prove a driver's answer to a stream
+//! that will not stop. No firmware that flies enables it.
+//!
 //! Requirements: DMA-001
 
 use core::sync::atomic::{Ordering, fence};
+
+/// Bench fault injection (feature `fault-injection`): a stream marked stuck
+/// ignores [`Channel::request_stop`], so a running stream keeps EN set and
+/// every bounded stop on it times out, as a stream that will not stop
+/// would. A stream that has stopped on its own still reads stopped. Marks
+/// are global, by controller and stream number, and survive a driver's
+/// `free`; nothing in FerroHAL sets one.
+#[cfg(feature = "fault-injection")]
+pub mod fault {
+    use core::sync::atomic::{AtomicU32, Ordering};
+
+    static STUCK: AtomicU32 = AtomicU32::new(0);
+
+    const fn bit(controller: u8, stream: u8) -> u32 {
+        1 << (((controller & 3) as u32) * 8 + (stream & 7) as u32)
+    }
+
+    /// Stream `stream` of DMA controller `controller` ignores stop requests
+    /// from now on.
+    pub fn stick(controller: u8, stream: u8) {
+        STUCK.fetch_or(bit(controller, stream), Ordering::SeqCst);
+    }
+
+    /// The stream obeys stop requests again. It may still be running.
+    pub fn release(controller: u8, stream: u8) {
+        STUCK.fetch_and(!bit(controller, stream), Ordering::SeqCst);
+    }
+
+    pub(super) fn stuck(controller: u8, stream: u8) -> bool {
+        STUCK.load(Ordering::SeqCst) & bit(controller, stream) != 0
+    }
+}
 
 use stm32_metapac::dma::{
     Dma as Regs,
@@ -205,6 +241,8 @@ where
         Channel {
             regs: <Dma<D> as DmaRegisters>::regs(),
             index: N,
+            #[cfg(feature = "fault-injection")]
+            controller: D,
             #[cfg(feature = "dma_v1")]
             mux: <Dma<D> as DmaRegisters>::mux(),
             #[cfg(feature = "dma_v1")]
@@ -217,6 +255,8 @@ where
 pub struct Channel {
     regs: Regs,
     index: u8,
+    #[cfg(feature = "fault-injection")]
+    controller: u8,
     #[cfg(feature = "dma_v1")]
     mux: Dmamux,
     #[cfg(feature = "dma_v1")]
@@ -459,6 +499,8 @@ impl Channel {
         Channel {
             regs: self.regs,
             index: self.index,
+            #[cfg(feature = "fault-injection")]
+            controller: self.controller,
             #[cfg(feature = "dma_v1")]
             mux: self.mux,
             #[cfg(feature = "dma_v1")]
@@ -469,6 +511,10 @@ impl Channel {
     /// Tells the stream to stop. It finishes the word in flight first;
     /// [`is_running`](Self::is_running) turns false once it has.
     pub fn request_stop(&mut self) {
+        #[cfg(feature = "fault-injection")]
+        if fault::stuck(self.controller, self.index) {
+            return;
+        }
         self.regs
             .st(stream_index(self.index))
             .cr()

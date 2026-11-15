@@ -47,6 +47,24 @@ USART6's DMA transmit request is disconnected before a 128-byte frame is
 queued; the bound expires, the queue is dropped and counted, and the next
 frame goes out whole. Pass: every check passes and the script exits zero.
 
+## Streams that will not stop on the Nucleo-H753ZI
+
+`hil/run-h753.sh t`, with Z2 and S1 fitted. Run T alone is built with the library's
+`fault-injection` feature: `dma::fault` marks a stream to ignore stop requests, so a
+running one keeps EN set and every bounded stop on it times out. It uses run U's parts.
+USART6's transmit stream is marked with `CR3.DMAT` off, so it waits for requests: the
+flush reports Halted with the stream still enabled; with DMAT back the stream drains its
+frame and the receiver takes it whole; once the stream has stopped the transmit side
+still refuses, until a free and a reopen echo again [UARTDMA-009]. With the receive ring
+marked, `free` refuses with `StopTimeout`, the stream still running, and hands back the
+UART, whose reads report Halted; released, the retried `free` succeeds with both streams
+stopped [API-003]. A receive stream re-armed by hand at a scratch buffer, as an earlier
+owner might leave it, makes `Uart::new` refuse with DmaBusy; released, the same parts
+open and echo. SPI1 (mid-transfer at 390 kHz), TIM3 CH3's lane (armed, its timer
+stopped), TIM8's sampler (mid-capture at 10 kHz) and ADC1's scan (its stream re-armed
+after a sequence) each refuse `free` with the stream marked and still running, and free
+once it is released. Pass: every check passes and the script exits zero.
+
 ## The cache and MPU matrix on the Nucleo-H753ZI
 
 `hil/run-h753.sh x`, no links needed. Run X holds both caches on throughout

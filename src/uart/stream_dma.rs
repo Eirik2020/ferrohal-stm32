@@ -47,7 +47,7 @@
 //! marks non-cacheable: this driver does no cache maintenance. `Uart::new`
 //! checks both with `chip::check_dma_buffer`.
 //!
-//! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UART-014, UART-015, UARTDMA-002, UARTDMA-008, UARTDMA-009, API-002, UARTDMA-011, UARTDMA-012
+//! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UART-014, UART-015, UARTDMA-002, UARTDMA-008, UARTDMA-009, API-002, API-003, UARTDMA-011, UARTDMA-012
 
 use core::{
     ptr,
@@ -57,7 +57,7 @@ use core::{
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, FlagHandle, Flags, Interrupts, Priority, Stream,
+        Channel, Direction, FifoMode, FlagHandle, Flags, Interrupts, Priority, StopTimeout, Stream,
         StreamInstance, StreamInterrupt, Transfer, WordSize,
     },
     gpio::AltPin,
@@ -708,30 +708,37 @@ where
     /// marked halted, so a service that races this starts nothing. A reopen
     /// runs `Uart::new` again on the same parts.
     ///
+    /// A stream that does not stop in time could still write the buffers,
+    /// so they are not handed out: the refusal returns the UART, closed and
+    /// both halves halted (sends and reads report `Halted`), still owning
+    /// them. `free` may be tried again; it succeeds once both streams have
+    /// stopped.
+    ///
     /// A `Line` or `UartTx` split off earlier must be
     /// [`join`](Uart::join)ed back first: this takes the whole UART.
     #[allow(clippy::type_complexity)]
-    pub fn free(self) -> (Wiring<U, TxP, RxP, TxD, RxD>, Buffers) {
-        let Self {
-            line,
-            mut tx,
-            mut rx,
-        } = self;
-        tx.halt();
-        rx.halt();
-        line.info.regs.set_event_enables(false);
-        line.info.regs.disable();
+    pub fn free(
+        mut self,
+    ) -> Result<(Wiring<U, TxP, RxP, TxD, RxD>, Buffers), Refused<StopTimeout, Self>> {
+        let tx_stopped = self.tx.halt();
+        let rx_stopped = self.rx.halt();
+        self.line.info.regs.set_event_enables(false);
+        self.line.info.regs.disable();
+        if tx_stopped.and(rx_stopped).is_err() {
+            return Err(Refused::new(StopTimeout, self));
+        }
+        let Self { line, tx, rx } = self;
         // SAFETY: both were the caller's `'static` buffers, of these lengths
         // (`check_open` refuses longer ones), and the driver was their only
-        // user since `new`; both streams have stopped, so nothing else will
-        // touch them again.
+        // user since `new`; both streams have stopped (checked above), so
+        // nothing else will touch them again.
         let buffers = unsafe {
             Buffers {
                 tx: core::slice::from_raw_parts_mut(tx.buf, usize::from(tx.cap)),
                 rx: core::slice::from_raw_parts_mut(rx.ring, usize::from(rx.len)),
             }
         };
-        (Self::rejoin(line.token, tx, rx), buffers)
+        Ok((Self::rejoin(line.token, tx, rx), buffers))
     }
 }
 
@@ -974,16 +981,17 @@ impl<W: UartParts> UartTx<W> {
     /// transmission off for good so a racing service cannot start a frame.
     /// Private: the sequence `free` runs, ordered like `time_out` plus the
     /// halt, so the interrupt side finds nothing to do.
-    fn halt(&mut self) {
+    fn halt(&mut self) -> Result<(), StopTimeout> {
         let tx = &self.info.state.tx;
         tx.servicing.store(true, Ordering::SeqCst);
         tx.halted.store(true, Ordering::Release);
         self.dma.set_interrupts(Interrupts::default());
-        let _ = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         tx.frames.clear();
         tx.running.store(false, Ordering::Release);
         tx.servicing.store(false, Ordering::SeqCst);
+        stopped
     }
 
     /// A frame did not finish in time: stop the stream, drop the queue.
@@ -1198,24 +1206,35 @@ where
     /// Only a receive-only UART has an `RxLine`, so a split UART's receive
     /// half cannot free the line under a live transmit half; it rejoins
     /// with [`Uart::join`] instead.
+    ///
+    /// A stream that does not stop in time could still write the ring, so
+    /// the refusal hands back the half, halted, and its line, closed, still
+    /// owning it, as [`Uart::free`] does.
     #[allow(clippy::type_complexity)]
     pub fn free(
         mut self,
         line: RxLine<RxWiring<U, RxP, RxD>>,
-    ) -> (RxWiring<U, RxP, RxD>, &'static mut [u8]) {
+    ) -> Result<
+        (RxWiring<U, RxP, RxD>, &'static mut [u8]),
+        Refused<StopTimeout, (Self, RxLine<RxWiring<U, RxP, RxD>>)>,
+    > {
+        let stopped = self.halt();
+        line.line.info.regs.set_event_enables(false);
+        line.line.info.regs.disable();
+        if stopped.is_err() {
+            return Err(Refused::new(StopTimeout, (self, line)));
+        }
         let RxLine { line } = line;
-        self.halt();
-        line.info.regs.set_event_enables(false);
-        line.info.regs.disable();
         // SAFETY: the caller's `'static` ring, of this length, whose only
-        // user since `new` was the driver; the stream has stopped.
+        // user since `new` was the driver; the stream has stopped (checked
+        // above).
         let ring = unsafe { core::slice::from_raw_parts_mut(self.ring, usize::from(self.len)) };
         let wiring = RxWiring {
             uart: line.token,
             rx: self.pin,
             rx_dma: self.stream,
         };
-        (wiring, ring)
+        Ok((wiring, ring))
     }
 }
 
@@ -1276,15 +1295,20 @@ impl<W: UartParts> UartRx<W> {
     }
 
     /// Stops the receive stream and clears its flags. Private: the
-    /// sequence `free` runs.
-    fn halt(&mut self) {
+    /// sequence `free` runs. A stream that does not stop leaves the half
+    /// halted: reads report `Halted` from then on.
+    fn halt(&mut self) -> Result<(), StopTimeout> {
         // Interrupts off first, as the transmit half does: a stream that is
         // stopping can still set its transfer-complete flag after `stop`
         // (measured on the F407, 2026-11-14), and a freed stream's vector may
         // serve another UART by then.
         self.dma.set_interrupts(Interrupts::default());
-        let _ = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
+        if stopped.is_err() {
+            self.halted = true;
+        }
+        stopped
     }
 
     /// Copies out what has arrived, up to `buf.len()` bytes, without
