@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The glue generator's plan is done, and maturity is computed** (2026-11-15, plan step 7;
+  ADR-008, ADR-009). Every part's routing glue is generated and gated, the glue probe
+  checks each die on the silicon, and each part's platform and capability tiers come from
+  the evidence (`glue-gen tiers`), each run stamped with its bench's tier by reqtool. The
+  finished plan was deleted; `docs/design/glue-generator.md` and `maturity.md` hold what
+  it decided.
+
 - **The generated glue has a merge gate** (2026-11-15, plan step 6). Step 4 landed the
   generator before its gate, by the plan's order, and `tools/check_glue.py` kept reading
   the rows as text. `tools/glue-gate.sh` regenerates every part's glue and CHIPS.md's

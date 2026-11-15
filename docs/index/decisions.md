@@ -11,7 +11,7 @@
 | a | docs/decisions/2026-11-09-uart-capabilities.md | 2125 B | ADR-004 - Status: promoted |
 | a | docs/decisions/2026-11-10-doc-map-dissolution.md | 1578 B | ADR-006 - Status: accepted |
 | a | docs/decisions/2026-11-13-adapters-behind-features.md | 1805 B | ADR-007 - Status: promoted |
-| a | docs/decisions/2026-11-13-chip-glue-generator.md | 3117 B | ADR-008 - Status: promoted |
+| a | docs/decisions/2026-11-13-chip-glue-generator.md | 3110 B | ADR-008 - Status: promoted |
 | a | docs/decisions/2026-11-13-maturity-tiers.md | 2112 B | ADR-009 - Status: promoted |
 | a | docs/decisions/README.md | 1418 B | Record = event what, why, rejected, date, not |
 | a | docs/decisions/index/2026.md | 1340 B | One row per record. The record itself is auth |

@@ -11,3 +11,13 @@ test_features = [["stm32f401re"], ["stm32f405rg"], ["stm32h743vi"], ["stm32h753z
 # Every library file owes tracing; the bench crates under hil/ do not.
 every_file_traced = true
 every_file_traced_except = ["hil"]
+# Bench tiers, strongest first (docs/design/maturity.md, ADR-009); every board
+# record is stamped with its board's tier when recorded.
+tiers = ["BRD", "HIL", "DBG", "FLSH"]
+
+[board_tiers]
+nucleo-f401re-loopback = "HIL"
+nucleo-h753zi-loopback = "HIL"
+stm32f4-discovery = "HIL"
+foxeer-f405-v2 = "FLSH"
+lucid-h7 = "FLSH"

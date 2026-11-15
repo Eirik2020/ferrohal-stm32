@@ -70,6 +70,16 @@ pub const PARTS: &[Part] = &[
     },
 ];
 
+/// The benches evidence is recorded on (`hil/<crate>`), each with the part
+/// it carries: what the tier command reads a board's die and series from.
+pub const BENCHES: &[(&str, &str)] = &[
+    ("nucleo-f401re-loopback", "stm32f401re"),
+    ("nucleo-h753zi-loopback", "stm32h753zi"),
+    ("stm32f4-discovery", "stm32f407vg"),
+    ("foxeer-f405-v2", "stm32f405rg"),
+    ("lucid-h7", "stm32h743vi"),
+];
+
 pub const DIES: &[Die] = &[
     Die {
         id: 0x413,

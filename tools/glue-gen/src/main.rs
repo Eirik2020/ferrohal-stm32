@@ -20,6 +20,7 @@ mod probe;
 mod registry;
 mod silicon;
 mod tables;
+mod tiers;
 
 use std::{
     fs,
@@ -42,9 +43,9 @@ fn main() -> ExitCode {
 }
 
 fn run(args: &[String]) -> Result<(), String> {
-    let (command, selector) = args
-        .split_first()
-        .ok_or("usage: glue-gen <parts | dump | model | emit | tables | probe> <selector>")?;
+    let (command, selector) = args.split_first().ok_or(
+        "usage: glue-gen <parts | dump | model | emit | tables | tiers | probe> <selector>",
+    )?;
     registry::check()?;
     let parts = Selector::parse(selector)?.parts()?;
     match command.as_str() {
@@ -153,8 +154,41 @@ fn run(args: &[String]) -> Result<(), String> {
                 Err(format!("{failed} glue fact(s) failed on the silicon"))
             }
         }
+        "tiers" => {
+            let version = same_metapac()?;
+            let root = tool_dir().join("../..");
+            let reqtool = std::env::var("REQTOOL").unwrap_or_else(|_| "reqtool".into());
+            let output = Command::new(&reqtool)
+                .args(["check", "--json"])
+                .current_dir(&root)
+                .output()
+                .map_err(|e| format!("running {reqtool} (set REQTOOL to its path): {e}"))?;
+            if !output.status.success() {
+                return Err(format!(
+                    "reqtool check --json: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ));
+            }
+            let mut dies = std::collections::BTreeMap::new();
+            for id in dies_of(registry::PARTS) {
+                dies.insert(id, merged(id, &version)?);
+            }
+            let (chips, coverage) = tiers::tables(&dies, &String::from_utf8_lossy(&output.stdout))?;
+            for (file, name, table) in [
+                ("docs/CHIPS.md", "tiers", &chips),
+                ("hil/COVERAGE.md", "coverage", &coverage),
+            ] {
+                let path = root.join(file);
+                let doc =
+                    fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+                fs::write(&path, tables::splice(&doc, name, table)?)
+                    .map_err(|e| format!("{}: {e}", path.display()))?;
+            }
+            println!("docs/CHIPS.md and hil/COVERAGE.md: tiers from the evidence");
+            Ok(())
+        }
         other => Err(format!(
-            "unknown command {other}: parts, dump, model, emit, tables or probe"
+            "unknown command {other}: parts, dump, model, emit, tables, tiers or probe"
         )),
     }
 }

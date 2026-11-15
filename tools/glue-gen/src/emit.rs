@@ -24,6 +24,15 @@ enum Family {
     H7,
 }
 
+/// Whether FerroHAL drives this IP version on this series.
+pub fn drives(series: &str, kind: &str, version: &str) -> bool {
+    match series {
+        "F4" => driven(Family::F4, kind, version),
+        "H7" => driven(Family::H7, kind, version),
+        _ => false,
+    }
+}
+
 /// The IP versions FerroHAL drives, per kind, by family.
 fn driven(family: Family, kind: &str, version: &str) -> bool {
     matches!(

@@ -31,19 +31,26 @@ The car rule: [requirements-system.md](requirements-system.md).
 | `FLSH` | flashed | flashed and run by any means (USB, debugger, UART, SPI), without full debugger coverage |
 | `INH` | inherited | no run of its own: the axes' evidence |
 
-- **[Decided]** A run is evidence at its bench's tier; reqtool records the tier as the
-  run's environment.
+- **[Decided, built 2026-11-15]** A run is evidence at its bench's tier, stamped into the
+  record: `reqtool.toml` lists `tiers` (`BRD`, `HIL`, `DBG`, `FLSH`) and each board's tier
+  (`board_tiers`), and reqtool (#7) stamps every board record with it, so evidence keeps
+  the tier it ran at when a bench is rewired (owner, 2026-11-15: stamped, not mapped at
+  read time). The Nucleos and the STM32F4 Discovery are `HIL`, the Foxeer and the Lucid
+  `FLSH`.
 - **[Decided]** A capability on a part is as strong as its weakest axis. A part's score is
   its platform's tier; beside it, a table per capability. A capability not listed is not
   covered. No part is gated by its tier.
-- **[Decided]** Tiers are computed from the evidence, never declared; `docs/CHIPS.md`'s
-  tables are written by a command and checked at the merge gate.
-
-## Today (derived from which benches exist, not yet computed)
-
-| bench | tier | die | series |
-|---|---|---|---|
-| Nucleo-F401RE | `HIL` | 0x433 | F4 |
-| Nucleo-H753ZI | `HIL` | 0x450 | H7 |
-| Foxeer F405 V2 | `FLSH` | 0x413 | F4 |
-| TBS Lucid H7 | `FLSH` | 0x450 | H7 |
+- **[Decided, built 2026-11-15]** Tiers are computed from the evidence, never declared:
+  `glue-gen tiers all` reads `reqtool check --json` and writes `docs/CHIPS.md`'s tier table
+  and `hil/COVERAGE.md`'s matrix; the merge gate regenerates both. The rules
+  (`tools/glue-gen/src/tiers.rs`):
+  - a requirement reqtool calls verified has every declaring file covered by a counting
+    run (the car rule, per file); its tier is the weakest of the boards that verified it;
+  - it applies to a part unless a version suffix (`USART-V2`) or a series suffix
+    (`RESET-H7`) names another, or it is scoped to another die or series (GLUE-003 the H7,
+    GLUE-004 die 0x413);
+  - the die axis is the strongest board of the part's die whose glue probe (GLUE-001) is
+    verified; a capability is its requirements and the die axis, the weakest; the platform
+    likewise with the platform's requirements;
+  - a part with no verified evidence of its own is marked `INH`; a capability whose IP
+    version FerroHAL does not drive on the part is n/a; one without evidence is –.

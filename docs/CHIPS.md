@@ -20,20 +20,32 @@ part's clock limits (ADR-008 item 7); do not edit between the markers.
 | STM32H753ZI | H7, Cortex-M7 | 0x450 | STM32H753 | LQFP144 (114) | 400 MHz (VOS1) |
 <!-- end generated -->
 
-On the rig, until the tier command generates this from the evidence (ADR-009):
+Maturity, computed from the evidence by `glue-gen tiers` (ADR-009,
+[`design/maturity.md`](design/maturity.md)): each tier is the bench tier the evidence ran
+at (`BRD`, `HIL`, `DBG`, `FLSH`), and a capability is as strong as its weakest axis, its IP
+version's and its die's; the platform is its series' and its die's. `INH`: the part has no
+verified evidence of its own and inherits its axes'. – is not covered. Do not edit between
+the markers; the merge gate regenerates them.
 
-| part | revision on the rig | bench (tier) |
+<!-- generated: glue-gen tiers -->
+| part | platform | UART | SPI | I2C | Timers | ADC | USB | SDMMC | Watchdog | EXTI | DMA |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| STM32F401RE | HIL | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F405RG | HIL `INH` | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F407VG | HIL | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32H743VI | HIL `INH` | HIL | HIL | HIL | HIL | HIL | HIL | – | HIL | HIL | HIL |
+| STM32H753ZI | HIL | HIL | HIL | HIL | HIL | HIL | HIL | – | HIL | HIL | HIL |
+<!-- end generated -->
+
+The rig's parts, measured on each bench's identity line:
+
+| part | revision on the rig | bench |
 |---|---|---|
-| STM32F401RE | 0x1001 | Nucleo-F401RE (`HIL`) |
-| STM32F405RG | 0x100f | Foxeer F405 V2 (`FLSH`) |
-| STM32F407VG | 0x101f | STM32F4 Discovery (bench not yet built) |
-| STM32H743VI | 0x2003, V | TBS Lucid H7 (`FLSH`) |
-| STM32H753ZI | 0x2003, V | Nucleo-H753ZI (`HIL`) |
-
-Maturity follows three axes, IP version, die and series, on the tier ladder `BRD`,
-`HIL`, `DBG`, `FLSH`, `INH` ([`design/maturity.md`](design/maturity.md)). A capability is as
-strong as its weakest axis; one not listed here is not covered. The computed tier
-tables replace the rig table when the tier command lands (ADR-009).
+| STM32F401RE | 0x1001 | Nucleo-F401RE |
+| STM32F405RG | 0x100f | Foxeer F405 V2 |
+| STM32F407VG | 0x101f | STM32F4 Discovery |
+| STM32H743VI | 0x2003, V | TBS Lucid H7 |
+| STM32H753ZI | 0x2003, V | Nucleo-H753ZI |
 
 ## Capabilities
 

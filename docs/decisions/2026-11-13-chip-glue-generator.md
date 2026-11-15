@@ -2,8 +2,8 @@
 
 ADR-008 - Status: promoted
 
-Promoted to: [glue-generator.md](../design/glue-generator.md) (design). Plan:
-[`../plans/2026-11-13-glue-generator.md`](../plans/2026-11-13-glue-generator.md).
+Promoted to: [glue-generator.md](../design/glue-generator.md) (design). Its plan finished on
+2026-11-15 and was deleted; PRs #43 to #46 hold its record.
 
 ## Context
 

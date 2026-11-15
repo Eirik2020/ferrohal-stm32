@@ -7,13 +7,46 @@ every chip that carries it (`docs/design/requirements-system.md`). Runs are per 
 [`docs/CHIPS.md`](../docs/CHIPS.md); the rig itself and its upgrade queue are
 [CAPABILITIES.md](CAPABILITIES.md); open proof gaps are `docs/DEBT.md` §3 and §4.
 
-Tiers ([`docs/design/maturity.md`](../docs/design/maturity.md)): the Nucleos are `HIL`; the
-Foxeer F405 V2 and the TBS Lucid H7 are `FLSH`, flashed and run without full debugger
-coverage, and their runs count at that tier (ADR-009). Measured 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560
-checks; reqtool 117 of 122 verified.
+Tiers ([`docs/design/maturity.md`](../docs/design/maturity.md)), as `reqtool.toml` gives
+each bench and every record is stamped: the Nucleos and the STM32F4 Discovery are `HIL`;
+the Foxeer F405 V2 and the TBS Lucid H7 are `FLSH`, flashed and run without full debugger
+coverage (ADR-009). Measured 2026-11-15: F401 21 runs and the glue probe, 421 checks; H753
+23 runs and the probe, 718; Discovery 3 runs and the probe, 143; reqtool 119 of 122
+verified.
 
-The tables below are hand-written until the tier command generates them from the
-evidence (ADR-008, item 7); then they must not be edited by hand.
+## Computed tiers
+
+Each IP version, die and series, with the tier its evidence holds and the benches it
+holds on, computed by `glue-gen tiers` from reqtool's evidence (ADR-009); the merge gate
+regenerates it. The tables after it are hand-written: which runs prove what, and the gaps.
+
+<!-- generated: glue-gen coverage -->
+| axis | tier | benches |
+|---|---|---|
+| IP `adc_v2` | HIL | nucleo-f401re-loopback |
+| IP `adc_v4` | HIL | nucleo-h753zi-loopback |
+| IP `dma_v1` | HIL | nucleo-h753zi-loopback |
+| IP `dma_v2` | HIL | nucleo-f401re-loopback |
+| IP `exti_h7` | HIL | nucleo-h753zi-loopback |
+| IP `exti_v1` | HIL | nucleo-f401re-loopback |
+| IP `i2c_v1` | HIL | nucleo-f401re-loopback |
+| IP `i2c_v2` | HIL | nucleo-h753zi-loopback |
+| IP `iwdg_v1` | HIL | nucleo-f401re-loopback |
+| IP `iwdg_v2` | HIL | nucleo-h753zi-loopback |
+| IP `otg_v1` | HIL | nucleo-h753zi-loopback, stm32f4-discovery |
+| IP `sdmmc_v2` | – |  |
+| IP `spi_v2_i2s` | HIL | nucleo-f401re-loopback |
+| IP `spi_v4_i2s` | HIL | nucleo-h753zi-loopback |
+| IP `timer_v1` | HIL | nucleo-f401re-loopback |
+| IP `timer_v3` | HIL | nucleo-h753zi-loopback |
+| IP `usart_v2` | HIL | nucleo-f401re-loopback |
+| IP `usart_v4` | HIL | nucleo-h753zi-loopback |
+| die `0x413` (glue probe) | HIL | stm32f4-discovery |
+| die `0x433` (glue probe) | HIL | nucleo-f401re-loopback |
+| die `0x450` (glue probe) | HIL | nucleo-h753zi-loopback |
+| series F4 platform | HIL | nucleo-f401re-loopback, stm32f4-discovery |
+| series H7 platform | HIL | nucleo-h753zi-loopback |
+<!-- end generated -->
 
 ## Per IP version
 
