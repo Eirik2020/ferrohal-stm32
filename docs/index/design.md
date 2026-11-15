@@ -1,17 +1,18 @@
 # Document index: design (generated)
 
-19 documents in docs/design/. Hub: [README.md](README.md).
+20 documents in docs/design/. Hub: [README.md](README.md).
 
 | class | path | size | purpose |
 |---|---|---|---|
 | a | docs/design/api-surface.md | 2009 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/clocks.md | 958 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/errata.md | 2651 B | Source: ADR-010, ../decisions/2026-11-15-erra |
 | a | docs/design/execution-model.md | 890 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ferroforge-seam.md | 2084 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/free-shapes.md | 3399 B | What blocked each driver's teardown, and the  |
 | a | docs/design/free.md | 3098 B | Every driver handle that owns a peripheral to |
 | a | docs/design/glue-generator.md | 7718 B | Source: ADR-008, ../decisions/2026-11-13-chip |
-| a | docs/design/h7-errata.md | 2988 B | W11 of the debt sweep. Read against ES0392 Re |
+| a | docs/design/h7-errata.md | 1272 B | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/maturity.md | 3374 B | Source: ADR-009, ../decisions/2026-11-13-matu |
 | a | docs/design/naming.md | 4100 B | Source: ADR-003, ../decisions/2026-11-08-nami |

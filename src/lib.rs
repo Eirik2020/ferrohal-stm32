@@ -38,6 +38,10 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(clippy::undocumented_unsafe_blocks)]
 
+// The errata table's documentation check renders text on the host.
+#[cfg(test)]
+extern crate std;
+
 #[cfg(not(any(
     feature = "stm32f401re",
     feature = "stm32f405rg",
@@ -61,6 +65,7 @@ compile_error!("enable one chip feature, such as `stm32f401re` or `stm32h753zi`"
 compile_error!("enable only one chip feature");
 
 pub mod adc;
+pub mod errata;
 pub mod i2c;
 mod rcc_kernel;
 pub mod reset;

@@ -1431,13 +1431,44 @@ pub fn nvic_mask_all<I: cortex_m::interrupt::InterruptNumber, const N: usize>(
 /// First the identity pair — the UID and the die revision — so every run's
 /// log carries what the flight benches report and the ES0392 rules are
 /// decided on (2.2.10 and 2.2.21 name the revision).
+/// The die's errata that match this revision (`docs/design/errata.md`): how many, how many
+/// still unreviewed, and a warning for each open one, so a run on an affected
+/// revision says so in its own log.
+fn errata(rev: u16) {
+    use ferrohal_stm32::errata::Handling;
+    let sheet = &ferrohal_stm32::chip::ERRATA_SHEET;
+    let matching = || ferrohal_stm32::chip::ERRATA.iter().filter(|e| e.affects(rev));
+    let unreviewed = matching().filter(|e| e.handling == Handling::Unreviewed).count();
+    defmt::info!(
+        "errata: {=str} Rev {=u8}, {=usize} affect rev 0x{=u16:x}, {=usize} unreviewed",
+        sheet.name,
+        sheet.revision,
+        matching().count(),
+        rev,
+        unreviewed
+    );
+    for erratum in matching() {
+        if let Handling::Open(item) = erratum.handling {
+            defmt::warn!(
+                "errata: {=str} {=str} is open on this revision: {=str} (DEBT.md: {=str})",
+                sheet.name,
+                erratum.section,
+                erratum.title,
+                item
+            );
+        }
+    }
+}
+
 pub fn finish(report: &Report, pass: impl FnOnce()) -> ! {
     use cortex_m_semihosting::debug::{self, EXIT_FAILURE, EXIT_SUCCESS};
+    let rev = ferrohal_stm32::signature::revision();
     defmt::info!(
         "identity: uid {=[u8]:02x}, rev 0x{=u16:x}",
         ferrohal_stm32::signature::device_uid(),
-        ferrohal_stm32::signature::revision()
+        rev
     );
+    errata(rev);
     let passed = report.failed == 0;
     if passed {
         pass();

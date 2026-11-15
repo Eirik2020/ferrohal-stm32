@@ -108,3 +108,61 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::chip::tests::example_manifest_routes_exist
+
+  - id: GLUE-007
+    title: An erratum applies to the revisions its sheet marks
+    statement: >-
+      A chip's errata entry shall report its erratum on exactly the die
+      revisions its errata sheet marks affected.
+    rationale: >-
+      A workaround applied to every revision, or to none, is a bug of its
+      own: freeze set PRFTEN on an F405 of any revision (ES0182 2.2.1).
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::errata::tests::a_known_revision_is_affected_when_listed
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::errata::tests::every_affected_code_is_a_sheet_revision
+
+  - id: GLUE-008
+    title: An unknown revision takes the newest known verdict
+    statement: >-
+      A die revision its errata sheet does not list shall take the errata of
+      the newest listed revision when it is newer, and every erratum
+      otherwise.
+    rationale: >-
+      A newer stepping inherits what its sheet has not fixed, as nrfx decides
+      per erratum; an unexplained code is safer treated as affected.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::errata::tests::a_newer_revision_takes_the_newest_verdict
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::errata::tests::another_unknown_revision_is_affected
+
+  - id: GLUE-009
+    title: The errata table is its documentation and its citations
+    statement: >-
+      A chip's errata table shall match its documentation, with a reviewed
+      entry for every erratum the source cites and a citation for every
+      workaround it applies.
+    rationale: >-
+      Errata knowledge spread over comments drifts from the sheets: the ES0392
+      review named handlers no file cited.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::errata::tests::the_chip_table_matches_its_documentation_and_the_source

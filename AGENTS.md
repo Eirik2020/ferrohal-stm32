@@ -17,6 +17,7 @@ Public repo. Bench-verified.
 | add/move requirements | `docs/policies/documentation.md`, `requirements/goals.md`, `src/requirements/<ip>.yaml` |
 | fix/close debt | `docs/DEBT.md` (tagged; each item's origin), `docs/RESOLVED.md` -> owning file |
 | what chips support; limits; roadmap | `docs/CHIPS.md` |
+| silicon errata, a workaround | `docs/design/errata.md` (ADR-010), `docs/errata/`; check the erratum, never a `REV_ID` |
 | what the benches prove | `hil/COVERAGE.md`, `hil/CAPABILITIES.md` |
 | touch IP driver | `src/<ip>_vN/mod.rs` + `src/requirements/<ip>.yaml` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |

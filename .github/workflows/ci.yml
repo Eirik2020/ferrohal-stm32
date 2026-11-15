@@ -14,8 +14,9 @@ env:
   # The toolchain the benches and checks have been running on.
   RUST_TOOLCHAIN: 1.98.1
   # reqtool's main on 2026-11-15: board evidence follows files (#4, #5), and host
-  # evidence covers every cfg alternative (#6). Bump it on purpose.
-  REQTOOL_REV: 3f9e4037817ac8a480a5961be8d25573a2b53f2e
+  # evidence covers every cfg alternative (#6), as do imports and `super` (#8).
+  # Bump it on purpose.
+  REQTOOL_REV: 8537d12b878fcc52ae1bce92d9e15eb1624800ae
 
 jobs:
   glue:

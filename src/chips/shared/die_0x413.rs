@@ -6,6 +6,14 @@
 
 use super::*;
 
+#[path = "errata_es0182.rs"]
+mod errata_table;
+pub use errata_table::*;
+
+/// ES0182 2.2.1: revision A has no prefetch queue, so `freeze` leaves PRFTEN
+/// clear there.
+pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = Some(&ES0182_2_2_1);
+
 /// Which ADC carries the temperature sensor and VREFINT channels.
 macro_rules! internal_adc {
     (ADC1) => {

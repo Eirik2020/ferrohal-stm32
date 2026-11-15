@@ -51,6 +51,13 @@ pub(crate) const USB_FS_FIFO_WORDS: usize = 320;
 #[cfg(feature = "usb")]
 pub(crate) const USB_FS_ENDPOINTS: usize = 4;
 
+// The die's errata (ES0299), and the prefetch erratum `freeze` checks: none
+// on this die.
+#[path = "shared/errata_es0299.rs"]
+mod errata_table;
+pub use errata_table::*;
+pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
+
 // The routing rows, generated from stm32-metapac's metadata.
 #[path = "gen/stm32f401re.rs"]
 mod generated;

@@ -883,9 +883,12 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
     // HSI needs no wait state, so the target's count is always enough here.
     // Set it before the clock goes up.
     let latency = Latency::from_bits(clocks.flash_wait_states);
+    // The prefetch queue, unless the die's erratum says this revision lacks
+    // it (ES0182 2.2.1: revision A). The erratum is checked, never a code.
+    let prefetch = !matches!(crate::chip::PREFETCH_ERRATUM, Some(e) if e.affects(crate::signature::revision()));
     FLASH.acr().modify(|w| {
         w.set_latency(latency);
-        w.set_prften(true);
+        w.set_prften(prefetch);
         w.set_icen(true);
         w.set_dcen(true);
     });

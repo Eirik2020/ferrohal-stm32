@@ -1,6 +1,6 @@
 """Records the debugger benches' runs as reqtool evidence.
 
-    python3 -I tools/record_evidence.py prepare <folder>
+    python3 -I tools/record_evidence.py prepare <folder> [--analysis]
     python3 -I tools/record_evidence.py record <folder> [--dry-run] [--only <heading>]
 
 <folder> is a new directory under requirements/evidence/logs/.
@@ -18,6 +18,7 @@ checkout at the revision CI pins.
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -60,11 +61,15 @@ def passed(path):
     return "PASS" in text and "FAIL" not in text
 
 
-def prepare(folder):
+def prepare(folder, analysis_only=False):
     folder.mkdir(parents=True)
     runs = {bench: set() for bench in BENCH}
     for _, _, bench, rs in procedures():
         runs[bench].update(rs)
+    if analysis_only:
+        # Only checks/run.sh and the glue gate: no bench log is copied, so
+        # none from another tree lands beside this one's evidence.
+        runs = {}
     for bench, rs in runs.items():
         crate = BENCH[bench]
         lines = []
@@ -79,7 +84,8 @@ def prepare(folder):
     out = subprocess.run(["checks/run.sh"], cwd=ROOT, capture_output=True, text=True)
     (folder / "checks-run.log").write_text(out.stdout + out.stderr)
     print("checks/run.sh exit", out.returncode)
-    out = subprocess.run(["tools/glue-gate.sh"], cwd=ROOT, capture_output=True, text=True)
+    env = dict(os.environ, REQTOOL=str(REQTOOL))
+    out = subprocess.run(["tools/glue-gate.sh"], cwd=ROOT, capture_output=True, text=True, env=env)
     (folder / "glue-gate.log").write_text(out.stdout + out.stderr)
     print("tools/glue-gate.sh exit", out.returncode)
 
@@ -129,6 +135,10 @@ def record(folder, dry, only=None):
         if only and heading != only:
             continue
         command, log = ("tools/glue-gate.sh", "glue-gate.log") if heading == "Chip glue against metapac" else ("checks/run.sh", "checks-run.log")
+        text = (folder / log).read_text(errors="replace")
+        if "FAIL" in text or "pass" not in text or "glue-gen:" in text:
+            print(f"skip  {heading}: {log} did not pass")
+            continue
         details = {
             "execution": {"performed_by": "agent", "user_confirmed": False},
             "commands": [{"command": command, "exit_code": 0}],
@@ -143,7 +153,7 @@ if __name__ == "__main__":
         sys.exit(__doc__)
     target = ROOT / "requirements/evidence/logs" / sys.argv[2]
     if sys.argv[1] == "prepare":
-        prepare(target)
+        prepare(target, "--analysis" in sys.argv)
     else:
         only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
         record(target, "--dry-run" in sys.argv, only)
