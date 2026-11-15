@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **Complementary outputs have a requirement, proven on both timer IP versions**
+  (2026-11-15). The F401 could not sample CHxN: its only break timer, TIM1, is also its
+  only timer whose update reaches DMA2, the one DMA that reaches the GPIO ports (`ea7a9f8`,
+  2026-10-31). The STM32F4 Discovery's run D drives TIM1 CH1N with TIM8 pacing the
+  sampler; PWM-008 names it and the H753's run J (TIM1 CH3N), whose CHxN duty had been
+  counted under PWM-001 only.
+
 - **Errata are data, and `freeze` keeps PRFTEN off on an F405 revision A** (2026-11-15,
   ADR-010). Errata knowledge was spread over 15 cited sections in 11 files, the hand
   verdict table of `h7-errata.md` (ES0392 only, already drifted) and DEBT, with nothing

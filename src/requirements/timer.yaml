@@ -220,6 +220,27 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
+  - id: PWM-008
+    title: A complementary output carries the channel's duty
+    statement: >-
+      A channel driving its complementary output shall put the duty set on
+      the channel on the complementary pin.
+    rationale: >-
+      A timer with a break unit routes a channel to CHxN through its own
+      enable and polarity bits, which plain outputs never touch, so each
+      timer IP version needs its own proof.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Complementary outputs on the STM32F4 Discovery
+
   - id: AWG-001
     title: Each lane plays its own samples
     statement: >-

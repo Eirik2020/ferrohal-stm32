@@ -58,7 +58,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | `spi_v4` | H743, H753 | H753: F, G, H (DMA), L (polled) | Lucid: IMU | bit order; caches on |
 | `i2c_v1` | F401, F405 | F401: Q, S (Pico simulator) | – | – |
 | `i2c_v2` | H743, H753 | H753: R, S (Pico simulator) | Lucid: barometer | – |
-| `timer_v1` | F401, F405 | F401: H, I, N, O, P, R | Foxeer: motor timers, outputs off | complementary outputs |
+| `timer_v1` | F401, F405, F407 | F401: H, I, N, O, P, R; Discovery: D (CHxN) | Foxeer: motor timers, outputs off | – |
 | `timer_v3` | H743, H753 | H753: I, J, P, Q (CHxN on TIM1) | Lucid: motor timers | – |
 | `iwdg_v1` | F401, F405 | F401: J | Foxeer: started and fed | – |
 | `iwdg_v2` | H743, H753 | H753: K (window, freeze, LSI) | – | – |

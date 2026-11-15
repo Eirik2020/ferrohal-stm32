@@ -213,3 +213,13 @@ ignores a write while its RCC enable bit is clear, keeps it once set, and return
 earlier value when its reset bit is pulsed; every vector those peripherals and the DMA
 streams raise pends and clears in the NVIC. Pass: every check passes and the script exits
 zero.
+
+## Complementary outputs on the STM32F4 Discovery
+
+`hil/run-discovery.sh d`. No links. TIM1 drives its complementary output CH1N on PE8 at a
+quarter duty, 100 kHz, and TIM8's update request has DMA2 stream 1 copy port E's input
+register at 2 MHz: the F401 cannot sample CHxN, its only break timer being its only
+timer whose update reaches DMA2, the one DMA that reaches the GPIO ports. Checks: the
+duty on the pin, to 1/16, and one one-pulse period. Pass: both checks pass and the
+script exits zero.
+

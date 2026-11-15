@@ -26,7 +26,7 @@
 #![allow(dead_code)]
 
 use ferrohal_stm32::{
-    chip::{Peripherals, TIM2, UART4, UART5, USART3, USB_OTG_FS},
+    chip::{Peripherals, TIM1, TIM2, TIM8, UART4, UART5, USART3, USB_OTG_FS},
     dma::Stream,
     gpio::{Alternate, Ctrl, Output, Pin, Speed},
     rcc::{
@@ -172,3 +172,33 @@ pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
         tim2: p.TIM2,
     })
 }
+
+/// Run D: TIM1's complementary output CH1N on PE8 (AF1), read back by a
+/// sampler: TIM8's update request has DMA2 stream 1 copy port E's input
+/// register. Only DMA2 reaches the GPIO ports on the F4, and TIM8's update is
+/// on DMA2, which the F401 lacks: its only break timer, TIM1, is also its only
+/// timer whose update reaches DMA2. No links.
+pub struct RunD {
+    pub rcc: Rcc,
+    pub tim1: TIM1,
+    pub pe8: Pin<'E', 8, Alternate<1>>,
+    pub tim8: TIM8,
+    pub port_e: Stream<2, 1>,
+}
+
+pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
+    let mut e = p.GPIOE.split(&mut rcc);
+    let dma2 = p.DMA2.split(&mut rcc);
+    Ok(RunD {
+        tim1: p.TIM1,
+        pe8: e.p8.into_alternate::<1>(&mut e.ctrl),
+        tim8: p.TIM8,
+        port_e: dma2.s1,
+        rcc,
+    })
+}
+

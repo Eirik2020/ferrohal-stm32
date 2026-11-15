@@ -21,7 +21,7 @@
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
 //!
-//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, API-002
+//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, API-002
 
 use core::{
     marker::PhantomData,

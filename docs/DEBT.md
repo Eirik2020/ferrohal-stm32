@@ -185,10 +185,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 - `rig` **Low: SDMMC-003/004 and SDMMC's error paths have no Nucleo bench.** A CRC failure
   and a card pulled mid-transfer are untested; only the Lucid smoke board has a slot
   (queue 2). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
-- `rig` `bench` **Low: `timer_v1` complementary outputs (CHxN) are unproven.** The F401's
-  only break timer, TIM1, is also its only timer whose update reaches DMA2, so the
-  sampler cannot read CHxN there; `timer_v3` is proven on the H753. *Spawned:*
-  `ea7a9f8` 2026-10-31, samplers need DMA2 on the F4.
 - `rig` **Low: HSE crystal mode is untested on both Nucleos.** Both run HSE bypass from
   the ST-LINK's MCO. *Spawned:* `af65cad`, the benches clock from the ST-LINK.
 - `rig` **Low: F401 USART2 runs through the ST-LINK,** so its break, baud and parity
