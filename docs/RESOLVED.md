@@ -4,6 +4,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **Errata are data, and `freeze` keeps PRFTEN off on an F405 revision A** (2026-11-15,
+  ADR-010). Errata knowledge was spread over 15 cited sections in 11 files, the hand
+  verdict table of `h7-errata.md` (ES0392 only, already drifted) and DEBT, with nothing
+  tying an erratum to its revisions; `freeze` set PRFTEN on every F405 (ES0182 2.2.1,
+  F405 glue `74a8dcd`). Every row of ES0182 Rev 19, ES0299 Rev 6 and ES0392 Rev 15 is now
+  an entry with its affected `REV_ID`s and FerroHAL's handling; `freeze` checks the die's
+  prefetch erratum; a host test per chip keeps `docs/errata/` and every citation in
+  `src/` in step; each bench run's closing lines report the errata of its revision.
+
 - **The glue generator's plan is done, and maturity is computed** (2026-11-15, plan step 7;
   ADR-008, ADR-009). Every part's routing glue is generated and gated, the glue probe
   checks each die on the silicon, and each part's platform and capability tiers come from

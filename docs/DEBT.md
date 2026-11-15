@@ -73,10 +73,13 @@ reqtool 119 of 122 verified, 0 stale. No item is High.
   test.** Fix: remove them, or give them an internal user and a run. *Spawned:* shipped
   in the DMA layer by `af65cad`; unreachable from outside since W6b2 (`a99d32f`,
   2026-11-09).
-- `code` `errata` **Low: `freeze` sets PRFTEN on an F405 of any revision.** ES0182 2.2.1:
-  revision A has no prefetch queue. Fix: skip it on revision A (`signature::revision`).
-  *Spawned:* F405 glue (`74a8dcd`, 2026-10-31); found checking it against ES0182
-  (`6dc314d`).
+- `code` `errata` **Low: most errata entries are unreviewed.** ADR-010 transcribed every row
+  of the three sheets: ES0182 86 of 91, ES0299 62 of 66 and ES0392 117 of 155 have no
+  verdict yet (`Unreviewed` in `docs/errata/`). ES0392 2.2.13 (USB PHY drive), 2.5.4
+  (DMAMUX), 2.9.8 (ADC) and 2.20.4 (USART), which the old H7 review named as handled
+  "where they act", are among them: no source file cites them. Fix: review sheet by
+  sheet, IP versions FerroHAL drives first. *Spawned:* ADR-010's transcription
+  (2026-11-15), which made the unreviewed visible.
 
 ## 2. API consistency (the 2026-11-11 review)
 
