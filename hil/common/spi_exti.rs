@@ -18,8 +18,9 @@ use ferrohal_stm32::{
     chip::Interrupt,
     exti::{Ctrl, Edge, Exti, ExtiHandle},
     gpio::{Output, Pin, Port, PortInstance},
-    spi::{self, Error, MODE_0, MODE_1, MODE_2, MODE_3, Polarity, Spi},
+    spi::{self, Error, MODE_0, MODE_1, MODE_2, MODE_3, Phase, Polarity, Spi},
     time::Hertz,
+    timer::Sampler,
 };
 use rtic::Mutex;
 
@@ -689,3 +690,137 @@ pub fn blocking_suite<U: ferrohal_stm32::spi::SpiParts, const P: char, const N: 
         })(),
     );
 }
+
+/// What the bits on the wire are, from `samples` of the port holding SCK
+/// (bit `sck`) and the MISO end of the link (bit `data`, MOSI's level): the
+/// bits at each capture edge, how many, and how many MOSI changes between
+/// the first and last SCK edge came where the launch edge does not leave
+/// SCK.
+fn decode(samples: &[u16], sck: u8, data: u8, mode: spi::Mode) -> (u32, u32, u32) {
+    let level = |sample: u16, bit: u8| sample & (1 << bit) != 0;
+    let idle = mode.polarity == Polarity::IdleHigh;
+    let capture_first = mode.phase == Phase::CaptureOnFirstTransition;
+    // Where SCK sits once the launch edge has passed: back at idle when the
+    // first transition captures, away from it when the second does.
+    let after_launch = if capture_first { idle } else { !idle };
+    let edge = |i: &usize| level(samples[*i - 1], sck) != level(samples[*i], sck);
+    let (Some(first), Some(last)) = (
+        (1..samples.len()).find(edge),
+        (1..samples.len()).rev().find(edge),
+    ) else {
+        return (0, 0, 0);
+    };
+    let (mut bits, mut count, mut misplaced) = (0u32, 0u32, 0u32);
+    for i in first..=last {
+        let (before, now) = (samples[i - 1], samples[i]);
+        let (was, is) = (level(before, sck), level(now, sck));
+        if was != is && (was == idle) == capture_first {
+            bits = (bits << 1) | u32::from(level(now, data));
+            count += 1;
+        }
+        if level(before, data) != level(now, data) && is != after_launch {
+            misplaced += 1;
+        }
+    }
+    (bits, count, misplaced)
+}
+
+/// The bits on the wire, which a MOSI-to-MISO loop cannot show: it reads
+/// the bytes back in either bit order and on either edge [SPI-010]. The
+/// sampler reads the port holding SCK (bit `sck`) and the link's MISO end
+/// (bit `data`) at eight samples a bit while the SPI runs at its slowest.
+/// In every mode and both bit orders, MOSI must change only where the
+/// launch edge leaves SCK, and the 16 bits at the capture edges must be the
+/// two bytes in the order set.
+#[allow(clippy::too_many_arguments)]
+pub fn wire_check<U, B, TM, S>(
+    report: &mut Report,
+    name: &str,
+    bus: &mut B,
+    config: &spi::Config,
+    cpu: Hertz,
+    sampler: &mut Sampler<TM, S>,
+    sck: u8,
+    data: u8,
+) where
+    U: spi::SpiParts,
+    B: Mutex<T = Bus<U>>,
+    TM: ferrohal_stm32::timer::Instance,
+{
+    report.check_for(
+        name,
+        "SPI-010",
+        "on the wire: MOSI moves on the launch edge, bits in the order set, every mode",
+        (|| {
+            let slow = slowest(bus)?;
+            let sck_hz = set_config(bus, &slow)?;
+            sampler
+                .set_rate(Hertz(sck_hz.0.saturating_mul(8)))
+                .map_err(Fail::Timer)?;
+            let sent: [u8; 2] = [0x1e, 0x61];
+            for mode in [MODE_0, MODE_1, MODE_2, MODE_3] {
+                for order in [spi::BitOrder::MsbFirst, spi::BitOrder::LsbFirst] {
+                    set_config(bus, &slow.with_mode(mode).with_bit_order(order))?;
+                    spin(1_000);
+                    sampler.start(1000).map_err(|_| Fail::Count {
+                        expected: 1000,
+                        got: 0,
+                    })?;
+                    let sent_ok = by_interrupt(bus, cpu, &sent);
+                    let start = DWT::cycle_count();
+                    let captured = loop {
+                        if let Some(done) = sampler.poll() {
+                            break done.is_ok();
+                        }
+                        if DWT::cycle_count().wrapping_sub(start) > cpu.0 / 100 {
+                            sampler.stop();
+                            break false;
+                        }
+                    };
+                    sent_ok?;
+                    if !captured {
+                        return Err(Fail::Count {
+                            expected: 1000,
+                            got: 0,
+                        });
+                    }
+                    let (bits, count, misplaced) = decode(sampler.samples(), sck, data, mode);
+                    let msb = order == spi::BitOrder::MsbFirst;
+                    defmt::info!(
+                        "{=str}: CPOL {=bool} CPHA {=bool} {=str}: {=u32} bit(s) {=u32:04x}, {=u32} MOSI change(s) off the launch edge",
+                        name,
+                        mode.polarity == Polarity::IdleHigh,
+                        mode.phase == Phase::CaptureOnSecondTransition,
+                        if msb { "MSB first" } else { "LSB first" },
+                        count,
+                        bits,
+                        misplaced,
+                    );
+                    if count != 16 {
+                        return Err(Fail::Count {
+                            expected: 16,
+                            got: count,
+                        });
+                    }
+                    if misplaced != 0 {
+                        return Err(Fail::Count {
+                            expected: 0,
+                            got: misplaced,
+                        });
+                    }
+                    let wire = sent.map(|b| if msb { b } else { b.reverse_bits() });
+                    let got = [(bits >> 8) as u8, bits as u8];
+                    if let Some(at) = (0..2).find(|&i| got[i] != wire[i]) {
+                        return Err(Fail::Mismatch {
+                            at,
+                            sent: wire[at],
+                            got: got[at],
+                        });
+                    }
+                }
+            }
+            set_config(bus, config).map(|_| ())
+        })(),
+    );
+}
+

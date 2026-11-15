@@ -293,6 +293,10 @@ pub struct RunF {
     pub spi5: Spi5,
     /// PD5, driving PD6 over Z1 for the EXTI checks.
     pub feed: Pin<'D', 5, Output>,
+    /// TIM2's update request on DMA1 stream 1 samples port A: SPI1's SCK
+    /// (PA5) and the MISO end of S1 (PA6), for the wire check [SPI-010].
+    pub tim2: TIM2,
+    pub sampler: Stream<1, 1>,
 }
 
 pub struct RunG {
@@ -366,6 +370,8 @@ pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
             rx_dma: dma2.s5,
         },
         feed,
+        tim2: p.TIM2,
+        sampler: dma1.s1,
         rcc,
     })
 }

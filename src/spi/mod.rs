@@ -22,7 +22,7 @@
 //! - **interrupts**: the receive stream's vector only. FerroHAL never
 //!   touches the NVIC.
 //!
-//! Requirements: SPI-001, SPI-002, SPI-003, SPI-004, SPI-005, SPI-007, SPI-009
+//! Requirements: SPI-001, SPI-002, SPI-003, SPI-004, SPI-005, SPI-007, SPI-009, SPI-010
 
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
 mod instance;

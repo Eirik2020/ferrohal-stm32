@@ -153,10 +153,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   are cleared and ignored, receive ones are `DmaOverrun`; neither has been provoked.
   *Spawned:* `af65cad`, which took the transmit policy from the firmware the prototype
   was written for.
-- `bench` `rig` **Low: SPI bit order is unchecked.** A MOSI-to-MISO loop returns the
-  bytes either way, so `LsbFirst` is only shown to transfer. Fix: MOSI into an
-  LSB-first receiver (a UART RX) over one more link. *Spawned:* `e6c2362` 2026-10-31,
-  loopback-only SPI checks.
 - `bench` **Low: the bench isn't on FerroForge.** Decided 2026-11-02: add a FerroHAL
   backend to the FerroForge CLI and move the runs onto its tasks, proving the pair.
   *Spawned:* `d773b34` recorded the decision and deferred the move.

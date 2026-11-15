@@ -54,11 +54,11 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## SPI and EXTI on the Nucleo-F401RE
 
-`hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Run E also samples port A with TIM1's update request on DMA2 stream 5 while SPI1 runs at its slowest: SCK (PA5) and S1's MISO end (PA6) show the wire, and in all four modes and both bit orders the 16 bits at the capture edges must be the two bytes in the order set, with no MOSI change off the launch edge [SPI-010]. Pass: every check in every run passes and the script exits zero.
 
 ## SPI and EXTI on the Nucleo-H753ZI
 
-`hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Run F also samples port A with TIM2's update request on DMA1 stream 1 while SPI1 runs at its slowest, as the F401's run E does [SPI-010]. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-F401RE
 

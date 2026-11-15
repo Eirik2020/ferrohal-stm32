@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **SPI bit order and clock phase are checked on the wire** (2026-11-15). A MOSI-to-MISO
+  loop returns the bytes either way, so `LsbFirst` was only shown to transfer (DEBT since
+  `e6c2362`, 2026-10-31; the fix it named needed one more link). No link was needed:
+  SPI1's SCK and S1's MISO end share port A on both Nucleos, so the timer-paced sampler
+  reads the wire. SPI-010 holds on `spi_v2` (F401 run E) and `spi_v4` (H753 run F).
+
 - **UARTDMA-009 has a method, and `free` no longer hands out buffers under a running
   stream** (2026-11-15). No bench could make a stream refuse to stop (DEBT, since
   2026-11-03). The owner chose a bench-only `fault-injection` feature: `dma::fault`

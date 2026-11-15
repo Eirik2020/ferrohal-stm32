@@ -173,6 +173,26 @@ requirements:
           method:
             test: ferrohal_stm32::spi::tests::divider_picks_the_fastest_sck_at_or_below
 
+  - id: SPI-010
+    title: Bits leave in the order set, on the mode's edges
+    statement: >-
+      The driver shall send each byte in the bit order set, changing MOSI
+      only on the clock edge that launches data in the mode set.
+    rationale: >-
+      A loop from MOSI to MISO reads the bytes back in either bit order and
+      on either edge; a device on the bus reads the wire.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
   - id: SPIPOLL-001
     title: Polled SPI carries the bus operations
     statement: >-
