@@ -15,7 +15,7 @@ env:
   RUST_TOOLCHAIN: 1.98.1
   # reqtool's main on 2026-11-15: board evidence follows files (#4, #5), and host
   # evidence covers every cfg alternative (#6). Bump it on purpose.
-  REQTOOL_REV: ab14b953c3e690536704652c374235acee5f657e
+  REQTOOL_REV: 3f9e4037817ac8a480a5961be8d25573a2b53f2e
 
 jobs:
   glue:
@@ -29,12 +29,19 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ env.FIRMWARE_TARGET }}
           components: rustfmt
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: tools/glue-gen -> target
-      - name: Regenerate the glue and CHIPS.md's tables, fail on any difference
+      # The tier tables come from reqtool's evidence; reqtool builds the bench
+      # configurations to judge it, hence the firmware target.
+      - name: Install reqtool at its pinned revision
+        run: >
+          cargo install --git https://github.com/Eirik2020/reqtool
+          --rev "$REQTOOL_REV" --locked
+      - name: Regenerate the glue and the tables, fail on any difference
         run: tools/glue-gate.sh
 
   checks:

@@ -1,8 +1,8 @@
 # The chip-glue generator
 
 Source: ADR-008, [`../decisions/2026-11-13-chip-glue-generator.md`](../decisions/2026-11-13-chip-glue-generator.md).
-Plan: [`../plans/2026-11-13-glue-generator.md`](../plans/2026-11-13-glue-generator.md). Maturity of what it
-emits: [maturity.md](maturity.md).
+Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emits:
+[maturity.md](maturity.md).
 
 ## The silicon model
 
