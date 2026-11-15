@@ -223,3 +223,14 @@ timer whose update reaches DMA2, the one DMA that reaches the GPIO ports. Checks
 duty on the pin, to 1/16, and one one-pulse period. Pass: both checks pass and the
 script exits zero.
 
+## The ROM bootloader on the Nucleo-H753ZI
+
+`hil/run-h753.sh z`, with CN13 cabled to the host as the rig keeps it. The run asks for
+the ROM bootloader and resets; the next boot jumps to it before touching any clock. The
+H7 ROM's DFU serial is not the F4's UID-derived one: it starts with the die's
+`DBGMCU_IDC` (measured 2026-11-15: `200364500070` on this H753). Pass: within 30 s a DFU
+device not listed before the run appears whose serial starts with the IDCODE read over
+the debugger, the script erases the chip so the ROM leaves the bus, and it exits zero.
+This H753's bootloader is version 0x91, which no longer locks PWR_CR3 (AN2606), so the
+next run needs no power cycle.
+

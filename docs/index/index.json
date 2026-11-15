@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 315064
+  "bytes": 315873
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 15361
+   "bytes": 15116
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 17736
+   "bytes": 18172
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -465,14 +465,14 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9469
+   "bytes": 9398
   },
   {
    "path": "hil/COVERAGE.md",
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6169
+   "bytes": 6178
   },
   {
    "path": "hil/RIG.md",
@@ -521,7 +521,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 17408
+   "bytes": 18088
   },
   {
    "path": "requirements/goals.md",

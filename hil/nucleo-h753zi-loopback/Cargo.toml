@@ -131,6 +131,12 @@ test = false
 bench = false
 
 [[bin]]
+name = "run-z"
+path = "src/bin/run_z.rs"
+test = false
+bench = false
+
+[[bin]]
 name = "run-y"
 path = "src/bin/run_y.rs"
 test = false

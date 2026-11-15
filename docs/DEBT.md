@@ -141,9 +141,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   refuse to stop. The owner set it aside until after FerroWasp's move to FerroHAL
   (2026-11-03); that move landed on 2026-11-06. *Spawned:* recording the UART's host
   evidence (`d905095`, 2026-11-03) found no method.
-- `bench` **Medium: RESET-004 has no method on the H7.** Run N reaches the ROM, but no
-  DFU device appears on CN13; the cause is not yet known (`hil/CAPABILITIES.md` queue
-  3). *Spawned:* the coverage pass of 2026-11-13 (`57ae1b3`), measured.
 - `tool` **Low: SDMMC's `free()` has only the Lucid's flashed run.** The Lucid bench frees
   and reopens the SDMMC, but reqtool records only `host`, `development` and `product`
   runs, so a `FLSH` run cannot count until plan step 7 gives it a tier; SDMMC's API-002

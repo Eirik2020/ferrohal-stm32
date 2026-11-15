@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **RESET-004 holds on the H7** (2026-11-15). Run N asks for the ROM across resets but
+  ends with the core halted, so no DFU device ever appeared and the cause stayed open
+  (`57ae1b3`, 2026-11-13). Run Z ends in the ROM: a new DFU device with the die's IDCODE
+  appears on CN13 (`200364500070`; the H7 ROM's serial is not the F4's UID-derived one),
+  and the chip is erased after. The bootloader is 0x91, past AN2606's PWR_CR3 lock.
+
 - **Complementary outputs have a requirement, proven on both timer IP versions**
   (2026-11-15). The F401 could not sample CHxN: its only break timer, TIM1, is also its
   only timer whose update reaches DMA2, the one DMA that reaches the GPIO ports (`ea7a9f8`,

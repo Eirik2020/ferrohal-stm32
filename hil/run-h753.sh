@@ -23,7 +23,17 @@ status=0
 # Run M still runs when asked for (`./run-h753.sh m`), with the cable
 # moved back to CN13; it is off the defaults below while the cable
 # powers the Pico.
-for run in ${*:-probe a b c d e f g h i j k l m n o p q r s u w x y}; do
+# The H7 ROM's DFU serial starts with the die's DBGMCU_IDC, in hex, then four
+# digits of its own (this H753: 200364500070, the Lucid: 200364500000; measured
+# 2026-11-15), unlike the F4 ROM's, derived from the UID.
+idcode() {
+    probe-rs read --chip STM32H753ZITx b32 0x5C001000 1 2>/dev/null | tail -1 | awk '{print toupper($2)}'
+}
+dfu_serials() {
+    dfu-util -d 0483:df11 -l 2>/dev/null | sed -n 's/.*serial="\([^"]*\)".*/\1/p' | sort -u
+}
+
+for run in ${*:-probe a b c d e f g h i j k l m n o p q r s u w x y z}; do
     log="$here/logs/h753-run-$run.log"
     : > "$log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
@@ -46,7 +56,34 @@ for run in ${*:-probe a b c d e f g h i j k l m n o p q r s u w x y}; do
             host=$!
         fi
     fi
-    if [ "$code" -eq 0 ]; then
+    if [ "$code" -eq 0 ] && [ "$run" = z ]; then
+        # The ROM bootloader (RESET-004): the image asks for it on every boot,
+        # so the script checks for its DFU device, then erases the chip.
+        prefix=$(idcode)
+        before=$(dfu_serials)
+        (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo build --release --bin run-z) >> "$log" 2>&1 || code=$?
+        if [ "$code" -eq 0 ]; then
+            (cd "$here/nucleo-h753zi-loopback" && CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER="probe-rs run --no-catch-reset --chip STM32H753ZI" \
+                timeout 60 cargo run --release --bin run-z) >> "$log" 2>&1 &
+            runner_pid=$!
+            found=""
+            for _ in $(seq 1 30); do
+                found=$(dfu_serials | grep "^$prefix" | grep -vxF -f <(printf '%s\n' "$before") | head -1)
+                [ -n "$found" ] && break
+                sleep 1
+            done
+            kill "$runner_pid" 2>/dev/null
+            wait "$runner_pid" 2>/dev/null
+            if [ -n "$found" ]; then
+                echo "PASS rom: a new DFU device $found, this die's IDCODE $prefix, is listed on CN13 [RESET-004]" >> "$log"
+            else
+                echo "FAIL rom: no new DFU device with IDCODE $prefix on CN13 within 30 s [RESET-004]; listed:" >> "$log"
+                dfu_serials >> "$log"
+                code=1
+            fi
+            probe-rs erase --chip STM32H753ZITx >> "$log" 2>&1 || code=1
+        fi
+    elif [ "$code" -eq 0 ]; then
         if [ "$run" = probe ]; then
             # The glue probe (plan step 5): the generated facts on the silicon,
             # through this board's probe, no firmware.

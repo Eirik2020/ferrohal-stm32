@@ -118,10 +118,9 @@ ones that unblock a claim.
    included, which only the Lucid smoke test reaches today. The owner has no
    such module (2026-11-13). PC10/PC11 are Z6 and PC12/PD2 Z8, so it would be
    its own procedure with those links lifted.
-3. **The H753's ROM DFU, no hardware needed.** CN13 stays connected, so a run
-   that ends in the ROM and a host check that `dfu-util` then lists the
-   H753's layout would prove RESET-004 on the H7. Run N reaches the request
-   but leaves no DFU device behind as built (measured 2026-11-13).
+3. ~~**The H753's ROM DFU, no hardware needed.**~~ Done 2026-11-15: run Z ends in the
+   ROM and `dfu-util` lists it on CN13 (RESET-004 on the H7). Run N had left no DFU
+   device because it ends halted, never in the ROM.
 4. **Every bench says what it is, over USB** (owner, 2026-11-13). Each bench firmware
    answers an identity query on its USB serial port, the ST-LINK's virtual COM port on a
    Nucleo, the board's own port on a flashed board, and its own CDC port on the Pico:
