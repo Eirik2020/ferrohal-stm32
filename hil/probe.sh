@@ -18,7 +18,10 @@ dev_ids() {
     local spec word
     for spec in "Cortex-M4 0xE0042000" "Cortex-M7 0x5C001000"; do
         set -- "$1" $spec
+        # Twice: a probe another process holds for a moment refuses to open.
         word=$(timeout 20 probe-rs read --chip "$2" --probe "$1" b32 "$3" 1 2> /dev/null \
+            | sed -n 's/^[0-9a-f]*: \([0-9a-f]*\).*/\1/p')
+        [ -z "$word" ] && sleep 1 && word=$(timeout 20 probe-rs read --chip "$2" --probe "$1" b32 "$3" 1 2> /dev/null \
             | sed -n 's/^[0-9a-f]*: \([0-9a-f]*\).*/\1/p')
         [ -n "$word" ] && printf '0x%03x\n' $((0x$word & 0xfff))
     done
@@ -36,10 +39,16 @@ probe_for() {
         probes=$(probe-rs list 2>/dev/null | sed -n 's/.* -- \([^ ]*\) (.*/\1/p')
         count=$(printf '%s\n' "$probes" | grep -c . || true)
         if [ "$count" -ne 1 ] && [ -n "$dev" ]; then
-            local probe matches=""
+            local probe matches="" lock
+            # Bench scripts started together would read every probe at once,
+            # and a probe opens for one process only: they take turns.
+            exec {lock}> "${TMPDIR:-/tmp}/ferrohal-probe-select.lock"
+            flock "$lock"
             for probe in $probes; do
                 dev_ids "$probe" | grep -qx "$(printf '0x%03x' $((dev)))" && matches="$matches $probe"
             done
+            flock -u "$lock"
+            exec {lock}>&-
             if [ "$(printf '%s\n' $matches | grep -c .)" -eq 1 ]; then
                 probes=${matches# }
                 count=1
