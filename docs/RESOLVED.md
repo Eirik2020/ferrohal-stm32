@@ -4,6 +4,10 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **`Adc`, `AdcScan`, `Sdmmc` and `UsbFs` hand their parts back** (closed 2026-11-13, the
+  DEBT item removed 2026-11-15). Each gained `free()` with the rest (`docs/design/free.md`,
+  rule 0); the item outlived the work.
+
 - **SPI bit order and clock phase are checked on the wire** (2026-11-15). A MOSI-to-MISO
   loop returns the bytes either way, so `LsbFirst` was only shown to transfer (DEBT since
   `e6c2362`, 2026-10-31; the fix it named needed one more link). No link was needed:

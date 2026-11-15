@@ -35,20 +35,13 @@ item says so; an origin is never reconstructed after the fact.
 Severity: **High** gives wrong behaviour. **Medium** is a gap a user will hit soon.
 **Low** is cleanup. **Lowest** waits on something outside the repository.
 
-Status 2026-11-15: F401 21 runs and the glue probe, 421 checks; H753 23 runs and the probe,
-718 checks; STM32F4 Discovery 3 runs and the probe, 143 checks; `checks/run.sh` 32 steps;
-reqtool 119 of 122 verified, 0 stale. No item is High.
+Status 2026-11-15 (PR #48): the merge-gate benches pass on F401, H753 and the STM32F4
+Discovery; reqtool 126 of 128 verified, 0 stale (SDMMC-003/004 have no method). No item is High.
 
 ---
 
 ## 1. Library code
 
-- `code` `api` `bench` **Medium: `Adc`, `AdcScan`, `Sdmmc` and `UsbFs` hand nothing
-  back.** ADR-002 gives every handle a `free()`; these four have none, so their
-  peripherals cannot take a second role. Fix: `free()` on each, with a refusal-run
-  reopen. *Spawned:* the drivers predate ADR-002 (`a8a3a05`, `4237048`, `9bd9d1e`,
-  2026-11-02), and the `free()` plan's scope listed timers, UART, SPI and I2C only
-  (PRs #35 to #38).
 - `code` `api` **Medium: an I2C wiring accepts a push-pull pin.** Both `into_alternate`
   forms return one type ([gpio_v2](../src/gpio_v2/mod.rs)), and push-pull NACKs every
   transfer. Fix: an open-drain type state. *Spawned:* GPIO's single alternate type
