@@ -765,7 +765,7 @@ pub struct RunM {
 pub fn run_m(p: Peripherals) -> Result<RunM, ClockError> {
     let mut rcc = p
         .RCC
-        .freeze(&CLOCK_CONFIG)
+        .freeze(&HSE_CLOCK_CONFIG)
         .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);

@@ -172,8 +172,12 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 - `rig` **Low: F401 USART2 runs through the ST-LINK,** so its break, baud and parity
   changes are unchecked; SB13/SB14 off and SB62/SB63 on would give a direct link.
   *Spawned:* `af65cad`.
-- `rig` **Low: clock checks are indirect.** `freeze`'s record, working baud rates and the
-  host echo; nothing measures MCO. *Spawned:* `af65cad`.
+- `rig` **Low: the F401's clock tree is checked only indirectly.** The H753 (run M) and the
+  Discovery (run B) measure the CPU clock against the host's USB start-of-frames; the
+  Nucleo-F401RE has no USB device, so its clocks rest on `freeze`'s record, baud rates
+  and the host echo. Measuring showed the H753's HSE input, the ST-LINK-V3's MCO, 0.4 %
+  below 8 MHz, so its check allows 0.5 % (`hil/RIG.md`). *Spawned:* `af65cad`; narrowed
+  2026-11-15.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. *Spawned:* the
   W11 audit (`ff3af8d`, 2026-11-10).

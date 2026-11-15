@@ -1494,3 +1494,52 @@ pub const ONE_MBAUD: Config = Config::new(1_000_000);
 pub const EVEN_PARITY_TWO_STOP: Config = Config::new(57_600)
     .with_parity(Parity::Even)
     .with_stop_bits(StopBits::Two);
+
+/// The CPU clock against the host's: CPU cycles (the DWT counter, which the
+/// firmware must enable) over 1000 USB start-of-frames, read from the frame
+/// number in the USB core's device status register `dsts` (full speed: 11
+/// bits at bit 8). The host's 1 kHz frames come from its own crystal, not
+/// from the board's clock tree, so this measures the tree. `poll` serves the
+/// device between reads. Passes within `ppm` of `cpu_hz` [RCC-001]: the
+/// board's own clock input bounds what the tree can show.
+pub fn clock_against_host_frames(
+    dsts: *const u32,
+    cpu_hz: u32,
+    ppm: u32,
+    mut poll: impl FnMut(),
+) -> Result<(), Fail> {
+    use cortex_m::peripheral::DWT;
+    const FRAMES: u32 = 1000;
+    // SAFETY: a read of the device status register, whose frame number the
+    // USB driver does not use.
+    let frame = || unsafe { (core::ptr::read_volatile(dsts) >> 8) & 0x7FF };
+    let budget = cpu_hz.saturating_mul(2);
+    let begun = DWT::cycle_count();
+    let first = frame();
+    let mut started_at = None;
+    let mut cycles = None;
+    while DWT::cycle_count().wrapping_sub(begun) < budget {
+        poll();
+        let now = frame();
+        match started_at {
+            None if now != first => started_at = Some((DWT::cycle_count(), now)),
+            Some((at, from)) if now.wrapping_sub(from) & 0x7FF >= FRAMES => {
+                cycles = Some(DWT::cycle_count().wrapping_sub(at));
+                break;
+            }
+            _ => {}
+        }
+    }
+    let measured = cycles.unwrap_or(0);
+    defmt::info!("{=u32} CPU cycles per {=u32} host frames, want {=u32}", measured, FRAMES, cpu_hz);
+    let off = u64::from(measured.abs_diff(cpu_hz)) * 1_000_000;
+    if off <= u64::from(cpu_hz) * u64::from(ppm) {
+        Ok(())
+    } else {
+        Err(Fail::Count {
+            expected: cpu_hz,
+            got: measured,
+        })
+    }
+}
+

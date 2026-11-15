@@ -166,6 +166,15 @@ fn main() -> ! {
         received,
         echoed
     );
+    // The device stays configured after the echo; the host keeps sending
+    // start-of-frames. DSTS: OTG_FS at 0x5000_0000, RM0090.
+    report.check(
+        name,
+        "the CPU clock against the host's 1 kHz frames, within 0.1 % [RCC-001]",
+        tests::clock_against_host_frames(0x5000_0808 as *const u32, board::CLOCKS.cpu.0, 1_000, || {
+            device.poll(&mut [&mut serial]);
+        }),
+    );
     let led = &mut run.led;
     tests::finish(&report, || led.set_high());
 }

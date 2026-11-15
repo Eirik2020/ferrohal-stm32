@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The clock trees are measured against the host** (2026-11-15). H753 run M and
+  Discovery run B count CPU cycles over 1000 USB start-of-frames, a clock independent of
+  the board. Discovery: 168.037 MHz (220 ppm). H753 from HSE: 398.3 to 398.5 MHz, because
+  its input, the ST-LINK-V3's MCO, is 0.4 % low; run M moved from HSI (which read 0.43 %
+  high) to HSE, so the check sees the tree from a known input. The F401 part stays
+  open (no USB device).
+
 - **The `usart_v2` parity clear is measured above 115200** (2026-11-15). F401 run B now
   checks it at 115200 and 1 Mbaud, both directions, and both hold. The faster rates
   fail and opened a new item (DEBT, Library code: above 1 Mbaud, a lone parity error).

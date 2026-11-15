@@ -49,6 +49,11 @@ manual and chip module name:
 - **Foxeer F405 V2**: STM32F405RGT6, die revision 0x100f.
 - **Lucid H743**: STM32H743VIH6 (TFBGA100), die revision 0x2003 (V).
 
+The clock inputs, against the host's USB start-of-frames (H753 run M, Discovery run B,
+measured 2026-11-15): the Discovery's HSE (its ST-LINK/V2-1's MCO, from an 8 MHz
+crystal) reads 220 ppm high; the H753's (the ST-LINK-V3's MCO, which UM2407 calls 8 MHz
+from an F723 on a 25 MHz crystal) 0.39 to 0.43 % low. The H753's HSI reads 0.43 % high.
+
 ES0392's per-part rules — 2.2.10's AXI SRAM reads, revision Y/W only, and
 2.2.21's 480 MHz — are decided off the revision: both H7s here are V.
 

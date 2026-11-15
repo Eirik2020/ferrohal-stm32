@@ -45,7 +45,7 @@ framing error.
 ## USB on the Nucleo-H753ZI
 
 `hil/run-h753.sh m`, with the CN13 cable on the H753, as the rig keeps it
-(`hil/WIRING.md`). Pass: every check passes and the script exits zero. Before the echo, the port is freed to its token and both pins and reopened from them, so the echo runs on the reopened port [API-002].
+(`hil/WIRING.md`). Pass: every check passes and the script exits zero. Before the echo, the port is freed to its token and both pins and reopened from them, so the echo runs on the reopened port [API-002]. The run clocks from HSE in bypass (the ST-LINK-V3's MCO); after the echo it counts CPU cycles over 1000 of the host's start-of-frames and requires 400 MHz within 0.5 %, the MCO's own error (`hil/RIG.md`) [RCC-001].
 
 Run M (USB CDC over CN13) builds `run-m` before starting `hil/usb_cdc_host.py`, so the host's wait for a port
 is not spent compiling, and the host opens only a port that appeared after the one
@@ -175,7 +175,9 @@ the script exits zero.
 
 `hil/run-discovery.sh b`, with CN5 cabled to the host. The F4's OTG_FS core enumerates
 as a CDC device, is freed to its token and pins and reopened, and echoes every block
-`hil/usb_cdc_host.py` sends. Pass: every check passes and the script exits zero.
+`hil/usb_cdc_host.py` sends, then counts CPU cycles over 1000 of the host's
+start-of-frames and requires 168 MHz within 0.1 % [RCC-001]. Pass: every check passes
+and the script exits zero.
 
 ## The ROM bootloader on the STM32F4 Discovery
 
