@@ -35,8 +35,9 @@ item says so; an origin is never reconstructed after the fact.
 Severity: **High** gives wrong behaviour. **Medium** is a gap a user will hit soon.
 **Low** is cleanup. **Lowest** waits on something outside the repository.
 
-Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/run.sh`
-28 steps; reqtool 117 of 122 verified, 0 stale. No item is High.
+Status 2026-11-15: F401 21 runs and the glue probe, 421 checks; H753 23 runs and the probe,
+718 checks; STM32F4 Discovery 3 runs and the probe, 143 checks; `checks/run.sh` 32 steps;
+reqtool 119 of 122 verified, 0 stale. No item is High.
 
 ---
 
@@ -195,3 +196,20 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. *Spawned:* the
   W11 audit (`ff3af8d`, 2026-11-10).
+
+## 5. CI and merging
+
+- `tool` `owner` **Low: only "Generated glue" blocks a merge into `main`.** The owner's
+  ruleset (2026-11-15) requires that one check; "Checks without hardware",
+  "Requirements", the five "Bench crate" jobs and "Publication security" run on every
+  pull request but only report, so a red one does not stop a merge. Fix: add them to
+  the ruleset's required checks (with GitHub Actions as their source), and consider
+  "Require branches to be up to date before merging", so the checks see the code as it
+  lands. *Spawned:* the owner's choice of one required check for now (2026-11-15).
+- `tool` **Low: a required check that runs on pull requests only blocks direct pushes to
+  `main`.** "Generated glue" runs on pull requests into `main` (ADR-008), so a direct push
+  never gets its result and the ruleset refuses it; changes reach `main` by pull request
+  alone. Fine while the owner merges by pull request; a hotfix pushed straight to `main`
+  would need the ruleset's bypass list. *Spawned:* the ruleset of 2026-11-15 with the
+  gate's pull-request-only trigger.
+
