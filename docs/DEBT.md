@@ -73,6 +73,16 @@ Discovery; reqtool 126 of 128 verified, 0 stale (SDMMC-003/004 have no method). 
   "where they act", are among them: no source file cites them. Fix: review sheet by
   sheet, IP versions FerroHAL drives first. *Spawned:* ADR-010's transcription
   (2026-11-15), which made the unreviewed visible.
+- `code` `bench` **Medium: above 1 Mbaud, `usart_v2` places a lone parity error late or
+  loses it.** F401 run B, 8N2 into 8O1 (one bad byte, then a good frame), both
+  directions, measured 2026-11-15: at 115200 and 1 Mbaud the error is seen once and
+  falls right after the bad byte; at 2.625 and 3.5 Mbaud it is seen once but reported
+  one byte late; at 5.25 Mbaud no vector sees PE and nothing is reported, though even
+  parity into odd (every byte bad) is reported at every rate. Cause not known: whether
+  PE never rises for a lone byte at USARTDIV 1, or something clears it first (any SR
+  read followed by DMA's DR read does), and why the vector runs a byte late at 2.6 Mbaud.
+  Run B checks 115200 and 1 Mbaud only. *Spawned:* the one-speed item's measurement
+  (2026-11-15), which ran the clear at five rates.
 
 ## 2. API consistency (the 2026-11-11 review)
 
@@ -135,9 +145,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   runs, so a `FLSH` run cannot count until plan step 7 gives it a tier; SDMMC's API-002
   stands on the H753 runs that compile it. *Spawned:* `free()` for SDMMC (2026-11-13),
   whose only slot is on a flashed board.
-- `bench` **Low: the `usart_v2` parity clear is measured at one speed.** 115200 only; a
-  faster line leaves less time before the clear's DR read. *Spawned:* run B's
-  measurement when the parity-clear item closed (`f9794ed`, 2026-11-05).
 - `bench` **Low: FIFO error handling is unconfirmed on hardware.** Transmit FIFO errors
   are cleared and ignored, receive ones are `DmaOverrun`; neither has been provoked.
   *Spawned:* `af65cad`, which took the transmit policy from the firmware the prototype

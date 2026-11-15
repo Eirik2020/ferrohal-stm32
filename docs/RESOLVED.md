@@ -4,6 +4,10 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The `usart_v2` parity clear is measured above 115200** (2026-11-15). F401 run B now
+  checks it at 115200 and 1 Mbaud, both directions, and both hold. The faster rates
+  fail and opened a new item (DEBT, Library code: above 1 Mbaud, a lone parity error).
+
 - **The SPI runs with the caches on** (2026-11-15). H753 run H turns both caches on after
   its caches-off suites and runs SPI2's suite again: 30 of 30 pass, and the fastest
   polling pass is 228 cycles over 2258 passes, so `PASS_CYCLES` (112) keeps its factor of
