@@ -167,8 +167,9 @@ pub(crate) fn render(sheet: &Sheet, errata: &[Erratum]) -> std::string::String {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use super::*;
+    use crate::chip::{ERRATA, ERRATA_SHEET};
 
     const SHEET: Sheet = Sheet {
         name: "ES0000",
@@ -208,6 +209,25 @@ pub(crate) mod tests {
         assert!(erratum(&[]).affects(0x0fff));
     }
 
+    /// Every code the chip's table marks affected is one of its sheet's
+    /// revisions.
+    #[test]
+    fn every_affected_code_is_a_sheet_revision() {
+        for erratum in ERRATA {
+            for code in erratum.affected {
+                assert!(
+                    ERRATA_SHEET
+                        .revisions
+                        .iter()
+                        .any(|(known, _)| known == code),
+                    "{} {}: {code:#06x} is not one of the sheet's revisions",
+                    ERRATA_SHEET.name,
+                    erratum.section
+                );
+            }
+        }
+    }
+
     /// The section numbers of `sheet` cited in `text`: `ES0392 2.2.10`.
     fn citations<'a>(text: &'a str, sheet: &str) -> std::vec::Vec<&'a str> {
         let mut out = std::vec::Vec::new();
@@ -239,13 +259,15 @@ pub(crate) mod tests {
         }
     }
 
-    /// What keeps a chip's table from matching its documentation, and the
-    /// source's citations from matching the table (GLUE-009). The table's
-    /// own test calls it. `FERROHAL_BLESS_ERRATA=1` rewrites
-    /// `docs/errata/<sheet>.md`.
-    pub(crate) fn check_table(sheet: &Sheet, errata: &[Erratum]) {
+    /// The chip's table is its documentation, and the source cites only
+    /// reviewed entries and every workaround (ADR-010).
+    /// `FERROHAL_BLESS_ERRATA=1` rewrites `docs/errata/<sheet>.md`.
+    #[test]
+    fn the_chip_table_matches_its_documentation_and_the_source() {
         use std::{string::String, vec::Vec};
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let sheet = &ERRATA_SHEET;
+        let errata = ERRATA;
         let mut problems: Vec<String> = Vec::new();
 
         let path = root.join(std::format!("docs/errata/{}.md", sheet.name));

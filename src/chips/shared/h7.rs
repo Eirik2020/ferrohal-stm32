@@ -4,6 +4,10 @@
 //!
 //! Requirements: GLUE-003
 
+#[path = "errata_es0392.rs"]
+mod errata_table;
+pub use errata_table::*;
+
 use crate::{rcc_h7_rm0433::Limits, time::Hertz};
 
 /// Limits both silicon revisions meet. The wide VCO tops out at 836 MHz on

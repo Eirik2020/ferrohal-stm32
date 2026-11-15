@@ -35,11 +35,6 @@ mod macros;
 #[macro_use]
 mod family;
 
-// The die's errata (ES0182), mounted by each part of the die.
-#[path = "shared/errata_es0182.rs"]
-mod errata_table;
-pub use errata_table::*;
-
 #[path = "shared/die_0x413.rs"]
 #[macro_use]
 mod die;
