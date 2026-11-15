@@ -4,6 +4,11 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **`hil/pico-i2c-sim.sh` no longer needs both probe variables** (2026-11-15). With
+  several probes attached and no `*_PROBE` set, `hil/probe.sh` now picks the probe whose
+  die has the bench's DEV_ID, and the simulator script clears `PROBE_RS_PROBE` for each
+  of its two runs. Measured: both runs S pass with no probe variable set.
+
 - **`Adc`, `AdcScan`, `Sdmmc` and `UsbFs` hand their parts back** (closed 2026-11-13, the
   DEBT item removed 2026-11-15). Each gained `free()` with the rest (`docs/design/free.md`,
   rule 0); the item outlived the work.

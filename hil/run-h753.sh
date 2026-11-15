@@ -17,7 +17,7 @@ set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 mkdir -p "$here/logs"
 source "$here/probe.sh"
-probe_for H753_PROBE || exit 1
+probe_for H753_PROBE 0x450 || exit 1
 
 status=0
 # Run M still runs when asked for (`./run-h753.sh m`), with the cable

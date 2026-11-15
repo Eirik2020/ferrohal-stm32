@@ -32,6 +32,12 @@ embassy-executor = { version = "0.10.0", features = [
     "executor-thread",
 ] }
 embassy-time = "0.5.1"
+# The identity port (hil/RIG.md, Identity): a CDC ACM serial port answering
+# `FERRO-ID?`, the Pico's only way to say what it is (it has no probe).
+embassy-usb = "0.6.0"
+static_cell = "2.1.1"
+# The M0+ has no compare-and-swap; embassy-rp supplies the critical section.
+portable-atomic = { version = "1.15.0", features = ["critical-section"] }
 
 cortex-m = { version = "0.7.7", features = ["inline-asm"] }
 cortex-m-rt = "0.7.6"

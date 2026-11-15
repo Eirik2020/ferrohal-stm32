@@ -21,4 +21,23 @@ fn main() {
     .unwrap();
     println!("cargo:rustc-link-search=native={}", out.display());
     println!("cargo:rerun-if-changed=build.rs");
+    // The commit the image is built from, for its FERRO-ID line.
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .args(args)
+            .output()
+            .ok()
+            .filter(|out| out.status.success())
+            .map(|out| String::from_utf8_lossy(&out.stdout).trim().to_string())
+    };
+    let rev = git(&["rev-parse", "--short=12", "HEAD"]).unwrap_or_else(|| "unknown".into());
+    let dirty = git(&["status", "--porcelain", "--untracked-files=no"]).is_some_and(|s| !s.is_empty());
+    println!("cargo:rustc-env=FERRO_GIT={rev}{}", if dirty { "+dirty" } else { "" });
+    for path in ["src", "Cargo.toml"] {
+        println!("cargo:rerun-if-changed={path}");
+    }
+    let top = git(&["rev-parse", "--absolute-git-dir"]).unwrap_or_default();
+    for file in ["HEAD", "index", "logs/HEAD"] {
+        println!("cargo:rerun-if-changed={top}/{file}");
+    }
 }

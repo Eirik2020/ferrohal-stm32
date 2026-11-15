@@ -123,8 +123,8 @@ ones that unblock a claim.
    device because it ends halted, never in the ROM.
 4. **Every bench says what it is** (owner, 2026-11-13; option C, 2026-11-15). Over the
    debug probe where there is one, over USB serial where there is not; `hil/RIG.md`,
-   Identity. Done for the Nucleos and the Discovery (`hil/rig_status.py`); the Pico and
-   the flashed boards' images do not answer `FERRO-ID?` yet.
+   Identity. Done 2026-11-15 for every board: the Nucleos and the Discovery over their
+   probes, the Pico, the Foxeer and the Lucid over USB serial (`hil/rig_status.py`).
 5. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
 6. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch

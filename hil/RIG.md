@@ -10,8 +10,10 @@ its budget; the text is unchanged.
 `--` (`VID:PID:Serial`): `PROBE_RS_PROBE` if already set, else the board's own
 variable (`F401_PROBE` for `hil/run-f401.sh`, `H753_PROBE` for `hil/run-h753.sh`,
 `DISCOVERY_PROBE` for `hil/run-discovery.sh`),
-else the only probe attached. With more than one attached and none chosen it lists
-them and exits before building, so a shared bench says which board it flashes. The
+else the only probe attached, else the one probe whose die has the bench's DEV_ID
+(0x433 the F401, 0x450 the H753, 0x413 the Discovery; read without halting). With
+none or several matching it lists the probes and exits before building.
+`hil/pico-i2c-sim.sh` drives two boards, so it clears `PROBE_RS_PROBE` for each run. The
 choice reaches probe-rs through its `PROBE_RS_PROBE` variable, which the crate
 runners in `hil/*/.cargo/config.toml` leave unset. `hil/run-f401.sh`'s host echo
 runs over the chosen probe's own virtual COM port; `F401_VCP` overrides the path.

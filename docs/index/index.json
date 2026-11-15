@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 319388
+  "bytes": 319875
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 14047
+   "bytes": 13799
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 19402
+   "bytes": 19738
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -465,7 +465,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9033
+   "bytes": 9056
   },
   {
    "path": "hil/COVERAGE.md",
@@ -479,7 +479,7 @@
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 3734
+   "bytes": 3893
   },
   {
    "path": "hil/WIRING.md",
@@ -493,7 +493,7 @@
    "class": "human",
    "title": "pico-i2c-sim",
    "purpose": "A Raspberry Pi Pico 1 RP2040 standing in for ",
-   "bytes": 1485
+   "bytes": 1702
   },
   {
    "path": "requirements/benches-analysis.md",

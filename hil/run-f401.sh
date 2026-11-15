@@ -10,7 +10,7 @@
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 source "$here/probe.sh"
-probe_for F401_PROBE || exit 1
+probe_for F401_PROBE 0x433 || exit 1
 # The host echo runs over this probe's own virtual COM port.
 port="${F401_VCP:-/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_${PROBE_RS_PROBE#*:*:}-if02}"
 mkdir -p "$here/logs"

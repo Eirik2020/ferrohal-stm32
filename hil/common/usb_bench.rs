@@ -3,7 +3,8 @@
 //!
 //! Commands from the host, each an 8-byte marker: `BENCHRUN` runs the checks
 //! and reports `PASS` and `FAIL` lines, ending `DONE`; `BENCHECH` echoes until
-//! `BENCHEND`; `BENCHDFU` restarts into the ROM DFU bootloader.
+//! `BENCHEND`; `BENCHDFU` restarts into the ROM DFU bootloader. The line
+//! `FERRO-ID?` gets the image's identity line (`hil/RIG.md`, Identity).
 //!
 //! The board has no other way back but its BOOT button, so a run that goes
 //! wrong restarts into the bootloader too: a panic, a fault, a watchdog reset
@@ -50,6 +51,7 @@ const RUN: &[u8; 8] = b"BENCHRUN";
 const ECHO: &[u8; 8] = b"BENCHECH";
 const END: &[u8; 8] = b"BENCHEND";
 const DFU: &[u8; 8] = b"BENCHDFU";
+const QUERY: &[u8; 10] = b"FERRO-ID?\n";
 
 pub const WATCHDOG_US: u32 = 3_000_000;
 pub const CONFIGURED_PATIENCE_US: u32 = 30_000_000;
@@ -190,7 +192,7 @@ impl Link {
 
     pub fn line(&mut self, args: fmt::Arguments) {
         let mut line = Line {
-            bytes: [0; 160],
+            bytes: [0; 200],
             len: 0,
         };
         let _ = line.write_fmt(args);
@@ -202,7 +204,7 @@ impl Link {
 
 /// One report line, cut short rather than refused if it doesn't fit.
 struct Line {
-    bytes: [u8; 160],
+    bytes: [u8; 200],
     len: usize,
 }
 
@@ -328,12 +330,32 @@ pub fn clock_suite(report: &mut Report, link: &mut Link, dsts: *const u32, cpu_h
     );
 }
 
+/// The identity line: the image's (`crate::ident::LINE`), then the die's
+/// DEV_ID, revision and UID, the UID as one 96-bit number in hex, as
+/// `hil/rig_status.py` prints the probe-read ones.
+fn identify(link: &mut Link) {
+    struct Uid([u8; 12]);
+    impl fmt::Display for Uid {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.0.iter().rev().try_for_each(|byte| write!(f, "{byte:02x}"))
+        }
+    }
+    link.line(format_args!(
+        "{} dev=0x{:03x} rev=0x{:04x} uid={}",
+        crate::ident::LINE,
+        crate::ident::dev_id(),
+        signature::revision(),
+        Uid(signature::device_uid()),
+    ));
+}
+
 /// Waits for and answers commands, calling `run` for `BENCHRUN`.
 pub fn serve(link: &mut Link, cause: &str, mut run: impl FnMut(&mut Report, &mut Link)) -> ! {
     let boot = link.now();
     let mut configured = false;
     let mut echoing = false;
     let mut tail = [0u8; 8];
+    let mut query = [0u8; 10];
     let mut pending = [0u8; 64];
     let (mut head, mut len) = (0, 0);
     loop {
@@ -368,6 +390,11 @@ pub fn serve(link: &mut Link, cause: &str, mut run: impl FnMut(&mut Report, &mut
         for &byte in &pending[head..head + len] {
             tail.rotate_left(1);
             tail[7] = byte;
+            query.rotate_left(1);
+            query[9] = byte;
+            if query == *QUERY {
+                identify(link);
+            }
             if tail == *DFU {
                 // Long enough for the host to let go of the port.
                 link.settle(100_000);

@@ -49,7 +49,14 @@ if [ "${1:-}" = flash ]; then
             exit 1
         fi
         echo "== copying onto $drive"
-        cp "$firmware.uf2" "$drive/" || exit 1
+        # The drive can be listed before udisks has it writable (measured
+        # 2026-11-15: Permission denied, then the same copy succeeded).
+        copied=""
+        for _ in $(seq 1 10); do
+            cp "$firmware.uf2" "$drive/" 2> /dev/null && { copied=1; break; }
+            sleep 0.5
+        done
+        [ -n "$copied" ] || { echo "== could not write $drive"; exit 1; }
     else
         echo "== elf2uf2-rs not installed; hold BOOTSEL while plugging the"
         echo "   Pico's USB cable and drop the UF2 onto its drive, or:"
@@ -64,10 +71,12 @@ status=0
     echo "FerroHAL I2C simulator bench $(date -Is)"
 
     echo "== F401 run S (I2C3, Pico bus tag 1)"
-    "$here/run-f401.sh" s || status=1
+    # Two boards, so no single PROBE_RS_PROBE applies: each script finds its
+    # own probe (its *_PROBE, else the die's DEV_ID, hil/probe.sh).
+    env -u PROBE_RS_PROBE "$here/run-f401.sh" s || status=1
 
     echo "== H753 run S (I2C4, Pico bus tag 2)"
-    "$here/run-h753.sh" s || status=1
+    env -u PROBE_RS_PROBE "$here/run-h753.sh" s || status=1
 } > "$summary" 2>&1
 cat "$summary"
 [ "$status" -eq 0 ] && echo "both simulator runs passed" || echo "simulator bench failed"

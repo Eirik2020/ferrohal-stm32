@@ -24,6 +24,10 @@ The wiring it needs is in [`../WIRING.md`](../WIRING.md).
   request itself (run T on the F401), so the button is never needed
   again.
 
+The firmware also opens a USB serial port (CDC ACM, VID:PID 16c0:27dd, the
+flash's unique ID as its serial number) that answers `FERRO-ID?` with its
+identity line (`../RIG.md`, Identity); `../rig_status.py` asks it.
+
 `../pico-i2c-sim.sh` then runs the two bench runs that speak to this
 firmware, F401 run S and H753 run S, writing one log. The firmware
 keeps its state across runs: each run resets the counters through the

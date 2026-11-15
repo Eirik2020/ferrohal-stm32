@@ -25,7 +25,10 @@ use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::i2c::InterruptHandler;
 use embassy_rp::i2c_slave::{Command, Config, I2cSlave};
-use embassy_rp::peripherals::{I2C0, I2C1};
+use embassy_rp::peripherals::{I2C0, I2C1, USB};
+use embassy_rp::usb::{Driver, InterruptHandler as UsbInterruptHandler};
+use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
+use static_cell::StaticCell;
 use embassy_time::{with_timeout, Duration, Instant, Timer};
 
 use pico_i2c_sim as sim;
@@ -34,6 +37,7 @@ use panic_halt as _;
 bind_interrupts!(struct Irqs {
     I2C0_IRQ => InterruptHandler<I2C0>;
     I2C1_IRQ => InterruptHandler<I2C1>;
+    USBCTRL_IRQ => UsbInterruptHandler<USB>;
 });
 
 /// How long `listen` may wait before it is re-armed: a second of silence
@@ -85,6 +89,123 @@ async fn main(spawner: Spawner) {
     spawner.spawn(bus0_task(bus0).expect("the I2C0 task"));
     spawner.spawn(bus1_task(bus1).expect("the I2C1 task"));
     spawner.spawn(warden_task().expect("the warden task"));
+    identity(&spawner, p.USB, p.FLASH);
+}
+
+/// The identity line's room: `FERRO-ID v=1` and its pairs (hil/RIG.md).
+const IDENT_LEN: usize = 192;
+static IDENT: StaticCell<([u8; IDENT_LEN], usize)> = StaticCell::new();
+static SERIAL: StaticCell<[u8; 16]> = StaticCell::new();
+static CONFIG_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
+static BOS_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
+static CONTROL: StaticCell<[u8; 64]> = StaticCell::new();
+static CDC_STATE: StaticCell<State> = StaticCell::new();
+
+/// A `core::fmt` sink over a fixed buffer; what does not fit is dropped.
+struct Line<'a> {
+    buf: &'a mut [u8],
+    len: usize,
+}
+
+impl core::fmt::Write for Line<'_> {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        for &byte in s.as_bytes() {
+            if let Some(slot) = self.buf.get_mut(self.len) {
+                *slot = byte;
+                self.len += 1;
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Builds the identity line from the die (SYSINFO's CHIP_ID, the flash's
+/// unique ID) and the build, and starts the USB serial port that answers
+/// `FERRO-ID?` with it. The flash's unique ID is also the USB serial
+/// number, so the host's port name carries it.
+fn identity(spawner: &Spawner, usb: embassy_rp::Peri<'static, USB>, flash: embassy_rp::Peri<'static, embassy_rp::peripherals::FLASH>) {
+    use core::fmt::Write as _;
+    let mut uid = [0u8; 8];
+    let mut flash = embassy_rp::flash::Flash::<_, embassy_rp::flash::Blocking, { 2 * 1024 * 1024 }>::new_blocking(flash);
+    let _ = flash.blocking_unique_id(&mut uid);
+    let chip = embassy_rp::pac::SYSINFO.chip_id().read();
+    let serial = SERIAL.init([0; 16]);
+    for (i, byte) in uid.iter().enumerate() {
+        let hex = b"0123456789abcdef";
+        serial[2 * i] = hex[usize::from(byte >> 4)];
+        serial[2 * i + 1] = hex[usize::from(byte & 0xf)];
+    }
+    let serial: &'static str = core::str::from_utf8(serial).unwrap_or("unknown");
+    let (buf, len) = IDENT.init(([0; IDENT_LEN], 0));
+    let mut line = Line { buf, len: 0 };
+    let _ = write!(
+        line,
+        "FERRO-ID v=1 board=pico part=RP2040 crate=pico-i2c-sim run=pico-i2c-sim git={} dev=0x{:04x} rev=0x{:x} uid={}\r\n",
+        env!("FERRO_GIT"),
+        chip.part(),
+        chip.revision(),
+        serial,
+    );
+    *len = line.len;
+    let ident: &'static [u8] = &buf[..*len];
+
+    let mut config = embassy_usb::Config::new(0x16c0, 0x27dd);
+    config.manufacturer = Some("FerroHAL");
+    config.product = Some("FerroHAL bench pico-i2c-sim");
+    config.serial_number = Some(serial);
+    config.max_power = 100;
+    config.max_packet_size_0 = 64;
+    let mut builder = embassy_usb::Builder::new(
+        Driver::new(usb, Irqs),
+        config,
+        CONFIG_DESCRIPTOR.init([0; 256]),
+        BOS_DESCRIPTOR.init([0; 256]),
+        &mut [],
+        CONTROL.init([0; 64]),
+    );
+    let class = CdcAcmClass::new(&mut builder, CDC_STATE.init(State::new()), 64);
+    let device = builder.build();
+    spawner.spawn(usb_task(device).expect("the USB task"));
+    spawner.spawn(ident_task(class, ident).expect("the identity task"));
+}
+
+#[embassy_executor::task]
+async fn usb_task(mut device: embassy_usb::UsbDevice<'static, Driver<'static, USB>>) {
+    device.run().await;
+}
+
+/// Answers each `FERRO-ID?` line with the identity line; ignores the rest.
+#[embassy_executor::task]
+async fn ident_task(mut class: CdcAcmClass<'static, Driver<'static, USB>>, ident: &'static [u8]) {
+    loop {
+        class.wait_connection().await;
+        let mut line = [0u8; 32];
+        let mut len = 0;
+        'connected: loop {
+            let mut packet = [0u8; 64];
+            let Ok(n) = class.read_packet(&mut packet).await else {
+                break;
+            };
+            for &byte in &packet[..n] {
+                if byte == b'\n' || byte == b'\r' {
+                    if &line[..len] == b"FERRO-ID?" {
+                        for chunk in ident.chunks(64) {
+                            if class.write_packet(chunk).await.is_err() {
+                                break 'connected;
+                            }
+                        }
+                        if ident.len() % 64 == 0 && class.write_packet(&[]).await.is_err() {
+                            break 'connected;
+                        }
+                    }
+                    len = 0;
+                } else if len < line.len() {
+                    line[len] = byte;
+                    len += 1;
+                }
+            }
+        }
+    }
 }
 
 /// Starts the hardware watchdog: eight seconds without a feed reboots the

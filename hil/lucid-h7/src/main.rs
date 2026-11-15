@@ -58,6 +58,9 @@ use imu::Imu;
 use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
 
 /// The endpoint memory `usb_bench` gives the driver: the H7's OTG_FS FIFO.
+#[path = "ident.rs"]
+mod ident;
+
 const EP_WORDS: usize = 1024;
 
 const _: () = assert!(Timebase::<TIM2>::check(&CLOCKS, Hertz::mhz(1)).is_ok());

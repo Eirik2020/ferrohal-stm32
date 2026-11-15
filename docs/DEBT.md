@@ -151,9 +151,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   *Spawned:* `d773b34` recorded the decision and deferred the move.
 - `bench` **Low: a Foxeer smoke image that fails before USB says nothing.** It restarts
   into DFU. *Spawned:* `926b210` 2026-11-02, a bench that reports over USB only.
-- `bench` `tool` **Low: `hil/pico-i2c-sim.sh` with two probes needs both `F401_PROBE` and
-  `H753_PROBE`.** `PROBE_RS_PROBE` would send both runs to one probe. *Spawned:* probe
-  selection by serial (W8, `861f8b8`, 2026-11-09); recorded `f20ccc8`.
 - `tool` **Low: the no-panic check proves only the paths it calls.** Nothing checks that
   every public function is in `checks/no-panic`. *Spawned:* `af65cad`, a hand-written
   call list.

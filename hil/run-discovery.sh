@@ -13,7 +13,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 crate="$here/stm32f4-discovery"
 chip=STM32F407VGTx
 source "$here/probe.sh"
-probe_for DISCOVERY_PROBE || exit 1
+probe_for DISCOVERY_PROBE 0x413 || exit 1
 mkdir -p "$here/logs"
 
 # The serial the ROM's DFU device reports: the UID's words 0 and 2 summed, then

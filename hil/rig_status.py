@@ -107,9 +107,11 @@ def ask(path, wait=1.0):
             ready, _, _ = select.select([fd], [], [], 0.05)
             if ready:
                 got += os.read(fd, 512)
-                for text in got.decode("ascii", "replace").splitlines():
+                # Whole lines only: an answer can span several USB packets.
+                complete = got[: got.rfind(b"\n") + 1].decode("ascii", "replace")
+                for text in complete.splitlines():
                     if text.startswith("FERRO-ID "):
-                        return text
+                        return text.strip()
         return None
     finally:
         os.close(fd)
