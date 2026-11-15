@@ -1,6 +1,6 @@
 //! The macros every chip's glue builds from. They carry shapes only; the
 //! facts (which peripherals, pins, streams and vectors) are the rows each
-//! chip file passes them, which `tools/check_glue.py` reads.
+//! chip's generated module passes them (`src/chips/gen/`, `tools/glue-gen`).
 //!
 //! Names in the expansions (`Pin`, `Alternate`, `Interrupt`) resolve in the
 //! chip file that invokes them, so each chip brings its own IP versions.
@@ -238,13 +238,13 @@ macro_rules! timer_dma {
     ($tim:ident $signal:ident: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
         $(
             // SAFETY: the chip's DMA request table, matching stm32-metapac
-            // 21's metadata (check_glue).
+            // 21's metadata (generated).
             timer_dma_impl!($signal, $tim, crate::dma::Stream<$dma, $stream>, $request);
         )+
     };
     ($tim:ident $signal:ident: mux $request:literal) => {
         // SAFETY: the DMAMUX1 request ID, from stm32-metapac 21's metadata
-        // (check_glue); through DMAMUX any stream serves it.
+        // (generated); through DMAMUX any stream serves it.
         timer_dma_impl!($signal, $tim, crate::dma::Stream<D, N>, $request, D, N);
     };
 }
@@ -252,8 +252,8 @@ macro_rules! timer_dma {
 macro_rules! timer_dma_impl {
     (UP, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
         // SAFETY: the update request ID this row names comes from
-        // stm32-metapac 21's metadata, which tools/check_glue.py holds
-        // against the chip file.
+        // stm32-metapac 21's metadata, from which `tools/glue-gen` generates
+        // the row.
         unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::UpdateDma<$tim> for $stream
         $(where
             crate::dma::Dma<$d>: crate::dma::DmaInstance,
@@ -264,8 +264,8 @@ macro_rules! timer_dma_impl {
     };
     ($signal:ident, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
         // SAFETY: the compare request ID this row names comes from
-        // stm32-metapac 21's metadata, which tools/check_glue.py holds
-        // against the chip file.
+        // stm32-metapac 21's metadata, from which `tools/glue-gen` generates
+        // the row.
         unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::CompareDma<$tim, { timer_channel!($signal) }> for $stream
         $(where
             crate::dma::Dma<$d>: crate::dma::DmaInstance,
@@ -298,15 +298,12 @@ macro_rules! gpio_dma {
     };
 }
 
-/// The full-speed USB port's row: `TOKEN => bus, enable bit, vector, FIFO
-/// words, endpoints, core;`, on PA11 and PA12 in alternate function 10.
-/// `core` is `fs_core` for a full-speed-only controller, or `hs_core` for
-/// the high-speed-capable one the H7's port is, running on its internal
-/// full-speed PHY.
+/// The full-speed USB port's row: `TOKEN => bus, enable bit, vector;`, on
+/// PA11 and PA12 in alternate function 10. Its core's kind, FIFO depth and
+/// endpoint count are hand facts the chip module states: `USB_FS_HS_CORE`,
+/// `USB_FS_FIFO_WORDS` and `USB_FS_ENDPOINTS`.
 macro_rules! usb_fs {
-    ($name:ident => $bus:ident, $bit:literal, $vector:ident, $fifo:literal, $endpoints:literal, $core:ident;) => {
-        #[cfg(feature = "usb")]
-        pub(crate) const USB_FS_HS_CORE: bool = usb_core!($core);
+    ($name:ident => $bus:ident, $bit:literal, $vector:ident;) => {
         #[cfg(feature = "usb")]
         pub(crate) struct UsbFsFacts {
             pub registers: *const (),
@@ -324,21 +321,6 @@ macro_rules! usb_fs {
         };
         #[cfg(feature = "usb")]
         pub(crate) const USB_FS_INTERRUPT: Interrupt = Interrupt::$vector;
-        #[cfg(feature = "usb")]
-        pub(crate) const USB_FS_FIFO_WORDS: usize = $fifo;
-        #[cfg(feature = "usb")]
-        pub(crate) const USB_FS_ENDPOINTS: usize = $endpoints;
-    };
-}
-
-// Used only with the `usb` feature on.
-#[allow(unused_macros)]
-macro_rules! usb_core {
-    (fs_core) => {
-        false
-    };
-    (hs_core) => {
-        true
     };
 }
 
@@ -363,15 +345,16 @@ pub(crate) fn within(buffer: &[u8], regions: &[(usize, usize)]) -> bool {
         .any(|&(base, len)| start >= base && end <= base.saturating_add(len))
 }
 
-/// ADC rows: `NAME => common registers, bus, enable bit, internal channels;`.
+/// ADC rows: `NAME => common registers, bus, enable bit;`. Whether the ADC
+/// carries the internal channels is the chip module's `internal_adc!`.
 macro_rules! adcs {
-    ($($name:ident => $common:ident, $bus:ident, $bit:literal, $internal:literal;)+) => {
+    ($($name:ident => $common:ident, $bus:ident, $bit:literal;)+) => {
         $(
             impl crate::adc::Instance for $name {
                 const NAME: &'static str = stringify!($name);
                 const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
                 const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
-                const INTERNAL: bool = $internal;
+                const INTERNAL: bool = internal_adc!($name);
                 fn info() -> &'static crate::adc::Info {
                     static INFO: crate::adc::Info =
                         crate::adc::Info::new(crate::adc_ip::Unit::new(pac::$name, pac::$common));
@@ -453,6 +436,31 @@ macro_rules! sdmmcs {
                 fn info() -> &'static crate::sdmmc::Info {
                     static INFO: crate::sdmmc::Info = crate::sdmmc::Info::new(pac::$name);
                     &INFO
+                }
+            }
+        )+
+    };
+}
+
+/// Each bonded port's parts: `'D' => PartsD [p2: 2];`, one field per pin its
+/// package bonds. Generated.
+macro_rules! port_parts {
+    ($($letter:literal => $parts:ident [$($field:ident: $n:literal),+];)+) => {
+        $(
+            #[doc = concat!("Port ", $letter, "'s parts on this part: its `Ctrl` and its bonded pins.")]
+            pub struct $parts {
+                pub ctrl: crate::gpio::Ctrl<$letter>,
+                $(pub $field: Pin<$letter, $n>,)+
+            }
+
+            impl crate::gpio::Split for Port<$letter> {
+                type Parts = $parts;
+                fn split_parts(self, rcc: &mut crate::rcc::Rcc) -> $parts {
+                    rcc.enable(<Port<$letter> as PortInstance>::ENABLE);
+                    $parts {
+                        ctrl: crate::gpio::Ctrl::new(),
+                        $($field: Pin::new(),)+
+                    }
                 }
             }
         )+

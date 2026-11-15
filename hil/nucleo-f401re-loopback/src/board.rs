@@ -41,7 +41,7 @@ use ferrohal_stm32::{
     },
     dma::Stream,
     exti,
-    gpio::{Alternate, Ctrl, Input, Output, Parts, Pin, Port, PortInstance, Pull, Speed},
+    gpio::{Alternate, Ctrl, Input, Output, Pin, Port, PortInstance, Pull, Speed},
     i2c,
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP, PllSource,
@@ -180,13 +180,13 @@ pub fn run_w(p: Peripherals) -> Result<RunW, ClockError> {
     let gpioc = p.GPIOC.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
     let led = gpioa.p5.into_push_pull_output(&mut gpioa.ctrl);
-    let Parts {
+    let ferrohal_stm32::chip::PartsB {
         ctrl: mut ctrl_b,
         p6: pb6,
         p7: pb7,
         ..
     } = gpiob;
-    let Parts {
+    let ferrohal_stm32::chip::PartsC {
         ctrl: mut ctrl_c,
         p6: pc6,
         p7: pc7,
@@ -307,13 +307,13 @@ pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
     let gpioc = p.GPIOC.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
     let led = gpioa.p5.into_push_pull_output(&mut gpioa.ctrl);
-    let Parts {
+    let ferrohal_stm32::chip::PartsB {
         ctrl: mut ctrl_b,
         p6: pb6,
         p7: pb7,
         ..
     } = gpiob;
-    let Parts {
+    let ferrohal_stm32::chip::PartsC {
         ctrl: mut ctrl_c,
         p6: pc6,
         p7: pc7,

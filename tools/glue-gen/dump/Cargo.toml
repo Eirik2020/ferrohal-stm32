@@ -17,5 +17,6 @@ stm32-metapac = { version = "=21.0.0", default-features = false, features = ["me
 [features]
 stm32f401re = ["stm32-metapac/stm32f401re"]
 stm32f405rg = ["stm32-metapac/stm32f405rg"]
+stm32f407vg = ["stm32-metapac/stm32f407vg"]
 stm32h743vi = ["stm32-metapac/stm32h743vi"]
 stm32h753zi = ["stm32-metapac/stm32h753zi"]

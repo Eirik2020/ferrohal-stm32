@@ -8,11 +8,9 @@
 //! uses BSRR, a single write that touches only that pin, so it needs no
 //! owner.
 //!
-//! Which pins a package bonds out is glued data: each chip's `BONDED` table,
-//! which `tools/check_glue.py` holds every routing row against. A port the
-//! package does not bond has no token. A bonded port still splits into all
-//! sixteen pins, so an unbonded one can be split out but not routed; see
-//! `DEBT.md`.
+//! Which pins a package bonds out is generated glue: a port the package does
+//! not bond has no token, and a bonded port splits into its bonded pins only
+//! ([`Split`]), so an unbonded pin can be neither named nor routed.
 //!
 //! Requirements: GPIO-001
 
@@ -54,35 +52,36 @@ pub struct Ctrl<const P: char> {
     _private: (),
 }
 
-macro_rules! parts {
-    ($($field:ident: $n:literal),+ $(,)?) => {
-        /// A split port: its sixteen pins, in their reset mode, and the
-        /// owner of their shared registers.
-        pub struct Parts<const P: char> {
-            pub ctrl: Ctrl<P>,
-            $(pub $field: Pin<P, $n>,)+
-        }
-
-        impl<const P: char> Port<P>
-        where
-            Port<P>: PortInstance,
-        {
-            /// Turns on the port's clock and hands out its pins.
-            pub fn split(self, rcc: &mut Rcc) -> Parts<P> {
-                rcc.enable(<Port<P> as PortInstance>::ENABLE);
-                Parts {
-                    ctrl: Ctrl { _private: () },
-                    $($field: Pin::new(),)+
-                }
-            }
-        }
-    };
+impl<const P: char> Ctrl<P> {
+    pub(crate) const fn new() -> Self {
+        Self { _private: () }
+    }
 }
 
-parts!(
-    p0: 0, p1: 1, p2: 2, p3: 3, p4: 4, p5: 5, p6: 6, p7: 7,
-    p8: 8, p9: 9, p10: 10, p11: 11, p12: 12, p13: 13, p14: 14, p15: 15,
-);
+/// What a port splits into: its `Ctrl` and the pins the part's package bonds,
+/// each in its reset mode. The glue generates one per port a package bonds
+/// (`src/chips/gen/`), with a field per bonded pin only, so a pin the package
+/// leaves unconnected cannot be named: on the LQFP64, port D splits into
+/// `ctrl` and `p2`.
+pub trait Split: crate::Sealed {
+    /// The port's parts on this part, named [`Parts<P>`](Parts).
+    type Parts;
+    #[doc(hidden)]
+    fn split_parts(self, rcc: &mut Rcc) -> Self::Parts;
+}
+
+/// The parts port `P` splits into on this part: see [`Split`].
+pub type Parts<const P: char> = <Port<P> as Split>::Parts;
+
+impl<const P: char> Port<P>
+where
+    Port<P>: Split,
+{
+    /// Turns on the port's clock and hands out its bonded pins.
+    pub fn split(self, rcc: &mut Rcc) -> Parts<P> {
+        <Self as Split>::split_parts(self, rcc)
+    }
+}
 
 /// A pin in an alternate function, described as data: for board manifests
 /// and resource lists. An analog pin implements it too, with `AF` 0 — it has
@@ -137,7 +136,7 @@ pub struct Pin<const P: char, const N: u8, M = Input> {
 }
 
 impl<const P: char, const N: u8, M> Pin<P, N, M> {
-    const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self { _mode: PhantomData }
     }
 }

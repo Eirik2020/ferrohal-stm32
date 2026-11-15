@@ -3,7 +3,7 @@
 
 use glue_model::{
     DmaChannel, Interrupt, KernelClock, Part, Peripheral, PeripheralDma, PeripheralInterrupt,
-    PeripheralPin, Rcc, RccField, Region,
+    PeripheralPin, Rcc, RccField, Region, Register,
 };
 use stm32_metapac::metadata::{
     METADATA, MemoryRegionKind, PeripheralRccKernelClock, PeripheralRccRegister,
@@ -22,6 +22,7 @@ fn main() {
         register: reg.register.to_string(),
         field: reg.field.to_string(),
         bit: rcc.and_then(|r| bit_of(r.ir, r.block, reg.register, reg.field)),
+        offset: rcc.and_then(|r| offset_of(r.ir, r.block, reg.register)),
     };
 
     let part = Part {
@@ -113,6 +114,11 @@ fn main() {
                         interrupt: i.interrupt.to_string(),
                     })
                     .collect(),
+                registers: p
+                    .registers
+                    .as_ref()
+                    .map(|r| registers_of(r.ir, r.block))
+                    .unwrap_or_default(),
             })
             .collect(),
     };
@@ -129,10 +135,7 @@ fn main() {
 /// block's register and field-set definitions (case-insensitive, as
 /// metapac's metadata and IR spell names differently).
 fn bit_of(ir: &IR, block: &str, register: &str, field: &str) -> Option<u32> {
-    let block = ir
-        .blocks
-        .iter()
-        .find(|b| b.name.eq_ignore_ascii_case(block))?;
+    let block = ir.blocks.iter().find(|b| same_block(b.name, block))?;
     let item = block
         .items
         .iter()
@@ -149,4 +152,50 @@ fn bit_of(ir: &IR, block: &str, register: &str, field: &str) -> Option<u32> {
         BitOffset::Regular(offset) => Some(offset.offset),
         BitOffset::Cursed(_) => None,
     }
+}
+
+fn offset_of(ir: &IR, block: &str, register: &str) -> Option<u32> {
+    let block = ir.blocks.iter().find(|b| same_block(b.name, block))?;
+    let item = block
+        .items
+        .iter()
+        .find(|i| i.name.eq_ignore_ascii_case(register))?;
+    matches!(item.inner, BlockItemInner::Register(_)).then_some(item.byte_offset)
+}
+
+/// A block's plain registers, by name and byte offset, with those of the
+/// blocks it extends (metapac builds the timers that way); arrays are left out.
+fn registers_of(ir: &IR, block: &str) -> Vec<Register> {
+    let mut out: Vec<Register> = Vec::new();
+    let mut next = Some(block);
+    while let Some(name) = next {
+        let Some(found) = ir.blocks.iter().find(|b| same_block(b.name, name)) else {
+            break;
+        };
+        for item in found.items {
+            if item.array.is_none()
+                && matches!(item.inner, BlockItemInner::Register(_))
+                && !out.iter().any(|r| r.name == item.name)
+            {
+                out.push(Register {
+                    name: item.name.to_string(),
+                    offset: item.byte_offset,
+                });
+            }
+        }
+        next = found.extends;
+    }
+    out
+}
+
+/// A block's name as a peripheral gives it (`TIM_GP16`) and as the register
+/// set does (`TimGp16`).
+fn same_block(a: &str, b: &str) -> bool {
+    let plain = |s: &str| {
+        s.chars()
+            .filter(|c| *c != '_')
+            .map(|c| c.to_ascii_lowercase())
+            .collect::<String>()
+    };
+    plain(a) == plain(b)
 }

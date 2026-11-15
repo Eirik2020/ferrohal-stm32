@@ -99,3 +99,21 @@ nothing on the bus can report the refusal), and an eight-second
 watchdog reboots the chip — fed only while both serve tasks are fresh —
 so a bus task that ever wedges comes back by itself and the run-T
 flash path keeps working.
+
+## STM32F4 Discovery (die 0x413)
+
+Three jumpers between header pins (UM1472 Table 7), no simulator; both USB cables, CN1
+(the ST-LINK) and CN5 (the F407's own port, for runs B and C). The board's wiring
+comment is `stm32f4-discovery/src/board.rs`.
+
+| Link | TX -> RX | Header pins | Carries |
+| --- | --- | --- | --- |
+| D1 | PC10 -> PC11 | P2-37 -> P2-38 | USART3 (AF7) or UART4 (AF8) |
+| D2 | PC12 -> PD2 | P2-35 -> P2-34 | UART5 (AF8) |
+| D3 | PD8 -> PD9 | P1-40 -> P1-41 | USART3 (AF7) |
+
+PC10 and PC12 also reach the CS43L22 audio DAC's I2S inputs; the runs hold its reset,
+PD4, low (owner, 2026-11-14). The clock is the ST-LINK's 8 MHz MCO in bypass; R68 and
+R25 both feed PH0 from the factory, so crystal mode is not isolated here (no rework,
+owner 2026-11-14).
+

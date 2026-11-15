@@ -37,6 +37,9 @@ pub struct DiePeripheral {
     pub interrupts: BTreeMap<(String, String), String>,
     /// The parts that have it.
     pub parts: BTreeSet<String>,
+    /// Its block's registers: name -> byte offset. The block is fixed by the
+    /// die, so the first part's stand.
+    pub registers: BTreeMap<String, u32>,
 }
 
 /// A die's table: the union of its parts.
@@ -137,6 +140,11 @@ pub fn merge(id: u16, parts: &[(Part, Metadata)]) -> Result<Die, Vec<String>> {
                     dma: BTreeSet::new(),
                     interrupts: BTreeMap::new(),
                     parts: BTreeSet::new(),
+                    registers: peripheral
+                        .registers
+                        .iter()
+                        .map(|r| (r.name.clone(), r.offset))
+                        .collect(),
                 });
             merged.parts.insert(name.clone());
             agree(
@@ -295,6 +303,7 @@ mod tests {
                     .collect(),
                 dma: vec![],
                 interrupts: vec![],
+                registers: vec![],
             }],
         }
     }

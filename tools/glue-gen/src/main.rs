@@ -14,8 +14,12 @@
 //! library's `Cargo.lock` pins, so the glue is generated from the metadata
 //! the library builds against.
 
+mod emit;
+#[cfg(feature = "probe")]
+mod probe;
 mod registry;
 mod silicon;
+mod tables;
 
 use std::{
     fs,
@@ -40,7 +44,7 @@ fn main() -> ExitCode {
 fn run(args: &[String]) -> Result<(), String> {
     let (command, selector) = args
         .split_first()
-        .ok_or("usage: glue-gen <parts | dump> <selector>")?;
+        .ok_or("usage: glue-gen <parts | dump | model | emit | tables | probe> <selector>")?;
     registry::check()?;
     let parts = Selector::parse(selector)?.parts()?;
     match command.as_str() {
@@ -73,30 +77,112 @@ fn run(args: &[String]) -> Result<(), String> {
         }
         "model" => {
             let version = same_metapac()?;
-            let mut dies: Vec<u16> = parts.iter().map(|part| part.die).collect();
-            dies.sort_unstable();
-            dies.dedup();
-            for id in dies {
-                let mut dumped = Vec::new();
-                for part in registry::PARTS.iter().filter(|part| part.die == id) {
-                    dumped.push((*part, dump(part)?));
-                }
-                let die = silicon::merge(id, &dumped).map_err(|conflicts| {
-                    format!(
-                        "die {id:#05x} (metapac {version}): {} conflict(s):\n  {}",
-                        conflicts.len(),
-                        conflicts.join("\n  ")
-                    )
-                })?;
-                report(&die);
+            for id in dies_of(&parts) {
+                report(&merged(id, &version)?);
             }
             Ok(())
         }
-        other => Err(format!("unknown command {other}: parts, dump or model")),
+        "emit" => {
+            let version = same_metapac()?;
+            let out = tool_dir().join("../../src/chips/gen");
+            fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+            for id in dies_of(&parts) {
+                let die = merged(id, &version)?;
+                for part in parts.iter().filter(|part| part.die == id) {
+                    let text = emit::emit(&die, part, &version)?;
+                    let path = out.join(format!("{}.rs", part.feature));
+                    fs::write(&path, &text).map_err(|e| format!("{}: {e}", path.display()))?;
+                    // As `cargo fmt` leaves it, so the merge gate's regeneration
+                    // compares equal.
+                    let status = Command::new("rustfmt")
+                        .args(["--edition", "2024"])
+                        .arg(&path)
+                        .status()
+                        .map_err(|e| format!("running rustfmt: {e}"))?;
+                    if !status.success() {
+                        return Err(format!("rustfmt failed on {}", path.display()));
+                    }
+                    println!(
+                        "{:<12} -> src/chips/gen/{}.rs ({} lines)",
+                        part.feature,
+                        part.feature,
+                        text.lines().count()
+                    );
+                }
+            }
+            Ok(())
+        }
+        "tables" => {
+            let version = same_metapac()?;
+            let root = tool_dir().join("../..");
+            let mut dies = std::collections::BTreeMap::new();
+            for id in dies_of(registry::PARTS) {
+                dies.insert(id, merged(id, &version)?);
+            }
+            let (silicon, instances) = tables::tables(&root, &dies, registry::PARTS)?;
+            let path = root.join("docs/CHIPS.md");
+            let doc = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let doc = tables::splice(&doc, "silicon", &silicon)?;
+            let doc = tables::splice(&doc, "instances", &instances)?;
+            fs::write(&path, doc).map_err(|e| format!("{}: {e}", path.display()))?;
+            println!(
+                "docs/CHIPS.md: silicon and instance tables for {} parts",
+                registry::PARTS.len()
+            );
+            Ok(())
+        }
+        #[cfg(feature = "probe")]
+        "probe" => {
+            let version = same_metapac()?;
+            let selector = std::env::var("PROBE_RS_PROBE").map_err(|_| {
+                "set PROBE_RS_PROBE to the board's probe, VID:PID:Serial as probe-rs list prints it"
+            })?;
+            let mut failed = 0;
+            for part in &parts {
+                let die = merged(part.die, &version)?;
+                let (passed, fails) = probe::probe(&die, part, &selector)?;
+                println!(
+                    "{}: {passed} passed, {fails} failed (metapac {version})",
+                    part.feature
+                );
+                failed += fails;
+            }
+            if failed == 0 {
+                Ok(())
+            } else {
+                Err(format!("{failed} glue fact(s) failed on the silicon"))
+            }
+        }
+        other => Err(format!(
+            "unknown command {other}: parts, dump, model, emit, tables or probe"
+        )),
     }
 }
 
 /// One die table, summarised: what every part has, and what only some do.
+/// The dies `parts` are cut from, each once.
+fn dies_of(parts: &[Part]) -> Vec<u16> {
+    let mut dies: Vec<u16> = parts.iter().map(|part| part.die).collect();
+    dies.sort_unstable();
+    dies.dedup();
+    dies
+}
+
+/// A die's table, merged from every registered part cut from it.
+fn merged(id: u16, version: &str) -> Result<silicon::Die, String> {
+    let mut dumped = Vec::new();
+    for part in registry::PARTS.iter().filter(|part| part.die == id) {
+        dumped.push((*part, dump(part)?));
+    }
+    silicon::merge(id, &dumped).map_err(|conflicts| {
+        format!(
+            "die {id:#05x} (metapac {version}): {} conflict(s):\n  {}",
+            conflicts.len(),
+            conflicts.join("\n  ")
+        )
+    })
+}
+
 fn report(die: &silicon::Die) {
     let rows: usize = die.peripherals.values().map(|p| p.pins.len()).sum();
     let routes: usize = die.peripherals.values().map(|p| p.dma.len()).sum();

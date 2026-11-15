@@ -13,9 +13,11 @@ added to that crate [API-001].
 
 ## Chip glue against metapac
 
-`python3 -I tools/check_glue.py`, which compares each chip's routing rows with
-stm32-metapac's metadata. Pass: it exits zero. It reads the rows as text, so their
-layout must stay as it is.
+`tools/glue-gate.sh`, the generated glue's merge gate: it regenerates every part's
+routing module and `docs/CHIPS.md`'s tables from the pinned stm32-metapac's metadata
+(`tools/glue-gen`, which also checks that the parts of a die agree), runs the
+generator's tests, and compares with what is checked in. Pass: no difference, and it
+exits zero.
 
 ## One I2C API on every chip
 

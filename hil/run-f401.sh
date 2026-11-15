@@ -21,7 +21,7 @@ trap 'kill "$echo_pid" 2>/dev/null; wait "$echo_pid" 2>/dev/null' EXIT
 sleep 0.5
 
 status=0
-for run in ${*:-a b c d e f g h i j k l m n o p q r s v w}; do
+for run in ${*:-probe a b c d e f g h i j k l m n o p q r s v w}; do
     log="$here/logs/f401-run-$run.log"
     # The watchdog and bootloader runs reset the chip on purpose: the debugger must not
     # catch that reset, or the second boot never runs. Run V's own watchdog
@@ -30,7 +30,13 @@ for run in ${*:-a b c d e f g h i j k l m n o p q r s v w}; do
     if [ "$run" = j ] || [ "$run" = l ] || [ "$run" = v ]; then
         runner=(env "CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER=probe-rs run --no-catch-reset --chip STM32F401RE")
     fi
-    (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1
+    if [ "$run" = probe ]; then
+        # The glue probe (plan step 5): the generated facts on the silicon,
+        # through this board's probe, no firmware.
+        (cd "$here/../tools/glue-gen" && timeout 300 cargo run -q --release -- probe part stm32f401re) > "$log" 2>&1
+    else
+        (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1
+    fi
     code=$?
     pass=$(grep -c "PASS" "$log")
     fail=$(grep -c "FAIL" "$log")

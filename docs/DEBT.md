@@ -35,8 +35,9 @@ item says so; an origin is never reconstructed after the fact.
 Severity: **High** gives wrong behaviour. **Medium** is a gap a user will hit soon.
 **Low** is cleanup. **Lowest** waits on something outside the repository.
 
-Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/run.sh`
-28 steps; reqtool 117 of 122 verified, 0 stale. No item is High.
+Status 2026-11-15: F401 21 runs and the glue probe, 421 checks; H753 23 runs and the probe,
+718 checks; STM32F4 Discovery 3 runs and the probe, 143 checks; `checks/run.sh` 32 steps;
+reqtool 119 of 122 verified, 0 stale. No item is High.
 
 ---
 
@@ -55,14 +56,8 @@ Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/r
   2026-11-08), recorded `f20ccc8`.
 - `code` `api` **Medium: the feature hierarchy departs from `docs/design/structure.md`.**
   Chip features turn on their family marker, and two chips at once are caught only by a
-  `compile_error!` listing every pair (6 at four chips, 15 at six). Same as review S6.
+  `compile_error!` listing every pair (10 at five chips, 15 at six). Same as review S6.
   *Spawned:* `af65cad` 2026-10-31, two chips; each chip since added a row.
-- `code` `tool` **Medium: the routing generator doesn't exist.** Glue rows are
-  hand-written; `tools/check_glue.py` reads them as text against metapac, so their
-  layout is frozen, and what metapac lacks (USB FIFO depth, clock limits, memory map) is
-  checked by hand. *Spawned:* `af65cad` 2026-10-31, hand-written glue for the prototype
-  with the generator left open; parked by `docs/design/scope.md`. Planned: ADR-008,
-  `docs/plans/2026-11-13-glue-generator.md`.
 - `code` `errata` `rig` **Medium: no ES0392 2.2.10 workaround for rev-Y/W H7s.** DMA
   buffers sit in AXI SRAM, where those revisions can corrupt reads;
   `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it and metapac lacks the register. Both H7s
@@ -71,10 +66,6 @@ Status 2026-11-13: F401 21 runs, 331 checks; H753 23 runs, 560 checks; `checks/r
 - `code` `api` **Low: EXTI owns the whole SYSCFG token.** It needs EXTICR only; the H7's
   I/O compensation cell and the F4's memory remap sit in SYSCFG too. *Spawned:*
   `b55c640` 2026-10-31, EXTI written as SYSCFG's only user.
-- `code` `api` **Low: a bonded port still splits into every pin.** `Port::split` hands out
-  all sixteen, so an unbonded pin (PB11 on the LQFP64) can be named. Fix: a per-package
-  `Parts`. *Spawned:* ports per register map in `af65cad`; W7 (`8c7c909`, 2026-11-09)
-  removed phantom ports, not pins.
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
@@ -122,13 +113,11 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | N17 | `code` `api` | L | Watchdog's `start` and `WatchdogPeripheral`. | `1e1bbdf` 2026-10-31 |
 | N18 | `code` `api` | L | Accessors present on some drivers only. | per driver |
 | N19 | `code` `api` | L | `Config` builders and `defmt` derives differ. | per driver |
-| S1 | `code` | M | F4 glue repeats per die what H7 shares (owner: after the generator). | `74a8dcd` F405/H743 glue copied per file; `036a7d2` |
 | S2 | `code` | L | Timer submodules by `#[path]`; twelve lone `mod.rs`. | `ea7a9f8` |
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
 | S4 | `code` | L | `RESOURCES` placement differs. | `2e7f7fe` vs `cdfe190` |
 | S5 | `code` | L | Clock-solver tests in chip files, named by board. | `8ad4510` 2026-11-06 |
 | S7 | `code` | L | `Tick::free` repeats `stop`; F4 RCC matches by hand. | ADR-002 `free` (2026-11-10); `af65cad` |
-| U1 | `code` `tool` | M | Chip glue repeats across a family's dies (owner: after the generator). | `74a8dcd` |
 | U2 | `code` | M | Six RCC types identical in both RCC modules. | `af65cad`, written separately |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
 | U5 | `code` | L | `Resource::Pin` rows written 13 times. | from `2e7f7fe` |
@@ -186,10 +175,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 
 ## 4. Shipped code without hardware proof: rig work
 
-- `rig` **Medium: USB-F4-001: the F4's OTG_FS core has no evidence.** The Nucleo-F401RE
-  has no USB connector; the F407 Discovery needs a cable the rig lacks (queue 1).
-  *Spawned:* the car-rule review split the F4 core out of USB-001 (`b15b497`,
-  2026-11-13).
 - `rig` **Medium: the H753 bench reaches the Zio headers only.** UART8 TX, PA8, PA9,
   PB14, PG9 and 22 of 46 TX/RX entries are unreachable without morpho headers; UART5's
   PB13 needs SB7. Their rows are glue-checked only. *Spawned:* `55025e8` 2026-10-31,
@@ -208,10 +193,23 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   *Spawned:* `af65cad`.
 - `rig` **Low: clock checks are indirect.** `freeze`'s record, working baud rates and the
   host echo; nothing measures MCO. *Spawned:* `af65cad`.
-- `rig` **Low: die 0x413 (F405, F407) has no debugger bench.** Its glue rests on the
-  Foxeer's flashed runs (`FLSH`); the generator's glue probe needs `DBG` or better, which
-  the F407 Discovery gives once wired with a cable. Owner accepted, 2026-11-13; rig parts
-  ordered. *Spawned:* ADR-009's die axis (2026-11-13), which made the gap visible.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. *Spawned:* the
   W11 audit (`ff3af8d`, 2026-11-10).
+
+## 5. CI and merging
+
+- `tool` `owner` **Low: only "Generated glue" blocks a merge into `main`.** The owner's
+  ruleset (2026-11-15) requires that one check; "Checks without hardware",
+  "Requirements", the five "Bench crate" jobs and "Publication security" run on every
+  pull request but only report, so a red one does not stop a merge. Fix: add them to
+  the ruleset's required checks (with GitHub Actions as their source), and consider
+  "Require branches to be up to date before merging", so the checks see the code as it
+  lands. *Spawned:* the owner's choice of one required check for now (2026-11-15).
+- `tool` **Low: a required check that runs on pull requests only blocks direct pushes to
+  `main`.** "Generated glue" runs on pull requests into `main` (ADR-008), so a direct push
+  never gets its result and the ruleset refuses it; changes reach `main` by pull request
+  alone. Fine while the owner merges by pull request; a hotfix pushed straight to `main`
+  would need the ruleset's bypass list. *Spawned:* the ruleset of 2026-11-15 with the
+  gate's pull-request-only trigger.
+

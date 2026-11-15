@@ -51,5 +51,5 @@ DEALINGS IN THE SOFTWARE.
 
 ## Data sources, not code
 
-- **Routing tables:** the glue's routing facts in `src/chips/*.rs` (pins, alternate functions, DMA requests, RCC bits) come from stm32-metapac 21.0.0's metadata (MIT OR Apache-2.0). `tools/check_glue.py` checks them against it.
+- **Routing tables:** the glue's routing facts in `src/chips/gen/*.rs` (pins, alternate functions, DMA requests, RCC bits) are generated from stm32-metapac 21.0.0's metadata (MIT OR Apache-2.0) by `tools/glue-gen` into `src/chips/gen/`.
 - **Limits and sequences:** clock limits, register sequences and errata workarounds come from ST's reference manuals, datasheets and errata sheets, which are cited where they're used.

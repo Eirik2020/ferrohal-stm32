@@ -20,7 +20,8 @@ emits: [maturity.md](maturity.md).
 - **[Decided]** The device layer exists now, thin, and is pruned if it stays redundant:
   F405 vs F407 and H743 vs H753 differ only in peripherals FerroHAL has no driver for.
 - **[Decided]** A package is the bonded-pin set; `Port::split` follows it, so an unbonded
-  pin cannot be named.
+  pin cannot be named. Built 2026-11-14 (owner chose the shape): the glue emits one parts
+  type per bonded port, a field per bonded pin, behind a sealed `gpio::Split`.
 - Die IDs: F401xD/E 0x433, F405/F407/F415/F417 0x413, H742/H743/H750/H753 0x450.
 - **[Measured 2026-11-13, metapac 21]** What the die fixes and parts agree on: each
   peripheral's address, IP and register block, RCC fields, a pin's alternate function for
@@ -44,13 +45,29 @@ emits: [maturity.md](maturity.md).
   prints them.
 - **[Decided]** A part registry in the generator lists the supported parts, each with its
   die and device. Adding a part: a registry row, then regenerate.
-- **[Decided]** Offering policy is data in the generator: which DMA controllers routes may
-  use (DMA1, DMA2, DMAMUX1; not BDMA), which instances FerroHAL drives (ADC1 and ADC3 on
-  the H7, SDMMC1), which IP versions have a driver.
-- **[Decided]** Output is checked in: `src/chips/gen/die_*.rs`, `package_*.rs`,
-  `<part>.rs`, each headed with the metapac version and "generated, do not edit".
-- **[Decided]** It runs on demand, and as a required check on pull requests into `main`
-  (regenerate, fail on any difference). It does not run on development-branch pushes.
+- **[Decided]** Offering policy is data in the generator (`tools/glue-gen/src/emit.rs`):
+  which DMA controllers routes may use (DMA1, DMA2, DMAMUX1; not BDMA), which IP versions
+  have a driver, and the instances left out, each with its reason.
+- **[Decided 2026-11-14, owner]** The glue offers everything the silicon has for every IP
+  version FerroHAL drives: each instance, pin row and DMA route metapac lists. Left out:
+  an instance a driver cannot open without disturbing another (the F4's ADC2 and ADC3,
+  reset only by ADC1's ADCRST; the H7's ADC2, sharing ADC12EN; the ADC driver resets on
+  open), a block the driver does not carry (LPUART1), and USB_OTG_HS and the F4's SDIO,
+  which have no driver.
+- **[Decided, amended 2026-11-14]** Output is checked in, rustfmt'd: one module per part,
+  `src/chips/gen/<part>.rs`, headed with the metapac version and "do not edit", which the
+  part's chip module mounts beside its hand facts. It is the die table cut to the part's
+  device and package; separate die and package files were planned, but Rust builds one
+  part at a time, so they would only add a second cut. A die's hand facts are one module
+  its parts share (`shared/die_0x413.rs`; the H7's are `shared/h7.rs`).
+- **[Measured 2026-11-14]** The migration comparison: every hand-written routing row of the
+  four proven parts is generated, none differs; the additions are the policy above (H7
+  SDMMC2 and SPI6, the basic timers' update DMA) and two tokens the H753's hand list
+  missed (DFSDM1, SWPMI1).
+- **[Decided, built 2026-11-15]** It runs on demand, and as a check on pull requests into `main`
+  (`tools/glue-gate.sh`, CI's "Generated glue" job: regenerate, fail on any difference). It
+  does not run on development-branch pushes. Making it required is the owner's branch
+  protection setting.
 
 ## Generated documentation
 
@@ -80,9 +97,18 @@ emits: [maturity.md](maturity.md).
   its package bonds; a metadata kind it does not know fails loudly.
 - **[Decided]** Migration, once: the generated glue compared row by row with the hand glue
   it replaces, which the benches proved; each difference explained before the swap.
-- **[Decided]** A glue probe run per die, on target, debugger only (tier `DBG` or better):
-  `DEV_ID` against the die table; each peripheral enabled by its generated RCC bit, a
-  scratch register written and read back, reset by its reset bit to its reset value;
-  each generated vector pended and seen in the bench's handler; each pin's mode and
-  alternate function set and read back. Signal-level proof stays with the bench runs.
-- **[Decided]** `tools/check_glue.py` retires once the generator is merged into `main`.
+- **[Decided, built 2026-11-14]** A glue probe per die, from the host through the
+  debugger, the core reset and halted, no firmware (owner chose the host side):
+  `glue-gen probe part <part>` with `PROBE_RS_PROBE` set, a `probe` run on each debugger
+  bench's script. `DEV_ID` against the die table; for each offered peripheral and bonded
+  port, a scratch register (one per IP version, found by name in metapac's register map)
+  ignores a write with its RCC enable bit clear, keeps it once set, and returns to its
+  earlier value when its reset bit is pulsed; each vector the offered peripherals and DMA
+  streams raise pends and clears in the NVIC, so its number exists. Measured: 87 checks on
+  die 0x433, 116 on 0x413, 154 on 0x450, all pass. Not probed, by design: a pin's
+  alternate function, which AFR accepts on any pin with any value, and a vector being
+  raised by its peripheral; the bench runs prove both on the wire.
+- **[Decided, done 2026-11-15]** `tools/check_glue.py` is retired: `tools/glue-gate.sh`, the merge gate, regenerates
+  every part's glue and the CHIPS.md tables and fails on any difference, and the glue
+  probe checks the facts on the silicon. The generated `BONDED` tables went with it; the
+  per-port parts carry the package.

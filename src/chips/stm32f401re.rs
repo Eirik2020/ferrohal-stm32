@@ -1,9 +1,9 @@
 //! STM32F401RE glue: the chip facts the IP modules leave out.
 //!
-//! Every routing fact here (RCC bits, pin alternate functions, DMA request
-//! channels) was read from stm32-metapac 21.0.0's metadata for this chip.
-//! They are hand-written for now, in the trait shapes a generator would
-//! emit from that metadata later.
+//! The routing facts (RCC bits, vectors, pin alternate functions, DMA
+//! request channels) are generated from stm32-metapac's metadata into
+//! `gen/stm32f401re.rs` by `tools/glue-gen`; this file holds the facts metapac
+//! does not carry, each citing its manual.
 //!
 //! Requirements: GLUE-001, GLUE-002
 
@@ -27,6 +27,34 @@ use crate::{
 #[path = "shared/macros.rs"]
 #[macro_use]
 mod macros;
+
+#[path = "shared/f4_macros.rs"]
+#[macro_use]
+mod family;
+
+/// Which ADC carries the temperature sensor and VREFINT channels.
+macro_rules! internal_adc {
+    (ADC1) => {
+        true
+    };
+    ($other:ident) => {
+        false
+    };
+}
+
+/// The full-speed USB port's core (full-speed only), its FIFO RAM in words and
+/// its endpoints: facts metapac does not carry.
+#[cfg(feature = "usb")]
+pub(crate) const USB_FS_HS_CORE: bool = false;
+#[cfg(feature = "usb")]
+pub(crate) const USB_FS_FIFO_WORDS: usize = 320;
+#[cfg(feature = "usb")]
+pub(crate) const USB_FS_ENDPOINTS: usize = 4;
+
+// The routing rows, generated from stm32-metapac's metadata.
+#[path = "gen/stm32f401re.rs"]
+mod generated;
+pub use generated::*;
 
 /// The chip's 96 KiB of SRAM (RM0368 section 2.3), all of it on the DMA's
 /// bus matrix.
@@ -62,200 +90,6 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
     vos: pac::pwr::vals::Vos::SCALE2,
 };
 
-tokens!(
-    USART1,
-    USART2,
-    USART6,
-    TIM1,
-    TIM2,
-    TIM3,
-    TIM4,
-    TIM5,
-    TIM9,
-    TIM10,
-    TIM11,
-    SPI1,
-    SPI2,
-    SPI3,
-    I2C1,
-    I2C2,
-    I2C3,
-    ADC1,
-    ADC1_COMMON,
-    SDIO,
-    SYSCFG,
-    EXTI,
-    CRC,
-    RTC,
-    IWDG,
-    WWDG,
-    USB_OTG_FS,
-    DBGMCU,
-    UID,
-);
-
-peripherals!(
-    "Not here: FLASH and PWR, which RCC's `freeze` owns for the flash latency and the voltage scale.";
-    RCC: RCC,
-    GPIOA: Port<'A'>,
-    GPIOB: Port<'B'>,
-    GPIOC: Port<'C'>,
-    GPIOD: Port<'D'>,
-    GPIOH: Port<'H'>,
-    DMA1: Dma<1>,
-    DMA2: Dma<2>,
-    USART1: USART1,
-    USART2: USART2,
-    USART6: USART6,
-    TIM1: TIM1,
-    TIM2: TIM2,
-    TIM3: TIM3,
-    TIM4: TIM4,
-    TIM5: TIM5,
-    TIM9: TIM9,
-    TIM10: TIM10,
-    TIM11: TIM11,
-    SPI1: SPI1,
-    SPI2: SPI2,
-    SPI3: SPI3,
-    I2C1: I2C1,
-    I2C2: I2C2,
-    I2C3: I2C3,
-    ADC1: ADC1,
-    ADC1_COMMON: ADC1_COMMON,
-    SDIO: SDIO,
-    SYSCFG: SYSCFG,
-    EXTI: EXTI,
-    CRC: CRC,
-    RTC: RTC,
-    IWDG: IWDG,
-    WWDG: WWDG,
-    USB_OTG_FS: USB_OTG_FS,
-    DBGMCU: DBGMCU,
-    UID: UID,
-);
-
-// GPIO ports and DMA controllers, with their AHB1ENR bits. Only the
-// bonded ports are declared: the LQFP64 bonds A to C, PD2 and PH0/PH1 (see
-// `BONDED`).
-
-macro_rules! ports {
-    ($($letter:literal => $regs:ident, $bit:literal;)+) => {
-        $(
-            impl crate::Sealed for Port<$letter> {}
-
-            impl crate::gpio::PortRegisters for Port<$letter> {
-                fn regs() -> pac::gpio::Gpio {
-                    pac::$regs
-                }
-            }
-
-            impl PortInstance for Port<$letter> {
-                const ENABLE: RccBit = RccBit::new(Bus::Ahb1, $bit);
-            }
-        )+
-    };
-}
-
-ports!(
-    'A' => GPIOA, 0;
-    'B' => GPIOB, 1;
-    'C' => GPIOC, 2;
-    'D' => GPIOD, 3;
-    'H' => GPIOH, 7;
-);
-
-/// The LQFP64 package's bonded pins, as (port, pin mask): ports A to C, PD2
-/// and PH0/PH1, and not PB11 (DS10086's pin table). `tools/check_glue.py`
-/// reads this: a routing row on any other pin fails, and a bonded pin with no
-/// row is reported, not failed.
-#[allow(dead_code)] // Read by tools/check_glue.py.
-pub(crate) const BONDED: &[(char, u16)] = &[
-    ('A', 0xffff),
-    ('B', 0xf7ff), // PB11 is not bonded.
-    ('C', 0xffff),
-    ('D', 0x0004), // PD2
-    ('H', 0x0003), // PH0, PH1
-];
-
-impl crate::Sealed for Dma<1> {}
-impl crate::dma::DmaRegisters for Dma<1> {
-    fn regs() -> pac::dma::Dma {
-        pac::DMA1
-    }
-}
-impl DmaInstance for Dma<1> {
-    const ENABLE: RccBit = RccBit::new(Bus::Ahb1, 21);
-}
-
-impl crate::Sealed for Dma<2> {}
-impl crate::dma::DmaRegisters for Dma<2> {
-    fn regs() -> pac::dma::Dma {
-        pac::DMA2
-    }
-}
-impl DmaInstance for Dma<2> {
-    const ENABLE: RccBit = RccBit::new(Bus::Ahb1, 22);
-}
-
-// USART instances. The bus is also the kernel clock: USART1 and USART6 run
-// from PCLK2, USART2 from PCLK1.
-
-macro_rules! usarts {
-    ($($name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
-        $(
-            static $info: Info = Info::new(LineRegs::new(pac::$name));
-
-            impl crate::uart::Instance for $name {
-                const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);
-                const NAME: &'static str = stringify!($name);
-                const ENABLE: RccBit = RccBit::new(Bus::$bus, $bit);
-                const INTERRUPT: Interrupt = Interrupt::$name;
-                const INTERRUPT_NAME: &'static str = stringify!($name);
-                fn info() -> &'static Info {
-                    &$info
-                }
-            }
-        )+
-    };
-}
-
-usarts!(
-    USART1 => USART1_INFO, Apb2, 4;
-    USART2 => USART2_INFO, Apb1, 17;
-    USART6 => USART6_INFO, Apb2, 5;
-);
-
-// Pins: (port, pin, alternate function).
-
-pins!(TxPin<USART1>: ('A', 9, 7), ('B', 6, 7));
-pins!(RxPin<USART1>: ('A', 10, 7), ('B', 7, 7));
-pins!(TxPin<USART2>: ('A', 2, 7));
-pins!(RxPin<USART2>: ('A', 3, 7));
-pins!(TxPin<USART6>: ('A', 11, 8), ('C', 6, 8));
-pins!(RxPin<USART6>: ('A', 12, 8), ('C', 7, 8));
-
-// DMA: (controller, stream, request channel).
-
-macro_rules! dma {
-    ($trait:ident<$usart:ident>: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
-        $(
-            // SAFETY: RM0368 table 28 and 29 (DMA1 and DMA2 request
-            // mapping), matching stm32-metapac 21's metadata.
-            unsafe impl $trait<$usart> for Stream<$dma, $stream> {
-                const REQUEST: u8 = $request;
-            }
-        )+
-    };
-}
-
-dma!(TxDma<USART1>: (2, 7, 4));
-dma!(RxDma<USART1>: (2, 2, 4), (2, 5, 4));
-dma!(TxDma<USART2>: (1, 6, 4));
-dma!(RxDma<USART2>: (1, 5, 4));
-dma!(TxDma<USART6>: (2, 6, 5), (2, 7, 5));
-dma!(RxDma<USART6>: (2, 1, 5), (2, 2, 5));
-
 /// The independent watchdog's token and registers.
 pub type WatchdogPeripheral = IWDG;
 
@@ -280,16 +114,7 @@ pub(crate) fn watchdog_frozen() -> bool {
 timer_trigger!(TIM3: TIM1, 0);
 timer_trigger!(TIM2: TIM3, 2);
 
-// The ADC. ADC2 and ADC3 aren't offered. The calibration values are the
-// datasheets' (DS8626 and DS10086), taken at 3.3 V and 12 bits.
-
-adcs!(
-    ADC1 => ADC1_COMMON, Apb2, 8, true;
-);
 adc_internal!(ADC1: 18, 17);
-adc_pins!(ADC1: ('A', 0, 0), ('A', 1, 1), ('A', 2, 2), ('A', 3, 3), ('A', 4, 4), ('A', 5, 5), ('A', 6, 6), ('A', 7, 7),
-    ('B', 0, 8), ('B', 1, 9), ('C', 0, 10), ('C', 1, 11), ('C', 2, 12), ('C', 3, 13), ('C', 4, 14), ('C', 5, 15));
-adc_dma!(ADC1: (2, 0, 0), (2, 4, 0));
 
 pub(crate) const VREFIN_CAL: *const u16 = 0x1FFF_7A2A as *const u16;
 pub(crate) const TS_CAL1: *const u16 = 0x1FFF_7A2C as *const u16;
@@ -311,151 +136,10 @@ pub(crate) fn map_system_memory() {
 /// SYSCFG's clock enable, which EXTI's port selection (EXTICR) needs.
 pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb2, 14);
 
-// SPI instances: (bus, enable bit, kernel clock). The kernel clock is the
-// bus clock.
-
-spis!(
-    SPI1 => SPI1_INFO, Apb2, 12, Apb2;
-    SPI2 => SPI2_INFO, Apb1, 14, Apb1;
-    SPI3 => SPI3_INFO, Apb1, 15, Apb1;
-);
-
-pins!(SckPin<SPI1>: ('A', 5, 5), ('B', 3, 5));
-pins!(MisoPin<SPI1>: ('A', 6, 5), ('B', 4, 5));
-pins!(MosiPin<SPI1>: ('A', 7, 5), ('B', 5, 5));
-pins!(SckPin<SPI2>: ('B', 10, 5), ('B', 13, 5));
-pins!(MisoPin<SPI2>: ('B', 14, 5), ('C', 2, 5));
-pins!(MosiPin<SPI2>: ('B', 15, 5), ('C', 3, 5));
-pins!(SckPin<SPI3>: ('B', 3, 6), ('C', 10, 6));
-pins!(MisoPin<SPI3>: ('B', 4, 6), ('C', 11, 6));
-pins!(MosiPin<SPI3>: ('B', 5, 6), ('C', 12, 6));
-
-dma!(SpiTxDma<SPI1>: (2, 3, 3), (2, 5, 3));
-dma!(SpiRxDma<SPI1>: (2, 0, 3), (2, 2, 3));
-dma!(SpiTxDma<SPI2>: (1, 4, 0));
-dma!(SpiRxDma<SPI2>: (1, 3, 0));
-dma!(SpiTxDma<SPI3>: (1, 5, 0), (1, 7, 0));
-dma!(SpiRxDma<SPI3>: (1, 0, 0), (1, 2, 0));
-
-// I2C instances: (bus, enable bit). The kernel clock is PCLK1, the bus
-// clock, with no mux to set. The SMBus SMBA pins (PB5, PB12, PA9) are not
-// routed: the driver carries I2C alone.
-
-i2cs!(
-    I2C1 => I2C1_INFO, Apb1, 21;
-    I2C2 => I2C2_INFO, Apb1, 22;
-    I2C3 => I2C3_INFO, Apb1, 23;
-);
-
-pins!(SclPin<I2C1>: ('B', 6, 4), ('B', 8, 4));
-pins!(SdaPin<I2C1>: ('B', 7, 4), ('B', 9, 4));
-pins!(SclPin<I2C2>: ('B', 10, 4));
-pins!(SdaPin<I2C2>: ('B', 3, 9));
-pins!(SclPin<I2C3>: ('A', 8, 4));
-pins!(SdaPin<I2C3>: ('B', 4, 9), ('C', 9, 4));
-
-// Timers: (bus, enable bit, update vector, counter bits). Each counts at its
-// bus's timer clock.
-
-timers!(
-    TIM1 => Apb2, 0, TIM1_UP_TIM10, 16;
-    TIM2 => Apb1, 0, TIM2, 32;
-    TIM3 => Apb1, 1, TIM3, 16;
-    TIM4 => Apb1, 2, TIM4, 16;
-    TIM5 => Apb1, 3, TIM5, 32;
-    TIM9 => Apb2, 16, TIM1_BRK_TIM9, 16;
-    TIM10 => Apb2, 17, TIM1_UP_TIM10, 16;
-    TIM11 => Apb2, 18, TIM1_TRG_COM_TIM11, 16;
-);
-
-// Timer channels: (channels, plain or break unit), their pins, and their
-// compare (CHx) and update (UP) DMA requests. Where a stream serves a signal
-// on two channels, the one dedicated to that signal is kept (TIM1 CH3 on
-// DMA2 stream 6: channel 6, not channel 0, which TIM1 CH1 to CH3 share).
-
-channel_timers!(
-    TIM1 => 4, break;
-    TIM2 => 4, plain;
-    TIM3 => 4, plain;
-    TIM4 => 4, plain;
-    TIM5 => 4, plain;
-    TIM9 => 2, plain;
-    TIM10 => 1, plain;
-    TIM11 => 1, plain;
-);
-
-timer_pins!(TIM1 CH1: ('A', 8, 1));
-timer_pins!(TIM1 CH1N: ('A', 7, 1), ('B', 13, 1));
-timer_pins!(TIM1 CH2: ('A', 9, 1));
-timer_pins!(TIM1 CH2N: ('B', 0, 1), ('B', 14, 1));
-timer_pins!(TIM1 CH3: ('A', 10, 1));
-timer_pins!(TIM1 CH3N: ('B', 1, 1), ('B', 15, 1));
-timer_pins!(TIM1 CH4: ('A', 11, 1));
-timer_pins!(TIM2 CH1: ('A', 0, 1), ('A', 5, 1), ('A', 15, 1));
-timer_pins!(TIM2 CH2: ('A', 1, 1), ('B', 3, 1));
-timer_pins!(TIM2 CH3: ('A', 2, 1), ('B', 10, 1));
-timer_pins!(TIM2 CH4: ('A', 3, 1));
-timer_pins!(TIM3 CH1: ('A', 6, 2), ('B', 4, 2), ('C', 6, 2));
-timer_pins!(TIM3 CH2: ('A', 7, 2), ('B', 5, 2), ('C', 7, 2));
-timer_pins!(TIM3 CH3: ('B', 0, 2), ('C', 8, 2));
-timer_pins!(TIM3 CH4: ('B', 1, 2), ('C', 9, 2));
-timer_pins!(TIM4 CH1: ('B', 6, 2));
-timer_pins!(TIM4 CH2: ('B', 7, 2));
-timer_pins!(TIM4 CH3: ('B', 8, 2));
-timer_pins!(TIM4 CH4: ('B', 9, 2));
-timer_pins!(TIM5 CH1: ('A', 0, 2));
-timer_pins!(TIM5 CH2: ('A', 1, 2));
-timer_pins!(TIM5 CH3: ('A', 2, 2));
-timer_pins!(TIM5 CH4: ('A', 3, 2));
-timer_pins!(TIM9 CH1: ('A', 2, 3));
-timer_pins!(TIM9 CH2: ('A', 3, 3));
-timer_pins!(TIM10 CH1: ('B', 8, 3));
-timer_pins!(TIM11 CH1: ('B', 9, 3));
-
-timer_dma!(TIM1 CH1: (2, 1, 6), (2, 3, 6), (2, 6, 0));
-timer_dma!(TIM1 CH2: (2, 2, 6), (2, 6, 0));
-timer_dma!(TIM1 CH3: (2, 6, 6));
-timer_dma!(TIM1 CH4: (2, 4, 6));
-timer_dma!(TIM1 UP: (2, 5, 6));
-timer_dma!(TIM2 CH1: (1, 5, 3));
-timer_dma!(TIM2 CH2: (1, 6, 3));
-timer_dma!(TIM2 CH3: (1, 1, 3));
-timer_dma!(TIM2 CH4: (1, 6, 3), (1, 7, 3));
-timer_dma!(TIM2 UP: (1, 1, 3), (1, 7, 3));
-timer_dma!(TIM3 CH1: (1, 4, 5));
-timer_dma!(TIM3 CH2: (1, 5, 5));
-timer_dma!(TIM3 CH3: (1, 7, 5));
-timer_dma!(TIM3 CH4: (1, 2, 5));
-timer_dma!(TIM3 UP: (1, 2, 5));
-timer_dma!(TIM4 CH1: (1, 0, 2));
-timer_dma!(TIM4 CH2: (1, 3, 2));
-timer_dma!(TIM4 CH3: (1, 7, 2));
-timer_dma!(TIM4 UP: (1, 6, 2));
-timer_dma!(TIM5 CH1: (1, 2, 6));
-timer_dma!(TIM5 CH2: (1, 4, 6));
-timer_dma!(TIM5 CH3: (1, 0, 6));
-timer_dma!(TIM5 CH4: (1, 1, 6), (1, 3, 6));
-timer_dma!(TIM5 UP: (1, 0, 6), (1, 6, 6));
-
 // Only DMA2's peripheral port reaches the GPIO ports; DMA1's reaches APB1
 // alone (RM0368 figure 1).
 gpio_dma!(
     2: [0, 1, 2, 3, 4, 5, 6, 7];
-);
-
-// The full-speed USB port.
-
-usb_fs!(
-    USB_OTG_FS => Ahb2, 7, OTG_FS, 320, 4, fs_core;
-);
-
-// The vector each DMA stream raises.
-
-stream_interrupts!(
-    1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3,
-        4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
-    2: [0 => DMA2_STREAM0, 1 => DMA2_STREAM1, 2 => DMA2_STREAM2, 3 => DMA2_STREAM3,
-        4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
 );
 
 /// The die revision code, `DBGMCU_IDCODE.REV_ID` (bits 31:16) on RM0368.
