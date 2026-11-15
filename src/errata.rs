@@ -167,7 +167,7 @@ pub(crate) fn render(sheet: &Sheet, errata: &[Erratum]) -> std::string::String {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     const SHEET: Sheet = Sheet {
@@ -239,15 +239,13 @@ mod tests {
         }
     }
 
-    /// The chip's table is its documentation, and the source cites only
-    /// reviewed entries and every workaround (ADR-010).
-    /// `FERROHAL_BLESS_ERRATA=1` rewrites `docs/errata/<sheet>.md`.
-    #[test]
-    fn the_chip_table_matches_its_documentation_and_the_source() {
+    /// What keeps a chip's table from matching its documentation, and the
+    /// source's citations from matching the table (GLUE-009). The table's
+    /// own test calls it. `FERROHAL_BLESS_ERRATA=1` rewrites
+    /// `docs/errata/<sheet>.md`.
+    pub(crate) fn check_table(sheet: &Sheet, errata: &[Erratum]) {
         use std::{string::String, vec::Vec};
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let sheet = &crate::chip::ERRATA_SHEET;
-        let errata = crate::chip::ERRATA;
         let mut problems: Vec<String> = Vec::new();
 
         let path = root.join(std::format!("docs/errata/{}.md", sheet.name));

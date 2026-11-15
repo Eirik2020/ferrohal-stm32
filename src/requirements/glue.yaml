@@ -124,6 +124,10 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::errata::tests::a_known_revision_is_affected_when_listed
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::errata_table::tests::its_entries_name_the_sheet_revisions
 
   - id: GLUE-008
     title: An unknown revision takes the newest known verdict
@@ -161,4 +165,4 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::errata::tests::the_chip_table_matches_its_documentation_and_the_source
+            test: ferrohal_stm32::chip::errata_table::tests::the_table_matches_its_documentation_and_the_source

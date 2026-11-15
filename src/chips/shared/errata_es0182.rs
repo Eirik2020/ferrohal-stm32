@@ -132,3 +132,33 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.16.11", "MAC may not drop received giant error frames", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, Unreviewed, []),
     erratum!("2.16.12", "Ethernet automatic pause frame functionality is not supported", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, Unreviewed, []),
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every affected code is one of the sheet's revisions (GLUE-007).
+    #[test]
+    fn its_entries_name_the_sheet_revisions() {
+        for erratum in ERRATA {
+            for code in erratum.affected {
+                assert!(
+                    ERRATA_SHEET
+                        .revisions
+                        .iter()
+                        .any(|(known, _)| known == code),
+                    "{} {}: {code:#06x} is not one of the sheet's revisions",
+                    ERRATA_SHEET.name,
+                    erratum.section
+                );
+            }
+        }
+    }
+
+    /// The table is its documentation, and the source cites only reviewed
+    /// entries and every workaround (GLUE-009).
+    #[test]
+    fn the_table_matches_its_documentation_and_the_source() {
+        crate::errata::tests::check_table(&ERRATA_SHEET, ERRATA);
+    }
+}

@@ -58,10 +58,15 @@ pub use generated::*;
 #[path = "shared/h7.rs"]
 mod h7;
 
+pub use h7::check_dma_buffer;
 pub(crate) use h7::{
     CLOCK_LIMITS, SYSTEM_MEMORY, TS_CAL1, TS_CAL2, UID_BASE, VREFIN_CAL, map_system_memory,
 };
-pub use h7::{ERRATA, ERRATA_SHEET, ES0392_2_2_10, ES0392_2_22_6, check_dma_buffer};
+
+// The die's errata (ES0392), mounted by each part of the die.
+#[path = "shared/errata_es0392.rs"]
+mod errata_table;
+pub use errata_table::*;
 
 // Timers another timer's trigger output can start.
 
