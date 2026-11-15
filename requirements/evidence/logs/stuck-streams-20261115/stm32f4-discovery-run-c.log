@@ -1,0 +1,10 @@
+   Compiling stm32f4-discovery v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/stm32f4-discovery)
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.38s
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --no-catch-reset --chip STM32F407VGTx target/thumbv7em-none-eabihf/release/run-c`
+     [38;5;10m[1mFinished[0m in 0.96s
+[INFO ] run C: asking for the ROM bootloader; the host looks for its DFU device (run_c src/bin/run_c.rs:18)
+[33m WARN[0m [2mprobe_rs::util::rtt::client[0m[2m:[0m RTT control block corrupted (write pointer is 0x40005400 while buffer size is 0x00001000 for up channel 0 (defmt)), re-attaching
+Received SIGTERM, exiting
+Exited by user request
+PASS rom: the ROM's DFU device 3677346F3235 is listed on CN5 [RESET-004]
