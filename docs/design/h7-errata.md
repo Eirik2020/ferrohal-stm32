@@ -16,6 +16,7 @@ row with its handling, generated into [`../errata/ES0392.md`](../errata/ES0392.m
 reached, since FerroHAL never uses the CRS, and 2.2.6/2.2.7 (flash ECC) are firmware rules;
 the DEBT items this review named for them no longer existed.
 
-Driver items sit where they act and cite their entry: SPI 2.22.2/5/6, SDMMC 2.8.4. USART
-2.20.4, DMAMUX 2.5.4 and ADC 2.9.8 were listed here but cited nowhere; they are unreviewed
-in the table (DEBT.md).
+Driver items sit where they act and cite their entry: SPI 2.22.2/5/6, SDMMC 2.8.4, USART
+2.20.4 (TRBUFF on the U(S)ART streams). The rest of the sheet was reviewed row by row on
+2026-11-17: DMAMUX 2.5.4 is avoided (SE and SPOL stay 0), ADC 2.9.8 is a rev-Y/W firmware
+rule, and I2C 2.19.3/4/5, TIM 2.16.2 and OTG 2.25.7 are open in DEBT.md.
