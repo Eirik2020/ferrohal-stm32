@@ -55,6 +55,15 @@ Which IP versions each series carries, as metapac measured them:
   (`iwdg.rs` as `iwdg_v1`/`iwdg_v2`, `exti.rs`, `dma_stream.rs`), and the timer split
   by function, not version (`timer.rs`, `timer_pwm.rs`, `timer_awg.rs`, as
   `timer_v1`/`timer_v3`). Each is two IP versions, so each needs a chip per version.
+  This list is complete: these four are every `#[path]` alias in `src/lib.rs` and
+  `src/timer.rs` (the chip files' `#[path]`s pull in glue, not drivers). ADR-003 rule 4
+  named only the first and the timer; the 2026-11-13 debt sweep counted five. Both
+  counts are superseded by this one (API review K4, 2026-11-17).
+- **[Decided]** Not an exception: a neutral module's engine serving every IP version
+  through that version's register wrapper (`Unit`; the UART's `LineRegs`, N7)
+  (`uart/stream_dma.rs`, `spi/stream_dma.rs`,
+  `spi/polled.rs`, `i2c/mod.rs`, `adc/mod.rs`). That is the neutral-module pattern
+  itself, so these are never counted as shared sources.
 
 ## Vocabulary
 

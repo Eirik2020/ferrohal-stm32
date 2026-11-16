@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review K4: one list of shared sources** (2026-11-17). ADR-003 rule 4 named two,
+  the 2026-11-13 debt sweep five, and the review's own test nine. `design/naming.md` now
+  holds the one list, the four `#[path]` aliases (`iwdg.rs`, `exti.rs`,
+  `dma_stream.rs`, the timer split), says it is complete, and says why the neutral
+  engines serving each IP version through its register wrapper are not exceptions.
+
 - **API review K1: the bootloader jump is a recorded exception** (2026-11-17).
   `reset::enter_bootloader_if_requested` masks interrupts, clears SysTick and every NVIC
   line, moves VTOR and, on the F4, writes RCC and SYSCFG without their owners: against
