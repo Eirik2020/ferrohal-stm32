@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 322287
+  "bytes": 322769
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 14371
+   "bytes": 14498
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -269,7 +269,7 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 4493
+   "bytes": 4679
   },
   {
    "path": "docs/design/requirements-tooling.md",
@@ -465,7 +465,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9056
+   "bytes": 9070
   },
   {
    "path": "hil/COVERAGE.md",
@@ -521,7 +521,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 18973
+   "bytes": 19128
   },
   {
    "path": "requirements/goals.md",
