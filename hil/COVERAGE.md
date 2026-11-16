@@ -34,7 +34,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `iwdg_v1` | HIL | nucleo-f401re-loopback |
 | IP `iwdg_v2` | HIL | nucleo-h753zi-loopback |
 | IP `otg_v1` | HIL | nucleo-h753zi-loopback, stm32f4-discovery |
-| IP `sdmmc_v2` | – |  |
+| IP `sdmmc_v2` | – | lucid-h7 |
 | IP `spi_v2_i2s` | HIL | nucleo-f401re-loopback |
 | IP `spi_v4_i2s` | HIL | nucleo-h753zi-loopback |
 | IP `timer_v1` | HIL | nucleo-f401re-loopback, stm32f4-discovery |
@@ -71,7 +71,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | `adc_v4` | H743, H753 | H753: O | Lucid: battery inputs | – |
 | `rcc_f4` | F401, F405 | F401: every run, HSE bypass | Foxeer: HSE crystal to 168 MHz | HSE crystal |
 | `rcc_h7_rm0433` | H743, H753 | H753: every run, HSE bypass; I (voltage scale) | Lucid: HSE crystal to 400 MHz | HSE crystal |
-| `sdmmc_v2` | H743, H753 | – | Lucid: a card, the empty slot | SDMMC-003, SDMMC-004, error paths |
+| `sdmmc_v2` | H743, H753 | – | Lucid: a card (SDMMC-004), the empty slot (SDMMC-003) | error paths; SDMMC-003 not yet recorded |
 | USB, F4 OTG_FS core | F401, F405 | – | Foxeer: CDC echo | USB-F4-001 |
 | USB, H7 OTG core at FS | H743, H753 | H753: M (CN13) | Lucid: CDC echo | – |
 
