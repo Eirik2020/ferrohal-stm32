@@ -42,6 +42,10 @@ Discovery; reqtool 127 of 128 verified, 0 stale (SDMMC-003 waits on an empty-slo
 
 ## 1. Library code
 
+- `code` `api` **Low: the ADC's `Unit::new` is public.** `adc_v2` and `adc_v4` build a
+  unit from raw registers for the chip glue, where I2C's and SPI's are `pub(crate)`.
+  `checks/no-panic/uncalled.txt` lists both until they match. *Spawned:* the no-panic
+  coverage check (2026-11-16).
 - `code` `api` **Medium: an I2C wiring accepts a push-pull pin.** Both `into_alternate`
   forms return one type ([gpio_v2](../src/gpio_v2/mod.rs)), and push-pull NACKs every
   transfer. Fix: an open-drain type state. *Spawned:* GPIO's single alternate type
@@ -155,9 +159,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   *Spawned:* `d773b34` recorded the decision and deferred the move.
 - `bench` **Low: a Foxeer smoke image that fails before USB says nothing.** It restarts
   into DFU. *Spawned:* `926b210` 2026-11-02, a bench that reports over USB only.
-- `tool` **Low: the no-panic check proves only the paths it calls.** Nothing checks that
-  every public function is in `checks/no-panic`. *Spawned:* `af65cad`, a hand-written
-  call list.
 
 ## 4. Shipped code without hardware proof: rig work
 

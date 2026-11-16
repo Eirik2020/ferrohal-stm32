@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 322769
+  "bytes": 324023
  },
  "documents": [
   {
@@ -32,14 +32,14 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 11254
+   "bytes": 11248
   },
   {
    "path": "docs/DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 14498
+   "bytes": 14613
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 20785
+   "bytes": 21583
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -472,7 +472,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6379
+   "bytes": 6417
   },
   {
    "path": "hil/RIG.md",
@@ -500,7 +500,7 @@
    "class": "human",
    "title": "Bench Procedures: the host analyses",
    "purpose": "The checks of benches.mdbenches.md that run o",
-   "bytes": 1352
+   "bytes": 1661
   },
   {
    "path": "requirements/benches-faults.md",

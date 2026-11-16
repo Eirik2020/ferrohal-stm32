@@ -4,6 +4,17 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The no-panic check covers every public function** (2026-11-16). It proved only the
+  paths `checks/no-panic` called, and nothing checked that list.
+  `tools/check_no_panic_coverage.py`, a `checks/run.sh` step, now requires every
+  `pub fn` reachable from outside the crate to be called there or listed in
+  `checks/no-panic/uncalled.txt` with a reason (three: the ADC's two raw `Unit::new`
+  and the fault-injection hook). It works from the source text on stable Rust (the
+  owner's choice over rustdoc JSON on nightly), so a method counts by its name. It found
+  27 uncalled; the 24 now called (clock solving, I2C timing, errata, the ADC's
+  calibration maths, `set_frequency`, `complementary`, `Awg::linked` and
+  `independent`, `set_rate` among them) link on every chip with no panic path.
+
 - **The clock trees are measured against the host** (2026-11-15). H753 run M and
   Discovery run B count CPU cycles over 1000 USB start-of-frames, a clock independent of
   the board. Discovery: 168.037 MHz (220 ppm). H753 from HSE: 398.3 to 398.5 MHz, because

@@ -51,6 +51,7 @@ fn main() -> ! {
         park()
     };
     keep(rcc.clocks());
+    exercise_pure();
     // The fugit conversions.
     let rate = fugit::HertzU32::from(black_box(rcc.clocks()).hclk);
     keep(ferrohal_stm32::time::Hertz::from(black_box(rate)));
@@ -201,7 +202,14 @@ fn main() -> ! {
     // The DMA API, on a stream the UART does not use.
     let mut channel = spare.take_channel();
     keep(channel.flags());
+    keep(channel.flags().any_error());
     channel.clear_flags(black_box(Flags::ALL));
+    channel.set_interrupts(black_box(ferrohal_stm32::dma::Interrupts {
+        complete: true,
+        half: false,
+        error: true,
+        fifo_error: true,
+    }));
     keep(channel.remaining());
     keep(channel.is_running());
     keep(channel.current_target());
@@ -218,6 +226,55 @@ fn main() -> ! {
     keep(rx_only.free(rx_line));
     keep(i2c.free());
     park()
+}
+
+/// The pure functions and accessors: clock solving and checking, I2C timing,
+/// the errata table, and the ADC's conversions from factory calibration.
+fn exercise_pure() {
+    use ferrohal_stm32::rcc::{Config, Hse, HseMode, Request};
+
+    keep(black_box(Hertz::mhz(8)).to_hz());
+    let hse = Hse {
+        freq: black_box(Hertz::mhz(8)),
+        mode: black_box(HseMode::Bypass),
+    };
+    #[cfg(not(any(feature = "stm32h743vi", feature = "stm32h753zi")))]
+    let request = Request {
+        hse,
+        sysclk: black_box(Hertz::mhz(84)),
+        usb: black_box(Some(Hertz::mhz(48))),
+    };
+    #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
+    let request = Request {
+        hse,
+        sysclk: black_box(Hertz::mhz(400)),
+        q: black_box(Some(Hertz::mhz(100))),
+    };
+    if let Ok(config) = Config::solve(request) {
+        keep(black_box(config).validate());
+    }
+    #[cfg(not(any(feature = "stm32h743vi", feature = "stm32h753zi")))]
+    keep(black_box(Config::hsi()).validate());
+
+    #[cfg(not(any(feature = "stm32h743vi", feature = "stm32h753zi")))]
+    use ferrohal_stm32::i2c_v1 as i2c_ip;
+    #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
+    use ferrohal_stm32::i2c_v2 as i2c_ip;
+    if let Ok(timing) = i2c_ip::Unit::timing(black_box(Hertz::mhz(42)), black_box(Hertz::khz(400)))
+    {
+        keep(timing.speed());
+    }
+
+    for erratum in ferrohal_stm32::chip::ERRATA {
+        keep(erratum.affects(black_box(0x2003)));
+        keep(erratum.id());
+    }
+    keep(ferrohal_stm32::signature::revision());
+    keep(ferrohal_stm32::adc::vdda_from_vrefint(black_box(1500)));
+    keep(ferrohal_stm32::adc::temperature_from_samples(
+        black_box(900),
+        black_box(3300),
+    ));
 }
 
 fn exercise_uart<U: ferrohal_stm32::uart::UartParts>(uart: &mut Uart<U>) {
@@ -323,8 +380,8 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
     let mut tick = match Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
         Ok(tick) => tick,
         Err(refused) => {
-            keep(refused.error());
-            let tick_timer = refused.into_parts();
+            let (error, tick_timer) = refused.into_inner();
+            keep(error);
             match Tick::new(rcc, tick_timer, black_box(Hertz::khz(1))) {
                 Ok(tick) => tick,
                 Err(_) => park(),
@@ -565,6 +622,10 @@ pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
     ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<B, 1>,
 {
     let mut pwm = retried_pwm(rcc, timer, Hertz::khz(1));
+    keep(pwm.set_frequency(black_box(Hertz::khz(2))));
+    // The plain complementary channel first, freed back to its pin.
+    let channel = pwm.complementary::<1, N>(pin);
+    let pin = channel.free();
     let wiring = ferrohal_stm32::timer::ComplementaryLaneWiring::<
         B,
         1,
@@ -631,6 +692,7 @@ where
     keep(sampler.samples().len());
     keep(sampler.interrupt());
     keep(sampler.verify());
+    keep(sampler.set_rate(black_box(Hertz::mhz(2))));
     sampler.stop();
     keep(sampler.free());
 }
@@ -1478,8 +1540,11 @@ pub fn exercise_adc<A, P, S>(
     P: ferrohal_stm32::adc::AdcPin<A>,
     S: ferrohal_stm32::adc::AdcDma<A>,
 {
-    use ferrohal_stm32::adc::{Adc, Config};
+    use ferrohal_stm32::adc::{Adc, AdcWiring, Config};
 
+    // The wiring as a board states it, taken apart again.
+    let wiring = AdcWiring::<A, P, S>::new(pin, stream);
+    let (pin, stream) = (wiring.pin, wiring.stream);
     let mut adc = match Adc::new(rcc, token, &Config::slow_source()) {
         Ok(adc) => adc,
         Err(refused) => {
@@ -1580,6 +1645,31 @@ where
     keep(slave.is_running());
     master.stop();
     slave.stop();
+    // The generator over both timers: linked by the trigger, then freed and
+    // built again started in software.
+    use ferrohal_stm32::timer::Awg;
+    let mut awg = match Awg::linked(master, slave, (), ()) {
+        Ok(awg) => awg,
+        Err(refused) => {
+            keep(refused.error());
+            let (master, slave, a, b) = refused.into_parts();
+            match Awg::linked(master, slave, a, b) {
+                Ok(awg) => awg,
+                Err(_) => park(),
+            }
+        }
+    };
+    keep(awg.play());
+    awg.abort();
+    let (master, Some(slave), a, b) = awg.free() else {
+        park()
+    };
+    let mut awg = match Awg::independent(master, slave, a, b) {
+        Ok(awg) => awg,
+        Err(_) => park(),
+    };
+    keep(awg.play());
+    keep(awg.free());
 }
 
 /// The SD card driver, on the chips that have it.

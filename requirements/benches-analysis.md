@@ -8,8 +8,12 @@ out to keep that file in its budget; the same rules apply.
 `checks/run.sh`'s `no reachable panic` step builds `checks/no-panic` per chip in
 release. It calls every public function with optimiser-opaque inputs, and its
 panic handler calls an undefined symbol, so the image links only if no panic
-path survives. Pass: the step passes for every chip. A new public function is
-added to that crate [API-001].
+path survives. Its `no-panic calls every public function` step
+(`tools/check_no_panic_coverage.py`) holds that claim: every `pub fn` reachable
+from outside the crate is named in that program, or listed in
+`checks/no-panic/uncalled.txt` with a reviewed reason; a method counts by its
+name, so two sharing one count together. Pass: both steps pass for every chip.
+A new public function is added to that crate [API-001].
 
 ## Chip glue against metapac
 
