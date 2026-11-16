@@ -9,10 +9,11 @@
 //!   which RM0433 requires for U(S)ART transfers.
 //!
 //! Each controller has eight streams. A stream serves one request at a
-//! time; it has a FIFO with a direct mode, double buffering, and five
-//! flags: transfer complete, half transfer, transfer error, direct-mode
-//! error and FIFO error. All of them are here, readable and clearable by
-//! the caller.
+//! time; it has a FIFO, which every transfer here bypasses in direct
+//! mode, and five flags: transfer complete, half transfer, transfer error,
+//! direct-mode error and FIFO error. All of them are here, readable and
+//! clearable by the caller. The engine's double buffering and FIFO
+//! thresholds are not: no driver used them, and nothing proved them.
 //!
 //! A controller token splits into eight stream tokens. Drivers erase a
 //! stream token into a [`Channel`], one type for every stream. Starting a
@@ -68,7 +69,7 @@ pub mod fault {
 
 use stm32_metapac::dma::{
     Dma as Regs,
-    vals::{Dir, Dmdis, Fth, Pl, Size},
+    vals::{Dir, Dmdis, Pl, Size},
 };
 
 #[cfg(feature = "dma_v1")]
@@ -354,25 +355,6 @@ impl WordSize {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum FifoMode {
-    /// Each word goes straight through. Peripheral and memory word sizes
-    /// must match.
-    Direct,
-    /// Buffered, flushed to memory at this fill level.
-    Threshold(FifoThreshold),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum FifoThreshold {
-    Quarter,
-    Half,
-    ThreeQuarters,
-    Full,
-}
-
 /// Which stream interrupts to raise. Their flags are set either way.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -400,16 +382,12 @@ pub struct Transfer {
     pub peripheral: u32,
     /// The memory buffer's address (M0AR).
     pub memory: u32,
-    /// The second buffer (M1AR), for double-buffer mode. The stream switches
-    /// buffers each time it completes one, which implies circular mode.
-    pub double_buffer: Option<u32>,
     /// Words to move, 1 to 65 535.
     pub len: u16,
     pub size: WordSize,
     pub memory_increment: bool,
     pub circular: bool,
     pub priority: Priority,
-    pub fifo: FifoMode,
     pub interrupts: Interrupts,
 }
 
@@ -426,14 +404,6 @@ pub enum StartError {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct StopTimeout;
-
-/// Which buffer a double-buffered stream is filling or draining.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Target {
-    Memory0,
-    Memory1,
-}
 
 impl Channel {
     /// A handle for reading and clearing this stream's flags from an
@@ -461,17 +431,6 @@ impl Channel {
 
     pub fn is_running(&self) -> bool {
         self.regs.st(stream_index(self.index)).cr().read().en()
-    }
-
-    /// In double-buffer mode, the buffer the stream is using now.
-    pub fn current_target(&self) -> Target {
-        if self.regs.st(stream_index(self.index)).cr().read().ct()
-            == stm32_metapac::dma::vals::Ct::MEMORY1
-        {
-            Target::Memory1
-        } else {
-            Target::Memory0
-        }
     }
 
     /// Turns the stream's interrupts on or off. Allowed while it runs: the
@@ -545,7 +504,7 @@ impl Channel {
     ///
     /// # Safety
     ///
-    /// `memory` (and `double_buffer`) must point to `len` words of memory
+    /// `memory` must point to `len` words of memory
     /// that stay valid until the stream has stopped, and that nothing but
     /// this stream writes in the meantime (or reads, for a
     /// peripheral-to-memory transfer). `peripheral` must be the data
@@ -573,25 +532,12 @@ impl Channel {
 
         st.par().write_value(transfer.peripheral);
         st.m0ar().write_value(transfer.memory);
-        if let Some(second) = transfer.double_buffer {
-            st.m1ar().write_value(second);
-        }
         st.ndtr().write(|w| w.set_ndt(transfer.len));
-        st.fcr().write(|w| match transfer.fifo {
-            FifoMode::Direct => {
-                w.set_dmdis(Dmdis::ENABLED);
-                w.set_feie(transfer.interrupts.fifo_error);
-            }
-            FifoMode::Threshold(threshold) => {
-                w.set_dmdis(Dmdis::DISABLED);
-                w.set_fth(match threshold {
-                    FifoThreshold::Quarter => Fth::QUARTER,
-                    FifoThreshold::Half => Fth::HALF,
-                    FifoThreshold::ThreeQuarters => Fth::THREE_QUARTERS,
-                    FifoThreshold::Full => Fth::FULL,
-                });
-                w.set_feie(transfer.interrupts.fifo_error);
-            }
+        // Direct mode: each word goes straight through, so peripheral and
+        // memory word sizes match (one `size` sets both).
+        st.fcr().write(|w| {
+            w.set_dmdis(Dmdis::ENABLED);
+            w.set_feie(transfer.interrupts.fifo_error);
         });
         st.cr().write(|w| {
             #[cfg(feature = "dma_v2")]
@@ -605,8 +551,7 @@ impl Channel {
             w.set_psize(transfer.size.bits());
             w.set_msize(transfer.size.bits());
             w.set_minc(transfer.memory_increment);
-            w.set_circ(transfer.circular || transfer.double_buffer.is_some());
-            w.set_dbm(transfer.double_buffer.is_some());
+            w.set_circ(transfer.circular);
             w.set_pl(match transfer.priority {
                 Priority::Low => Pl::LOW,
                 Priority::Medium => Pl::MEDIUM,

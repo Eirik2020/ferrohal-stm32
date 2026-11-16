@@ -57,7 +57,7 @@ use core::{
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, FlagHandle, Flags, Interrupts, Priority, StopTimeout, Stream,
+        Channel, Direction, FlagHandle, Flags, Interrupts, Priority, StopTimeout, Stream,
         StreamInstance, StreamInterrupt, Transfer, WordSize,
     },
     gpio::AltPin,
@@ -1081,13 +1081,11 @@ fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
         peripheral: info.regs.tx_address(),
         // SAFETY (of the address): the frame lies inside the buffer.
         memory: buf.wrapping_add(usize::from(frame.offset)) as u32,
-        double_buffer: None,
         len: frame.len,
         size: WordSize::Byte,
         memory_increment: true,
         circular: false,
         priority: Priority::Medium,
-        fifo: FifoMode::Direct,
         interrupts: TX_INTERRUPTS,
     };
     // SAFETY: the frame's bytes are in the transmit buffer, written before
@@ -1603,13 +1601,11 @@ impl<W: UartParts> UartRx<W> {
             direction: Direction::PeripheralToMemory,
             peripheral: self.info.regs.rx_address(),
             memory: self.ring as u32,
-            double_buffer: None,
             len: self.len,
             size: WordSize::Byte,
             memory_increment: true,
             circular: true,
             priority: Priority::High,
-            fifo: FifoMode::Direct,
             interrupts: Interrupts {
                 complete: true,
                 half: true,

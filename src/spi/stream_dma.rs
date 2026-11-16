@@ -36,8 +36,8 @@ use core::sync::atomic::{Ordering, fence};
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, Flags, Interrupts, Priority, StopTimeout, Stream,
-        StreamInterrupt, Transfer, WordSize,
+        Channel, Direction, Flags, Interrupts, Priority, StopTimeout, Stream, StreamInterrupt,
+        Transfer, WordSize,
     },
     gpio::AltPin,
     rcc::Rcc,
@@ -316,13 +316,11 @@ impl<W: SpiParts> Spi<W> {
             direction: Direction::PeripheralToMemory,
             peripheral: unit.rx_address(),
             memory: self.rx_buf.as_mut_ptr() as u32,
-            double_buffer: None,
             len,
             size: WordSize::Byte,
             memory_increment: true,
             circular: false,
             priority: Priority::VeryHigh,
-            fifo: FifoMode::Direct,
             interrupts: Interrupts {
                 complete: true,
                 error: true,

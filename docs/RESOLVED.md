@@ -4,6 +4,11 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **DMA double buffering and FIFO thresholds are gone** (2026-11-16). No driver used
+  them, no run proved them, and since W6b2 nothing outside the crate could reach them.
+  `Transfer` loses `double_buffer` and `fifo`, `FifoMode`, `FifoThreshold`, `Target` and
+  `Channel::current_target` go, and every transfer runs in direct mode as all of them
+  already did.
 - **The ADC's `Unit::new` is crate-only** (2026-11-16), like I2C's and SPI's: it builds a
   unit from raw registers for the chip glue. `checks/no-panic/uncalled.txt` no longer
   lists it.

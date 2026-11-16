@@ -212,7 +212,6 @@ fn main() -> ! {
     }));
     keep(channel.remaining());
     keep(channel.is_running());
-    keep(channel.current_target());
     channel.request_stop();
     keep(channel.stop(black_box(1_000)));
     let handle = channel.flag_handle();

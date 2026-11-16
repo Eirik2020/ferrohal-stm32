@@ -62,10 +62,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
-- `code` **Low: DMA double buffering and FIFO threshold mode have no caller and no
-  test.** Fix: remove them, or give them an internal user and a run. *Spawned:* shipped
-  in the DMA layer by `af65cad`; unreachable from outside since W6b2 (`a99d32f`,
-  2026-11-09).
 - `code` `errata` **Low: most errata entries are unreviewed.** ADR-010 transcribed every row
   of the three sheets: ES0182 86 of 91, ES0299 62 of 66 and ES0392 117 of 155 have no
   verdict yet (`Unreviewed` in `docs/errata/`). ES0392 2.2.13 (USB PHY drive), 2.5.4
