@@ -47,7 +47,7 @@ use crate::i2c_ip::Unit;
 
 /// The fewest CPU cycles one pass of a completion wait can take, used when
 /// no [`CycleClock`] is set. SPI's measured floor, halved (H753 with caches
-/// on: 233 cycles a pass); the same loop shape runs here, so the same floor
+/// on: 228 to 233 cycles a pass); the same loop shape runs here, so the same floor
 /// counts. Without a clock, waits run up to about 3 times the time asked
 /// on the F401 and 6 on the uncached H753.
 const PASS_CYCLES: u32 = 112;

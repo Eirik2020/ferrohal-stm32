@@ -56,8 +56,9 @@ const STOP_SPINS: u32 = 10_000;
 /// The fewest CPU cycles one pass of the completion wait can take, used
 /// when no [`CycleClock`] is set: the fastest pass measured with the DWT
 /// (`hil` "a polling pass takes no less than the driver's floor"), halved.
-/// H753 at 400 MHz with caches on, 233 cycles; the F401 at 84 MHz takes
-/// 324 and the H753 with caches off about 690, so their counted waits run
+/// H753 at 400 MHz with caches on, 228 to 233 cycles over the runs measured
+/// (H753 run H, caches on, 2026-11-15); the F401 at 84 MHz takes
+/// 324 and the H753 with caches off 625 to 690, so their counted waits run
 /// up to about 3 and 6 times the time asked. A `CycleClock` makes every
 /// wait exact.
 const PASS_CYCLES: u32 = 112;
