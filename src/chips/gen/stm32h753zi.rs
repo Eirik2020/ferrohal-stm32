@@ -319,14 +319,14 @@ i2cs!(
     I2C4 => I2C4_INFO, Apb4, 7;
 );
 
-pins!(SclPin<I2C1>: ('B', 6, 4), ('B', 8, 4));
-pins!(SdaPin<I2C1>: ('B', 7, 4), ('B', 9, 4));
-pins!(SclPin<I2C2>: ('B', 10, 4), ('F', 1, 4));
-pins!(SdaPin<I2C2>: ('B', 11, 4), ('F', 0, 4));
-pins!(SclPin<I2C3>: ('A', 8, 4));
-pins!(SdaPin<I2C3>: ('C', 9, 4));
-pins!(SclPin<I2C4>: ('B', 6, 6), ('B', 8, 6), ('D', 12, 4), ('F', 14, 4));
-pins!(SdaPin<I2C4>: ('B', 7, 6), ('B', 9, 6), ('D', 13, 4), ('F', 15, 4));
+pins!(SclPin<I2C1>, OpenDrain: ('B', 6, 4), ('B', 8, 4));
+pins!(SdaPin<I2C1>, OpenDrain: ('B', 7, 4), ('B', 9, 4));
+pins!(SclPin<I2C2>, OpenDrain: ('B', 10, 4), ('F', 1, 4));
+pins!(SdaPin<I2C2>, OpenDrain: ('B', 11, 4), ('F', 0, 4));
+pins!(SclPin<I2C3>, OpenDrain: ('A', 8, 4));
+pins!(SdaPin<I2C3>, OpenDrain: ('C', 9, 4));
+pins!(SclPin<I2C4>, OpenDrain: ('B', 6, 6), ('B', 8, 6), ('D', 12, 4), ('F', 14, 4));
+pins!(SdaPin<I2C4>, OpenDrain: ('B', 7, 6), ('B', 9, 6), ('D', 13, 4), ('F', 15, 4));
 
 timers!(
     TIM1 => Apb2, 0, TIM1_UP, 16;

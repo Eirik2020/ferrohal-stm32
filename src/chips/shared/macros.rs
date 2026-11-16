@@ -85,10 +85,15 @@ macro_rules! peripherals {
     };
 }
 
-/// Pin routing rows: (port, pin, alternate function).
+/// Pin routing rows: (port, pin, alternate function). The pins are
+/// push-pull unless an output type follows the instance: `SclPin<I2C1>,
+/// OpenDrain: ...` implements the trait for the open-drain form only.
 macro_rules! pins {
     ($trait:ident<$usart:ident>: $(($port:literal, $pin:literal, $af:literal)),+ $(,)?) => {
         $(impl $trait<$usart> for Pin<$port, $pin, Alternate<$af>> {})+
+    };
+    ($trait:ident<$usart:ident>, $ot:ident: $(($port:literal, $pin:literal, $af:literal)),+ $(,)?) => {
+        $(impl $trait<$usart> for Pin<$port, $pin, Alternate<$af, crate::gpio::$ot>> {})+
     };
 }
 

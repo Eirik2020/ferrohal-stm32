@@ -42,11 +42,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
 
 ## 1. Library code
 
-- `code` `api` **Medium: an I2C wiring accepts a push-pull pin.** Both `into_alternate`
-  forms return one type ([gpio_v2](../src/gpio_v2/mod.rs)), and push-pull NACKs every
-  transfer. Fix: an open-drain type state. *Spawned:* GPIO's single alternate type
-  (`af65cad`, 2026-10-31); found when run S's pins were push-pull (`cb5e339`,
-  2026-11-08), recorded `f20ccc8`.
 - `code` `api` **Medium: the feature hierarchy departs from `docs/design/structure.md`.**
   Chip features turn on their family marker, and two chips at once are caught only by a
   `compile_error!` listing every pair (10 at five chips, 15 at six). Same as review S6.

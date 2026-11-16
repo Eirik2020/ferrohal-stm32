@@ -944,7 +944,7 @@ mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, USART1, USART6},
         dma::Stream,
-        gpio::{Alternate, Input, Output, Pin, Pull, Speed},
+        gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{AhbPrescaler, ApbPrescaler, Config, Pll, PllP, PllSource, Rcc, Supply, Sysclk},
         spi,
@@ -968,7 +968,11 @@ mod chip {
 
     /// I2C1 on PB8 and PB9, the pins the Nucleo bench's Arduino connector
     /// carries.
-    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+    pub type I2cWiring = i2c::Wiring<
+        I2C1,
+        Pin<'B', 8, Alternate<4, OpenDrain>>,
+        Pin<'B', 9, Alternate<4, OpenDrain>>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -1101,8 +1105,8 @@ mod chip {
             },
             i2c::Wiring {
                 i2c: p.I2C1,
-                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
-                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
+                scl: b.p8.into_alternate_open_drain::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
                 stream: Some(dma2.s0),
@@ -1120,7 +1124,7 @@ mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, UART4, USART2},
         dma::Stream,
-        gpio::{Alternate, Input, Output, Pin, Pull, Speed},
+        gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{
             AhbPrescaler, ApbPrescaler, Config, Hse, HseMode, Pll, PllP, PllSource, Rcc, Supply,
@@ -1148,7 +1152,11 @@ mod chip {
     >;
 
     /// I2C1 on PB8 and PB9, the bus the Foxeer's barometer sits on.
-    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+    pub type I2cWiring = i2c::Wiring<
+        I2C1,
+        Pin<'B', 8, Alternate<4, OpenDrain>>,
+        Pin<'B', 9, Alternate<4, OpenDrain>>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: Some(Hse {
@@ -1292,8 +1300,8 @@ mod chip {
             },
             i2c::Wiring {
                 i2c: p.I2C1,
-                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
-                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
+                scl: b.p8.into_alternate_open_drain::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
                 stream: Some(dma2.s0),
@@ -1309,7 +1317,7 @@ mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI1, USART2, USART3},
         dma::Stream,
-        gpio::{Alternate, Input, Output, Pin, Pull, Speed},
+        gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{
             AhbPrescaler, ApbPrescaler, Config, Pll, PllSource, Rcc, Supply, Sysclk, VoltageScale,
@@ -1335,7 +1343,11 @@ mod chip {
     >;
 
     /// I2C1 on PB8 and PB9, the pins the Nucleo-H753ZI's bench carries.
-    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+    pub type I2cWiring = i2c::Wiring<
+        I2C1,
+        Pin<'B', 8, Alternate<4, OpenDrain>>,
+        Pin<'B', 9, Alternate<4, OpenDrain>>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -1496,8 +1508,8 @@ mod chip {
             },
             i2c::Wiring {
                 i2c: p.I2C1,
-                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
-                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
+                scl: b.p8.into_alternate_open_drain::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
                 stream: Some(dma2.s3),

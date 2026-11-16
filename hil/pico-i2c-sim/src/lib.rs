@@ -29,7 +29,8 @@
 //! The DW `apb_i2c` underneath has three behaviours the bench found and the
 //! runs and this simulator are built around:
 //!
-//! - **An I2C pin must be `into_alternate_open_drain`.** A push-pull
+//! - **An I2C pin must be `into_alternate_open_drain`** (FerroHAL's I2C
+//!   wiring now takes only that form). A push-pull
 //!   alternate drives SDA high through every acknowledge and NACKs every
 //!   transfer to a live slave. Every flight board wired its barometer bus
 //!   push-pull until the bench found it.

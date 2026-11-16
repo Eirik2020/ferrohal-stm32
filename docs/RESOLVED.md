@@ -4,6 +4,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **An I2C wiring takes only an open-drain pin** (2026-11-17; owner's option A,
+  2026-11-16). `Alternate<AF, OT = PushPull>` carries the output type:
+  `into_alternate` returns `Alternate<AF>` and `into_alternate_open_drain`
+  `Alternate<AF, OpenDrain>`. The generated `SclPin` and `SdaPin` rows name the
+  open-drain form only (`pins!(SclPin<I2C1>, OpenDrain: ...)`), so a push-pull I2C
+  wiring no longer compiles. Push-pull users are unchanged. `checks/no-panic` built its
+  I2C wirings push-pull, exactly the fault; it now uses the open-drain form. Spawned by
+  GPIO's single alternate type (`af65cad`); found by run S (`cb5e339`).
+
 - **DMA double buffering and FIFO thresholds are gone** (2026-11-16). No driver used
   them, no run proved them, and since W6b2 nothing outside the crate could reach them.
   `Transfer` loses `double_buffer` and `fifo`, `FifoMode`, `FifoThreshold`, `Target` and

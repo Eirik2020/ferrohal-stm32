@@ -56,7 +56,7 @@ use ferrohal_stm32::{
     },
     dma::Stream,
     exti,
-    gpio::{Alternate, Ctrl, Input, Output, Pin, Port, PortInstance, Pull, Speed},
+    gpio::{Alternate, OpenDrain, Ctrl, Input, Output, Pin, Port, PortInstance, Pull, Speed},
     i2c,
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP, PllSource,
@@ -882,7 +882,7 @@ pub fn run_k(p: Peripherals) -> Result<RunK, ClockError> {
 // Run Q: the I2C, I2C1 on the Arduino connector's SCL and SDA (PB8, PB9),
 // pulled up internally, no slave fitted. No links.
 
-pub type I2c1Bus = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+pub type I2c1Bus = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4, OpenDrain>>, Pin<'B', 9, Alternate<4, OpenDrain>>>;
 
 pub struct RunQ {
     pub rcc: Rcc,
@@ -900,9 +900,9 @@ pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     // SCL and SDA pulled up: with no slave fitted the lines idle high,
     // so a vacant address is answered by the bus itself with a NACK.
-    let mut scl: Pin<'B', 8, Alternate<4>> = b.p8.into_alternate_open_drain(&mut b.ctrl);
+    let mut scl: Pin<'B', 8, Alternate<4, OpenDrain>> = b.p8.into_alternate_open_drain(&mut b.ctrl);
     scl.set_pull(&mut b.ctrl, Pull::Up);
-    let mut sda: Pin<'B', 9, Alternate<4>> = b.p9.into_alternate_open_drain(&mut b.ctrl);
+    let mut sda: Pin<'B', 9, Alternate<4, OpenDrain>> = b.p9.into_alternate_open_drain(&mut b.ctrl);
     sda.set_pull(&mut b.ctrl, Pull::Up);
     Ok(RunQ {
         rcc,
@@ -977,7 +977,7 @@ where
 // No jumper between the Nucleo's own pins: the link runs to the Pico,
 // and the NACK-only run stays on I2C1 untouched.
 
-pub type I2c3Bus = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4>>, Pin<'C', 9, Alternate<4>>>;
+pub type I2c3Bus = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4, OpenDrain>>, Pin<'C', 9, Alternate<4, OpenDrain>>>;
 
 pub struct RunS {
     pub rcc: Rcc,
@@ -995,9 +995,9 @@ pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     // SCL and SDA pulled up here and at the Pico's end: the lines idle
     // high at 50 kHz with no resistor fitted.
-    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
+    let mut scl: Pin<'A', 8, Alternate<4, OpenDrain>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
     scl.set_pull(&mut a.ctrl, Pull::Up);
-    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
+    let mut sda: Pin<'C', 9, Alternate<4, OpenDrain>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
     sda.set_pull(&mut c.ctrl, Pull::Up);
     Ok(RunS {
         rcc,
@@ -1066,7 +1066,7 @@ pub type Spi3PortCRefusal =
 
 /// I2C3 to the Pico simulator's link, or to nothing: pulled up either way,
 /// a vacant address is NACKed by the bus itself.
-pub type I2c3Link = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4>>, Pin<'C', 9, Alternate<4>>>;
+pub type I2c3Link = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4, OpenDrain>>, Pin<'C', 9, Alternate<4, OpenDrain>>>;
 
 /// SPI2 polled, over S3.
 pub type Spi2Polled = spi::BlockingWiring<SPI2, Af5<'B', 13>, Af5<'B', 14>, Af5<'B', 15>>;
@@ -1134,9 +1134,9 @@ pub fn run_v(p: Peripherals) -> Result<(RunV, ClockError), ClockError> {
     let dma2 = p.DMA2.split(&mut rcc);
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     let (tx1, rx1) = uart_pins(a.p9, a.p10, &mut a.ctrl);
-    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
+    let mut scl: Pin<'A', 8, Alternate<4, OpenDrain>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
     scl.set_pull(&mut a.ctrl, Pull::Up);
-    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
+    let mut sda: Pin<'C', 9, Alternate<4, OpenDrain>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
     sda.set_pull(&mut c.ctrl, Pull::Up);
     // The DShot600-rate lanes need fast edges, as the `sck` helper sets.
     let mut ch3: Pin<'B', 0, Alternate<2>> = b.p0.into_alternate(&mut b.ctrl);

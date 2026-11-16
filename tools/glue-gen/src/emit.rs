@@ -390,7 +390,7 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         .ok();
     }
     writeln!(w, ");").ok();
-    pin_rows(w, &cut, &usarts, &[("TX", "TxPin"), ("RX", "RxPin")]);
+    pin_rows(w, &cut, &usarts, &[("TX", "TxPin"), ("RX", "RxPin")], None);
     dma_rows(w, &cut, &usarts, ("RX", "RxDma"), ("TX", "TxDma"));
 
     // SPIs.
@@ -412,6 +412,7 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         &cut,
         &spis,
         &[("SCK", "SckPin"), ("MISO", "MisoPin"), ("MOSI", "MosiPin")],
+        None,
     );
     dma_rows(w, &cut, &spis, ("RX", "SpiRxDma"), ("TX", "SpiTxDma"));
 
@@ -423,7 +424,14 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         writeln!(w, "    {name} => {name}_INFO, {bus}, {bit};").ok();
     }
     writeln!(w, ");").ok();
-    pin_rows(w, &cut, &i2cs, &[("SCL", "SclPin"), ("SDA", "SdaPin")]);
+    // I2C lines are shared and pulled up: only the open-drain form routes.
+    pin_rows(
+        w,
+        &cut,
+        &i2cs,
+        &[("SCL", "SclPin"), ("SDA", "SdaPin")],
+        Some("OpenDrain"),
+    );
 
     // Timers.
     let timers = cut.instances("timer");
@@ -572,6 +580,7 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
                 ("D2", "D2Pin"),
                 ("D3", "D3Pin"),
             ],
+            None,
         );
     }
 
@@ -597,13 +606,15 @@ fn pin_rows(
     cut: &Cut,
     instances: &[(&String, &DiePeripheral)],
     signals: &[(&str, &str)],
+    otype: Option<&str>,
 ) {
     writeln!(w).ok();
+    let otype = otype.map(|t| format!(", {t}")).unwrap_or_default();
     for (name, p) in instances {
         for (signal, trait_name) in signals {
             let r = cut.pins(p, signal);
             if !r.is_empty() {
-                writeln!(w, "pins!({trait_name}<{name}>: {});", rows(&r)).ok();
+                writeln!(w, "pins!({trait_name}<{name}>{otype}: {});", rows(&r)).ok();
             }
         }
     }
