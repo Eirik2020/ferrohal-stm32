@@ -1,6 +1,6 @@
 """Records the debugger benches' runs as reqtool evidence.
 
-    python3 -I tools/record_evidence.py prepare <folder> [--analysis]
+    python3 -I tools/record_evidence.py prepare <folder> [--analysis | --bench <bench>]
     python3 -I tools/record_evidence.py record <folder> [--dry-run] [--only <heading>]
 
 <folder> is a new directory under requirements/evidence/logs/.
@@ -10,7 +10,9 @@ requirements/benches*.md names (`hil/run-<bench>.sh <runs>`), and the two logs
 of each flashed bench a procedure names (`hil/run-<board>.sh`, through
 hil/flash-dfu.sh: <crate>-usb-irq.log and <crate>.log); writes
 <crate>-images.sha256 (each binary's SHA-256) and checks-run.log. Commit the
-folder before `record`, so the tree is clean when reqtool reads it.
+folder before `record`, so the tree is clean when reqtool reads it. `--bench`
+copies one bench's logs alone (f401, h753, discovery, lucid, foxeer), for a
+run made on its own; `--analysis` none.
 
 record: for every procedure whose runs all passed (PASS lines and no FAIL),
 writes its details and calls `reqtool record --procedure`; then the analysis
@@ -77,7 +79,7 @@ def passed(path):
     return "PASS" in text and "FAIL" not in text
 
 
-def prepare(folder, analysis_only=False):
+def prepare(folder, analysis_only=False, bench_only=None):
     folder.mkdir(parents=True)
     runs = {bench: set() for bench in BENCH}
     flashed = set()
@@ -90,6 +92,12 @@ def prepare(folder, analysis_only=False):
         # Only checks/run.sh and the glue gate: no bench log is copied, so
         # none from another tree lands beside this one's evidence.
         runs, flashed = {}, set()
+    if bench_only:
+        # One bench's run alone: the others' logs may come from another tree.
+        if bench_only not in BENCH and bench_only not in FLASHED:
+            sys.exit(f"no bench {bench_only}")
+        runs = {b: rs for b, rs in runs.items() if b == bench_only}
+        flashed &= {bench_only}
     for bench in sorted(flashed):
         crate = FLASHED[bench]
         lines = []
@@ -199,7 +207,8 @@ if __name__ == "__main__":
         sys.exit(__doc__)
     target = ROOT / "requirements/evidence/logs" / sys.argv[2]
     if sys.argv[1] == "prepare":
-        prepare(target, "--analysis" in sys.argv)
+        bench = sys.argv[sys.argv.index("--bench") + 1] if "--bench" in sys.argv else None
+        prepare(target, "--analysis" in sys.argv, bench)
     else:
         only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
         record(target, "--dry-run" in sys.argv, only)
