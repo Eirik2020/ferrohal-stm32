@@ -121,7 +121,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | U9 | `code` | L | `rcc.enable(x); rcc.reset(x)` eleven times. | `af65cad` onward |
 | U10 | `code` | L | `interrupt()` + `verify_vectors` three times. | `4070cd8`, `ea7a9f8` |
 | U11 | `bench` | L | Two smoke benches' `usb_irq.rs` differ in 3 of 101 lines. | `ed48419` copied one into the other |
-| K1 | `docs` | M | The bootloader path breaks two stated absolutes, unrecorded. | `036a7d2` 2026-11-02 |
 | K4 | `docs` | L | Shared-source lists disagree (`naming.md` vs nine). | `af65cad`'s count of five; `naming.md` 2026-11-13 |
 | B1 | `bench` `owner` | L | A run letter means a different test on each bench. | `55025e8` the H753 bench numbered its own runs |
 | B2 | `bench` `tool` | L | H753 runs generated, F401 runs by hand. | `8b0266b` generator for the H753 only |

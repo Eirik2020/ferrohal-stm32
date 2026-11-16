@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 324621
+  "bytes": 326444
  },
  "documents": [
   {
@@ -18,7 +18,7 @@
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5436
+   "bytes": 5536
   },
   {
    "path": "THIRD-PARTY.md",
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 13450
+   "bytes": 13344
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 23218
+   "bytes": 23686
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -248,14 +248,14 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 4100
+   "bytes": 4766
   },
   {
    "path": "docs/design/ownership.md",
    "class": "agent",
    "title": "Ownership and shared registers",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2029
+   "bytes": 2601
   },
   {
    "path": "docs/design/requirements-ids.md",
@@ -283,7 +283,7 @@
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 3623
+   "bytes": 3746
   },
   {
    "path": "docs/design/structure.md",

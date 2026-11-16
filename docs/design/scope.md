@@ -38,7 +38,9 @@ FerroHAL must not:
 
 - depend on FerroForge, FerroWasp or embassy-stm32;
 - define interrupt handlers, set NVIC priorities or enable vectors in the NVIC;
-- use critical sections in drivers, or write a shared register outside its single owner;
+- use critical sections in drivers, or write a shared register outside its single owner
+  (the one-way jump to the ROM bootloader is the single exception to this and the line
+  above: [ownership](ownership.md));
 - contain async code or own a time source, or use a time crate in its core (adapters behind
   features may; `docs/policies/features.md`, ADR-007);
 - panic on a hardware error, or spin without a bound in a stop path, with default features (a

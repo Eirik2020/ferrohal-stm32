@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review K1: the bootloader jump is a recorded exception** (2026-11-17).
+  `reset::enter_bootloader_if_requested` masks interrupts, clears SysTick and every NVIC
+  line, moves VTOR and, on the F4, writes RCC and SYSCFG without their owners: against
+  the README, `design/scope.md` and `design/ownership.md`, unrecorded. All three now name
+  it as the single exception, sound because the jump is one-way and runs before any
+  owner exists. Spawned by `036a7d2`.
+
 - **EXTI takes only SYSCFG's EXTICR part** (2026-11-17; owner's option A,
   2026-11-16). The new `syscfg` module's `SYSCFG::split(&mut Rcc)` turns on SYSCFG's
   clock and returns `Parts { exticr }`; `EXTI::split(exticr)` takes that part alone and
