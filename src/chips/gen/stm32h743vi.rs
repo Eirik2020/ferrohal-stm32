@@ -432,7 +432,7 @@ adc_dma_mux!(ADC1: mux 9);
 adc_pins!(ADC3: ('C', 0, 10), ('C', 1, 11));
 adc_dma_mux!(ADC3: mux 115);
 
-usb_fs!(USB_OTG_FS => Ahb1, 27, OTG_FS;);
+usb_fs!(USB_OTG_FS => Ahb1, 27, OTG_FS; dm ('A', 11, 10), dp ('A', 12, 10));
 
 sdmmcs!(
     SDMMC1 => Ahb3, 16;

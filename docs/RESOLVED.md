@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review D9: USB's data pins come from the glue** (2026-11-17). `usb.rs` hard-coded
+  PA11/PA12 in AF10. glue-gen now reads OTG_FS's DM and DP routes from metapac (one each
+  on every part, else it fails) and `usb_fs!` defines `chip::UsbDm` and `chip::UsbDp`.
+  USB also gained a `usb::Wiring { usb, dm, dp }` with `RESOURCES` (`Signal::Dm`, `Dp`),
+  taken by `UsbFs::new` and handed back by `free` and by a refusal: D10's USB half and
+  N8's "USB has no wiring". Spawned by `9bd9d1e`.
+
 - **API review K4: one list of shared sources** (2026-11-17). ADR-003 rule 4 named two,
   the 2026-11-13 debt sweep five, and the review's own test nine. `design/naming.md` now
   holds the one list, the four `#[path]` aliases (`iwdg.rs`, `exti.rs`,

@@ -80,7 +80,7 @@ mod app {
             Buffers as UartBuffers, Config as UartConfig, ConfigError as UartConfigError, Uart,
             UartIrq,
         },
-        usb::UsbFs,
+        usb::{self, UsbFs},
     };
 
     use crate::{
@@ -220,17 +220,17 @@ mod app {
 
         // USB: without a 48 MHz source the constructor refuses, and its pins
         // come back as GPIO that still carries a level over J2.
-        let (token, dm, dp) = run.usb;
+        let (usb, dm, dp) = run.usb;
         report.check(
             "USB OTG_FS PA11/PA12",
             "no 48 MHz source refuses; the pins come back over J2 [API-001]",
-            match UsbFs::new(&mut run.rcc, token, dm, dp) {
+            match UsbFs::new(&mut run.rcc, usb::Wiring { usb, dm, dp }) {
                 Ok(_) => Err(Fail::Count {
                     expected: 1,
                     got: 0,
                 }),
                 Err(refused) => {
-                    let (error, (_token, dm, dp)) = refused.into_inner();
+                    let (error, usb::Wiring { dm, dp, .. }) = refused.into_inner();
                     if error != ClockError::Usb {
                         Err(Fail::Count {
                             expected: ClockError::Usb as u32,

@@ -303,12 +303,21 @@ macro_rules! gpio_dma {
     };
 }
 
-/// The full-speed USB port's row: `TOKEN => bus, enable bit, vector;`, on
-/// PA11 and PA12 in alternate function 10. Its core's kind, FIFO depth and
+/// The full-speed USB port's row: `TOKEN => bus, enable bit, vector; dm
+/// (port, pin, af), dp (port, pin, af)`, the data pins' one route each as
+/// metapac gives it (PA11 and PA12 in AF10 on every chip here). Its core's kind, FIFO depth and
 /// endpoint count are hand facts the chip module states: `USB_FS_HS_CORE`,
 /// `USB_FS_FIFO_WORDS` and `USB_FS_ENDPOINTS`.
 macro_rules! usb_fs {
-    ($name:ident => $bus:ident, $bit:literal, $vector:ident;) => {
+    ($name:ident => $bus:ident, $bit:literal, $vector:ident;
+     dm ($dmp:literal, $dmn:literal, $dmaf:literal), dp ($dpp:literal, $dpn:literal, $dpaf:literal)) => {
+        /// The full-speed port's DM pin, in its alternate function.
+        #[cfg(feature = "usb")]
+        pub type UsbDm = Pin<$dmp, $dmn, Alternate<$dmaf>>;
+        /// The full-speed port's DP pin, in its alternate function.
+        #[cfg(feature = "usb")]
+        pub type UsbDp = Pin<$dpp, $dpn, Alternate<$dpaf>>;
+
         #[cfg(feature = "usb")]
         pub(crate) struct UsbFsFacts {
             pub registers: *const (),

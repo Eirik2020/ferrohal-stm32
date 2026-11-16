@@ -7,7 +7,8 @@
 //!
 //! The firmware binds [`UsbFs::interrupt`]'s vector, or polls, and calls
 //! `UsbDevice::poll` from one context; FerroHAL enables nothing in the NVIC.
-//! Set both pins to very high speed.
+//! The data pins are the chip's own (`chip::UsbDm`, `chip::UsbDp`, from the
+//! glue); set both to very high speed and hand them over in a [`Wiring`].
 //!
 //! Requirements: USB-001, USB-F4-001, API-002
 
@@ -16,72 +17,78 @@ pub use usb_device;
 use crate::{
     chip::{
         Interrupt, USB_FS, USB_FS_ENDPOINTS, USB_FS_FIFO_WORDS, USB_FS_HS_CORE, USB_FS_INTERRUPT,
-        USB_OTG_FS,
+        USB_OTG_FS, UsbDm, UsbDp,
     },
-    gpio::{Alternate, Pin},
+    gpio::AltPin,
     rcc::{ClockError, Rcc},
-    resource::Refused,
+    resource::{Refused, Resource, Signal},
 };
 
 /// The port's bus type, for `UsbDeviceBuilder` and the class crates.
 pub type UsbBus = synopsys_usb_otg::UsbBus<UsbFs>;
 
-/// The OTG_FS port on PA11 (DM) and PA12 (DP), with its clock running. It
-/// holds the token and both pins, which [`free`](Self::free) hands back.
+/// What the board file hands to [`UsbFs::new`]: the OTG_FS token and its
+/// two data pins, which the chip's glue names.
+pub struct Wiring {
+    pub usb: USB_OTG_FS,
+    pub dm: UsbDm,
+    pub dp: UsbDp,
+}
+
+impl Wiring {
+    /// Everything this wiring uses, as data: the port and its two pins with
+    /// their alternate functions.
+    pub const RESOURCES: [Resource; 3] = [
+        Resource::Peripheral("USB_OTG_FS"),
+        Resource::Pin {
+            signal: Signal::Dm,
+            port: <UsbDm as AltPin>::PORT,
+            pin: <UsbDm as AltPin>::PIN,
+            af: <UsbDm as AltPin>::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Dp,
+            port: <UsbDp as AltPin>::PORT,
+            pin: <UsbDp as AltPin>::PIN,
+            af: <UsbDp as AltPin>::AF,
+        },
+    ];
+}
+
+/// The OTG_FS port, with its clock running. It holds its [`Wiring`], which
+/// [`free`](Self::free) hands back.
 pub struct UsbFs {
-    token: USB_OTG_FS,
-    dm: Pin<'A', 11, Alternate<10>>,
-    dp: Pin<'A', 12, Alternate<10>>,
+    wiring: Wiring,
     hclk: u32,
 }
 
 /// What [`UsbFs::new`](UsbFs::new) hands back when it refuses: the reason,
-/// and the token and both pins it took.
-pub type UsbNewRefused = Refused<
-    ClockError,
-    (
-        USB_OTG_FS,
-        Pin<'A', 11, Alternate<10>>,
-        Pin<'A', 12, Alternate<10>>,
-    ),
->;
+/// and the wiring it took.
+pub type UsbNewRefused = Refused<ClockError, Wiring>;
 
 impl UsbFs {
     /// Starts the port's 48 MHz clock (the F4's PLLQ must already give it;
     /// the H7 turns on HSI48 and the USB supply) and enables the controller.
-    /// Refuses with the token and both pins handed back.
-    pub fn new(
-        rcc: &mut Rcc,
-        token: USB_OTG_FS,
-        dm: Pin<'A', 11, Alternate<10>>,
-        dp: Pin<'A', 12, Alternate<10>>,
-    ) -> Result<Self, UsbNewRefused> {
+    /// Refuses with the wiring handed back.
+    pub fn new(rcc: &mut Rcc, wiring: Wiring) -> Result<Self, UsbNewRefused> {
         if let Err(error) = rcc.usb_clock() {
-            return Err(Refused::new(error, (token, dm, dp)));
+            return Err(Refused::new(error, wiring));
         }
         rcc.enable(USB_FS.enable);
         rcc.reset(USB_FS.enable);
         Ok(Self {
-            token,
-            dm,
-            dp,
+            wiring,
             hclk: rcc.clocks().hclk.0,
         })
     }
 
-    /// Hands back what [`UsbFs::new`] took: the token and both pins. The core
-    /// stays clocked, as `new` left it, and a reopen through `UsbFs::new`
-    /// resets it. A port already built into a [`UsbBus`] comes back through
-    /// the bus's own `free()`; one inside a `usb-device` `UsbBusAllocator`
-    /// never does, since that crate keeps its bus for good.
-    pub fn free(
-        self,
-    ) -> (
-        USB_OTG_FS,
-        Pin<'A', 11, Alternate<10>>,
-        Pin<'A', 12, Alternate<10>>,
-    ) {
-        (self.token, self.dm, self.dp)
+    /// Hands back what [`UsbFs::new`] took: the wiring. The core stays
+    /// clocked, as `new` left it, and a reopen through `UsbFs::new` resets
+    /// it. A port already built into a [`UsbBus`] comes back through the
+    /// bus's own `free()`; one inside a `usb-device` `UsbBusAllocator` never
+    /// does, since that crate keeps its bus for good.
+    pub fn free(self) -> Wiring {
+        self.wiring
     }
 
     /// The vector to bind to the handler that polls the device.

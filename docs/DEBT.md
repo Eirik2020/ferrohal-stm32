@@ -84,7 +84,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 |---|---|---|---|---|
 | D3 | `code` `api` | L | Board code now uses only the neutral modules, but the versioned ones (`usart_v2`, `spi_v4`, ...) are still public beside them. | each driver's own re-exports, as above |
 | D8 | `code` `api` | L | Refusals carry three error families. | `af65cad` `ClockError`, `1e1bbdf` IWDG, `a8a3a05` ADC, `4237048` SDMMC |
-| D9 | `code` | L | `usb.rs` hard-codes PA11/PA12 AF10 outside the glue. | `9bd9d1e` 2026-11-02 |
 | D10 | `code` | L | USB and SDMMC wirings have no `RESOURCES`. | `9bd9d1e`, `4237048` did not follow `2e7f7fe`'s descriptors |
 | D11 | `code` `bench` | M | Two wait mechanisms: `wait::Deadline` and raw spins in nine files. | `af65cad` `STOP_SPINS` spins before `Deadline` |
 | D12 | `code` `api` | L | Interrupt service is not uniform. | per driver; `1ca19a9` added a third shape |

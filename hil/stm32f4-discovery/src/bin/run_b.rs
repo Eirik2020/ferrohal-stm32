@@ -20,7 +20,7 @@ use ferrohal_stm32::{
     time::Hertz,
     timer::Timebase,
     usb::{
-        UsbBus, UsbFs,
+        UsbBus, UsbFs, Wiring,
         usb_device::{
             bus::UsbBusAllocator,
             device::{StringDescriptors, UsbDeviceBuilder, UsbDeviceState, UsbVidPid},
@@ -56,14 +56,20 @@ fn main() -> ! {
         defmt::panic!("TIM2 timebase")
     };
     let clock = timebase.reader();
-    let usb = match UsbFs::new(&mut run.rcc, run.usb, run.dm, run.dp) {
+    let usb = match UsbFs::new(
+        &mut run.rcc,
+        Wiring {
+            usb: run.usb,
+            dm: run.dm,
+            dp: run.dp,
+        },
+    ) {
         Ok(usb) => usb,
         Err(error) => defmt::panic!("USB clock: {}", error),
     };
-    // Freed to its token and pins, and reopened from them: the echo below
-    // runs on the reopened port.
-    let (token, dm, dp) = usb.free();
-    let (reopened, usb) = match UsbFs::new(&mut run.rcc, token, dm, dp) {
+    // Freed to its wiring, and reopened from it: the echo below runs on the
+    // reopened port.
+    let (reopened, usb) = match UsbFs::new(&mut run.rcc, usb.free()) {
         Ok(usb) => (true, usb),
         Err(error) => defmt::panic!("USB reopen: {}", error),
     };

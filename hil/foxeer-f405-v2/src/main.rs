@@ -710,7 +710,14 @@ fn main() -> ! {
     dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
     let mut dp = a.p12.into_alternate::<10>(&mut a.ctrl);
     dp.set_speed(&mut a.ctrl, Speed::VeryHigh);
-    let Ok(usb) = UsbFs::new(&mut rcc, p.USB_OTG_FS, dm, dp) else {
+    let Ok(usb) = UsbFs::new(
+        &mut rcc,
+        ferrohal_stm32::usb::Wiring {
+            usb: p.USB_OTG_FS,
+            dm,
+            dp,
+        },
+    ) else {
         reboot_to_dfu()
     };
     let mut link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.reader());

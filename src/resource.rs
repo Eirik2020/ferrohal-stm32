@@ -47,6 +47,10 @@ pub enum Signal {
     Complementary(u8),
     /// An ADC input, by its channel number.
     Adc(u8),
+    /// USB's D- line.
+    Dm,
+    /// USB's D+ line.
+    Dp,
 }
 
 /// What a vector check found wrong.

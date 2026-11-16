@@ -848,28 +848,24 @@ fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
 /// USB's own part: the clock and the constructor. The controller's driver is
 /// third-party and sits outside this check.
 #[cfg(not(feature = "stm32f401re"))]
-pub fn exercise_usb(
-    rcc: &mut ferrohal_stm32::rcc::Rcc,
-    token: ferrohal_stm32::chip::USB_OTG_FS,
-    dm: ferrohal_stm32::gpio::Pin<'A', 11, ferrohal_stm32::gpio::Alternate<10>>,
-    dp: ferrohal_stm32::gpio::Pin<'A', 12, ferrohal_stm32::gpio::Alternate<10>>,
-) {
-    keep(ferrohal_stm32::usb::UsbFs::interrupt());
+pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::usb::Wiring) {
+    use ferrohal_stm32::usb::{UsbFs, Wiring};
+
+    keep(UsbFs::interrupt());
+    black_box(&Wiring::RESOURCES).iter().for_each(keep);
     keep(rcc.usb_clock());
-    let usb = match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+    let usb = match UsbFs::new(rcc, wiring) {
         Ok(usb) => usb,
         Err(refused) => {
             keep(refused.error());
-            let (token, dm, dp) = refused.into_parts();
-            match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+            match UsbFs::new(rcc, refused.into_parts()) {
                 Ok(usb) => usb,
                 Err(_) => park(),
             }
         }
     };
     // Freed, and reopened from what came back.
-    let (token, dm, dp) = usb.free();
-    let usb = match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+    let usb = match UsbFs::new(rcc, usb.free()) {
         Ok(usb) => usb,
         Err(_) => park(),
     };
@@ -1241,9 +1237,11 @@ mod chip {
         );
         super::exercise_usb(
             &mut rcc,
-            p.USB_OTG_FS,
-            a.p11.into_alternate::<10>(&mut a.ctrl),
-            a.p12.into_alternate::<10>(&mut a.ctrl),
+            ferrohal_stm32::usb::Wiring {
+                usb: p.USB_OTG_FS,
+                dm: a.p11.into_alternate(&mut a.ctrl),
+                dp: a.p12.into_alternate(&mut a.ctrl),
+            },
         );
         super::exercise_blocking(
             &mut rcc,
@@ -1449,9 +1447,11 @@ mod chip {
         );
         super::exercise_usb(
             &mut rcc,
-            p.USB_OTG_FS,
-            a.p11.into_alternate::<10>(&mut a.ctrl),
-            a.p12.into_alternate::<10>(&mut a.ctrl),
+            ferrohal_stm32::usb::Wiring {
+                usb: p.USB_OTG_FS,
+                dm: a.p11.into_alternate(&mut a.ctrl),
+                dp: a.p12.into_alternate(&mut a.ctrl),
+            },
         );
         super::exercise_blocking(
             &mut rcc,

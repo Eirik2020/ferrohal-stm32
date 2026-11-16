@@ -556,7 +556,18 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         let vector = cut
             .vector(p, "GLOBAL")
             .ok_or_else(|| fail(name, "no vector"))?;
-        writeln!(w, "\nusb_fs!({name} => {bus}, {bit}, {vector};);").ok();
+        // The port's data pins: one route each on every part here, so the
+        // driver names them as types rather than taking routing traits.
+        let pin = |signal: &str| match cut.pins(p, signal).as_slice() {
+            [(port, pin, af)] => Ok(format!("('{port}', {pin}, {af})")),
+            rows => Err(fail(name, &format!("{signal}: {} routes, not one", rows.len()))),
+        };
+        let (dm, dp) = (pin("DM")?, pin("DP")?);
+        writeln!(
+            w,
+            "\nusb_fs!({name} => {bus}, {bit}, {vector}; dm {dm}, dp {dp});"
+        )
+        .ok();
     }
 
     // SDMMC.
