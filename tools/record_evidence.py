@@ -126,7 +126,9 @@ def prepare(folder, analysis_only=False, bench_only=None):
     (folder / "checks-run.log").write_text(out.stdout + out.stderr)
     print("checks/run.sh exit", out.returncode)
     env = dict(os.environ, REQTOOL=str(REQTOOL))
-    out = subprocess.run(["tools/glue-gate.sh"], cwd=ROOT, capture_output=True, text=True, env=env)
+    # Without the tier tables: they follow from the evidence `record` is about to
+    # write, so they would differ until then (tools/glue-gate.sh).
+    out = subprocess.run(["tools/glue-gate.sh", "--no-tiers"], cwd=ROOT, capture_output=True, text=True, env=env)
     (folder / "glue-gate.log").write_text(out.stdout + out.stderr)
     print("tools/glue-gate.sh exit", out.returncode)
 
@@ -190,7 +192,7 @@ def record(folder, dry, only=None):
     for heading in ANALYSIS:
         if only and heading != only:
             continue
-        command, log = ("tools/glue-gate.sh", "glue-gate.log") if heading == "Chip glue against metapac" else ("checks/run.sh", "checks-run.log")
+        command, log = ("tools/glue-gate.sh --no-tiers", "glue-gate.log") if heading == "Chip glue against metapac" else ("checks/run.sh", "checks-run.log")
         text = (folder / log).read_text(errors="replace")
         if "FAIL" in text or "pass" not in text or "glue-gen:" in text:
             print(f"skip  {heading}: {log} did not pass")

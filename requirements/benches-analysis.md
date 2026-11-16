@@ -17,8 +17,10 @@ A new public function is added to that crate [API-001].
 
 ## Chip glue against metapac
 
-`tools/glue-gate.sh`, the generated glue's merge gate: it regenerates every part's
-routing module and `docs/CHIPS.md`'s tables from the pinned stm32-metapac's metadata
+`tools/glue-gate.sh --no-tiers`, the generated glue's merge gate without the tier
+tables (those follow from the evidence, and CI checks them with the full gate): it
+regenerates every part's routing module and `docs/CHIPS.md`'s silicon tables from the
+pinned stm32-metapac's metadata
 (`tools/glue-gen`, which also checks that the parts of a die agree), runs the
 generator's tests, and compares with what is checked in. Pass: no difference, and it
 exits zero.
