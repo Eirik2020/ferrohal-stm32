@@ -58,12 +58,34 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
 - `code` `errata` **Low: most errata entries are unreviewed.** ADR-010 transcribed every row
-  of the three sheets: ES0182 86 of 91, ES0299 62 of 66 and ES0392 117 of 155 have no
-  verdict yet (`Unreviewed` in `docs/errata/`). ES0392 2.2.13 (USB PHY drive), 2.5.4
-  (DMAMUX), 2.9.8 (ADC) and 2.20.4 (USART), which the old H7 review named as handled
-  "where they act", are among them: no source file cites them. Fix: review sheet by
-  sheet, IP versions FerroHAL drives first. *Spawned:* ADR-010's transcription
+  of the three sheets: ES0182 86 of 91 and ES0299 62 of 66 have no verdict yet
+  (`Unreviewed` in `docs/errata/`); ES0392 was reviewed row by row on 2026-11-17. Fix:
+  review sheet by sheet, IP versions FerroHAL drives first. *Spawned:* ADR-010's transcription
   (2026-11-15), which made the unreviewed visible.
+- `code` `errata` **Medium: the H7 I2C lacks three ES0392 workarounds.** (2.19.4, every
+  revision) `i2c_v2` fails a transfer with `Error::Bus` on BERR, which the sheet says can
+  rise spuriously in controller mode while the transfer carries on; fix: clear it and
+  continue. (2.19.3, every revision) `timing` takes any kernel clock, and one slower
+  than the mode's data setup (4, 10 or 20 MHz for Standard, Fast and Fast-mode Plus)
+  samples SDA late; fix: refuse it. (2.19.5, rev Y/W) a read over 255 bytes reloads
+  NBYTES 255 at a time, and the last byte of a chunk can be lost if the one before is
+  read just as it lands; fix: the sheet's NBYTES = 1 reload. Inferred from the sheet and
+  the source; no bench has been checked for any of them, and both H7s here are rev V.
+  *Spawned:* the ES0392 row review (2026-11-17).
+- `code` `errata` **Low: an H7 compare lane may lose a DMA request when its duty steps from the period's top to 0.**
+  ES0392 2.16.2: a compare match at CNT = CCR = ARR followed by one at CNT = CCR = 0
+  (edge-aligned, the preloaded duty going from period - 1 to 0) misses the second
+  compare event. A lane's next duty is written on its compare request, so the stream
+  would fall a period behind. Inferred: the sheet names toggle outputs and the
+  center-aligned flag, not DMA requests; a bench lane with that step would show it. Fix
+  after measuring: refuse or split the step in `CompareLane::arm`. *Spawned:* the
+  ES0392 row review (2026-11-17).
+- `code` `errata` **Low: the H7 USB port sends a zero-length packet without ES0392 2.25.7's sequence.**
+  `synopsys-usb-otg` 0.4.0 sets CNAK and EPENA together for an empty IN packet; the
+  sheet asks for SNAK, a 20 AHB clock wait, EPENA, 15 more, then CNAK, or a wrong packet
+  may go out. Every revision. CDC passes on the H753 bench, which does not look for it.
+  Fix: the panic-free device core on the roadmap (`CHIPS.md`), or the crate. *Spawned:*
+  the ES0392 row review (2026-11-17).
 - `code` `bench` **Medium: above 1 Mbaud, `usart_v2` places a lone parity error late or
   loses it.** F401 run B, 8N2 into 8O1 (one bad byte, then a good frame), both
   directions, measured 2026-11-15: at 115200 and 1 Mbaud the error is seen once and

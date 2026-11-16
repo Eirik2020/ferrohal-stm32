@@ -1075,6 +1075,8 @@ fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
     info.regs.clear_tc();
     let transfer = Transfer {
         request,
+        // ES0392 2.20.4: TRBUFF (DMA_SxCR bit 20) keeps a U(S)ART stream
+        // from locking when another transfer runs beside it.
         #[cfg(feature = "dma_v1")]
         bufferable: true,
         direction: Direction::MemoryToPeripheral,
@@ -1596,6 +1598,7 @@ impl<W: UartParts> UartRx<W> {
         self.restarts = self.restarts.wrapping_add(1);
         let transfer = Transfer {
             request: self.request,
+            // ES0392 2.20.4, as for transmitting.
             #[cfg(feature = "dma_v1")]
             bufferable: true,
             direction: Direction::PeripheralToMemory,
