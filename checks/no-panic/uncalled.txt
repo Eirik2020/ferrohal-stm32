@@ -1,6 +1,4 @@
 # Public functions checks/no-panic does not call, each with the reason a reviewer
 # accepted (tools/check_no_panic_coverage.py). One per line:
 # <file> <Type::name or name> -- <reason>
-src/adc_v2/mod.rs Unit::new -- a const constructor from raw registers, for the chip glue; to be pub(crate) like I2C's (docs/DEBT.md)
-src/adc_v4/mod.rs Unit::new -- as adc_v2's
 src/dma_stream.rs stick -- feature fault-injection only, a bench hook; this program builds without it

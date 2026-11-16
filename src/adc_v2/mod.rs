@@ -53,7 +53,7 @@ pub struct Unit {
 }
 
 impl Unit {
-    pub const fn new(regs: Adc, common: AdcCommon) -> Self {
+    pub(crate) const fn new(regs: Adc, common: AdcCommon) -> Self {
         Self { regs, common }
     }
 

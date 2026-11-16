@@ -42,10 +42,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
 
 ## 1. Library code
 
-- `code` `api` **Low: the ADC's `Unit::new` is public.** `adc_v2` and `adc_v4` build a
-  unit from raw registers for the chip glue, where I2C's and SPI's are `pub(crate)`.
-  `checks/no-panic/uncalled.txt` lists both until they match. *Spawned:* the no-panic
-  coverage check (2026-11-16).
 - `code` `api` **Medium: an I2C wiring accepts a push-pull pin.** Both `into_alternate`
   forms return one type ([gpio_v2](../src/gpio_v2/mod.rs)), and push-pull NACKs every
   transfer. Fix: an open-drain type state. *Spawned:* GPIO's single alternate type

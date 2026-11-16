@@ -4,6 +4,10 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The ADC's `Unit::new` is crate-only** (2026-11-16), like I2C's and SPI's: it builds a
+  unit from raw registers for the chip glue. `checks/no-panic/uncalled.txt` no longer
+  lists it.
+
 - **The no-panic check covers every public function** (2026-11-16). It proved only the
   paths `checks/no-panic` called, and nothing checked that list.
   `tools/check_no_panic_coverage.py`, a `checks/run.sh` step, now requires every
