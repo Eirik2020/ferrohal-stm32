@@ -58,8 +58,8 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
 - `code` `errata` **Low: most errata entries are unreviewed.** ADR-010 transcribed every row
-  of the three sheets: ES0182 86 of 91 and ES0299 62 of 66 have no verdict yet
-  (`Unreviewed` in `docs/errata/`); ES0392 was reviewed row by row on 2026-11-17. Fix:
+  of the three sheets: ES0182 86 of 91 have no verdict yet (`Unreviewed` in
+  `docs/errata/`); ES0392 and ES0299 were reviewed row by row on 2026-11-17. Fix:
   review sheet by sheet, IP versions FerroHAL drives first. *Spawned:* ADR-010's transcription
   (2026-11-15), which made the unreviewed visible.
 - `code` `errata` **Medium: the H7 I2C lacks three ES0392 workarounds.** (2.19.4, every
@@ -72,10 +72,10 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   read just as it lands; fix: the sheet's NBYTES = 1 reload. Inferred from the sheet and
   the source; no bench has been checked for any of them, and both H7s here are rev V.
   *Spawned:* the ES0392 row review (2026-11-17).
-- `code` `errata` **Low: an H7 compare lane may lose a DMA request when its duty steps from the period's top to 0.**
-  ES0392 2.16.2: a compare match at CNT = CCR = ARR followed by one at CNT = CCR = 0
-  (edge-aligned, the preloaded duty going from period - 1 to 0) misses the second
-  compare event. A lane's next duty is written on its compare request, so the stream
+- `code` `errata` **Low: a compare lane may lose a DMA request when its duty steps from the period's top to 0.**
+  ES0392 2.16.2, ES0299 2.6.3: a compare match at CNT = CCR = ARR followed by one at
+  CNT = CCR = 0 (edge-aligned, the preloaded duty going from period - 1 to 0) misses
+  the second compare event. A lane's next duty is written on its compare request, so the stream
   would fall a period behind. Inferred: the sheet names toggle outputs and the
   center-aligned flag, not DMA requests; a bench lane with that step would show it. Fix
   after measuring: refuse or split the step in `CompareLane::arm`. *Spawned:* the
@@ -86,6 +86,14 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   may go out. Every revision. CDC passes on the H753 bench, which does not look for it.
   Fix: the panic-free device core on the roadmap (`CHIPS.md`), or the crate. *Spawned:*
   the ES0392 row review (2026-11-17).
+- `code` `errata` **Medium: the F4 I2C lacks two errata workarounds.** (ES0299 2.9.1)
+  `i2c_v1` fails a transfer with `Error::Bus` on BERR, which the sheet says can rise
+  spuriously in controller mode while the transfer carries on; fix: clear it and
+  continue. (ES0299 2.9.3) after another controller's misplaced Stop, START is not
+  generated, and the sheet's fix is SWRST, where `recover` toggles PE; fix: SWRST in
+  `recover`, keeping CCR and TRISE. Every revision. Inferred from the sheet and the
+  source; no bench has been checked for either. *Spawned:* the ES0299 row review
+  (2026-11-17).
 - `code` `bench` **Medium: above 1 Mbaud, `usart_v2` places a lone parity error late or
   loses it.** F401 run B, 8N2 into 8O1 (one bad byte, then a good frame), both
   directions, measured 2026-11-15: at 115200 and 1 Mbaud the error is seen once and
@@ -168,6 +176,13 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   *Spawned:* `d773b34` recorded the decision and deferred the move.
 - `bench` **Low: a Foxeer smoke image that fails before USB says nothing.** It restarts
   into DFU. *Spawned:* `926b210` 2026-11-02, a bench that reports over USB only.
+
+- `bench` **Low: the F401 bench clocks SPI1 at 84 MHz with SCK at reset speed.** ES0299
+  2.11.4 bounds APB at 25 MHz for a low-speed SCK pin (30 pF), or the last received bit
+  can be wrong; PA5 and the other SCK pins keep their reset speed in runs E to G. The
+  runs pass, so the short loopback holds, but they sit outside the sheet's bound. Fix:
+  set SCK to high speed in `hil/nucleo-f401re-loopback`. Inferred from the source.
+  *Spawned:* the ES0299 row review (2026-11-17).
 
 ## 4. Shipped code without hardware proof: rig work
 
