@@ -131,7 +131,7 @@ impl Rcc {
     }
 
     /// Turns a peripheral's clock on. The read back is the delay RM0368
-    /// requires before the peripheral's registers are touched.
+    /// requires before the peripheral's registers are touched (ES0299 2.2.7).
     pub(crate) fn enable(&mut self, bit: RccBit) {
         let mask = 1 << bit.bit;
         match bit.bus {
