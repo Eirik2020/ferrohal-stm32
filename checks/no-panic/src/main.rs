@@ -1690,14 +1690,18 @@ pub fn exercise_sdmmc<U, Ck, Cmd, D0, D1, D2, D3>(
     wiring: ferrohal_stm32::sdmmc::Wiring<U, Ck, Cmd, D0, D1, D2, D3>,
 ) where
     U: ferrohal_stm32::sdmmc::Instance,
-    Ck: ferrohal_stm32::sdmmc::CkPin<U>,
-    Cmd: ferrohal_stm32::sdmmc::CmdPin<U>,
-    D0: ferrohal_stm32::sdmmc::D0Pin<U>,
-    D1: ferrohal_stm32::sdmmc::D1Pin<U>,
-    D2: ferrohal_stm32::sdmmc::D2Pin<U>,
-    D3: ferrohal_stm32::sdmmc::D3Pin<U>,
+    Ck: ferrohal_stm32::sdmmc::CkPin<U> + ferrohal_stm32::gpio::AltPin,
+    Cmd: ferrohal_stm32::sdmmc::CmdPin<U> + ferrohal_stm32::gpio::AltPin,
+    D0: ferrohal_stm32::sdmmc::D0Pin<U> + ferrohal_stm32::gpio::AltPin,
+    D1: ferrohal_stm32::sdmmc::D1Pin<U> + ferrohal_stm32::gpio::AltPin,
+    D2: ferrohal_stm32::sdmmc::D2Pin<U> + ferrohal_stm32::gpio::AltPin,
+    D3: ferrohal_stm32::sdmmc::D3Pin<U> + ferrohal_stm32::gpio::AltPin,
 {
     use ferrohal_stm32::sdmmc::{BLOCK_SIZE, Config, Sdmmc};
+
+    black_box(&ferrohal_stm32::sdmmc::Wiring::<U, Ck, Cmd, D0, D1, D2, D3>::RESOURCES)
+        .iter()
+        .for_each(keep);
 
     let mut sd = match Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) {
         Ok(sd) => sd,

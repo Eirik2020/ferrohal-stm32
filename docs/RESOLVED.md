@@ -4,6 +4,11 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review D10: every wiring describes itself** (2026-11-17). USB and SDMMC were the
+  two wirings without `RESOURCES`. USB's came with D9; `sdmmc::Wiring::RESOURCES` lists
+  the instance and its six pins (new `Signal::Ck`, `Cmd`, `Data(n)`). Spawned by
+  `9bd9d1e` and `4237048`, which did not follow `2e7f7fe`'s descriptors.
+
 - **API review D9: USB's data pins come from the glue** (2026-11-17). `usb.rs` hard-coded
   PA11/PA12 in AF10. glue-gen now reads OTG_FS's DM and DP routes from metapac (one each
   on every part, else it fails) and `usb_fs!` defines `chip::UsbDm` and `chip::UsbDp`.

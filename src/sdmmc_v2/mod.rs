@@ -25,8 +25,9 @@ use stm32_metapac::sdmmc::{
 };
 
 use crate::{
+    gpio::AltPin,
     rcc::{Rcc, RccBit},
-    resource::Refused,
+    resource::{Refused, Resource, Signal},
     time::Hertz,
 };
 
@@ -177,6 +178,59 @@ pub struct Wiring<U, Ck, Cmd, D0, D1, D2, D3> {
     pub d1: D1,
     pub d2: D2,
     pub d3: D3,
+}
+
+impl<U, Ck, Cmd, D0, D1, D2, D3> Wiring<U, Ck, Cmd, D0, D1, D2, D3>
+where
+    U: Instance,
+    Ck: CkPin<U> + AltPin,
+    Cmd: CmdPin<U> + AltPin,
+    D0: D0Pin<U> + AltPin,
+    D1: D1Pin<U> + AltPin,
+    D2: D2Pin<U> + AltPin,
+    D3: D3Pin<U> + AltPin,
+{
+    /// Everything this wiring uses, as data: the instance and its six pins
+    /// with their alternate functions.
+    pub const RESOURCES: [Resource; 7] = [
+        Resource::Peripheral(U::NAME),
+        Resource::Pin {
+            signal: Signal::Ck,
+            port: Ck::PORT,
+            pin: Ck::PIN,
+            af: Ck::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Cmd,
+            port: Cmd::PORT,
+            pin: Cmd::PIN,
+            af: Cmd::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Data(0),
+            port: D0::PORT,
+            pin: D0::PIN,
+            af: D0::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Data(1),
+            port: D1::PORT,
+            pin: D1::PIN,
+            af: D1::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Data(2),
+            port: D2::PORT,
+            pin: D2::PIN,
+            af: D2::AF,
+        },
+        Resource::Pin {
+            signal: Signal::Data(3),
+            port: D3::PORT,
+            pin: D3::PIN,
+            af: D3::AF,
+        },
+    ];
 }
 
 /// What `init_card` found.

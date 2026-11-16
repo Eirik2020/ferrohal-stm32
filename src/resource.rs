@@ -51,6 +51,12 @@ pub enum Signal {
     Dm,
     /// USB's D+ line.
     Dp,
+    /// A card bus's clock.
+    Ck,
+    /// A card bus's command line.
+    Cmd,
+    /// A card bus's data line, by its number.
+    Data(u8),
 }
 
 /// What a vector check found wrong.
