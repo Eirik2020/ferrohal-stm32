@@ -4,8 +4,8 @@
 //! mask, pending), so they share this source; SYSCFG's EXTICR picks which
 //! port drives each line.
 //!
-//! The EXTI token splits, with SYSCFG, into sixteen line tokens and a
-//! [`Ctrl`]. `Ctrl` owns the registers lines share by read-modify-write
+//! The EXTI token splits, with SYSCFG's [`Exticr`] part, into sixteen line
+//! tokens and a [`Ctrl`]. `Ctrl` owns the registers lines share by read-modify-write
 //! (EXTICR, the trigger selections, the mask), the way `gpio::Ctrl` owns a
 //! port's. A line routes to the pin with its number on one port. It only
 //! watches that pin's level, so it doesn't take the pin: the pin stays with
@@ -25,9 +25,9 @@ use core::{convert::Infallible, marker::PhantomData};
 use stm32_metapac::{EXTI as EXTI_REGS, SYSCFG as SYSCFG_REGS, exti::regs::Lines};
 
 use crate::{
-    chip::{EXTI, Interrupt, SYSCFG, SYSCFG_ENABLE},
+    chip::{EXTI, Interrupt},
     gpio::{Port, PortInstance, PortRegisters},
-    rcc::Rcc,
+    syscfg::Exticr,
 };
 
 /// Which edges set a line pending.
@@ -39,9 +39,9 @@ pub enum Edge {
     Both,
 }
 
-/// The owner of the registers the sixteen lines share.
+/// The owner of the registers the sixteen lines share, EXTICR among them.
 pub struct Ctrl {
-    _private: (),
+    _exticr: Exticr,
 }
 
 /// Line `N`, not yet bound to a pin.
@@ -59,16 +59,16 @@ macro_rules! parts {
         }
 
         impl EXTI {
-            /// Turns on SYSCFG's clock (for EXTICR) and hands out the GPIO
-            /// lines, each masked with no edge selected.
-            pub fn split(self, _syscfg: SYSCFG, rcc: &mut Rcc) -> Parts {
-                rcc.enable(SYSCFG_ENABLE);
+            /// Hands out the GPIO lines, each masked with no edge selected.
+            /// It takes SYSCFG's EXTICR part ([`SYSCFG::split`](crate::chip::SYSCFG)
+            /// turned on its clock), and nothing else of SYSCFG.
+            pub fn split(self, exticr: Exticr) -> Parts {
                 EXTI_REGS.imr(0).modify(|w| w.0 &= !0xffff);
                 EXTI_REGS.rtsr(0).modify(|w| w.0 &= !0xffff);
                 EXTI_REGS.ftsr(0).modify(|w| w.0 &= !0xffff);
                 EXTI_REGS.pr(0).write_value(Lines(0xffff));
                 Parts {
-                    ctrl: Ctrl { _private: () },
+                    ctrl: Ctrl { _exticr: exticr },
                     $($field: Line { _private: () },)+
                 }
             }

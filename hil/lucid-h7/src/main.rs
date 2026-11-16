@@ -360,7 +360,7 @@ fn main() -> ! {
         reboot_to_dfu()
     };
 
-    let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let mut ready_pin = b.p2.into_input(&mut b.ctrl);
     ready_pin.set_pull(&mut b.ctrl, Pull::Down);
     let mut imu_ready = exti.l2.route::<'B'>(&mut exti.ctrl, Edge::Rising);

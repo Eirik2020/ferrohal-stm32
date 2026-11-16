@@ -72,6 +72,7 @@ pub mod reset;
 pub mod resource;
 pub mod signature;
 pub mod spi;
+pub mod syscfg;
 pub mod time;
 pub mod uart;
 #[cfg(feature = "usb")]

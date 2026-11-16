@@ -573,7 +573,7 @@ fn main() -> ! {
     };
     let mut nor = Nor { spi, cs: nor_cs };
 
-    let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let mut ready_pin = c.p4.into_input(&mut c.ctrl);
     ready_pin.set_pull(&mut c.ctrl, Pull::Down);
     let mut imu_ready = exti.l4.route::<'C'>(&mut exti.ctrl, Edge::Rising);

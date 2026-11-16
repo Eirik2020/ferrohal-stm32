@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **EXTI takes only SYSCFG's EXTICR part** (2026-11-17; owner's option A,
+  2026-11-16). The new `syscfg` module's `SYSCFG::split(&mut Rcc)` turns on SYSCFG's
+  clock and returns `Parts { exticr }`; `EXTI::split(exticr)` takes that part alone and
+  no longer needs `&mut Rcc`. The F4's memory remap and the H7's I/O compensation cell
+  get parts of their own when a driver needs them. Spawned by `b55c640`, EXTI written
+  as SYSCFG's only user.
+
 - **An I2C wiring takes only an open-drain pin** (2026-11-17; owner's option A,
   2026-11-16). `Alternate<AF, OT = PushPull>` carries the output type:
   `into_alternate` returns `Alternate<AF>` and `into_alternate_open_drain`

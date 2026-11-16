@@ -51,9 +51,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it and metapac lacks the register. Both H7s
   here are rev V, so no bench can show it (`docs/design/h7-errata.md`). *Spawned:* the
   W11 errata review (`3702336`, 2026-11-09).
-- `code` `api` **Low: EXTI owns the whole SYSCFG token.** It needs EXTICR only; the H7's
-  I/O compensation cell and the F4's memory remap sit in SYSCFG too. *Spawned:*
-  `b55c640` 2026-10-31, EXTI written as SYSCFG's only user.
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.

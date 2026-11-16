@@ -1028,7 +1028,7 @@ mod chip {
         let input = a.p0.into_input(&mut a.ctrl);
         let rx6 = a.p12.into_alternate::<8>(&mut a.ctrl);
         let analog = a.p1.into_analog(&mut a.ctrl);
-        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
         super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
         super::exercise_watchdog(&mut rcc, p.IWDG);
@@ -1216,7 +1216,7 @@ mod chip {
         let input = b.p1.into_input(&mut b.ctrl);
         let rx4 = a.p1.into_alternate::<8>(&mut a.ctrl);
         let analog = b.p2.into_analog(&mut b.ctrl);
-        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG);
@@ -1409,7 +1409,7 @@ mod chip {
         let input = b.p1.into_input(&mut b.ctrl);
         let rx3 = b.p11.into_alternate::<7>(&mut b.ctrl);
         let analog = b.p2.into_analog(&mut b.ctrl);
-        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG1);

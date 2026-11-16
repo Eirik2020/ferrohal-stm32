@@ -343,7 +343,7 @@ pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
     let mut f = p.GPIOF.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
-    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     let mut feed = d.p5.into_push_pull_output(&mut d.ctrl);
     feed.set_low();
@@ -399,7 +399,7 @@ pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
     let mut b = p.GPIOB.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
-    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunG {
         led,
@@ -434,7 +434,7 @@ pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
     let mut d = p.GPIOD.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
-    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunH {
         led,
@@ -682,7 +682,7 @@ pub fn run_l(p: Peripherals) -> Result<RunL, ClockError> {
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
-    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunL {
         led,
