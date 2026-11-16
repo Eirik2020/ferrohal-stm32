@@ -118,6 +118,16 @@ path = "src/bin/run_s.rs"
 test = false
 bench = false
 
+# Run T needs the library's bench fault injection, so it builds only with
+# `--features fault-injection` (hil/run-h753.sh passes it); every other run's
+# image is built without it.
+[[bin]]
+name = "run-t"
+path = "src/bin/run_t.rs"
+test = false
+bench = false
+required-features = ["fault-injection"]
+
 [[bin]]
 name = "run-u"
 path = "src/bin/run_u.rs"
@@ -127,6 +137,12 @@ bench = false
 [[bin]]
 name = "run-x"
 path = "src/bin/run_x.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "run-z"
+path = "src/bin/run_z.rs"
 test = false
 bench = false
 
@@ -141,6 +157,9 @@ name = "run-w"
 path = "src/bin/run_w.rs"
 test = false
 bench = false
+
+[features]
+fault-injection = ["ferrohal-stm32/fault-injection"]
 
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32h753zi", "rt", "defmt", "usb", "rtic"] }

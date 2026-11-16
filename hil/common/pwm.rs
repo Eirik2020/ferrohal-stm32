@@ -139,7 +139,9 @@ pub fn lane_pair_check<
     U: ferrohal_stm32::timer::Instance,
     const A: u8,
     const B: u8,
-    SU, WA, WB,
+    SU,
+    WA,
+    WB,
 >(
     report: &mut Report,
     name: &str,
@@ -224,7 +226,15 @@ pub fn lane_pair_check<
 
 /// The waveform generator on two lanes of one timer, read back by `sampler`:
 /// each lane's own samples, a ramp, one lane alone, and what it refuses.
-pub fn awg_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const A: u8, const B: u8, SU, WA, WB>(
+pub fn awg_check<
+    T: ChannelTimer,
+    U: ferrohal_stm32::timer::Instance,
+    const A: u8,
+    const B: u8,
+    SU,
+    WA,
+    WB,
+>(
     report: &mut Report,
     name: &str,
     awg: &mut Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
@@ -451,7 +461,9 @@ pub fn awg_free_check<
     U: ferrohal_stm32::timer::Instance,
     const A: u8,
     const B: u8,
-    SU, WA, WB,
+    SU,
+    WA,
+    WB,
 >(
     report: &mut Report,
     name: &str,
@@ -616,7 +628,13 @@ fn play_one<T: ChannelTimer, const C: u8, WC>(
 
 /// Out over a wire: `awg`'s lane plays, and `sampler` reads the far end of the
 /// wire, on bit `far_pin` of its port.
-pub fn awg_wire_out_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, const C: u8, SU, WC>(
+pub fn awg_wire_out_check<
+    T: ChannelTimer,
+    U: ferrohal_stm32::timer::Instance,
+    const C: u8,
+    SU,
+    WC,
+>(
     report: &mut Report,
     name: &str,
     awg: &mut Awg<T, T, (CompareLane<T, C, WC>,), ()>,
@@ -867,30 +885,56 @@ pub fn duty_check<T: ferrohal_stm32::timer::Instance, ST>(
     report.check(
         name,
         "duty as set, to 1/16 [PWM-001]",
-        (|| {
-            sampler.start(1000).map_err(|_| Fail::Count {
+        measure_duty(sampler, pin, sixteenths, cpu),
+    );
+}
+
+/// As [`duty_check`], for a channel driving its complementary output
+/// (CHxN): the duty set on the channel, on the CHxN pin.
+pub fn complementary_duty_check<T: ferrohal_stm32::timer::Instance, ST>(
+    report: &mut Report,
+    name: &str,
+    sampler: &mut Sampler<T, ST>,
+    pin: u8,
+    sixteenths: u32,
+    cpu: Hertz,
+) {
+    report.check(
+        name,
+        "the complementary output carries the duty as set, to 1/16 [PWM-008]",
+        measure_duty(sampler, pin, sixteenths, cpu),
+    );
+}
+
+fn measure_duty<T: ferrohal_stm32::timer::Instance, ST>(
+    sampler: &mut Sampler<T, ST>,
+    pin: u8,
+    sixteenths: u32,
+    cpu: Hertz,
+) -> Result<(), Fail> {
+    (|| {
+        sampler.start(1000).map_err(|_| Fail::Count {
+            expected: 1000,
+            got: 0,
+        })?;
+        if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
+            sampler.stop();
+            return Err(Fail::Count {
                 expected: 1000,
                 got: 0,
-            })?;
-            if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
-                sampler.stop();
-                return Err(Fail::Count {
-                    expected: 1000,
-                    got: 0,
-                });
-            }
-            let samples = sampler.samples();
-            let high = samples.iter().filter(|s| *s & (1 << pin) != 0).count() as u32;
-            let got16 = high * 16 / samples.len().max(1) as u32;
-            if got16.abs_diff(sixteenths) > 1 {
-                return Err(Fail::Count {
-                    expected: sixteenths,
-                    got: got16,
-                });
-            }
-            Ok(())
-        })(),
-    );
+            });
+        }
+        let samples = sampler.samples();
+        let high = samples.iter().filter(|s| *s & (1 << pin) != 0).count() as u32;
+        let got16 = high * 16 / samples.len().max(1) as u32;
+        if got16.abs_diff(sixteenths) > 1 {
+            return Err(Fail::Count {
+                expected: sixteenths,
+                got: got16,
+            });
+        }
+        Ok(())
+    })()
 }
 
 /// One period from `Pwm::start_one_pulse`: the first period carries the set

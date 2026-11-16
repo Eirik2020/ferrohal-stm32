@@ -34,7 +34,10 @@ mod app {
         device::Interrupt,
         exti::{Ctrl, Edge, Exti},
         gpio::{Output, Pin},
+        dma::Stream,
         spi::{Buffers, Spi},
+        time::Hertz,
+        timer::Sampler,
     };
 
     use crate::{
@@ -65,9 +68,10 @@ mod app {
         sck5: Exti<'F', 7>,
         sense: Exti<'D', 6>,
         feed: Pin<'D', 5, Output>,
+        sampler: Sampler<ferrohal_stm32::chip::TIM2, Stream<1, 1>>,
     }
 
-    #[init]
+    #[init(local = [samples: [u16; 1024] = [0; 1024]])]
     fn init(cx: init::Context) -> (Shared, Local) {
         let mut core = cx.core;
         // The cycle counter, for the timing checks. The caches stay off, as
@@ -113,6 +117,8 @@ mod app {
             Buffers { tx: b.tx, rx: b.rx },
         )
         .unwrap_or_else(|error| defmt::panic!("SPI5: {}", error));
+        let sampler = Sampler::new::<'A'>(&mut run.rcc, run.tim2, run.sampler, Hertz::mhz(1), cx.local.samples)
+            .unwrap_or_else(|error| defmt::panic!("TIM2 sampler: {}", error));
         let mut ctrl = run.exti.ctrl;
         let mut sck1 = run.exti.l5.route::<'A'>(&mut ctrl, Edge::Rising);
         let mut sck2 = run.exti.l10.route::<'B'>(&mut ctrl, Edge::Rising);
@@ -146,6 +152,7 @@ mod app {
                 sck5,
                 sense,
                 feed: run.feed,
+                sampler,
             },
         )
     }
@@ -186,7 +193,7 @@ mod app {
         cx.shared.bus5.lock(Bus::on_exti);
     }
 
-    #[task(priority = 1, shared = [bus1, bus2, bus4, bus5], local = [ctrl, led, spi1, spi2, spi4, spi5, sck1, sck2, sck4, sck5, sense, feed])]
+    #[task(priority = 1, shared = [bus1, bus2, bus4, bus5], local = [ctrl, led, spi1, spi2, spi4, spi5, sck1, sck2, sck4, sck5, sense, feed, sampler])]
     async fn checks(mut cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
@@ -208,6 +215,7 @@ mod app {
             l.sck1,
             l.ctrl,
         );
+        spi_exti::wire_check(&mut report, "SPI1 PA5/PA6/PD7 (Lucid), DMA1 S5/S4", bus1, &board::SPI, cpu, l.sampler, 5, 6);
         bus2.lock(|b| b.spi = l.spi2.take());
         spi_exti::spi_suite(
             &mut report,

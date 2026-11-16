@@ -29,15 +29,15 @@
 //! a chip with a data cache, memory the MPU marks non-cacheable. `Spi::new`
 //! checks both with `chip::check_dma_buffer`.
 //!
-//! Requirements: SPI-002, SPI-003, SPI-004, SPI-005, SPI-006, SPI-007, SPI-008, API-002
+//! Requirements: SPI-002, SPI-003, SPI-004, SPI-005, SPI-006, SPI-007, SPI-008, API-002, API-003
 
 use core::sync::atomic::{Ordering, fence};
 
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, Flags, Interrupts, Priority, Stream, StreamInterrupt,
-        Transfer, WordSize,
+        Channel, Direction, FifoMode, Flags, Interrupts, Priority, StopTimeout, Stream,
+        StreamInterrupt, Transfer, WordSize,
     },
     gpio::AltPin,
     rcc::Rcc,
@@ -216,18 +216,28 @@ where
     /// 2.11.1 / ES0182 2.12.1's BSY caveat on the dead peripheral, and the
     /// vector finds an idle, disabled SPI that raises nothing. A reopen runs
     /// `Spi::new` again on the same parts.
+    ///
+    /// A stream that does not stop in time could still use the buffers, so
+    /// they are not handed out: the refusal returns the SPI, disabled and
+    /// still owning them, and its next transfer reports `Error::Dma`. `free`
+    /// may be tried again; it succeeds once both streams have stopped.
     #[allow(clippy::type_complexity)]
-    pub fn free(mut self) -> (Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers) {
-        let _ = self.tx.stop(STOP_SPINS);
-        let _ = self.rx.stop(STOP_SPINS);
+    pub fn free(
+        mut self,
+    ) -> Result<(Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers), Refused<StopTimeout, Self>> {
+        let tx = self.tx.stop(STOP_SPINS);
+        let rx = self.rx.stop(STOP_SPINS);
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         self.info.unit().disable();
+        if tx.and(rx).is_err() {
+            return Err(Refused::new(StopTimeout, self));
+        }
         let buffers = Buffers {
             tx: core::mem::take(&mut self.tx_buf),
             rx: core::mem::take(&mut self.rx_buf),
         };
-        (self.wiring, buffers)
+        Ok((self.wiring, buffers))
     }
 }
 

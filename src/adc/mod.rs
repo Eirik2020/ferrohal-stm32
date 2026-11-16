@@ -19,7 +19,7 @@
 //!   against the factory calibration; elsewhere a board states its nominal
 //!   supply.
 //!
-//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005, API-002
+//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005, API-002, API-003
 
 use core::marker::PhantomData;
 
@@ -27,8 +27,8 @@ use crate::{
     adc_ip::{MAX_SAMPLE, Unit},
     chip::{Interrupt, TS_CAL1, TS_CAL2, VREFIN_CAL},
     dma::{
-        Channel as DmaChannel, Direction, FifoMode, Flags, Interrupts, Priority, StreamInstance,
-        StreamInterrupt, Transfer, WordSize,
+        Channel as DmaChannel, Direction, FifoMode, Flags, Interrupts, Priority, StopTimeout,
+        StreamInstance, StreamInterrupt, Transfer, WordSize,
     },
     rcc::{Rcc, RccBit},
     resource::Refused,
@@ -468,10 +468,17 @@ impl<A: Instance, S> AdcScan<A, S> {
 
     /// Stops a sequence that never finished.
     pub fn abort(&mut self) {
-        let _ = self.dma.stop(STOP_SPINS);
+        // A stream that will not stop is caught by the next `start`
+        // (`Error::Dma`) or by `free`.
+        let _ = self.halt();
+    }
+
+    fn halt(&mut self) -> Result<(), StopTimeout> {
+        let stopped = self.dma.stop(STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         self.adc.unit.finish_sequence();
         self.state = ScanState::Idle;
+        stopped
     }
 
     pub const fn is_busy(&self) -> bool {
@@ -482,9 +489,17 @@ impl<A: Instance, S> AdcScan<A, S> {
     /// [`Adc::into_scan`] took: the ADC, still powered, the stream's token and
     /// the buffer. [`Adc::free`] then powers the ADC down and returns its
     /// token; `into_scan` on the same parts starts a new scan.
-    pub fn free(mut self) -> (Adc<A>, S, &'static mut [u16]) {
-        self.abort();
-        (self.adc, self.stream, self.buffer)
+    ///
+    /// A stream that does not stop in time could still write the buffer, so
+    /// it is not handed out: the refusal returns the scan, its sequence
+    /// stopped, still owning it. `free` may be tried again; it succeeds once
+    /// the stream has stopped.
+    #[allow(clippy::type_complexity)]
+    pub fn free(mut self) -> Result<(Adc<A>, S, &'static mut [u16]), Refused<StopTimeout, Self>> {
+        if self.halt().is_err() {
+            return Err(Refused::new(StopTimeout, self));
+        }
+        Ok((self.adc, self.stream, self.buffer))
     }
 
     /// The vector to bind to the handler that calls `on_interrupt`: the

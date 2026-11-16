@@ -115,21 +115,16 @@ ones that unblock a claim.
 2. **A microSD breakout module wired to the H753's SDMMC1 pins** (PC8 to
    PC12 and PD2, on the Zio CN8 header; the Nucleo has the pins but no card
    slot). `sdmmc_v2` then has a Nucleo bench: SDMMC-001 to 004, empty slot
-   included, which only the Lucid smoke test reaches today. The owner has no
+   included, which only the Lucid's flashed bench (`FLSH`) reaches today. The owner has no
    such module (2026-11-13). PC10/PC11 are Z6 and PC12/PD2 Z8, so it would be
    its own procedure with those links lifted.
-3. **The H753's ROM DFU, no hardware needed.** CN13 stays connected, so a run
-   that ends in the ROM and a host check that `dfu-util` then lists the
-   H753's layout would prove RESET-004 on the H7. Run N reaches the request
-   but leaves no DFU device behind as built (measured 2026-11-13).
-4. **Every bench says what it is, over USB** (owner, 2026-11-13). Each bench firmware
-   answers an identity query on its USB serial port, the ST-LINK's virtual COM port on a
-   Nucleo, the board's own port on a flashed board, and its own CDC port on the Pico:
-   the part, the board, the die and its revision (`DEV_ID`, `REV_ID`), the UID, and the
-   firmware (crate, run, git revision, image hash). A host script polls every attached
-   bench for an overview of the rig. It would have shown on 2026-11-13 that the Pico was
-   connected: its simulator firmware has no USB device, so its absence on USB meant
-   nothing. Today the identity reaches only each run's RTT log, after a run.
+3. ~~**The H753's ROM DFU, no hardware needed.**~~ Done 2026-11-15: run Z ends in the
+   ROM and `dfu-util` lists it on CN13 (RESET-004 on the H7). Run N had left no DFU
+   device because it ends halted, never in the ROM.
+4. **Every bench says what it is** (owner, 2026-11-13; option C, 2026-11-15). Over the
+   debug probe where there is one, over USB serial where there is not; `hil/RIG.md`,
+   Identity. Done 2026-11-15 for every board: the Nucleos and the Discovery over their
+   probes, the Pico, the Foxeer and the Lucid over USB serial (`hil/rig_status.py`).
 5. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
 6. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch

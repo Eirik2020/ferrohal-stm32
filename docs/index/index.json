@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 314406
+  "bytes": 323990
  },
  "documents": [
   {
@@ -32,14 +32,14 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 11254
+   "bytes": 11250
   },
   {
    "path": "docs/DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 15667
+   "bytes": 14605
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 17274
+   "bytes": 21583
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -213,7 +213,7 @@
    "class": "agent",
    "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3098
+   "bytes": 3547
   },
   {
    "path": "docs/design/glue-generator.md",
@@ -269,7 +269,7 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 4493
+   "bytes": 4679
   },
   {
    "path": "docs/design/requirements-tooling.md",
@@ -451,7 +451,7 @@
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 1945
+   "bytes": 2137
   },
   {
    "path": "docs/policies/safety.md",
@@ -465,21 +465,21 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9469
+   "bytes": 9070
   },
   {
    "path": "hil/COVERAGE.md",
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6169
+   "bytes": 6390
   },
   {
    "path": "hil/RIG.md",
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 2632
+   "bytes": 4238
   },
   {
    "path": "hil/WIRING.md",
@@ -493,21 +493,21 @@
    "class": "human",
    "title": "pico-i2c-sim",
    "purpose": "A Raspberry Pi Pico 1 RP2040 standing in for ",
-   "bytes": 1485
+   "bytes": 1702
   },
   {
    "path": "requirements/benches-analysis.md",
    "class": "human",
    "title": "Bench Procedures: the host analyses",
    "purpose": "The checks of benches.mdbenches.md that run o",
-   "bytes": 1352
+   "bytes": 1661
   },
   {
    "path": "requirements/benches-faults.md",
    "class": "human",
    "title": "Bench Procedures: the injected faults and the cache matrix",
    "purpose": "The fault-injection and cache-matrix runs of ",
-   "bytes": 4565
+   "bytes": 5903
   },
   {
    "path": "requirements/benches-refusals.md",
@@ -521,7 +521,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 16906
+   "bytes": 19128
   },
   {
    "path": "requirements/goals.md",

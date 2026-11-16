@@ -7,6 +7,10 @@
 //! Both SCKs are line 3, on ports B and D: the line is routed to PB3 for
 //! SPI3, then released and routed to PD3 for SPI2.
 //!
+//! Then both caches go on and SPI2's suite runs again: the SPI code and
+//! its waits run cached, the buffers in the MPU's non-cacheable block (the
+//! UART runs' cached setup, run A).
+//!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
 //! | `DMA2_STREAM7`, `DMA1_STREAM7` | the open `Spi`'s receive stream | 2 |
@@ -28,6 +32,7 @@ use panic_probe as _;
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [CEC])]
 mod app {
+    use cortex_m::peripheral::{CPUID, SCB};
     use ferrohal_stm32::{
         device::Interrupt,
         exti::{Ctrl, Edge, Exti},
@@ -53,15 +58,19 @@ mod app {
         spi3: Option<Spi<board::Spi3PortB>>,
         spi2: Option<Spi<board::Spi2Pd3>>,
         sck3: Option<Exti<'B', 3>>,
+        scb: SCB,
+        cpuid: CPUID,
     }
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
         let mut core = cx.core;
         // The cycle counter, for the timing checks. The caches stay off, as
-        // on the Lucid.
+        // on the Lucid, until the second SPI2 pass; the DMA block is made
+        // non-cacheable now, before they go on.
         core.DCB.enable_trace();
         core.DWT.enable_cycle_counter();
+        board::dma_region(&mut core);
         let mut run = match board::run_h(cx.device) {
             Ok(run) => run,
             Err(error) => defmt::panic!("clocks: {}", error),
@@ -101,6 +110,8 @@ mod app {
                 spi3: Some(spi3),
                 spi2: Some(spi2),
                 sck3: Some(sck3),
+                scb: core.SCB,
+                cpuid: core.CPUID,
             },
         )
     }
@@ -121,7 +132,7 @@ mod app {
         cx.shared.bus2.lock(Bus::on_exti);
     }
 
-    #[task(priority = 1, shared = [bus3, bus2], local = [ctrl, led, spi3, spi2, sck3])]
+    #[task(priority = 1, shared = [bus3, bus2], local = [ctrl, led, spi3, spi2, sck3, scb, cpuid])]
     async fn checks(mut cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
@@ -150,6 +161,18 @@ mod app {
         spi_exti::spi_suite(
             &mut report,
             "SPI2 PD3/PC2/PC3, DMA1 S6/S7",
+            bus2,
+            &board::SPI,
+            cpu,
+            Interrupt::DMA1_STREAM7,
+            &mut sck2,
+            l.ctrl,
+        );
+        board::caches_on(l.scb, l.cpuid);
+        defmt::info!("I-cache {=bool}, D-cache {=bool}", SCB::icache_enabled(), SCB::dcache_enabled());
+        spi_exti::spi_suite(
+            &mut report,
+            "SPI2 PD3/PC2/PC3, DMA1 S6/S7, caches on",
             bus2,
             &board::SPI,
             cpu,

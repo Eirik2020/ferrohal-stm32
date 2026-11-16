@@ -17,6 +17,8 @@ test = false
 bench = false
 
 [dependencies]
+# DBGMCU's DEV_ID, for the identity line (src/ident.rs).
+stm32-metapac = { version = "=21.0.0", default-features = false, features = ["stm32h743vi"] }
 ferrohal-stm32 = { path = "../..", features = ["stm32h743vi", "rt", "usb", "rtic"] }
 usbd-serial = "0.2.2"
 embedded-hal = "1.0.0"

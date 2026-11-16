@@ -49,6 +49,21 @@
 // Every run binary compiles this file and uses its own run's wiring only.
 #![allow(dead_code)]
 
+#[path = "../../common/ident.rs"]
+mod ident;
+
+/// This image's identity block, at 0x0800_0400 (`memory.x`).
+#[used]
+#[unsafe(link_section = ".ferro_ident")]
+static FERRO_IDENT: [u8; ident::LEN] = ident::block(concat!(
+    "FERRO-ID v=1 board=nucleo-h753zi part=STM32H753ZI crate=",
+    env!("CARGO_PKG_NAME"),
+    " run=",
+    env!("CARGO_BIN_NAME"),
+    " git=",
+    env!("FERRO_GIT"),
+));
+
 use core::{
     ptr::addr_of_mut,
     sync::atomic::{AtomicBool, Ordering},
@@ -293,6 +308,10 @@ pub struct RunF {
     pub spi5: Spi5,
     /// PD5, driving PD6 over Z1 for the EXTI checks.
     pub feed: Pin<'D', 5, Output>,
+    /// TIM2's update request on DMA1 stream 1 samples port A: SPI1's SCK
+    /// (PA5) and the MISO end of S1 (PA6), for the wire check [SPI-010].
+    pub tim2: TIM2,
+    pub sampler: Stream<1, 1>,
 }
 
 pub struct RunG {
@@ -366,6 +385,8 @@ pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
             rx_dma: dma2.s5,
         },
         feed,
+        tim2: p.TIM2,
+        sampler: dma1.s1,
         rcc,
     })
 }
@@ -744,7 +765,7 @@ pub struct RunM {
 pub fn run_m(p: Peripherals) -> Result<RunM, ClockError> {
     let mut rcc = p
         .RCC
-        .freeze(&CLOCK_CONFIG)
+        .freeze(&HSE_CLOCK_CONFIG)
         .map_err(|refused| refused.error())?;
     let mut a = p.GPIOA.split(&mut rcc);
     let mut b = p.GPIOB.split(&mut rcc);

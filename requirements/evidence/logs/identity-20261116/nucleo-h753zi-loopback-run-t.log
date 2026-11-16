@@ -1,0 +1,28 @@
+   Compiling nucleo-h753zi-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-h753zi-loopback)
+   Compiling ferrohal-stm32 v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32)
+    Finished `release` profile [optimized + debuginfo] target(s) in 2.65s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/run-t`
+     [38;5;10m[1mFinished[0m in 4.38s
+[INFO ] run T, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (run_t src/bin/run_t.rs:107)
+[INFO ] PASS USART6 PC6->PC7: echo before any fault (run_t ../common/tests.rs:379)
+[INFO ] PASS USART6 PC6->PC7: a transmit stream that will not stop: the flush reports Halted [UARTDMA-009] (run_t ../common/tests.rs:391)
+[INFO ] USART6 PC6->PC7: after the stuck flush, 16 byte(s): [73, 74, 75, 63, 6b, 20, 66, 72, 61, 6d, 65, 20, 30, 31, 32, 33] (run_t src/bin/run_t.rs:227)
+[INFO ] PASS USART6 PC6->PC7: reception carries on: the stuck stream's frame arrives whole [UARTDMA-009] (run_t ../common/tests.rs:391)
+[INFO ] PASS USART6 PC6->PC7: once the stream has stopped, the transmit side still refuses [UARTDMA-009] (run_t ../common/tests.rs:391)
+[INFO ] PASS USART6 PC6->PC7: a free and a reopen bring transmission back [UARTDMA-009] (run_t ../common/tests.rs:391)
+[INFO ] PASS USART6 PC6->PC7: free refuses while the receive stream will not stop; the UART comes back, reads Halted [API-003 UARTDMA-009] (run_t ../common/tests.rs:391)
+[INFO ] PASS USART6 PC6->PC7: a retried free succeeds once the stream stops; both streams read stopped [API-003] (run_t ../common/tests.rs:391)
+[INFO ] PASS USART6 PC6->PC7: an open refuses a stream that will not stop (DmaBusy) [UARTDMA-009] (run_t ../common/tests.rs:391)
+[INFO ] PASS USART6 PC6->PC7: released, the same parts open and echo [UARTDMA-009] (run_t ../common/tests.rs:391)
+[INFO ] PASS SPI1 PA5/PA6/PD7: free refuses mid-transfer while the receive stream will not stop [API-003] (run_t ../common/tests.rs:391)
+[INFO ] PASS SPI1 PA5/PA6/PD7: a retried free succeeds once the streams stop [API-003] (run_t ../common/tests.rs:391)
+[INFO ] PASS TIM3 CH3 lane: free refuses while the stream will not stop [API-003] (run_t ../common/tests.rs:391)
+[INFO ] PASS TIM3 CH3 lane: a retried free succeeds once the stream stops [API-003] (run_t ../common/tests.rs:391)
+[INFO ] PASS TIM8 sampler: free refuses mid-capture while the stream will not stop [API-003] (run_t ../common/tests.rs:391)
+[INFO ] PASS TIM8 sampler: a retried free succeeds once the stream stops [API-003] (run_t ../common/tests.rs:391)
+[INFO ] PASS ADC1 scan: free refuses while the stream will not stop [API-003] (run_t ../common/tests.rs:391)
+[INFO ] PASS ADC1 scan: a retried free succeeds once the stream stops [API-003] (run_t ../common/tests.rs:391)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (run_t ../common/tests.rs:1466)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 81 unreviewed (run_t ../common/tests.rs:1442)
+[INFO ] all checks passed (run_t ../common/tests.rs:1475)
+Firmware exited successfully

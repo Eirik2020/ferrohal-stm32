@@ -15,6 +15,9 @@ mod usb_bench;
 mod clocks;
 
 /// The endpoint memory `usb_bench` gives the driver.
+#[path = "../ident.rs"]
+mod ident;
+
 const EP_WORDS: usize = 320;
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true)]

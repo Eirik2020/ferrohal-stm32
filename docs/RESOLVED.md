@@ -4,6 +4,69 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The no-panic check covers every public function** (2026-11-16). It proved only the
+  paths `checks/no-panic` called, and nothing checked that list.
+  `tools/check_no_panic_coverage.py`, a `checks/run.sh` step, now requires every
+  `pub fn` reachable from outside the crate to be called there or listed in
+  `checks/no-panic/uncalled.txt` with a reason (three: the ADC's two raw `Unit::new`
+  and the fault-injection hook). It works from the source text on stable Rust (the
+  owner's choice over rustdoc JSON on nightly), so a method counts by its name. It found
+  27 uncalled; the 24 now called (clock solving, I2C timing, errata, the ADC's
+  calibration maths, `set_frequency`, `complementary`, `Awg::linked` and
+  `independent`, `set_rate` among them) link on every chip with no panic path.
+
+- **The clock trees are measured against the host** (2026-11-15). H753 run M and
+  Discovery run B count CPU cycles over 1000 USB start-of-frames, a clock independent of
+  the board. Discovery: 168.037 MHz (220 ppm). H753 from HSE: 398.3 to 398.5 MHz, because
+  its input, the ST-LINK-V3's MCO, is 0.4 % low; run M moved from HSI (which read 0.43 %
+  high) to HSE, so the check sees the tree from a known input. The F401 part stays
+  open (no USB device).
+
+- **The `usart_v2` parity clear is measured above 115200** (2026-11-15). F401 run B now
+  checks it at 115200 and 1 Mbaud, both directions, and both hold. The faster rates
+  fail and opened a new item (DEBT, Library code: above 1 Mbaud, a lone parity error).
+
+- **The SPI runs with the caches on** (2026-11-15). H753 run H turns both caches on after
+  its caches-off suites and runs SPI2's suite again: 30 of 30 pass, and the fastest
+  polling pass is 228 cycles over 2258 passes, so `PASS_CYCLES` (112) keeps its factor of
+  two (the source's note says 233, the one earlier measurement).
+
+- **`hil/pico-i2c-sim.sh` no longer needs both probe variables** (2026-11-15). With
+  several probes attached and no `*_PROBE` set, `hil/probe.sh` now picks the probe whose
+  die has the bench's DEV_ID, and the simulator script clears `PROBE_RS_PROBE` for each
+  of its two runs. Measured: both runs S pass with no probe variable set.
+
+- **`Adc`, `AdcScan`, `Sdmmc` and `UsbFs` hand their parts back** (closed 2026-11-13, the
+  DEBT item removed 2026-11-15). Each gained `free()` with the rest (`docs/design/free.md`,
+  rule 0); the item outlived the work.
+
+- **SPI bit order and clock phase are checked on the wire** (2026-11-15). A MOSI-to-MISO
+  loop returns the bytes either way, so `LsbFirst` was only shown to transfer (DEBT since
+  `e6c2362`, 2026-10-31; the fix it named needed one more link). No link was needed:
+  SPI1's SCK and S1's MISO end share port A on both Nucleos, so the timer-paced sampler
+  reads the wire. SPI-010 holds on `spi_v2` (F401 run E) and `spi_v4` (H753 run F).
+
+- **UARTDMA-009 has a method, and `free` no longer hands out buffers under a running
+  stream** (2026-11-15). No bench could make a stream refuse to stop (DEBT, since
+  2026-11-03). The owner chose a bench-only `fault-injection` feature: `dma::fault`
+  makes a stream ignore stop requests. Run T on the H753 proves the UART fails closed
+  in the stuck direction and keeps the other. Building it found that every DMA
+  driver's `free` ignored a failed stop yet returned its buffers as `&'static mut`;
+  they now refuse with the handle (API-003, owner's choice of shape).
+
+- **RESET-004 holds on the H7** (2026-11-15). Run N asks for the ROM across resets but
+  ends with the core halted, so no DFU device ever appeared and the cause stayed open
+  (`57ae1b3`, 2026-11-13). Run Z ends in the ROM: a new DFU device with the die's IDCODE
+  appears on CN13 (`200364500070`; the H7 ROM's serial is not the F4's UID-derived one),
+  and the chip is erased after. The bootloader is 0x91, past AN2606's PWR_CR3 lock.
+
+- **Complementary outputs have a requirement, proven on both timer IP versions**
+  (2026-11-15). The F401 could not sample CHxN: its only break timer, TIM1, is also its
+  only timer whose update reaches DMA2, the one DMA that reaches the GPIO ports (`ea7a9f8`,
+  2026-10-31). The STM32F4 Discovery's run D drives TIM1 CH1N with TIM8 pacing the
+  sampler; PWM-008 names it and the H753's run J (TIM1 CH3N), whose CHxN duty had been
+  counted under PWM-001 only.
+
 - **Errata are data, and `freeze` keeps PRFTEN off on an F405 revision A** (2026-11-15,
   ADR-010). Errata knowledge was spread over 15 cited sections in 11 files, the hand
   verdict table of `h7-errata.md` (ES0392 only, already drifted) and DEBT, with nothing

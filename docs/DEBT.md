@@ -35,20 +35,17 @@ item says so; an origin is never reconstructed after the fact.
 Severity: **High** gives wrong behaviour. **Medium** is a gap a user will hit soon.
 **Low** is cleanup. **Lowest** waits on something outside the repository.
 
-Status 2026-11-15: F401 21 runs and the glue probe, 421 checks; H753 23 runs and the probe,
-718 checks; STM32F4 Discovery 3 runs and the probe, 143 checks; `checks/run.sh` 32 steps;
-reqtool 119 of 122 verified, 0 stale. No item is High.
+Status 2026-11-16 (PR #48): the merge-gate benches pass on F401, H753 and the STM32F4
+Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FLSH`). No item is High.
 
 ---
 
 ## 1. Library code
 
-- `code` `api` `bench` **Medium: `Adc`, `AdcScan`, `Sdmmc` and `UsbFs` hand nothing
-  back.** ADR-002 gives every handle a `free()`; these four have none, so their
-  peripherals cannot take a second role. Fix: `free()` on each, with a refusal-run
-  reopen. *Spawned:* the drivers predate ADR-002 (`a8a3a05`, `4237048`, `9bd9d1e`,
-  2026-11-02), and the `free()` plan's scope listed timers, UART, SPI and I2C only
-  (PRs #35 to #38).
+- `code` `api` **Low: the ADC's `Unit::new` is public.** `adc_v2` and `adc_v4` build a
+  unit from raw registers for the chip glue, where I2C's and SPI's are `pub(crate)`.
+  `checks/no-panic/uncalled.txt` lists both until they match. *Spawned:* the no-panic
+  coverage check (2026-11-16).
 - `code` `api` **Medium: an I2C wiring accepts a push-pull pin.** Both `into_alternate`
   forms return one type ([gpio_v2](../src/gpio_v2/mod.rs)), and push-pull NACKs every
   transfer. Fix: an open-drain type state. *Spawned:* GPIO's single alternate type
@@ -80,6 +77,16 @@ reqtool 119 of 122 verified, 0 stale. No item is High.
   "where they act", are among them: no source file cites them. Fix: review sheet by
   sheet, IP versions FerroHAL drives first. *Spawned:* ADR-010's transcription
   (2026-11-15), which made the unreviewed visible.
+- `code` `bench` **Medium: above 1 Mbaud, `usart_v2` places a lone parity error late or
+  loses it.** F401 run B, 8N2 into 8O1 (one bad byte, then a good frame), both
+  directions, measured 2026-11-15: at 115200 and 1 Mbaud the error is seen once and
+  falls right after the bad byte; at 2.625 and 3.5 Mbaud it is seen once but reported
+  one byte late; at 5.25 Mbaud no vector sees PE and nothing is reported, though even
+  parity into odd (every byte bad) is reported at every rate. Cause not known: whether
+  PE never rises for a lone byte at USARTDIV 1, or something clears it first (any SR
+  read followed by DMA's DR read does), and why the vector runs a byte late at 2.6 Mbaud.
+  Run B checks 115200 and 1 Mbaud only. *Spawned:* the one-speed item's measurement
+  (2026-11-15), which ran the clear at five rates.
 
 ## 2. API consistency (the 2026-11-11 review)
 
@@ -137,44 +144,21 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 
 ## 3. Shipped code without hardware proof: bench work
 
-- `bench` `owner` **Medium: UARTDMA-009 has no method.** No bench makes a DMA stream
-  refuse to stop. The owner set it aside until after FerroWasp's move to FerroHAL
-  (2026-11-03); that move landed on 2026-11-06. *Spawned:* recording the UART's host
-  evidence (`d905095`, 2026-11-03) found no method.
-- `bench` **Medium: RESET-004 has no method on the H7.** Run N reaches the ROM, but no
-  DFU device appears on CN13; the cause is not yet known (`hil/CAPABILITIES.md` queue
-  3). *Spawned:* the coverage pass of 2026-11-13 (`57ae1b3`), measured.
 - `tool` **Low: SDMMC's `free()` has only the Lucid's flashed run.** The Lucid bench frees
-  and reopens the SDMMC, but reqtool records only `host`, `development` and `product`
-  runs, so a `FLSH` run cannot count until plan step 7 gives it a tier; SDMMC's API-002
-  stands on the H753 runs that compile it. *Spawned:* `free()` for SDMMC (2026-11-13),
-  whose only slot is on a flashed board.
-- `bench` **Low: the `usart_v2` parity clear is measured at one speed.** 115200 only; a
-  faster line leaves less time before the clear's DR read. *Spawned:* run B's
-  measurement when the parity-clear item closed (`f9794ed`, 2026-11-05).
-- `bench` **Low: the SPI runs run with the caches off.** The UART runs cover the D-cache;
-  the SPI's do not, and `PASS_CYCLES`' cached floor (233 cycles) was measured once.
-  *Spawned:* the H753 SPI bench copied a caches-off board's setup (`e6c2362`), and the
-  floor's one measurement (`2f09258`), both 2026-10-31.
+  and reopens the SDMMC, and its runs are `FLSH` evidence since the tiers (ADR-009), but
+  API-002 names no Lucid procedure: an entry would re-owe the Lucid on every change to
+  any driver declaring API-002, against the merge-gate rule. SDMMC's API-002 stands on
+  the H753 runs that compile it. *Spawned:* `free()` for SDMMC (2026-11-13), whose only
+  slot is on a flashed board.
 - `bench` **Low: FIFO error handling is unconfirmed on hardware.** Transmit FIFO errors
   are cleared and ignored, receive ones are `DmaOverrun`; neither has been provoked.
   *Spawned:* `af65cad`, which took the transmit policy from the firmware the prototype
   was written for.
-- `bench` `rig` **Low: SPI bit order is unchecked.** A MOSI-to-MISO loop returns the
-  bytes either way, so `LsbFirst` is only shown to transfer. Fix: MOSI into an
-  LSB-first receiver (a UART RX) over one more link. *Spawned:* `e6c2362` 2026-10-31,
-  loopback-only SPI checks.
 - `bench` **Low: the bench isn't on FerroForge.** Decided 2026-11-02: add a FerroHAL
   backend to the FerroForge CLI and move the runs onto its tasks, proving the pair.
   *Spawned:* `d773b34` recorded the decision and deferred the move.
 - `bench` **Low: a Foxeer smoke image that fails before USB says nothing.** It restarts
   into DFU. *Spawned:* `926b210` 2026-11-02, a bench that reports over USB only.
-- `bench` `tool` **Low: `hil/pico-i2c-sim.sh` with two probes needs both `F401_PROBE` and
-  `H753_PROBE`.** `PROBE_RS_PROBE` would send both runs to one probe. *Spawned:* probe
-  selection by serial (W8, `861f8b8`, 2026-11-09); recorded `f20ccc8`.
-- `tool` **Low: the no-panic check proves only the paths it calls.** Nothing checks that
-  every public function is in `checks/no-panic`. *Spawned:* `af65cad`, a hand-written
-  call list.
 
 ## 4. Shipped code without hardware proof: rig work
 
@@ -182,20 +166,20 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   PB14, PG9 and 22 of 46 TX/RX entries are unreachable without morpho headers; UART5's
   PB13 needs SB7. Their rows are glue-checked only. *Spawned:* `55025e8` 2026-10-31,
   the bench wired on Zio.
-- `rig` **Low: SDMMC-003/004 and SDMMC's error paths have no Nucleo bench.** A CRC failure
-  and a card pulled mid-transfer are untested; only the Lucid smoke board has a slot
-  (queue 2). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
-- `rig` `bench` **Low: `timer_v1` complementary outputs (CHxN) are unproven.** The F401's
-  only break timer, TIM1, is also its only timer whose update reaches DMA2, so the
-  sampler cannot read CHxN there; `timer_v3` is proven on the H753. *Spawned:*
-  `ea7a9f8` 2026-10-31, samplers need DMA2 on the F4.
+- `rig` **Low: SDMMC's error paths have no bench.** A CRC failure and a card pulled
+  mid-transfer are untested. SDMMC-003/004 stand on the Lucid's `FLSH` runs (owner,
+  2026-11-16); a Nucleo with a slot would make them `HIL` (queue 2). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
 - `rig` **Low: HSE crystal mode is untested on both Nucleos.** Both run HSE bypass from
   the ST-LINK's MCO. *Spawned:* `af65cad`, the benches clock from the ST-LINK.
 - `rig` **Low: F401 USART2 runs through the ST-LINK,** so its break, baud and parity
   changes are unchecked; SB13/SB14 off and SB62/SB63 on would give a direct link.
   *Spawned:* `af65cad`.
-- `rig` **Low: clock checks are indirect.** `freeze`'s record, working baud rates and the
-  host echo; nothing measures MCO. *Spawned:* `af65cad`.
+- `rig` **Low: the F401's clock tree is checked only indirectly.** The H753 (run M) and the
+  Discovery (run B) measure the CPU clock against the host's USB start-of-frames; the
+  Nucleo-F401RE has no USB device, so its clocks rest on `freeze`'s record, baud rates
+  and the host echo. Measuring showed the H753's HSE input, the ST-LINK-V3's MCO, 0.4 %
+  below 8 MHz, so its check allows 0.5 % (`hil/RIG.md`). *Spawned:* `af65cad`; narrowed
+  2026-11-15.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. *Spawned:* the
   W11 audit (`ff3af8d`, 2026-11-10).

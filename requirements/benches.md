@@ -45,7 +45,7 @@ framing error.
 ## USB on the Nucleo-H753ZI
 
 `hil/run-h753.sh m`, with the CN13 cable on the H753, as the rig keeps it
-(`hil/WIRING.md`). Pass: every check passes and the script exits zero. Before the echo, the port is freed to its token and both pins and reopened from them, so the echo runs on the reopened port [API-002].
+(`hil/WIRING.md`). Pass: every check passes and the script exits zero. Before the echo, the port is freed to its token and both pins and reopened from them, so the echo runs on the reopened port [API-002]. The run clocks from HSE in bypass (the ST-LINK-V3's MCO); after the echo it counts CPU cycles over 1000 of the host's start-of-frames and requires 400 MHz within 0.5 %, the MCO's own error (`hil/RIG.md`) [RCC-001].
 
 Run M (USB CDC over CN13) builds `run-m` before starting `hil/usb_cdc_host.py`, so the host's wait for a port
 is not spent compiling, and the host opens only a port that appeared after the one
@@ -54,11 +54,11 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## SPI and EXTI on the Nucleo-F401RE
 
-`hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Run E also samples port A with TIM1's update request on DMA2 stream 5 while SPI1 runs at its slowest: SCK (PA5) and S1's MISO end (PA6) show the wire, and in all four modes and both bit orders the 16 bits at the capture edges must be the two bytes in the order set, with no MOSI change off the launch edge [SPI-010]. Pass: every check in every run passes and the script exits zero.
 
 ## SPI and EXTI on the Nucleo-H753ZI
 
-`hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Run F also samples port A with TIM2's update request on DMA1 stream 1 while SPI1 runs at its slowest, as the F401's run E does [SPI-010]. Run H then turns both caches on and runs SPI2's suite again, its buffers in the MPU's non-cacheable block. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-F401RE
 
@@ -94,17 +94,17 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## The Foxeer F405 V2 board bench
 
-A smoke test of the F405: no requirement names it (see the car rule in `docs/design/requirements-system.md`).
+A flashed bench, tier `FLSH` ([maturity.md](../docs/design/maturity.md)). No requirement names it today: a debugger bench proves every IP it reaches.
 `hil/run-foxeer.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. It sets scale 2 before `freeze`, for it to replace, and its clock checks read back PWR: the voltage scale `freeze` wrote must be scale 1 (PWR_CR bits 15:14 at 0b01, bit 14 being this chip's VOS) with VOSRDY set. Nine refusals lead the report: a no-PLL clock config (its token freezes these clocks), a 1 us watchdog, an inexact timebase rate, a 0 Hz SPI config and a 0 Hz polled config, an empty ADC sequence, a 0-rate PWM, a motor lane's CCM buffer, and the AWG's TIM1/TIM8 mismatch re-rated — each constructor handing its parts back, and every part the checks after them use. Pass: every check in every run passes and the script exits zero.
 
 ## The TBS Lucid H7 board bench
 
-A smoke test of the H743: no requirement names it (see the car rule in `docs/design/requirements-system.md`).
+A flashed bench, tier `FLSH` ([maturity.md](../docs/design/maturity.md)). It carries the SDMMC's evidence, which no debugger bench reaches yet [SDMMC-004]; the rest of what it reaches a debugger bench proves.
 `hil/run-lucid.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its SD checks need a card in the slot. Nine refusals lead the report, as the Foxeer's through the H7's constructors, with a DTCM lane buffer in place of the CCM one; the ninth is the SDMMC: a bus speed past the card's default limit refuses before the peripheral is touched, and the wiring that comes back opens the real card. Pass: every check in every run passes and the script exits zero. The SDMMC is freed to its wiring and reopened before its card suite, which then runs on the reopened controller.
 
 ## The TBS Lucid H7 with its slot empty
 
-A smoke test of the H743, as above.
+A flashed bench, tier `FLSH`, as above [SDMMC-003].
 `hil/run-lucid.sh`, with no card in the slot. Pass: the bench reports the empty slot and every other check passes, and the script exits zero.
 
 ## I2C on the Nucleo-F401RE
@@ -175,7 +175,9 @@ the script exits zero.
 
 `hil/run-discovery.sh b`, with CN5 cabled to the host. The F4's OTG_FS core enumerates
 as a CDC device, is freed to its token and pins and reopened, and echoes every block
-`hil/usb_cdc_host.py` sends. Pass: every check passes and the script exits zero.
+`hil/usb_cdc_host.py` sends, then counts CPU cycles over 1000 of the host's
+start-of-frames and requires 168 MHz within 0.1 % [RCC-001]. Pass: every check passes
+and the script exits zero.
 
 ## The ROM bootloader on the STM32F4 Discovery
 
@@ -213,3 +215,24 @@ ignores a write while its RCC enable bit is clear, keeps it once set, and return
 earlier value when its reset bit is pulsed; every vector those peripherals and the DMA
 streams raise pends and clears in the NVIC. Pass: every check passes and the script exits
 zero.
+
+## Complementary outputs on the STM32F4 Discovery
+
+`hil/run-discovery.sh d`. No links. TIM1 drives its complementary output CH1N on PE8 at a
+quarter duty, 100 kHz, and TIM8's update request has DMA2 stream 1 copy port E's input
+register at 2 MHz: the F401 cannot sample CHxN, its only break timer being its only
+timer whose update reaches DMA2, the one DMA that reaches the GPIO ports. Checks: the
+duty on the pin, to 1/16, and one one-pulse period. Pass: both checks pass and the
+script exits zero.
+
+## The ROM bootloader on the Nucleo-H753ZI
+
+`hil/run-h753.sh z`, with CN13 cabled to the host as the rig keeps it. The run asks for
+the ROM bootloader and resets; the next boot jumps to it before touching any clock. The
+H7 ROM's DFU serial is not the F4's UID-derived one: it starts with the die's
+`DBGMCU_IDC` (measured 2026-11-15: `200364500070` on this H753). Pass: within 30 s a DFU
+device not listed before the run appears whose serial starts with the IDCODE read over
+the debugger, the script erases the chip so the ROM leaves the bus, and it exits zero.
+This H753's bootloader is version 0x91, which no longer locks PWR_CR3 (AN2606), so the
+next run needs no power cycle.
+

@@ -10,8 +10,10 @@ its budget; the text is unchanged.
 `--` (`VID:PID:Serial`): `PROBE_RS_PROBE` if already set, else the board's own
 variable (`F401_PROBE` for `hil/run-f401.sh`, `H753_PROBE` for `hil/run-h753.sh`,
 `DISCOVERY_PROBE` for `hil/run-discovery.sh`),
-else the only probe attached. With more than one attached and none chosen it lists
-them and exits before building, so a shared bench says which board it flashes. The
+else the only probe attached, else the one probe whose die has the bench's DEV_ID
+(0x433 the F401, 0x450 the H753, 0x413 the Discovery; read without halting). With
+none or several matching it lists the probes and exits before building.
+`hil/pico-i2c-sim.sh` drives two boards, so it clears `PROBE_RS_PROBE` for each run. The
 choice reaches probe-rs through its `PROBE_RS_PROBE` variable, which the crate
 runners in `hil/*/.cargo/config.toml` leave unset. `hil/run-f401.sh`'s host echo
 runs over the chosen probe's own virtual COM port; `F401_VCP` overrides the path.
@@ -47,5 +49,31 @@ manual and chip module name:
 - **Foxeer F405 V2**: STM32F405RGT6, die revision 0x100f.
 - **Lucid H743**: STM32H743VIH6 (TFBGA100), die revision 0x2003 (V).
 
+The clock inputs, against the host's USB start-of-frames (H753 run M, Discovery run B,
+measured 2026-11-15): the Discovery's HSE (its ST-LINK/V2-1's MCO, from an 8 MHz
+crystal) reads 220 ppm high; the H753's (the ST-LINK-V3's MCO, which UM2407 calls 8 MHz
+from an F723 on a 25 MHz crystal) 0.39 to 0.43 % low. The H753's HSI reads 0.43 % high.
+
 ES0392's per-part rules — 2.2.10's AXI SRAM reads, revision Y/W only, and
 2.2.21's 480 MHz — are decided off the revision: both H7s here are V.
+
+## Identity
+
+`python3 -I hil/rig_status.py` lists what is on the rig without disturbing it: every
+debug probe with its die (IDCODE, UID) and the identity of the image it runs, and every
+USB serial port other than an ST-LINK's with its answer to `FERRO-ID?`. Nothing is
+flashed, reset or halted.
+
+The identity is one line, `FERRO-ID v=1` and then `key=value` pairs separated by
+spaces: `board`, `part`, `crate`, `run`, `git` (the short commit, `+dirty` when tracked
+files differed). Readers ignore keys they do not know; a new key needs no new version,
+a changed meaning does.
+
+- **Over the debug probe** (the Nucleos, the STM32F4 Discovery): every bench image
+  carries the line NUL-padded to 256 bytes at 0x0800_0400, just after the vector table
+  (`hil/common/ident.rs`, each bench's `memory.x` and `build.rs`). The host adds the die
+  it reads itself, so an erased chip still shows its IDCODE and UID.
+- **Over USB serial** (boards with no probe: the Pico, flashed boards): the firmware
+  answers the query `FERRO-ID?` and a newline with the line, adding `dev`, `rev` and
+  `uid` it reads itself.
+

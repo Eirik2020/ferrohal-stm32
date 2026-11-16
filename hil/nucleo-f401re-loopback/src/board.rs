@@ -34,6 +34,21 @@
 // Every run binary compiles this file and uses its own run's wiring only.
 #![allow(dead_code)]
 
+#[path = "../../common/ident.rs"]
+mod ident;
+
+/// This image's identity block, at 0x0800_0400 (`memory.x`).
+#[used]
+#[unsafe(link_section = ".ferro_ident")]
+static FERRO_IDENT: [u8; ident::LEN] = ident::block(concat!(
+    "FERRO-ID v=1 board=nucleo-f401re part=STM32F401RE crate=",
+    env!("CARGO_PKG_NAME"),
+    " run=",
+    env!("CARGO_BIN_NAME"),
+    " git=",
+    env!("FERRO_GIT"),
+));
+
 use ferrohal_stm32::{
     chip::{
         I2C1, I2C3, Peripherals, SPI1, SPI2, SPI3, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10,
@@ -408,6 +423,10 @@ pub struct RunE {
     pub spi2: Spi2PortB,
     /// PA11, driving PA12 over J2 for the EXTI checks.
     pub feed: Pin<'A', 11, Output>,
+    /// TIM1's update request on DMA2 stream 5 samples port A: SPI1's SCK
+    /// (PA5) and the MISO end of S1 (PA6), for the wire check [SPI-010].
+    pub tim1: TIM1,
+    pub sampler: Stream<2, 5>,
 }
 
 pub struct RunF {
@@ -467,6 +486,8 @@ pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
             rx_dma: dma1.s3,
         },
         feed,
+        tim1: p.TIM1,
+        sampler: dma2.s5,
         rcc,
     })
 }

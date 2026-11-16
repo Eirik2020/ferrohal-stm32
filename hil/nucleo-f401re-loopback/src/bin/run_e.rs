@@ -34,7 +34,10 @@ mod app {
         device::Interrupt,
         exti::{Ctrl, Edge, Exti},
         gpio::{Output, Pin},
+        dma::Stream,
         spi::{Buffers, Spi},
+        time::Hertz,
+        timer::Sampler,
     };
 
     use crate::{
@@ -63,6 +66,7 @@ mod app {
         sck2: Exti<'B', 13>,
         sense: Exti<'A', 12>,
         feed: Pin<'A', 11, Output>,
+        sampler: Sampler<ferrohal_stm32::chip::TIM1, Stream<2, 5>>,
     }
 
     #[init(local = [
@@ -72,6 +76,7 @@ mod app {
         rx3: [u8; BUF] = [0; BUF],
         tx2: [u8; BUF] = [0; BUF],
         rx2: [u8; BUF] = [0; BUF],
+        samples: [u16; 1024] = [0; 1024],
     ])]
     fn init(cx: init::Context) -> (Shared, Local) {
         let mut core = cx.core;
@@ -115,6 +120,8 @@ mod app {
             },
         )
         .unwrap_or_else(|error| defmt::panic!("SPI2: {}", error));
+        let sampler = Sampler::new::<'A'>(&mut run.rcc, run.tim1, run.sampler, Hertz::mhz(1), l.samples)
+            .unwrap_or_else(|error| defmt::panic!("TIM1 sampler: {}", error));
         let mut ctrl = run.exti.ctrl;
         let mut sck1 = run.exti.l5.route::<'A'>(&mut ctrl, Edge::Rising);
         let mut sck3 = run.exti.l10.route::<'C'>(&mut ctrl, Edge::Rising);
@@ -142,6 +149,7 @@ mod app {
                 sck2,
                 sense,
                 feed: run.feed,
+                sampler,
             },
         )
     }
@@ -175,7 +183,7 @@ mod app {
         cx.shared.bus2.lock(Bus::on_exti);
     }
 
-    #[task(priority = 1, shared = [bus1, bus3, bus2], local = [ctrl, spi1, spi3, spi2, sck1, sck3, sck2, sense, feed])]
+    #[task(priority = 1, shared = [bus1, bus3, bus2], local = [ctrl, spi1, spi3, spi2, sck1, sck3, sck2, sense, feed, sampler])]
     async fn checks(mut cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
@@ -196,6 +204,7 @@ mod app {
             l.sck1,
             l.ctrl,
         );
+        spi_exti::wire_check(&mut report, "SPI1 PA5/PA6/PA7, DMA2 S3/S0", bus1, &board::SPI, cpu, l.sampler, 5, 6);
         bus3.lock(|b| b.spi = l.spi3.take());
         spi_exti::spi_suite(
             &mut report,

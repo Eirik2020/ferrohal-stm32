@@ -1,0 +1,18 @@
+
+running 10 tests
+..........
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+stm32f405rg  -> src/chips/gen/stm32f405rg.rs (320 lines)
+stm32f407vg  -> src/chips/gen/stm32f407vg.rs (329 lines)
+stm32f401re  -> src/chips/gen/stm32f401re.rs (245 lines)
+stm32h743vi  -> src/chips/gen/stm32h743vi.rs (458 lines)
+stm32h753zi  -> src/chips/gen/stm32h753zi.rs (475 lines)
+docs/CHIPS.md: silicon and instance tables for 5 parts
+docs/CHIPS.md and hil/COVERAGE.md: tiers from the evidence
+FAIL generated glue differs from a regeneration:
+ M docs/CHIPS.md
+ M hil/COVERAGE.md
+ docs/CHIPS.md   | 10 +++++-----
+ hil/COVERAGE.md | 10 +++++-----
+ 2 files changed, 10 insertions(+), 10 deletions(-)

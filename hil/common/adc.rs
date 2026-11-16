@@ -243,7 +243,10 @@ pub fn freed<A: InternalChannels, S: AdcDma<A>>(
     bound_cycles: u32,
     powered: impl Fn() -> bool,
 ) {
-    let (adc, stream, buffer) = scan.free();
+    let Ok((adc, stream, buffer)) = scan.free() else {
+        expect(report, name, "a freed scan's ADC, stream and buffer scan again [API-002]", false, 0, 1);
+        return;
+    };
     let adc = match adc.into_scan(stream, channels, buffer) {
         Ok(mut again) => {
             let ran = once(&mut again, bound_cycles);
@@ -255,7 +258,10 @@ pub fn freed<A: InternalChannels, S: AdcDma<A>>(
                 u32::from(ran),
                 1,
             );
-            let (adc, _stream, _buffer) = again.free();
+            let Ok((adc, _stream, _buffer)) = again.free() else {
+                expect(report, name, "a freed scan frees again [API-002]", false, 0, 1);
+                return;
+            };
             adc
         }
         Err(refused) => {

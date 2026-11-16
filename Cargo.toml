@@ -45,6 +45,10 @@ defmt = ["dep:defmt", "stm32-metapac/defmt"]
 # `From` conversions between `time::Hertz` and fugit 0.6's `HertzU32`, the
 # fugit rtic-monotonics 3 uses.
 fugit = ["dep:fugit"]
+# Bench fault injection: `dma::fault` makes a stream ignore stop requests.
+# For the benches that prove a driver's answer to a stream that will not stop;
+# no firmware that flies enables it.
+fault-injection = []
 
 # Vendor > family > chip > IP version. A chip names its family and every IP
 # version it carries; the IP modules compile only behind their own feature.

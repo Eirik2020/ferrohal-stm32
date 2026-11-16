@@ -21,7 +21,7 @@
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
 //!
-//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, API-002
+//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, API-002, API-003
 
 use core::{
     marker::PhantomData,
@@ -47,8 +47,8 @@ use super::{
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, Flags, Interrupts, Priority, StreamInterrupt, Transfer,
-        WordSize,
+        Channel, Direction, FifoMode, Flags, Interrupts, Priority, StopTimeout, StreamInterrupt,
+        Transfer, WordSize,
     },
     gpio::{Port, PortInstance, PortRegisters},
     rcc::Rcc,
@@ -741,15 +741,27 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
     /// lane's samples buffer. The inverse of [`LaneWiring::assemble`](super::LaneWiring::assemble) (and
     /// its two-way and complementary forms). The timer handle goes along for
     /// the compare and output writes.
+    ///
+    /// A stream that does not stop in time could still use the buffers, so
+    /// they are not handed out: the refusal returns the lane, its output
+    /// closed, still owning them. `free` may be tried again; it succeeds
+    /// once the stream has stopped.
     #[allow(clippy::type_complexity)]
-    pub fn free(mut self, pwm: &Pwm<T>) -> (W, &'static mut [u32], Option<&'static mut [u16]>) {
-        self.stop_stream();
+    pub fn free(
+        mut self,
+        pwm: &Pwm<T>,
+    ) -> Result<(W, &'static mut [u32], Option<&'static mut [u16]>), Refused<StopTimeout, Self>>
+    {
+        let stopped = self.stop_stream();
         pwm.close_channel::<C>(self.complementary);
-        (
+        if stopped.is_err() {
+            return Err(Refused::new(StopTimeout, self));
+        }
+        Ok((
             self.wiring,
             self.buffer,
             self.input.map(|input| input.samples),
-        )
+        ))
     }
 
     /// Loads `duties[0]` into the compare register and starts the stream
@@ -866,7 +878,9 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         }
         let flags = self.dma.flags();
         if flags.transfer_error || flags.direct_mode_error {
-            self.stop_stream();
+            // A stream that will not stop is caught by the next `arm`
+            // (`Error::Dma`) or by `free`.
+            let _ = self.stop_stream();
             return Some(Err(Error::Dma));
         }
         if !flags.complete {
@@ -888,18 +902,20 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
 
     /// Stops the stream and drops the output to duty 0.
     pub fn abort(&mut self, pwm: &Pwm<T>) {
-        self.stop_stream();
+        // As `on_interrupt`'s error path: caught by `arm` or `free`.
+        let _ = self.stop_stream();
         pwm.set_duty::<C>(0);
     }
 
     /// Stops the stream, leaving the output at its last duty: what the
     /// stream's error path does, where no timer handle is at hand. Park the
     /// channel through [`abort`](Self::abort) or [`Pwm::set_duty`].
-    fn stop_stream(&mut self) {
-        let _ = self.dma.stop(STOP_SPINS);
+    fn stop_stream(&mut self) -> Result<(), StopTimeout> {
+        let stopped = self.dma.stop(STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
         self.running = false;
+        stopped
     }
 
     /// The vector to bind to [`on_interrupt`](Self::on_interrupt).
@@ -1012,10 +1028,17 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
     /// Stops the timer and the stream, and hands back what
     /// [`new`](Self::new) took: the timer, the stream and the buffer. What a
     /// `Drop` would do, made explicit so the parts can move out.
-    pub fn free(self) -> (T, S, &'static mut [u16]) {
-        let mut sampler = self;
-        sampler.stop();
-        (sampler.timer_token, sampler.stream, sampler.buffer)
+    ///
+    /// A stream that does not stop in time could still write the buffer, so
+    /// it is not handed out: the refusal returns the sampler, stopped as far
+    /// as it would, still owning it. `free` may be tried again; it succeeds
+    /// once the stream has stopped.
+    #[allow(clippy::type_complexity)]
+    pub fn free(mut self) -> Result<(T, S, &'static mut [u16]), Refused<StopTimeout, Self>> {
+        if self.halt().is_err() {
+            return Err(Refused::new(StopTimeout, self));
+        }
+        Ok((self.timer_token, self.stream, self.buffer))
     }
 }
 
@@ -1115,12 +1138,19 @@ impl<T: Instance, S> Sampler<T, S> {
 
     /// Stops the timer and the stream.
     pub fn stop(&mut self) {
+        // A stream that will not stop is caught by the next `start`
+        // (`Error::Dma`) or by `free`.
+        let _ = self.halt();
+    }
+
+    fn halt(&mut self) -> Result<(), StopTimeout> {
         self.timer.cr1().modify(|w| w.set_cen(false));
         self.timer.dier().modify(|w| w.set_ude(false));
-        let _ = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
         self.state = SampleState::Idle;
+        stopped
     }
 
     pub fn interrupt(&self) -> Interrupt {

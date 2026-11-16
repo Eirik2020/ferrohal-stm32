@@ -52,6 +52,9 @@ use imu::Imu;
 use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
 
 /// The endpoint memory `usb_bench` gives the driver: the F4's OTG_FS FIFO.
+#[path = "ident.rs"]
+mod ident;
+
 const EP_WORDS: usize = 320;
 
 const _: () = assert!(Timebase::<TIM2>::check(&CLOCKS, Hertz::mhz(1)).is_ok());

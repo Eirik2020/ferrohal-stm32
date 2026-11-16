@@ -18,7 +18,9 @@
 //!   through stm32-metapac, and notes RXNE, and the receive stream's NDTR,
 //!   whenever PE is set; the good frame must arrive whole and in order,
 //!   with the one parity error right after the bad byte; PE must be seen,
-//!   counted and reported once.
+//!   counted and reported once. At 115200 and 1 Mbaud: a faster line leaves
+//!   the clear's DR read less time before the good frame's first byte.
+//!   Above that it fails (DEBT, the usart_v2 parity error at speed).
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
@@ -132,21 +134,23 @@ fn watch(usart: Usart, rx: St) {
 /// log), the good frame arrived whole and in order after the one parity
 /// error, and PE was seen, counted and reported once. A fourth, naming no
 /// requirement, restores 8N1. `rx` is the receiver's stream, a circular
-/// ring of `ring` bytes.
+/// ring of `ring` bytes; `baud` the line's rate for the check, `name` the
+/// link and that rate.
 fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
     report: &mut Report,
     cross: &mut Cross<'_, U, V>,
     rx: St,
     ring: u32,
+    baud: u32,
+    name: &str,
 ) {
-    let name = cross.name;
     let frames = cross
         .from
-        .set_config(&Config::new(115_200).with_stop_bits(StopBits::Two))
+        .set_config(&Config::new(baud).with_stop_bits(StopBits::Two))
         .and_then(|()| {
             cross
                 .to
-                .set_config(&Config::new(115_200).with_parity(Parity::Odd))
+                .set_config(&Config::new(baud).with_parity(Parity::Odd))
         });
     if let Err(error) = frames {
         report.check_for(
@@ -341,7 +345,43 @@ fn cross_checks<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::Uar
         "even into odd reported as parity error",
         tests::parity_mismatch(cross),
     );
-    crate::pe_clear(report, cross, receiver, ring);
+    // Above 1 Mbaud the check fails (DEBT: the usart_v2 parity error at
+    // speed), so it runs at the rates it holds at.
+    for (baud, rate) in [(115_200, "115200"), (1_000_000, "1 Mbaud")] {
+        let mut label = Label::default();
+        let _ = core::fmt::Write::write_fmt(&mut label, format_args!("{name} at {rate}"));
+        crate::pe_clear(report, cross, receiver, ring, baud, label.as_str());
+    }
+}
+
+/// A check's link name built at run time: the link and the rate.
+struct Label {
+    bytes: [u8; 48],
+    len: usize,
+}
+
+impl Default for Label {
+    fn default() -> Self {
+        Self { bytes: [0; 48], len: 0 }
+    }
+}
+
+impl Label {
+    fn as_str(&self) -> &str {
+        core::str::from_utf8(&self.bytes[..self.len]).unwrap_or("?")
+    }
+}
+
+impl core::fmt::Write for Label {
+    fn write_str(&mut self, text: &str) -> core::fmt::Result {
+        for &byte in text.as_bytes() {
+            if let Some(slot) = self.bytes.get_mut(self.len) {
+                *slot = byte;
+                self.len += 1;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]

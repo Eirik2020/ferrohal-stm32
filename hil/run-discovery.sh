@@ -2,7 +2,8 @@
 # Runs the STM32F4 Discovery bench (die 0x413, `stm32f4-discovery/src/board.rs`):
 # run A the die and its own UART routes over links D1 to D3, run B the F4's USB
 # core on CN5 with `usb_cdc_host.py` alongside, run C the ROM bootloader, which
-# `dfu-util` must then list on CN5. Exits non-zero if any run failed.
+# `dfu-util` must then list on CN5, run D the F4 timer's complementary output.
+# Exits non-zero if any run failed.
 #
 # Logs go to hil/logs/discovery-run-<run>.log. Arguments pick runs, say `a c`;
 # none runs all. With several probes attached, set DISCOVERY_PROBE.
@@ -12,7 +13,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 crate="$here/stm32f4-discovery"
 chip=STM32F407VGTx
 source "$here/probe.sh"
-probe_for DISCOVERY_PROBE || exit 1
+probe_for DISCOVERY_PROBE 0x413 || exit 1
 mkdir -p "$here/logs"
 
 # The serial the ROM's DFU device reports: the UID's words 0 and 2 summed, then
@@ -25,7 +26,7 @@ print(f"{(w[0] + w[2]) & 0xFFFFFFFF:08X}{w[1] >> 16:04X}")'
 }
 
 status=0
-for run in ${*:-probe a b c}; do
+for run in ${*:-probe a b c d}; do
     log="$here/logs/discovery-run-$run.log"
     : > "$log"
     code=0
