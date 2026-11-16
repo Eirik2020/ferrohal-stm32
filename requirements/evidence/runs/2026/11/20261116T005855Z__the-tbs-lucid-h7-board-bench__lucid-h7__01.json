@@ -1,0 +1,171 @@
+{
+  "schema_version": 5,
+  "run_id": "20261116T005855Z__the-tbs-lucid-h7-board-bench__lucid-h7__01",
+  "recorded_at_utc": "2026-11-16T00:58:55Z",
+  "board": "lucid-h7",
+  "tier": "FLSH",
+  "revision": "38490d1110e7cb6132eee5a1ad076650095ec66f",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "lucid-h7",
+    "features": [],
+    "files": {
+      "hil/lucid-h7/../../Cargo.toml": "afa08a50de4c8b33a400309458c32459b5e548aa800083b4bb6f6d8749bcefc8",
+      "hil/lucid-h7/.cargo/config.toml": "9bebb21e98b5eac85cbdc6b27b6ae3966b18fbeae0eadb3a9591140baaa602d7",
+      "hil/lucid-h7/Cargo.toml": "187f991f9d8af9e21c2e6780676fbcc0ec247d7cbab0d457acaa490105a641ec",
+      "hil/lucid-h7/memory.x": "7ce1812d9a85b91911e4ca97762e95d0232ec08360ee9dce4782890958d25b94",
+      "hil/lucid-h7/src/../../common/board_adc.rs": "3a567d40cbde1ce617ffac87fb7784077c662b49dc4fbea5aed8e01762643d76",
+      "hil/lucid-h7/src/../../common/imu.rs": "da0eaec1d7a51ccf616f1ffa556d9a0bb2f1a2d508d4e41e1af3376b6fb9c957",
+      "hil/lucid-h7/src/../../common/motor_lanes.rs": "465c5b9df3d541687a4492183585368b07b2950f4d41bcc5709ee6ac0478b115",
+      "hil/lucid-h7/src/../../common/usb_bench.rs": "7d075f5b405496566d88019f9f1012685edf44895bf49750355281e1a55b5e99",
+      "hil/lucid-h7/src/bin/../../../common/usb_bench.rs": "7d075f5b405496566d88019f9f1012685edf44895bf49750355281e1a55b5e99",
+      "hil/lucid-h7/src/bin/../clocks.rs": "a5f7cfffffc2309561a0ecd7a8ea1a3b4038409abbe94da54143f51e91f4bace",
+      "hil/lucid-h7/src/bin/../ident.rs": "81637a7b1d20073fe4b0f03dacd98be6683d0f430c6d26aced2323f8eaf4e77b",
+      "hil/lucid-h7/src/bin/usb_irq.rs": "75ef19a139462660801e6c224848874c49c383414276249e6154631367ad3c61",
+      "hil/lucid-h7/src/clocks.rs": "a5f7cfffffc2309561a0ecd7a8ea1a3b4038409abbe94da54143f51e91f4bace",
+      "hil/lucid-h7/src/ident.rs": "81637a7b1d20073fe4b0f03dacd98be6683d0f430c6d26aced2323f8eaf4e77b",
+      "hil/lucid-h7/src/main.rs": "88127807d0b2081711ac142fd5f786b6e4813c4482f9c6d805ba2e29f48dc1aa",
+      "src/adc/mod.rs": "ad6040e0c5488c7fa19da149fe2d41ef2222e48bdd267395904bb841b0dbb960",
+      "src/adc_v4/mod.rs": "a5ff812ecb3470663ad6253a44336fb6dab71be9903d2bc23650c3139dafab93",
+      "src/chips/gen/stm32h743vi.rs": "fa38743da38e9121f2a29ffd1a1b89e90ded1536056f5002ae10962c74d4e7e4",
+      "src/chips/shared/errata_es0392.rs": "8cedd6b06db43d0f69ac8b653110f86d4bef9ac29d992c949b3e171cbe8d4607",
+      "src/chips/shared/h7.rs": "06e782a790814e2c31c71688906e8e8d0156ea342360aaac52514545ebbd50ee",
+      "src/chips/shared/h7_macros.rs": "d047cd0f7cab8ca8dcbd9d299eb19beb1bbd20357223012a1993c7bc080ba566",
+      "src/chips/shared/macros.rs": "37443f12a8dc77a89aef41d90abf3e37c77f24d96fd161e2873f9372e2c5d97b",
+      "src/chips/stm32h743vi.rs": "9d5ce7d0460c05f3a7176bb58cf95bda99667c45dea22b250a6baa0336d8531a",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma_stream.rs": "45356895c577573facd0f380db37694805e62d58078a11a6b13a0d2fefdffdfe",
+      "src/errata.rs": "800114cb735e801adcccb9e66f348538e0b18201134356bb97e7a9b5288f7da3",
+      "src/exti.rs": "149cced8cf0459865a3dc39ac43eb60d1d8dd795d218c833818b69c54970c5cd",
+      "src/gpio_v2/mod.rs": "0475a8884facb57f09703f20f0c812e4ab1ee7686b1fdfb6253283c05adc25f6",
+      "src/i2c/mod.rs": "58dc141bbeaa9291712cc3158804a1b2b0a7664988bab47e7bf2289619b119d9",
+      "src/i2c_v2/mod.rs": "213a1c16596e7c581ffc7d2690c03d60eab76d915594eb8ee9c5e1a25138a8f7",
+      "src/iwdg.rs": "912cb70a7931f0ae9b048e2ad284296b05be47d38e95813e12daa3e34fa388b2",
+      "src/lib.rs": "806d69e098fd566f71a68f5f1f5eef1b2a144beb1db38c9604eb5a066a994423",
+      "src/rcc_h7_rm0433/mod.rs": "f3a41e8e3c4ad65a006cfc6c9f4a653674a1af84fbb171599a20736ececf09e5",
+      "src/rcc_kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+      "src/reset.rs": "620f0afa3cb661bc0f609a921a68d8f9f0ede80a0fd10d1a7141474734f73a3f",
+      "src/resource.rs": "f7b5a325a2e4c025da1418063138e3865fe3f9b9cd53d54a387ac66d5611fbc6",
+      "src/sdmmc_v2/mod.rs": "34bffee686e6d9c196c5c63baca0d02913aa0f6af5d48c147832377e116a084e",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/instance.rs": "d3ed3c1b4902aa67faf7e7ea7c9d71522fcb9f8355dd49358aad9db631febb90",
+      "src/spi/mod.rs": "bd03fc78ee827d0d65e3a90a7a25d54e7d9eaceadbce9a8131ed3b8c7f7b3af4",
+      "src/spi/polled.rs": "6f386fe3fed602795af087497d3a1297bc737565dd1a1bc7cd4053ec3753b41a",
+      "src/spi/stream_dma.rs": "7e8cc0b9a7d4d7b896c198b5137ab64146e3748ad02be6920cb65b5ad7bcd01d",
+      "src/spi_v4/mod.rs": "c19c87204132a242214040afc36c83b5e7d4db17353b2be4cc4440359a86e8e3",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer.rs": "61d427c768616115030aaba37cac7e83ab53da4bc7b24966f6f7f0d3b62d91cd",
+      "src/timer_awg.rs": "b70601a4e3eae06b9a0e1b6c98beff793fedc09855c3a765d9cbbe06dc27fb9c",
+      "src/timer_pwm.rs": "fdcab70dbcd689c1f3200927cef27df909a644c22ab43e1fd1eb11c06474973b",
+      "src/uart/mod.rs": "7a5c004c5d929b2349711fc0782df09aaa96bfd018a007ce4809f9b331c2316b",
+      "src/uart/ring.rs": "6e93c664a105cc570e3893309c131294e5975244b044401f1cc85402433328bc",
+      "src/uart/stream_dma.rs": "b0afd01c8d1e7b8a6e4934d775363df7b519d597cfe7296a3a610e382f301669",
+      "src/uart/tx_ring.rs": "8e75e58d60f7da72902bebca74f88ee9b974ea0acfe22e825f97c56308ae8b05",
+      "src/usart_v4/mod.rs": "379a28a96a274c7d7af5302525d32aa77cc3fb1d759abf8a63d8dd28121f052b",
+      "src/usb.rs": "fcad28b5cc85509a080130a88cbf35fe4ec62af1f9288b33bbe1b2942d89aa56",
+      "src/wait.rs": "9f62d55f6c02ccb3e72ad35b181e8f5add4efb3bbf2a56d1c80cb0959e07a76b"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "critical-section": "1.2.0",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.6.1, 0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.9",
+      "synopsys-usb-otg": "0.4.0",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "usbd-serial": "0.2.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "CARGO_BIN_NAME": "lucid-h7",
+      "CARGO_PKG_NAME": "lucid-h7"
+    }
+  },
+  "results": [
+    {
+      "requirement": "SDMMC-004",
+      "method": {
+        "procedure": "requirements/benches.md#The TBS Lucid H7 board bench"
+      },
+      "level": "target",
+      "environment": "product",
+      "hazard": "none",
+      "claim": "910adf19f6d07604005a81daf76813bc0be38b1a34b8f851f87c7470fb5a512e",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "9b2afe5d2a05be29aa15186dd0590bcef05da5c9d9bd8713c51cf809a52399ef",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-lucid.sh",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "lucid-h7-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/sdmmc-lucid-20261116/lucid-h7-images.sha256",
+        "bytes": 149,
+        "sha256": "9b2afe5d2a05be29aa15186dd0590bcef05da5c9d9bd8713c51cf809a52399ef"
+      },
+      {
+        "id": "lucid-h7-usb-irq",
+        "kind": "log",
+        "path": "requirements/evidence/logs/sdmmc-lucid-20261116/lucid-h7-usb-irq.log",
+        "bytes": 288,
+        "sha256": "5512c879067764ca58947c3755153e1b08703871cd985e2d09011d85eb606a52"
+      },
+      {
+        "id": "lucid-h7",
+        "kind": "log",
+        "path": "requirements/evidence/logs/sdmmc-lucid-20261116/lucid-h7.log",
+        "bytes": 3127,
+        "sha256": "e15529317e29b9afb2ceb76e38d2e8b53263ac50a085f60b17c2d9c03847d611"
+      }
+    ],
+    "observations": [
+      "Every check in every run of the subset passed (PASS lines in the logs; no FAIL).",
+      "The report holds `PASS sd:` and not `INFO sd: no card in the slot`."
+    ]
+  }
+}
