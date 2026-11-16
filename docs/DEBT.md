@@ -141,10 +141,11 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 ## 3. Shipped code without hardware proof: bench work
 
 - `tool` **Low: SDMMC's `free()` has only the Lucid's flashed run.** The Lucid bench frees
-  and reopens the SDMMC, but reqtool records only `host`, `development` and `product`
-  runs, so a `FLSH` run cannot count until plan step 7 gives it a tier; SDMMC's API-002
-  stands on the H753 runs that compile it. *Spawned:* `free()` for SDMMC (2026-11-13),
-  whose only slot is on a flashed board.
+  and reopens the SDMMC, and its runs are `FLSH` evidence since the tiers (ADR-009), but
+  API-002 names no Lucid procedure: an entry would re-owe the Lucid on every change to
+  any driver declaring API-002, against the merge-gate rule. SDMMC's API-002 stands on
+  the H753 runs that compile it. *Spawned:* `free()` for SDMMC (2026-11-13), whose only
+  slot is on a flashed board.
 - `bench` **Low: FIFO error handling is unconfirmed on hardware.** Transmit FIFO errors
   are cleared and ignored, receive ones are `DmaOverrun`; neither has been provoked.
   *Spawned:* `af65cad`, which took the transmit policy from the firmware the prototype
@@ -164,9 +165,9 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   PB14, PG9 and 22 of 46 TX/RX entries are unreachable without morpho headers; UART5's
   PB13 needs SB7. Their rows are glue-checked only. *Spawned:* `55025e8` 2026-10-31,
   the bench wired on Zio.
-- `rig` **Low: SDMMC-003/004 and SDMMC's error paths have no Nucleo bench.** A CRC failure
-  and a card pulled mid-transfer are untested; only the Lucid smoke board has a slot
-  (queue 2). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
+- `rig` **Low: SDMMC's error paths have no bench.** A CRC failure and a card pulled
+  mid-transfer are untested. SDMMC-003/004 stand on the Lucid's `FLSH` runs (owner,
+  2026-11-16); a Nucleo with a slot would make them `HIL` (queue 2). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
 - `rig` **Low: HSE crystal mode is untested on both Nucleos.** Both run HSE bypass from
   the ST-LINK's MCO. *Spawned:* `af65cad`, the benches clock from the ST-LINK.
 - `rig` **Low: F401 USART2 runs through the ST-LINK,** so its break, baud and parity

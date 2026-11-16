@@ -115,7 +115,7 @@ ones that unblock a claim.
 2. **A microSD breakout module wired to the H753's SDMMC1 pins** (PC8 to
    PC12 and PD2, on the Zio CN8 header; the Nucleo has the pins but no card
    slot). `sdmmc_v2` then has a Nucleo bench: SDMMC-001 to 004, empty slot
-   included, which only the Lucid smoke test reaches today. The owner has no
+   included, which only the Lucid's flashed bench (`FLSH`) reaches today. The owner has no
    such module (2026-11-13). PC10/PC11 are Z6 and PC12/PD2 Z8, so it would be
    its own procedure with those links lifted.
 3. ~~**The H753's ROM DFU, no hardware needed.**~~ Done 2026-11-15: run Z ends in the

@@ -94,17 +94,17 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## The Foxeer F405 V2 board bench
 
-A smoke test of the F405: no requirement names it (see the car rule in `docs/design/requirements-system.md`).
+A flashed bench, tier `FLSH` ([maturity.md](../docs/design/maturity.md), ADR-009). No requirement names it today: a debugger bench proves every IP it reaches.
 `hil/run-foxeer.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. It sets scale 2 before `freeze`, for it to replace, and its clock checks read back PWR: the voltage scale `freeze` wrote must be scale 1 (PWR_CR bits 15:14 at 0b01, bit 14 being this chip's VOS) with VOSRDY set. Nine refusals lead the report: a no-PLL clock config (its token freezes these clocks), a 1 us watchdog, an inexact timebase rate, a 0 Hz SPI config and a 0 Hz polled config, an empty ADC sequence, a 0-rate PWM, a motor lane's CCM buffer, and the AWG's TIM1/TIM8 mismatch re-rated — each constructor handing its parts back, and every part the checks after them use. Pass: every check in every run passes and the script exits zero.
 
 ## The TBS Lucid H7 board bench
 
-A smoke test of the H743: no requirement names it (see the car rule in `docs/design/requirements-system.md`).
+A flashed bench, tier `FLSH` ([maturity.md](../docs/design/maturity.md), ADR-009). It carries the SDMMC's evidence, which no debugger bench reaches yet [SDMMC-004]; the rest of what it reaches a debugger bench proves.
 `hil/run-lucid.sh`. Over USB and DFU, with ESC power and battery off, and motor outputs off. Its SD checks need a card in the slot. Nine refusals lead the report, as the Foxeer's through the H7's constructors, with a DTCM lane buffer in place of the CCM one; the ninth is the SDMMC: a bus speed past the card's default limit refuses before the peripheral is touched, and the wiring that comes back opens the real card. Pass: every check in every run passes and the script exits zero. The SDMMC is freed to its wiring and reopened before its card suite, which then runs on the reopened controller.
 
 ## The TBS Lucid H7 with its slot empty
 
-A smoke test of the H743, as above.
+A flashed bench, tier `FLSH`, as above [SDMMC-003].
 `hil/run-lucid.sh`, with no card in the slot. Pass: the bench reports the empty slot and every other check passes, and the script exits zero.
 
 ## I2C on the Nucleo-F401RE
