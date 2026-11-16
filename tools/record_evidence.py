@@ -43,10 +43,12 @@ FLASHED = {
     "foxeer": "foxeer-f405-v2",
 }
 # Procedures sharing a flashed bench's command, told apart by what its report
-# must say: (a line it must hold, a line it must not).
+# must say: (a line it must hold, a line it must not). Both reports carry
+# `PASS sd: freed to its wiring`, which runs with or without a card, so only
+# the card suite's own lines tell them apart.
 CONDITION = {
-    "The TBS Lucid H7 board bench": ("PASS sd:", "INFO sd: no card in the slot"),
-    "The TBS Lucid H7 with its slot empty": ("INFO sd: no card in the slot", "PASS sd:"),
+    "The TBS Lucid H7 board bench": ("PASS sd: the 17 blocks are back", "INFO sd: no card in the slot"),
+    "The TBS Lucid H7 with its slot empty": ("INFO sd: no card in the slot", "sd: the 17 blocks"),
 }
 ANALYSIS = ("No reachable panic", "Chip glue against metapac", "One I2C API on every chip")
 
