@@ -10,7 +10,7 @@
 //! `usbd-serial` here, is any `usb-device` class crate. Nothing is
 //! interrupt-driven: the main loop polls the device, which must happen at
 //! least every few milliseconds while the host talks to it. A firmware with
-//! a scheduler binds `UsbFs::interrupt()`'s vector and polls from there.
+//! a scheduler binds `UsbFs::vectors()` and polls from there.
 //!
 //! The USB kernel clock is HSI48, which `UsbFs::new` turns on. It runs
 //! untrimmed on this chip (`docs/CHIPS.md`, H7 limits).
