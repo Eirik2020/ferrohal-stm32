@@ -15,3 +15,7 @@ pub const LINE: &str = concat!(
 pub fn dev_id() -> u16 {
     stm32_metapac::DBGMCU.idc().read().dev_id()
 }
+
+/// Where a run leaves its stop record (`usb_bench::record_stop`), if anywhere.
+/// None yet: the board's runs report over USB only.
+pub const STOP_RECORD: Option<usize> = None;

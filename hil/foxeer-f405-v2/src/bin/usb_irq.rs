@@ -49,14 +49,14 @@ mod app {
             .freeze(&CLOCK_CONFIG)
             .map_err(|refused| refused.error())
         else {
-            reboot_to_dfu()
+            usb_bench::stop(line!())
         };
         let _ = rcc.reset_cause();
         let (Ok(watchdog), Ok(clock)) = (
             Watchdog::start(p.IWDG, WATCHDOG_US),
             Timebase::new(&mut rcc, p.TIM2, Hertz::mhz(1)),
         ) else {
-            reboot_to_dfu()
+            usb_bench::stop(line!())
         };
         let mut a = p.GPIOA.split(&mut rcc);
         let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
@@ -71,7 +71,7 @@ mod app {
                 dp,
             },
         ) else {
-            reboot_to_dfu()
+            usb_bench::stop(line!())
         };
         let idle_dog = watchdog.handle();
         let link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.reader());
@@ -95,6 +95,7 @@ mod app {
                 let (configured, now) = cx.shared.link.lock(|link| (link.configured(), link.now()));
                 waiting = !configured;
                 if waiting && now.wrapping_sub(boot) > CONFIGURED_PATIENCE_US {
+                    usb_bench::record_stop(usb_bench::Stop::NoHost, line!());
                     reboot_to_dfu();
                 }
             }

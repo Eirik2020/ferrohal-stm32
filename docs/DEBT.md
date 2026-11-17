@@ -136,8 +136,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 - `bench` **Low: the bench isn't on FerroForge.** Decided 2026-11-02: add a FerroHAL
   backend to the FerroForge CLI and move the runs onto its tasks, proving the pair.
   *Spawned:* `d773b34` recorded the decision and deferred the move.
-- `bench` **Low: a Foxeer smoke image that fails before USB says nothing.** It restarts
-  into DFU. *Spawned:* `926b210` 2026-11-02, a bench that reports over USB only.
 
 
 ## 4. Shipped code without hardware proof: rig work

@@ -15,3 +15,9 @@ pub const LINE: &str = concat!(
 pub fn dev_id() -> u16 {
     stm32_metapac::DBGMCU.idcode().read().dev_id()
 }
+
+/// Where a run leaves its stop record (`usb_bench::record_stop`), if anywhere.
+/// The top 32 bytes of SRAM, which `memory.x` keeps out of RAM: the ROM
+/// bootloader uses 8 to 16 KiB from 0x2000_0000 (AN2606, STM32F40xxx/41xxx), and a
+/// reset leaves SRAM as it was.
+pub const STOP_RECORD: Option<usize> = Some(0x2001_FFE0);

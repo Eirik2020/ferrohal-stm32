@@ -4,6 +4,18 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **A Foxeer run that stops before USB says why** (2026-11-17; owner's go-ahead). It
+  restarted into DFU silently: the board has no probe. Before every stop - a step it
+  cannot go on from (the source line), a panic (its line), a hard fault, a watchdog
+  reset, no host within 30 s - `usb_bench` now writes a four-word stop record to the top
+  32 bytes of SRAM, which the Foxeer's `memory.x` keeps out of RAM and the ROM
+  bootloader does not use (AN2606: its 8 to 16 KiB start at 0x2000_0000).
+  `hil/flash-dfu.sh` reads it over DFU (`STOP_RECORD`, set by `run-foxeer.sh`) when a run
+  fails and the board sits in DFU, and the next run that reaches USB reports it as a
+  `FAIL` and clears it. The Lucid keeps no record yet (`STOP_RECORD` = `None`). Not yet
+  on the Foxeer: that the ROM leaves the words and lets DFU upload them is the first
+  Foxeer run's to show. Spawned by `926b210` (2026-11-02).
+
 - **The H7 USB port sends zero-length packets by ES0392 2.25.7** (2026-11-17; owner,
   pin a fork). `synopsys-usb-otg` 0.4.0 set CNAK and EPENA together for an empty IN
   packet, which on the H7's core can put a wrong packet on the bus. FerroHAL now takes
