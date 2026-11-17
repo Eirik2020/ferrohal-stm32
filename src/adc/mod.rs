@@ -27,7 +27,7 @@ use crate::{
     adc_ip::{MAX_SAMPLE, Unit},
     chip::{Interrupt, TS_CAL1, TS_CAL2, VREFIN_CAL},
     dma::{
-        Channel as DmaChannel, Direction, Flags, Interrupts, Priority, StopTimeout, StreamInstance,
+        AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, StreamInstance,
         StreamInterrupt, Transfer, WordSize,
     },
     rcc::{Rcc, RccBit},
@@ -297,7 +297,7 @@ impl<A: Instance> Adc<A> {
         for (number, channel) in numbers.iter_mut().zip(channels) {
             *number = channel.number;
         }
-        let mut dma = crate::dma::claim_channel(&stream);
+        let mut dma = crate::dma::claim(&stream);
         if dma.stop(crate::dma::STOP_SPINS).is_err() {
             return Err(Refused::new(Error::Dma, (self, stream, buffer)));
         }
@@ -375,7 +375,7 @@ enum ScanState {
 pub struct AdcScan<A, S> {
     adc: Adc<A>,
     stream: S,
-    dma: DmaChannel,
+    dma: AnyStream,
     request: u8,
     vector: Interrupt,
     buffer: &'static mut [u16],

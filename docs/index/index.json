@@ -3,7 +3,7 @@
  "counts": {
   "documents": 73,
   "agent": 52,
-  "bytes": 361907
+  "bytes": 362184
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 11332
+   "bytes": 11229
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 34067
+   "bytes": 34447
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",

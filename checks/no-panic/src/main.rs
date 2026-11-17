@@ -200,7 +200,7 @@ fn main() -> ! {
     exercise_i2c(&mut i2c);
 
     // The DMA API, on a stream the UART does not use.
-    let mut channel = spare.take_channel();
+    let mut channel = spare.take_stream();
     keep(channel.flags());
     keep(channel.flags().any_error());
     channel.clear_flags(black_box(Flags::ALL));
@@ -928,9 +928,9 @@ struct Spare<C: StreamInstance> {
 }
 
 impl<C: StreamInstance> Spare<C> {
-    fn take_channel(&mut self) -> ferrohal_stm32::dma::Channel {
+    fn take_stream(&mut self) -> ferrohal_stm32::dma::AnyStream {
         match self.stream.take() {
-            Some(stream) => stream.into_channel(),
+            Some(stream) => stream.into_any(),
             None => park(),
         }
     }

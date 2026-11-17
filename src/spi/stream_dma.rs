@@ -36,7 +36,7 @@ use core::sync::atomic::{Ordering, fence};
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, Flags, Interrupts, Priority, StopTimeout, Stream, StreamInterrupt,
+        AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, Stream, StreamInterrupt,
         Transfer, WordSize,
     },
     gpio::AltPin,
@@ -64,8 +64,8 @@ enum State {
 /// open again.
 pub struct Spi<W: SpiParts> {
     info: &'static Info,
-    tx: Channel,
-    rx: Channel,
+    tx: AnyStream,
+    rx: AnyStream,
     tx_request: u8,
     rx_request: u8,
     tx_buf: &'static mut [u8],
@@ -156,8 +156,8 @@ where
         };
 
         rcc.open(U::ENABLE);
-        let mut tx = crate::dma::claim_channel(&wiring.tx_dma);
-        let mut rx = crate::dma::claim_channel(&wiring.rx_dma);
+        let mut tx = crate::dma::claim(&wiring.tx_dma);
+        let mut rx = crate::dma::claim(&wiring.rx_dma);
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
         if tx.stop(crate::dma::STOP_SPINS).is_err() {

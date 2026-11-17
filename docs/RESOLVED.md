@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review N4: the erased DMA stream is `dma::AnyStream`** (2026-11-17; owner's pick
+  A). `dma::Channel` was an erased stream in a module where "channel" also meant the
+  F4's CHSEL request, and the timers' compare channels beside it. It is
+  `dma::AnyStream`; `StreamInstance::into_channel` is `into_any` and the crate's
+  `claim_channel` is `claim`. Spawned by `14f7492`.
+
 - **A Foxeer run that stops before USB says why** (2026-11-17; owner's go-ahead). It
   restarted into DFU silently: the board has no probe. Before every stop - a step it
   cannot go on from (the source line), a panic (its line), a hard fault, a watchdog

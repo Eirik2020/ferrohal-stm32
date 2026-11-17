@@ -47,7 +47,7 @@ use super::{
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, Flags, Interrupts, Priority, StopTimeout, StreamInterrupt, Transfer,
+        AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, StreamInterrupt, Transfer,
         WordSize,
     },
     gpio::{Port, PortInstance, PortRegisters},
@@ -558,7 +558,7 @@ where
             input.map(|(_, samples)| samples),
         ));
     }
-    let mut dma = crate::dma::claim_channel(stream(&wiring));
+    let mut dma = crate::dma::claim(stream(&wiring));
     if dma.stop(crate::dma::STOP_SPINS).is_err() {
         return Err((
             ConfigError::DmaBusy,
@@ -733,7 +733,7 @@ fn reload_counter(gp: TimGp16, prescaler: u32, reload: u64) {
 /// from, so its type names timer and channel twice: a const generic cannot
 /// be read off `W` on stable Rust.
 pub struct CompareLane<T, const C: u8, W> {
-    dma: Channel,
+    dma: AnyStream,
     request: u8,
     vector: Interrupt,
     buffer: &'static mut [u32],
@@ -965,7 +965,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
 pub struct Sampler<T, S> {
     timer: TimGp16,
     clock: Hertz,
-    dma: Channel,
+    dma: AnyStream,
     request: u8,
     vector: Interrupt,
     input: u32,
@@ -1011,7 +1011,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
         }
         rcc.open(T::ENABLE);
         super::load(T::info().core(), prescaler, reload);
-        let mut dma = crate::dma::claim_channel(&stream);
+        let mut dma = crate::dma::claim(&stream);
         if dma.stop(crate::dma::STOP_SPINS).is_err() {
             return Err(Refused::new(
                 super::ConfigError::DmaBusy,

@@ -16,7 +16,7 @@
 //! thresholds are not: no driver used them, and nothing proved them.
 //!
 //! A controller token splits into eight stream tokens. Drivers erase a
-//! stream token into a [`Channel`], one type for every stream. Starting a
+//! stream token into an [`AnyStream`], one type for every stream. Starting a
 //! transfer is `unsafe`: the caller vouches for the memory. Drivers above
 //! build safe APIs on it from memory they own.
 //!
@@ -42,7 +42,7 @@ use core::sync::atomic::{Ordering, fence};
 pub(crate) const STOP_SPINS: u32 = 10_000;
 
 /// Bench fault injection (feature `fault-injection`): a stream marked stuck
-/// ignores [`Channel::request_stop`], so a running stream keeps EN set and
+/// ignores [`AnyStream::request_stop`], so a running stream keeps EN set and
 /// every bounded stop on it times out, as a stream that will not stop
 /// would. A stream that has stopped on its own still reads stopped. Marks
 /// are global, by controller and stream number, and survive a driver's
@@ -171,7 +171,7 @@ pub trait StreamInterrupt {
     const NAME: &'static str;
 }
 
-/// A stream token, erasable into a [`Channel`].
+/// A stream token, erasable into an [`AnyStream`].
 ///
 /// Outside FerroHAL a token's stream is reached only by giving the token
 /// up. The drivers' constructors reach it while the caller keeps the
@@ -180,8 +180,8 @@ pub trait StreamInterrupt {
 /// bound:
 ///
 /// ```
-/// fn one_owner<S: ferrohal_stm32::dma::StreamInstance>(token: S) -> ferrohal_stm32::dma::Channel {
-///     token.into_channel()
+/// fn one_owner<S: ferrohal_stm32::dma::StreamInstance>(token: S) -> ferrohal_stm32::dma::AnyStream {
+///     token.into_any()
 /// }
 /// ```
 ///
@@ -202,7 +202,7 @@ pub trait StreamInterrupt {
 /// }
 /// ```
 pub trait StreamInstance: crate::Sealed + claim::Claim {
-    fn into_channel(self) -> Channel;
+    fn into_any(self) -> AnyStream;
 }
 
 mod claim {
@@ -214,19 +214,19 @@ mod claim {
     /// code can see this method through a `StreamInstance` bound, so it
     /// takes a [`Key`].
     pub trait Claim {
-        fn claim(&self, key: Key) -> super::Channel;
+        fn claim(&self, key: Key) -> super::AnyStream;
     }
 
-    /// The stream's [`Channel`](super::Channel), a second owner beside the
+    /// The stream's [`AnyStream`](super::AnyStream), a second owner beside the
     /// token. The constructor that calls this keeps the pair to one: on
     /// success it drops the token and keeps the channel, on a refusal it
     /// drops the channel and returns the token.
-    pub(crate) fn channel<S: Claim>(token: &S) -> super::Channel {
+    pub(crate) fn channel<S: Claim>(token: &S) -> super::AnyStream {
         token.claim(Key(()))
     }
 }
 
-pub(crate) use claim::channel as claim_channel;
+pub(crate) use claim::channel as claim;
 
 impl<const D: u8, const N: u8> crate::Sealed for Stream<D, N> {}
 
@@ -234,7 +234,7 @@ impl<const D: u8, const N: u8> StreamInstance for Stream<D, N>
 where
     Dma<D>: DmaInstance,
 {
-    fn into_channel(self) -> Channel {
+    fn into_any(self) -> AnyStream {
         claim::channel(&self)
     }
 }
@@ -243,9 +243,9 @@ impl<const D: u8, const N: u8> claim::Claim for Stream<D, N>
 where
     Dma<D>: DmaInstance,
 {
-    fn claim(&self, _key: claim::Key) -> Channel {
+    fn claim(&self, _key: claim::Key) -> AnyStream {
         const { assert!(N < 8, "a controller has streams 0 to 7") };
-        Channel {
+        AnyStream {
             regs: <Dma<D> as DmaRegisters>::regs(),
             index: N,
             #[cfg(feature = "fault-injection")]
@@ -258,8 +258,8 @@ where
     }
 }
 
-/// One stream, whichever it is. Owned: one `Channel` per stream.
-pub struct Channel {
+/// One stream, whichever it is. Owned: one `AnyStream` per stream.
+pub struct AnyStream {
     regs: Regs,
     index: u8,
     #[cfg(feature = "fault-injection")]
@@ -270,10 +270,10 @@ pub struct Channel {
     mux_channel: u8,
 }
 
-// SAFETY: a `Channel` is the only owner of its stream's registers, and of
+// SAFETY: an `AnyStream` is the only owner of its stream's registers, and of
 // its bits in the shared flag registers, so moving it to another context
 // moves that ownership with it.
-unsafe impl Send for Channel {}
+unsafe impl Send for AnyStream {}
 
 /// Why a buffer cannot serve a DMA transfer: what `chip::check_dma_buffer`
 /// returns, and what every driver's refusal wraps as its `Buffer` reason
@@ -411,9 +411,9 @@ pub enum StartError {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct StopTimeout;
 
-impl Channel {
+impl AnyStream {
     /// A handle for reading and clearing this stream's flags from an
-    /// interrupt handler while the `Channel` itself lives elsewhere.
+    /// interrupt handler while the `AnyStream` itself lives elsewhere.
     pub fn flag_handle(&self) -> FlagHandle {
         FlagHandle {
             regs: self.regs,
@@ -460,8 +460,8 @@ impl Channel {
     ///
     /// The two handles must never use the stream at the same time; the
     /// driver's own protocol has to guarantee it.
-    pub(crate) unsafe fn alias(&self) -> Channel {
-        Channel {
+    pub(crate) unsafe fn alias(&self) -> AnyStream {
+        AnyStream {
             regs: self.regs,
             index: self.index,
             #[cfg(feature = "fault-injection")]
@@ -580,7 +580,7 @@ fn stream_index(index: u8) -> usize {
 /// Read and clear access to one stream's flags, and its count.
 ///
 /// Every operation is a register read or a write-one-to-clear of this
-/// stream's own bits, so a handle and its `Channel` can be used from
+/// stream's own bits, so a handle and its `AnyStream` can be used from
 /// different priorities without a lock. Which of them clears which flag is
 /// the driver's protocol to keep.
 pub struct FlagHandle {

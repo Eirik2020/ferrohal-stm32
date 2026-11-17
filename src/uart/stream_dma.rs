@@ -57,7 +57,7 @@ use core::{
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FlagHandle, Flags, Interrupts, Priority, StopTimeout, Stream,
+        AnyStream, Direction, FlagHandle, Flags, Interrupts, Priority, StopTimeout, Stream,
         StreamInstance, StreamInterrupt, Transfer, WordSize,
     },
     gpio::AltPin,
@@ -463,7 +463,7 @@ impl<W: UartParts> RxLine<W> {
 /// rides with the line.
 pub struct UartTx<W: UartParts> {
     info: &'static Info,
-    dma: Channel,
+    dma: AnyStream,
     request: u8,
     buf: *mut u8,
     cap: u16,
@@ -480,7 +480,7 @@ pub struct UartTx<W: UartParts> {
 /// instance token rides with the line.
 pub struct UartRx<W: UartParts> {
     info: &'static Info,
-    dma: Channel,
+    dma: AnyStream,
     request: u8,
     ring: *mut u8,
     len: u16,
@@ -518,7 +518,7 @@ pub struct UartIrq {
 /// The transmit stream, shared with [`UartTx`] under `service_tx`'s
 /// protocol, and what starting a frame needs.
 struct TxIrq {
-    dma: Channel,
+    dma: AnyStream,
     buf: *mut u8,
     request: u8,
 }
@@ -646,7 +646,7 @@ where
             .store(checked.frame_cycles, Ordering::Relaxed);
         let mut tx = UartTx {
             info,
-            dma: crate::dma::claim_channel(&tx_dma),
+            dma: crate::dma::claim(&tx_dma),
             request: TxD::REQUEST,
             buf: buffers.tx.as_mut_ptr(),
             cap: checked.tx_len,
@@ -656,7 +656,7 @@ where
             pin: tx_pin,
             stream: tx_dma,
         };
-        let rx_channel = crate::dma::claim_channel(&rx_dma);
+        let rx_channel = crate::dma::claim(&rx_dma);
         let rx = UartRx::assemble(info, rx_channel, RxD::REQUEST, buffers.rx, rx_pin, rx_dma);
 
         // Streams left running by an earlier owner must stop before they
@@ -1030,7 +1030,7 @@ const TX_INTERRUPTS: Interrupts = Interrupts {
 /// (only while `servicing` is clear), never both at once: the interrupt
 /// does nothing but mask the stream while `servicing` is set, and is never
 /// preempted by the task.
-fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
+fn service_tx(info: &Info, dma: &mut AnyStream, buf: *mut u8, request: u8) {
     let tx = &info.state.tx;
     if tx.running.load(Ordering::Acquire) {
         let flags = dma.flags();
@@ -1161,7 +1161,7 @@ where
         info.state
             .frame_cycles
             .store(checked.frame_cycles, Ordering::Relaxed);
-        let channel = crate::dma::claim_channel(&rx_dma);
+        let channel = crate::dma::claim(&rx_dma);
         let half = Self::assemble(info, channel, RxD::REQUEST, ring, rx, rx_dma);
         let vectors = UartInterrupts {
             line: U::INTERRUPT,
@@ -1241,7 +1241,7 @@ impl<W: UartParts> UartRx<W> {
     /// only user.
     fn assemble(
         info: &'static Info,
-        dma: Channel,
+        dma: AnyStream,
         request: u8,
         ring: &mut [u8],
         pin: W::RxPin,
