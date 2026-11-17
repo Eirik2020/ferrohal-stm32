@@ -1,0 +1,6 @@
+# Run letter, then the binary (src/bin/<name with _>.rs) it names. The letters are
+# aliases (API review B1): hil/run-*.sh, the procedures and tools/ take them.
+a	die-0x413
+b	usb-cdc
+c	rom-bootloader
+d	complementary

@@ -1,8 +1,28 @@
 # FerroHAL: resolved debt
 
-History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature sections continue in [RESOLVED-chips-and-features.md](RESOLVED-chips-and-features.md); crate-wide entries from 2026-11-10 to 2026-11-16 in [RESOLVED-crate-wide-2026-11-10-to-16.md](RESOLVED-crate-wide-2026-11-10-to-16.md), and up to 2026-11-09 in [RESOLVED-crate-wide-to-2026-11-09.md](RESOLVED-crate-wide-to-2026-11-09.md). Limits a fix left behind stay in DEBT.md as open items. Newest first within each section. Section numbers (§) refer to the architecture map, dissolved into `docs/design/` topics on 2026-11-10; the numbers cite it as it was.
+History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and feature sections continue in [chips-and-features.md](chips-and-features.md); crate-wide entries from 2026-11-10 to 2026-11-16 in [crate-wide-2026-11-10-to-16.md](crate-wide-2026-11-10-to-16.md), and up to 2026-11-09 in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md). Limits a fix left behind stay in DEBT.md as open items. Newest first within each section. Section numbers (§) refer to the architecture map, dissolved into `docs/design/` topics on 2026-11-10; the numbers cite it as it was.
 
 ## Crate-wide
+
+- **API review B1: bench binaries are named by test** (2026-11-17; owner's pick A). A
+  run letter meant a different test on each bench (only S and W matched). Every run file
+  on the F401, the H753 and the Discovery is renamed after its test, the same name where
+  two benches run the same test (`watchdog`, `refusals`, `i2c-pico`, `usb-cdc`, ...).
+  The letters stay as each bench's aliases: `hil/<crate>/runs.tsv` maps them, and the run
+  scripts, `tools/record_evidence.py`, `tools/stale_runs.py` and `tools/gen_h753_runs.py`
+  read it, so the procedures' commands are unchanged. `design/naming.md` records the
+  rule. Spawned by `55025e8`.
+
+- **API review B2: closed with a rule** (2026-11-17; owner's choice). The H753's runs A
+  to D are generated and the F401's written by hand, because the H753's four differ only
+  in data while the F401's A to D test different things (each UART, a cross-wired pair,
+  the other stream, a receive-only run). `design/naming.md` records when a bench
+  generates its runs.
+
+- **API review S2: closed by design** (2026-11-17; owner: keep the directory rule). The
+  twelve directories holding a lone `mod.rs` are `design/naming.md`'s directory per IP
+  version, and the timer's submodules by `#[path]` follow from `timer.rs` being one
+  source compiled as two IP versions. `naming.md` now says both.
 
 - **API review D3: the engine-backed IP modules are crate-private** (2026-11-17).
   `usart_v2`/`v4`, `spi_v2`/`v4`, `i2c_v1`/`v2` and `adc_v2`/`v4` were public beside the

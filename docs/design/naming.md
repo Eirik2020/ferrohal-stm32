@@ -51,6 +51,11 @@ Which IP versions each series carries, as metapac measured them:
 
 - **[Decided]** A neutral module plus a directory per IP version for every new IP:
   `uart` with `usart_v2`/`usart_v4`, and so `spi`, `i2c`, `adc`.
+  A directory holding only `mod.rs` is that rule, not a leftover: it is where the IP
+  version's next file goes. The timer's `timer_pwm.rs` and `timer_awg.rs` stay children
+  of `timer.rs` by `#[path]`, because `timer.rs` is itself compiled as `timer_v1` and
+  `timer_v3` (the shared sources below). API review S2 closed on this (owner,
+  2026-11-17).
 - **[Decided]** Deliberate exceptions: one source compiled under two names
   (`iwdg.rs` as `iwdg_v1`/`iwdg_v2`, `exti.rs`, `dma_stream.rs`), and the timer split
   by function, not version (`timer.rs`, `timer_pwm.rs`, `timer_awg.rs`, as
@@ -104,11 +109,21 @@ Which IP versions each series carries, as metapac measured them:
 - **[Decided]** `hil/run-<bench>.sh` runs a bench: `run-f401`, `run-h753`, `run-foxeer`,
   `run-lucid`. Helpers that are not benches take their own names: `flash-dfu.sh`,
   `pico-i2c-sim.sh` (owner, 2026-11-13).
-- **[Decided]** Run letters upper case in prose (run M), lower case in file names
-  (`run_m.rs`, `run-m`).
+- **[Decided]** A bench binary is named by its test, `src/bin/usb_cdc.rs` building
+  `usb-cdc`, the same name on every bench that runs the test (owner, 2026-11-17, API
+  review B1). The run letters stay as each bench's aliases, upper case in prose (run M)
+  and lower case on the command line (`hil/run-h753.sh m`); `hil/<crate>/runs.tsv` maps
+  them, and the run scripts and `tools/` read it. A letter still means a different test
+  on each bench; the binary's name says which.
+- **[Decided]** A bench generates its runs only where several runs differ only in data:
+  the H753's runs A to D (`tools/gen_h753_runs.py`), which open different UARTs at
+  different rates on one template. Every other run, on every bench, is written by hand,
+  because it tests something of its own (owner, 2026-11-17, API review B2).
 
 ## Documents
 
-- **[Decided]** Registries in capitals (`DEBT`, `RESOLVED`, `README`, `WIRING`,
-  `AGENTS`); everything else kebab-case, with dated names where
-  `docs/policies/documentation.md` asks for them.
+- **[Decided]** Registries in capitals (`DEBT`, `README`, `WIRING`, `AGENTS`);
+  everything else kebab-case, with dated names where
+  `docs/policies/documentation.md` asks for them. The resolved-debt registry is a
+  folder, `docs/resolved/`, whose hub is its `README.md` and whose parts, split for the
+  size budget, are kebab-case (owner, 2026-11-17).

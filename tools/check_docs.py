@@ -52,7 +52,7 @@ ENTRY = {
     "AGENTS.md",
     "README.md",
     "docs/DEBT.md",
-    "docs/RESOLVED.md",
+    "docs/resolved/README.md",
     "docs/decisions/README.md",
     "docs/housekeeping/README.md",
     "docs/housekeeping/state.md",

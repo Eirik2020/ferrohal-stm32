@@ -1,6 +1,6 @@
 # FerroHAL: resolved debt, by chip and feature
 
-The chip and feature sections of [RESOLVED.md](RESOLVED.md), split out on 2026-11-13 to
+The chip and feature sections of [README.md](README.md), split out on 2026-11-13 to
 keep it in its budget; the crate-wide section stays there. Newest first within each
 section.
 

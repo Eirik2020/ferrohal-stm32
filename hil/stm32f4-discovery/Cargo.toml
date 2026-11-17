@@ -5,26 +5,26 @@ edition = "2024"
 publish = false
 
 [[bin]]
-name = "run-a"
-path = "src/bin/run_a.rs"
+name = "die-0x413"
+path = "src/bin/die_0x413.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-b"
-path = "src/bin/run_b.rs"
+name = "usb-cdc"
+path = "src/bin/usb_cdc.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-c"
-path = "src/bin/run_c.rs"
+name = "rom-bootloader"
+path = "src/bin/rom_bootloader.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-d"
-path = "src/bin/run_d.rs"
+name = "complementary"
+path = "src/bin/complementary.rs"
 test = false
 bench = false
 
