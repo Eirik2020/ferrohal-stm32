@@ -187,6 +187,10 @@ const CHIP_FEATURES: usize = cfg!(feature = "stm32f401ce") as usize
     + cfg!(feature = "stm32h743ag") as usize
     + cfg!(feature = "stm32h743xi") as usize
     + cfg!(feature = "stm32h743xg") as usize
+    + cfg!(feature = "stm32h750vb") as usize
+    + cfg!(feature = "stm32h750zb") as usize
+    + cfg!(feature = "stm32h750ib") as usize
+    + cfg!(feature = "stm32h750xb") as usize
     + cfg!(feature = "stm32h753vi") as usize
     + cfg!(feature = "stm32h753zi") as usize
     + cfg!(feature = "stm32h753ii") as usize
@@ -378,6 +382,9 @@ pub mod chip;
 pub mod chip;
 #[cfg(feature = "_line-stm32h743")]
 #[path = "chips/stm32h743vi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32h750")]
+#[path = "chips/stm32h753zi.rs"]
 pub mod chip;
 #[cfg(feature = "_line-stm32h753")]
 #[path = "chips/stm32h753zi.rs"]

@@ -1,5 +1,6 @@
 //! STM32H753 glue: the chip facts the IP modules leave out, for every package
-//! of the line.
+//! of the line, and of the H750 value line cut from the same die (RM0433):
+//! it differs in its 128 KiB of flash, which no fact here depends on.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMAMUX
 //! request IDs) are generated from stm32-metapac's metadata into
@@ -71,6 +72,18 @@ mod generated;
 mod generated;
 #[cfg(feature = "stm32h753xi")]
 #[path = "gen/stm32h753xi.rs"]
+mod generated;
+#[cfg(feature = "stm32h750vb")]
+#[path = "gen/stm32h750vb.rs"]
+mod generated;
+#[cfg(feature = "stm32h750zb")]
+#[path = "gen/stm32h750zb.rs"]
+mod generated;
+#[cfg(feature = "stm32h750ib")]
+#[path = "gen/stm32h750ib.rs"]
+mod generated;
+#[cfg(feature = "stm32h750xb")]
+#[path = "gen/stm32h750xb.rs"]
 mod generated;
 pub use generated::*;
 #[path = "shared/h7.rs"]

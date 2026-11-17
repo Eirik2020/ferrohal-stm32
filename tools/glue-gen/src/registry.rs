@@ -573,6 +573,34 @@ pub const PARTS: &[Part] = &[
         package: "TFBGA240",
     },
     Part {
+        feature: "stm32h750vb",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H750",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32h750zb",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H750",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32h750ib",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H750",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32h750xb",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H750",
+        package: "TFBGA240",
+    },
+    Part {
         feature: "stm32h753vi",
         series: "H7",
         die: 0x450,
@@ -691,6 +719,14 @@ pub const VARIANTS: &[(&str, &str)] = &[
     ("stm32f769ig", "stm32f769ii"),
     ("stm32f769ng", "stm32f769ni"),
 ];
+
+/// Peripherals whose metapac metadata is incomplete on one device of a die:
+/// (device, peripheral). Its IP kind, version and register block may read
+/// None there while the die's other devices give them; the merge keeps the
+/// known values instead of calling it a conflict. Only for blocks no driver
+/// here serves. metapac 21 lists the STM32H750's HSEM with no register block,
+/// though RM0433 gives every device of the die the same HSEM.
+pub const METADATA_GAPS: &[(&str, &str)] = &[("STM32H750", "HSEM")];
 
 /// The benches evidence is recorded on (`hil/<crate>`), each with the part
 /// it carries: what the tier command reads a board's die and series from.
@@ -906,7 +942,7 @@ mod tests {
         );
         assert_eq!(features("series F4").len(), 39);
         assert_eq!(features("series f7").len(), 32);
-        assert_eq!(features("series h7").len(), 12);
+        assert_eq!(features("series h7").len(), 16);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);
     }
 
@@ -926,7 +962,7 @@ mod tests {
         assert_eq!(features("die STM32F407"), f405_f407);
         assert_eq!(features("die 0x413"), f405_f407);
         assert_eq!(features("die stm32h750"), features("die 0x450"));
-        assert_eq!(features("die 0x450").len(), 12);
+        assert_eq!(features("die 0x450").len(), 16);
     }
 
     #[test]

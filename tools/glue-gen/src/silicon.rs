@@ -14,7 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use glue_model::{DmaChannel, Part as Metadata, PeripheralDma, Rcc};
 
-use crate::registry::Part;
+use crate::registry::{METADATA_GAPS, Part};
 
 /// One peripheral of a die, merged over the die's parts.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -191,6 +191,12 @@ pub fn merge(id: u16, parts: &[(Part, Metadata)]) -> Result<Die, Vec<String>> {
                 &merged.address,
                 &peripheral.address,
             );
+            // A known metadata gap: the device's None gives way to the die's
+            // values, and those are what the comparisons below see.
+            let gap = METADATA_GAPS.contains(&(part.device, peripheral.name.as_str()));
+            if gap && peripheral.block.is_none() {
+                continue;
+            }
             agree(
                 &mut conflicts,
                 &name,

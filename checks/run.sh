@@ -44,6 +44,7 @@ packages=(
     stm32f777vi stm32f777zi stm32f777ii stm32f777bi stm32f777ni stm32f778ai
     stm32f779ai stm32f779bi stm32f779ii stm32f779ni
     stm32h743zi stm32h743ii stm32h743bi stm32h743ai stm32h743xi
+    stm32h750vb stm32h750zb stm32h750ib stm32h750xb
     stm32h753vi stm32h753ii stm32h753bi stm32h753ai stm32h753xi
 )
 # `,usb` for a part with a USB port; the F410 has none (RM0401), and the

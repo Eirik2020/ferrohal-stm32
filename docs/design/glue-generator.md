@@ -65,6 +65,11 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
   DMA, bus-named RCC registers), its usart_v3 rows included: the usart_v4 module serves
   it (ADR-011). A block on the part that no driver serves shows – (on the part, not
   driven) in the capability table, where it shows n/a for a block the part lacks.
+- **[Decided 2026-11-17]** Where metapac's metadata is incomplete on one device of a
+  die, a peripheral FerroHAL does not drive may be listed in `METADATA_GAPS`
+  (`tools/glue-gen/src/registry.rs`), and the merge keeps the die's values for it rather
+  than fail. The only entry: the STM32H750's HSEM, which metapac 21 gives no register
+  block.
 - **[Decided 2026-11-17]** The coverage matrix (`hil/COVERAGE.md`) gives an IP version
   no bench carries no tier (–), even where its requirements are verified on a version
   that shares its driver: the usart_v3 registers have no evidence of their own until
