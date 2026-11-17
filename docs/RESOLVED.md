@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The F401 bench's SPI SCK speed was never at fault** (2026-11-17). The ES0299 row
+  review logged that runs E to G drive SCK at reset speed with APB2 at 84 MHz, outside
+  2.11.4's bound. Wrong: the board's `sck()` sets every SCK and MOSI pin to high speed,
+  which the sheet allows up to 84 MHz. The item was the review's misreading of the
+  source; nothing changed. Spawned by the ES0299 row review (2026-11-17).
+
 - **The F4 I2C has its two errata workarounds** (2026-11-17). ES0299 2.9.1, ES0182
   2.10.1: a spurious BERR no longer fails the transfer (the shared driver's change with
   the H7's 2.19.4). ES0299 2.9.3, ES0182 2.10.3: after a misplaced Stop the peripheral
