@@ -90,6 +90,29 @@ a changed meaning does.
   answers the query `FERRO-ID?` and a newline with the line, adding `dev`, `rev` and
   `uid` it reads itself.
 
+## Telemetry
+
+Where the rig's time goes, so a slow bench or a flaky run shows before it is guessed at.
+`tools/rig_run.py` wraps a bench script without changing it (`python3 -I tools/rig_run.py
+hil/run-h753.sh a b`; `tools/stale_runs.py --shell` prints its commands that way): the
+output passes through, the script's exit status is kept, and a run's time is split from
+the lines the scripts already print and the logs they already write — cargo's build time,
+probe-rs's flash time (`Finished in`), and the rest as execution, which includes the
+probe's attach. Probe selection and the up-front build are timed per session. Results are
+pass, fail, hang (`timeout` killed it after flashing), timeout (before), interrupted, and no-probe for a session
+that found no probe;
+the attempt number counts the same run at the same commit. `RIG_REQUESTER` names who asked.
+
+Records are JSON lines in `hil/logs/telemetry/runs.jsonl` (ignored with `hil/logs/`, so
+never committed or evidence; `RIG_TELEMETRY` moves it). A failure to write one is printed
+and never fails the run. A script run without the wrapper is not recorded, and a flashed
+bench (`flash-dfu.sh`) has no run lines, so only its session is timed.
+
+`python3 -I tools/rig_report.py` summarises the last 7 days in a few lines: per board the
+runs, success rate, total, mean and p95 per run and its three largest phases; the slowest
+runs; flaky runs (pass and not pass at one commit); retries; busy time and the longest
+idle gap. `--since 24h`, `--board h753`, `--full` (per run letter), `--json`.
+
 ## Improving the rig
 
 What the rig cannot reach, and the upgrades that would reach it, each with the
