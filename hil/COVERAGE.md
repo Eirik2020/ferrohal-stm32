@@ -42,9 +42,9 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `timer_v3` | HIL | nucleo-h753zi-loopback |
 | IP `usart_v2` | HIL | nucleo-f401re-loopback |
 | IP `usart_v4` | HIL | nucleo-h753zi-loopback |
-| die `0x413` (glue probe) | HIL | stm32f4-discovery |
+| die `0x413` (glue probe) | – |  |
 | die `0x431` (glue probe) | – |  |
-| die `0x433` (glue probe) | HIL | nucleo-f401re-loopback |
+| die `0x433` (glue probe) | – |  |
 | die `0x449` (glue probe) | – |  |
 | die `0x450` (glue probe) | – |  |
 | die `0x451` (glue probe) | – |  |

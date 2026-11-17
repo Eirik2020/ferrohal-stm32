@@ -15,7 +15,18 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 | part | metapac's name | device + package + memory size | `stm32f405rg` |
 
 - **[Decided]** The user picks a part (its Cargo feature, metapac's name); FerroHAL dedups
-  by die. A die table is the union of its supported parts' metadata; two parts of one die
+  by die.
+- **[Decided]** Every package of a supported line is a registered part (owner,
+  2026-11-17), named by its largest flash size. A part that differs only in flash size is
+  a variant (`VARIANTS`): its own Cargo feature, mounting its package's glue. `model`
+  dumps variants too, so one that disagrees with its part on any fact fails the
+  generator. A line's hand facts are one chip module, named after its first part
+  (`chips/stm32f401re.rs`), which mounts each part's glue under that part's features.
+- **[Decided, 2026-11-17]** A part's glue is cut by device and package together, not by
+  device alone: metapac's peripheral list and pin rows can depend on the package. The
+  H743VI's LQFP100 has no SPI5, and only the TFBGA240, which bonds PC2 and PC2_C apart,
+  routes ADC1's INP12 to PC2. The die table keeps each cut's peripherals and pin rows,
+  and parts of one cut must agree on them. A die table is the union of its supported parts' metadata; two parts of one die
   that disagree on a row fail the generator.
 - **[Decided]** The device layer exists now, thin, and is pruned if it stays redundant:
   F405 vs F407 and H743 vs H753 differ only in peripherals FerroHAL has no driver for.

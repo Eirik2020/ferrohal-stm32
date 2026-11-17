@@ -35,7 +35,8 @@ How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
 - **[Decided]** metapac numbers DMA backwards: the F4's stream DMA is `dma_v2`, the H7's
   `dma_v1`. The numbers are metapac's, not an order.
 - **[Decided]** A chip feature is metapac's chip name and turns on every IP version the
-  chip carries:
+  chip carries, through its line's private feature (`_line-stm32f401`); every part of a
+  line carries the same versions, so the table names one part per line:
 
 | chip | family | usart | spi | i2c | exti | timer | iwdg | dma | gpio | rcc | adc | sdmmc | USB core |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -44,6 +45,7 @@ How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
 | `stm32f405rg` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
 | `stm32f722re` | F7 | (v3) | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
 | `stm32f745vg` | F7 | (v3) | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
+| `stm32f767zi` | F7 | (v3) | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
 | `stm32h743vi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
 | `stm32h753zi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
 

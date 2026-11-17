@@ -1,17 +1,17 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 78,
+  "documents": 79,
   "agent": 52,
-  "bytes": 410381
+  "bytes": 431466
  },
  "documents": [
   {
    "path": "AGENTS.md",
    "class": "agent",
    "title": "FerroHAL - agent entry",
-   "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 5569
+   "purpose": "STM32 HAL on stm32-metapac. Chips: every pack",
+   "bytes": 5656
   },
   {
    "path": "README.md",
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 13649
+   "bytes": 22841
   },
   {
    "path": "docs/DEBT.md",
@@ -192,7 +192,7 @@
    "class": "agent",
    "title": "Errata as data",
    "purpose": "Source: ADR-010, ../decisions/2026-11-15-erra",
-   "bytes": 3042
+   "bytes": 3149
   },
   {
    "path": "docs/design/execution-model.md",
@@ -227,7 +227,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 8147
+   "bytes": 9041
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -255,7 +255,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 7388
+   "bytes": 7626
   },
   {
    "path": "docs/design/ownership.md",
@@ -340,6 +340,13 @@
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
    "bytes": 10768
+  },
+  {
+   "path": "docs/errata/ES0334.md",
+   "class": "human",
+   "title": "ES0334: errata of die 0x451 (F76xxx/F77xxx)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 10207
   },
   {
    "path": "docs/errata/ES0360.md",
@@ -465,7 +472,7 @@
    "class": "human",
    "title": "Plan: the STM32F411, F722, F745 and G474",
    "purpose": "Opened 2026-11-17. The owner's fifth and last",
-   "bytes": 12783
+   "bytes": 13182
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -507,7 +514,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6577
+   "bytes": 6538
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",
