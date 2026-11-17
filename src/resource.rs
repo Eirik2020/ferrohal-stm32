@@ -30,6 +30,19 @@ pub enum Resource {
     Interrupt(&'static str),
 }
 
+impl Resource {
+    /// A pin row from the pin's type: its port, number and alternate
+    /// function, carrying `signal` (API review U5).
+    pub(crate) const fn pin<P: crate::gpio::AltPin>(signal: Signal) -> Self {
+        Self::Pin {
+            signal,
+            port: P::PORT,
+            pin: P::PIN,
+            af: P::AF,
+        }
+    }
+}
+
 /// Which of a peripheral's signals a pin or DMA stream carries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]

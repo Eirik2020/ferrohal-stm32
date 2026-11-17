@@ -23,7 +23,6 @@ use crate::{
         Interrupt, USB_FS, USB_FS_ENDPOINTS, USB_FS_FIFO_WORDS, USB_FS_HS_CORE, USB_FS_INTERRUPT,
         USB_OTG_FS, UsbDm, UsbDp,
     },
-    gpio::AltPin,
     rcc::{ClockError, Rcc},
     resource::{Refused, Resource, Signal},
 };
@@ -44,18 +43,8 @@ impl Wiring {
     /// their alternate functions.
     pub const RESOURCES: [Resource; 3] = [
         Resource::Peripheral("USB_OTG_FS"),
-        Resource::Pin {
-            signal: Signal::Dm,
-            port: <UsbDm as AltPin>::PORT,
-            pin: <UsbDm as AltPin>::PIN,
-            af: <UsbDm as AltPin>::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Dp,
-            port: <UsbDp as AltPin>::PORT,
-            pin: <UsbDp as AltPin>::PIN,
-            af: <UsbDp as AltPin>::AF,
-        },
+        Resource::pin::<UsbDm>(Signal::Dm),
+        Resource::pin::<UsbDp>(Signal::Dp),
     ];
 }
 

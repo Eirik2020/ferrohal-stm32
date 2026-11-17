@@ -212,12 +212,7 @@ where
     /// alternate function, and the stream with its request.
     pub const RESOURCES: [crate::resource::Resource; 3] = [
         crate::resource::Resource::Peripheral(T::NAME),
-        crate::resource::Resource::Pin {
-            signal: crate::resource::Signal::Channel(C),
-            port: Pin::PORT,
-            pin: Pin::PIN,
-            af: Pin::AF,
-        },
+        crate::resource::Resource::pin::<Pin>(crate::resource::Signal::Channel(C)),
         crate::resource::Resource::Dma {
             signal: crate::resource::Signal::Channel(C),
             controller: CD,
@@ -238,12 +233,7 @@ where
     /// alternate function, and the stream with its request.
     pub const RESOURCES: [crate::resource::Resource; 3] = [
         crate::resource::Resource::Peripheral(T::NAME),
-        crate::resource::Resource::Pin {
-            signal: crate::resource::Signal::Complementary(C),
-            port: Pin::PORT,
-            pin: Pin::PIN,
-            af: Pin::AF,
-        },
+        crate::resource::Resource::pin::<Pin>(crate::resource::Signal::Complementary(C)),
         crate::resource::Resource::Dma {
             signal: crate::resource::Signal::Complementary(C),
             controller: CD,

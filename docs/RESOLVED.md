@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review U5: pin rows from one helper** (2026-11-17). Every wiring's
+  `RESOURCES` wrote `Resource::Pin { signal, port: P::PORT, pin: P::PIN, af: P::AF }`
+  by hand, 21 times by now (UART, SPI stream and polled, I2C, timer lanes, SDMMC, USB).
+  The crate-internal `const fn Resource::pin::<P>(signal)` builds the row from the pin's
+  type; the chip files' host tests, which compare the tables row by row, pass
+  unchanged. Spawned by `2e7f7fe`'s descriptors.
+
 - **API review U11: one USB smoke bench** (2026-11-17). The Foxeer's and the Lucid's
   `usb_irq.rs` were one file copied, by then differing in their endpoint memory, board
   name, watchdog field and whether they write a stop record. `hil/common/usb_irq.rs`

@@ -1853,18 +1853,8 @@ where
     /// three vectors to bind (line, receive, transmit).
     pub const RESOURCES: [Resource; 8] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin {
-            signal: Signal::Tx,
-            port: TxP::PORT,
-            pin: TxP::PIN,
-            af: TxP::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Rx,
-            port: RxP::PORT,
-            pin: RxP::PIN,
-            af: RxP::AF,
-        },
+        Resource::pin::<TxP>(Signal::Tx),
+        Resource::pin::<RxP>(Signal::Rx),
         Resource::Dma {
             signal: Signal::Tx,
             controller: TD,
@@ -1892,12 +1882,7 @@ where
     /// Everything this receive-only wiring uses, as data.
     pub const RESOURCES: [Resource; 5] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin {
-            signal: Signal::Rx,
-            port: RxP::PORT,
-            pin: RxP::PIN,
-            af: RxP::AF,
-        },
+        Resource::pin::<RxP>(Signal::Rx),
         Resource::Dma {
             signal: Signal::Rx,
             controller: RD,

@@ -195,42 +195,12 @@ where
     /// with their alternate functions.
     pub const RESOURCES: [Resource; 7] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin {
-            signal: Signal::Ck,
-            port: Ck::PORT,
-            pin: Ck::PIN,
-            af: Ck::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Cmd,
-            port: Cmd::PORT,
-            pin: Cmd::PIN,
-            af: Cmd::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Data(0),
-            port: D0::PORT,
-            pin: D0::PIN,
-            af: D0::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Data(1),
-            port: D1::PORT,
-            pin: D1::PIN,
-            af: D1::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Data(2),
-            port: D2::PORT,
-            pin: D2::PIN,
-            af: D2::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Data(3),
-            port: D3::PORT,
-            pin: D3::PIN,
-            af: D3::AF,
-        },
+        Resource::pin::<Ck>(Signal::Ck),
+        Resource::pin::<Cmd>(Signal::Cmd),
+        Resource::pin::<D0>(Signal::Data(0)),
+        Resource::pin::<D1>(Signal::Data(1)),
+        Resource::pin::<D2>(Signal::Data(2)),
+        Resource::pin::<D3>(Signal::Data(3)),
     ];
 }
 

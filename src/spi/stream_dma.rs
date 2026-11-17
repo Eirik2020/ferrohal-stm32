@@ -582,24 +582,9 @@ where
     /// and the receive stream's vector.
     pub const RESOURCES: [Resource; 7] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin {
-            signal: Signal::Sck,
-            port: Sck::PORT,
-            pin: Sck::PIN,
-            af: Sck::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Miso,
-            port: Miso::PORT,
-            pin: Miso::PIN,
-            af: Miso::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Mosi,
-            port: Mosi::PORT,
-            pin: Mosi::PIN,
-            af: Mosi::AF,
-        },
+        Resource::pin::<Sck>(Signal::Sck),
+        Resource::pin::<Miso>(Signal::Miso),
+        Resource::pin::<Mosi>(Signal::Mosi),
         Resource::Dma {
             signal: Signal::Tx,
             controller: TD,
