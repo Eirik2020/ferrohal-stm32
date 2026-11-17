@@ -36,6 +36,10 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 
 Not yet: BDMA, input capture.
 
+## Examples
+
+[examples/](examples/README.md) has one small program per driver on a Nucleo board: GPIO, PWM, ADC, SPI, I2C and USB serial.
+
 ## Checking it
 
 ```sh
