@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **Every errata entry has a verdict** (2026-11-17). ADR-010 transcribed every row of
+  ES0182, ES0299 and ES0392 (2026-11-15) with 265 left `Unreviewed`; each now carries
+  its handling, read against the sheet and the source, in `docs/errata/`. The rows that
+  affect FerroHAL and lack a workaround are DEBT items (F405 revision A's REV_ID, the I2C
+  on both families, a compare lane's duty step, the H7's zero-length USB packet).
+  Spawned by ADR-010's transcription.
+
 - **API review U8: wait constants have one home** (2026-11-17). `STOP_SPINS` was defined
   four times (10 000 three times, 100 000 in the ADC), `PASS_CYCLES` twice and
   `MARGIN_CYCLES` three times. Now `dma::STOP_SPINS` (10 000, the ADC's stream stop

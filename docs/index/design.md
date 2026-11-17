@@ -12,7 +12,7 @@
 | a | docs/design/free-shapes.md | 3399 B | What blocked each driver's teardown, and the  |
 | a | docs/design/free.md | 3547 B | Every driver handle that owns a peripheral to |
 | a | docs/design/glue-generator.md | 7718 B | Source: ADR-008, ../decisions/2026-11-13-chip |
-| a | docs/design/h7-errata.md | 1272 B | W11 of the debt sweep. Read against ES0392 Re |
+| a | docs/design/h7-errata.md | 1409 B | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/maturity.md | 3374 B | Source: ADR-009, ../decisions/2026-11-13-matu |
 | a | docs/design/naming.md | 4766 B | Source: ADR-003, ../decisions/2026-11-08-nami |
