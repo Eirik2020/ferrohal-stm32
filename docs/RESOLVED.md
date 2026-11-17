@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review B2: closed with a rule** (2026-11-17; owner's choice). The H753's runs A
+  to D are generated and the F401's written by hand, because the H753's four differ only
+  in data while the F401's A to D test different things (each UART, a cross-wired pair,
+  the other stream, a receive-only run). `design/naming.md` records when a bench
+  generates its runs.
+
 - **API review S2: closed by design** (2026-11-17; owner: keep the directory rule). The
   twelve directories holding a lone `mod.rs` are `design/naming.md`'s directory per IP
   version, and the timer's submodules by `#[path]` follow from `timer.rs` being one

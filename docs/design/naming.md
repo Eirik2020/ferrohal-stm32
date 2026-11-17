@@ -111,6 +111,10 @@ Which IP versions each series carries, as metapac measured them:
   `pico-i2c-sim.sh` (owner, 2026-11-13).
 - **[Decided]** Run letters upper case in prose (run M), lower case in file names
   (`run_m.rs`, `run-m`).
+- **[Decided]** A bench generates its runs only where several runs differ only in data:
+  the H753's runs A to D (`tools/gen_h753_runs.py`), which open different UARTs at
+  different rates on one template. Every other run, on every bench, is written by hand,
+  because it tests something of its own (owner, 2026-11-17, API review B2).
 
 ## Documents
 
