@@ -54,16 +54,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
-- `code` `errata` **Medium: the H7 I2C lacks three ES0392 workarounds.** (2.19.4, every
-  revision) `i2c_v2` fails a transfer with `Error::Bus` on BERR, which the sheet says can
-  rise spuriously in controller mode while the transfer carries on; fix: clear it and
-  continue. (2.19.3, every revision) `timing` takes any kernel clock, and one slower
-  than the mode's data setup (4, 10 or 20 MHz for Standard, Fast and Fast-mode Plus)
-  samples SDA late; fix: refuse it. (2.19.5, rev Y/W) a read over 255 bytes reloads
-  NBYTES 255 at a time, and the last byte of a chunk can be lost if the one before is
-  read just as it lands; fix: the sheet's NBYTES = 1 reload. Inferred from the sheet and
-  the source; no bench has been checked for any of them, and both H7s here are rev V.
-  *Spawned:* the ES0392 row review (2026-11-17).
 - `code` `errata` **Low: a compare lane may lose a DMA request when its duty steps from the period's top to 0.**
   ES0392 2.16.2, ES0299 2.6.3, ES0182 2.7.3: a compare match at CNT = CCR = ARR followed by one at
   CNT = CCR = 0 (edge-aligned, the preloaded duty going from period - 1 to 0) misses
