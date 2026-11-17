@@ -48,13 +48,13 @@ How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
 | `stm32f427vi` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
 | `stm32f429zi` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
 | `stm32f446re` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
-| `stm32f722re` | F7 | (v3) | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
-| `stm32f745vg` | F7 | (v3) | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
-| `stm32f767zi` | F7 | (v3) | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
+| `stm32f722re` | F7 | v3 | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
+| `stm32f745vg` | F7 | v3 | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
+| `stm32f767zi` | F7 | v3 | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
 | `stm32h743vi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
 | `stm32h753zi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
 
-(v3): the F7's usart_v3, which the UART redesign serves; no feature until then.
+usart v3: the F7's, served by the `usart_v4` module (ADR-011).
 
 Which IP versions each series carries, as metapac measured them:
 [`../notes/2026-11-10-ip-versions.md`](../notes/2026-11-10-ip-versions.md).

@@ -3,7 +3,7 @@
  "counts": {
   "documents": 85,
   "agent": 54,
-  "bytes": 513786
+  "bytes": 513435
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 30787
+   "bytes": 31042
   },
   {
    "path": "docs/DEBT.md",
@@ -217,7 +217,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 9041
+   "bytes": 9352
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -245,7 +245,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 10034
+   "bytes": 10011
   },
   {
    "path": "docs/design/ownership.md",
@@ -329,7 +329,7 @@
    "class": "human",
    "title": "ES0290: errata of die 0x449 (F74xxx/F75xxx)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 5907
+   "bytes": 5788
   },
   {
    "path": "docs/errata/ES0298.md",
@@ -357,14 +357,14 @@
    "class": "human",
    "title": "ES0334: errata of die 0x451 (F76xxx/F77xxx)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10211
+   "bytes": 10114
   },
   {
    "path": "docs/errata/ES0360.md",
    "class": "human",
    "title": "ES0360: errata of die 0x452 (F72xxx/F73xxx)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 4340
+   "bytes": 4307
   },
   {
    "path": "docs/errata/ES0372.md",
@@ -490,7 +490,7 @@
    "class": "human",
    "title": "Plan: the STM32F411, F722, F745 and G474",
    "purpose": "Opened 2026-11-17. The owner's fifth and last",
-   "bytes": 13590
+   "bytes": 12918
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -560,7 +560,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6498
+   "bytes": 6525
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",

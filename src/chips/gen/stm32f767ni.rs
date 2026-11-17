@@ -196,6 +196,51 @@ dmas!(
     2 => DMA2, Ahb1, 22;
 );
 
+usarts!(
+    uart UART4 => UART4_INFO, Apb1, 19;
+    uart UART5 => UART5_INFO, Apb1, 20;
+    uart UART7 => UART7_INFO, Apb1, 30;
+    uart UART8 => UART8_INFO, Apb1, 31;
+    usart USART1 => USART1_INFO, Apb2, 4;
+    usart USART2 => USART2_INFO, Apb1, 17;
+    usart USART3 => USART3_INFO, Apb1, 18;
+    usart USART6 => USART6_INFO, Apb2, 5;
+);
+
+pins!(TxPin<UART4>: ('A', 0, 8), ('A', 12, 6), ('C', 10, 8), ('D', 1, 8), ('H', 13, 8));
+pins!(RxPin<UART4>: ('A', 1, 8), ('A', 11, 6), ('C', 11, 8), ('D', 0, 8), ('H', 14, 8), ('I', 9, 8));
+pins!(TxPin<UART5>: ('B', 6, 1), ('B', 9, 7), ('B', 13, 8), ('C', 12, 8));
+pins!(RxPin<UART5>: ('B', 5, 1), ('B', 8, 7), ('B', 12, 8), ('D', 2, 8));
+pins!(TxPin<UART7>: ('A', 15, 12), ('B', 4, 12), ('E', 8, 8), ('F', 7, 8));
+pins!(RxPin<UART7>: ('A', 8, 12), ('B', 3, 12), ('E', 7, 8), ('F', 6, 8));
+pins!(TxPin<UART8>: ('E', 1, 8));
+pins!(RxPin<UART8>: ('E', 0, 8));
+pins!(TxPin<USART1>: ('A', 9, 7), ('B', 6, 7), ('B', 14, 4));
+pins!(RxPin<USART1>: ('A', 10, 7), ('B', 7, 7), ('B', 15, 4));
+pins!(TxPin<USART2>: ('A', 2, 7), ('D', 5, 7));
+pins!(RxPin<USART2>: ('A', 3, 7), ('D', 6, 7));
+pins!(TxPin<USART3>: ('B', 10, 7), ('C', 10, 7), ('D', 8, 7));
+pins!(RxPin<USART3>: ('B', 11, 7), ('C', 11, 7), ('D', 9, 7));
+pins!(TxPin<USART6>: ('C', 6, 8), ('G', 14, 8));
+pins!(RxPin<USART6>: ('C', 7, 8), ('G', 9, 8));
+
+dma!(TxDma<UART4>: (1, 4, 4));
+dma!(RxDma<UART4>: (1, 2, 4));
+dma!(TxDma<UART5>: (1, 7, 4));
+dma!(RxDma<UART5>: (1, 0, 4));
+dma!(TxDma<UART7>: (1, 1, 5));
+dma!(RxDma<UART7>: (1, 3, 5));
+dma!(TxDma<UART8>: (1, 0, 5));
+dma!(RxDma<UART8>: (1, 6, 5));
+dma!(TxDma<USART1>: (2, 7, 4));
+dma!(RxDma<USART1>: (2, 2, 4), (2, 5, 4));
+dma!(TxDma<USART2>: (1, 6, 4));
+dma!(RxDma<USART2>: (1, 5, 4));
+dma!(TxDma<USART3>: (1, 3, 4), (1, 4, 7));
+dma!(RxDma<USART3>: (1, 1, 4));
+dma!(TxDma<USART6>: (2, 6, 5), (2, 7, 5));
+dma!(RxDma<USART6>: (2, 1, 5), (2, 2, 5));
+
 spis!(
     SPI1 => SPI1_INFO, Apb2, 12, Apb2;
     SPI2 => SPI2_INFO, Apb1, 14, Apb1;

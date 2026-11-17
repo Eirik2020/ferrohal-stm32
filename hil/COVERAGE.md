@@ -41,6 +41,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `timer_v1` | – |  |
 | IP `timer_v3` | – |  |
 | IP `usart_v2` | HIL | nucleo-f401re-loopback |
+| IP `usart_v3` | – |  |
 | IP `usart_v4` | HIL | nucleo-h753zi-loopback |
 | die `0x413` (glue probe) | – |  |
 | die `0x419` (glue probe) | – |  |

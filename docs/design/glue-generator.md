@@ -62,9 +62,13 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
   which DMA controllers routes may use (DMA1, DMA2, DMAMUX1; not BDMA), which IP versions
   have a driver, and the instances left out, each with its reason.
 - **[Decided 2026-11-17]** The F7's rows take the F4's macro shapes (fixed-request stream
-  DMA, bus-named RCC registers). Its usart_v3 has no driver until the UART redesign, so
-  its parts get no UART rows, and the capability table shows – (on the part, not driven)
-  where it shows n/a for a block the part lacks.
+  DMA, bus-named RCC registers), its usart_v3 rows included: the usart_v4 module serves
+  it (ADR-011). A block on the part that no driver serves shows – (on the part, not
+  driven) in the capability table, where it shows n/a for a block the part lacks.
+- **[Decided 2026-11-17]** The coverage matrix (`hil/COVERAGE.md`) gives an IP version
+  no bench carries no tier (–), even where its requirements are verified on a version
+  that shares its driver: the usart_v3 registers have no evidence of their own until
+  the F767 bench runs.
 - **[Decided 2026-11-14, owner]** The glue offers everything the silicon has for every IP
   version FerroHAL drives: each instance, pin row and DMA route metapac lists. Left out:
   an instance a driver cannot open without disturbing another (the F4's ADC2 and ADC3,

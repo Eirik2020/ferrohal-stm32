@@ -20,6 +20,18 @@ fn main() {
     } else if feature("STM32F427VI") || feature("STM32F429ZI") {
         // RM0090 2.3: SRAM1 to SRAM3, 192 KiB; the xI's 2 MiB of flash.
         "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 2048K\n RAM : ORIGIN = 0x20000000, LENGTH = 192K }\n"
+    } else if feature("STM32F722RE") {
+        // RM0431 1.7: SRAM1 and SRAM2, 192 KiB above the DTCM; the RE's
+        // 512 KiB of flash.
+        "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 512K\n RAM : ORIGIN = 0x20010000, LENGTH = 192K }\n"
+    } else if feature("STM32F745VG") {
+        // RM0385 2.3: SRAM1 and SRAM2, 256 KiB above the DTCM; the VG's
+        // 1 MiB of flash.
+        "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 1024K\n RAM : ORIGIN = 0x20010000, LENGTH = 256K }\n"
+    } else if feature("STM32F767ZI") {
+        // RM0410 2.2.2: SRAM1 and SRAM2, 384 KiB above the 128 KiB DTCM; the
+        // ZI's 2 MiB of flash.
+        "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 2048K\n RAM : ORIGIN = 0x20020000, LENGTH = 384K }\n"
     } else if feature("STM32F405RG") {
         // SRAM1 and SRAM2: the DMA cannot reach the CCM RAM.
         "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 1024K\n RAM : ORIGIN = 0x20000000, LENGTH = 128K }\n"

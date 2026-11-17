@@ -4,5 +4,5 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| h | docs/CHIPS.md | 30787 B | What FerroHAL supports on each chip, the limi |
+| h | docs/CHIPS.md | 31042 B | What FerroHAL supports on each chip, the limi |
 | h | docs/DEBT.md | 9408 B | Debt is work FerroHAL owes on what it already |

@@ -27,8 +27,7 @@ enum Family {
 }
 
 /// Whether FerroHAL drives this IP version on this series. The F7's usart_v3
-/// waits for the UART redesign (plan 2026-11-17), so its UARTs are not
-/// offered yet.
+/// is served by the usart_v4 module (ADR-011).
 pub fn drives(series: &str, kind: &str, version: &str) -> bool {
     matches!(
         (series, kind, version),
@@ -37,6 +36,7 @@ pub fn drives(series: &str, kind: &str, version: &str) -> bool {
             | ("F4", "i2c", "v1")
             | ("F4", "timer", "v1")
             | ("F4", "adc", "v2")
+            | ("F7", "usart", "v3")
             | ("F7", "spi", "v3_i2s")
             | ("F7", "i2c", "v2")
             | ("F7", "timer", "v1")
@@ -403,8 +403,8 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
 
     // UARTs.
     let usarts = cut.instances("usart");
-    // A series whose USART version has no driver yet (the F7's usart_v3)
-    // gets no UART rows: the chip module leaves the UART out.
+    // A series whose USART version has no driver gets no UART rows: the chip
+    // module leaves the UART out.
     if !usarts.is_empty() {
         writeln!(w, "\nusarts!(").ok();
         for (name, p) in &usarts {
@@ -718,7 +718,7 @@ pub struct Offer {
     pub sdmmcs: Vec<String>,
     pub dmas: Vec<String>,
     /// The kinds the part carries but FerroHAL does not drive in its IP
-    /// version (the F7's usart_v3, the F4's and F7's SDIO): `–`, not n/a.
+    /// version (the F4's and F7's SDIO): `–`, not n/a.
     pub undriven: Vec<&'static str>,
 }
 

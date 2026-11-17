@@ -175,8 +175,7 @@ pub mod signature;
 pub mod spi;
 pub mod syscfg;
 pub mod time;
-// The F7's usart_v3 waits for the UART redesign (ADR-011): no driver yet.
-#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+#[cfg(any(feature = "usart_v2", feature = "usart_v3", feature = "usart_v4"))]
 pub mod uart;
 #[cfg(feature = "usb")]
 pub mod usb;

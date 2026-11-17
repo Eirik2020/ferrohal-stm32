@@ -127,18 +127,18 @@ the markers; the merge gate regenerates them.
 | STM32F446RE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F446VE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F446ZE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
-| STM32F722RE | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F722VE | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F722ZE | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F722IE | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F745VG | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F745ZG | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F745IG | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F767VI | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F767ZI | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F767II | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F767BI | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32F767NI | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
+| STM32F722RE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F722VE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F722ZE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F722IE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F745VG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F745ZG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F745IG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F767VI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F767ZI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F767II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F767BI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F767NI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32H743VI | – | – | – | – | – | – | – | – | – | – | – |
 | STM32H743ZI | – `INH` | – | – | – | – | – | – | – | – | – | – |
 | STM32H743II | – `INH` | – | – | – | – | – | – | – | – | – | – |
@@ -172,7 +172,7 @@ one in an IP version FerroHAL does not drive yet.
 <!-- generated: glue-gen instances -->
 | capability | F401CE | F401RE | F401VE | F411CE | F411RE | F411VE | F405OG | F405RG | F405VG | F405ZG | F407VG | F407ZG | F407IG | F427VI | F427ZI | F427II | F427AI | F429VI | F429ZI | F429II | F429AI | F429BI | F429NI | F412CG | F412RG | F412VG | F412ZG | F413CH | F413MH | F413RH | F413VH | F413ZH | F446ME | F446RE | F446VE | F446ZE | F722RE | F722VE | F722ZE | F722IE | F745VG | F745ZG | F745IG | F767VI | F767ZI | F767II | F767BI | F767NI | H743VI | H743ZI | H743II | H743BI | H743AI | H743XI | H753VI | H753ZI | H753II | H753BI | H753AI | H753XI |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **UART** (`Uart`; receive-only by `new_rx`) | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | USART1-3/6 | USART1-3/6 | USART1-3/6 | USART1-3/6 | UART4/5/7, USART1/2/6 | UART4/5/7, USART1-3/6 | UART4/5/7, USART1-3/6 | UART4/5/7-10, USART1-3/6 | UART4/5/7-10, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | – | – | – | – | – | – | – | – | – | – | – | – | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
+| **UART** (`Uart`; receive-only by `new_rx`) | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | USART1-3/6 | USART1-3/6 | USART1-3/6 | USART1-3/6 | UART4/5/7, USART1/2/6 | UART4/5/7, USART1-3/6 | UART4/5/7, USART1-3/6 | UART4/5/7-10, USART1-3/6 | UART4/5/7-10, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
 | **SPI** over DMA (`Spi`) | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 |
 | **SPI** polled (`BlockingSpi`) | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 |
 | **I2C** (`I2c`) | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 |
@@ -188,13 +188,13 @@ one in an IP version FerroHAL does not drive yet.
 What each driver does, hand-written: ✓ supported · – on the chip, not supported · n/a
 not on the chip. The F407VG, F427VI, F429ZI and F446RE are as the F405RG throughout, the F411CE, F412ZG and F413ZH as
 the F401RE, and the F745VG and F767ZI as the F722RE. Another package of a line is as its line's column, with
-the instances the table above gives it. The F7's UARTs (usart_v3) wait for the UART
-redesign.
+the instances the table above gives it. The F7's UARTs are usart_v3, which the usart_v4
+module serves (ADR-011).
 
 | capability | F401RE | F405RG | F722RE | H743VI | H753ZI |
 |---|---|---|---|---|---|
-| UART full duplex over DMA, idle-ended chunks, receive-only, parity, break, line masking, `free()` | ✓ | ✓ | – | ✓ | ✓ |
-| RX/TX inversion (refused on `usart_v2`, USART-V2-001) | n/a | n/a | – | ✓ | ✓ |
+| UART full duplex over DMA, idle-ended chunks, receive-only, parity, break, line masking, `free()` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| RX/TX inversion (refused on `usart_v2`, USART-V2-001) | n/a | n/a | ✓ | ✓ | ✓ |
 | LPUART | n/a | n/a | n/a | – | – |
 | SPI6 over DMA (BDMA) | n/a | n/a | n/a | – | – |
 | I2C master, 7-bit, polled | ✓ | ✓ | ✓ | ✓ | ✓ |

@@ -41,9 +41,6 @@ packages=(
     stm32h743zi stm32h743ii stm32h743bi stm32h743ai stm32h743xi
     stm32h753vi stm32h753ii stm32h753bi stm32h753ai stm32h753xi
 )
-# Lines whose no-panic image waits for their UART driver
-# (docs/plans/2026-11-17-f411-f722-f745.md).
-no_panic_skip=(stm32f722re stm32f745vg stm32f767zi)
 status=0
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -84,12 +81,8 @@ chip_job() (
         # runs, and without that package's link.x the linker can discard
         # everything, panics included, and pass for nothing. A linker warning
         # fails the step, and the build that raised it is kept to be printed.
-        if [[ " ${no_panic_skip[*]} " == *" $chip "* ]]; then
-            echo "skip  no reachable panic ($chip): no UART driver yet (docs/plans/2026-11-17-f411-f722-f745.md)"
-        else
-            step "no reachable panic ($chip)" \
-                env CARGO_TARGET_DIR="$target/no-panic" bash -c 'cd "$1" || exit 1; out=$(cargo build --release --features "$2" 2>&1); if grep -q "warning: linker stderr" <<< "$out"; then printf "%s\n" "$out"; exit 1; fi; cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
-        fi
+        step "no reachable panic ($chip)" \
+            env CARGO_TARGET_DIR="$target/no-panic" bash -c 'cd "$1" || exit 1; out=$(cargo build --release --features "$2" 2>&1); if grep -q "warning: linker stderr" <<< "$out"; then printf "%s\n" "$out"; exit 1; fi; cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
     } > "$work/$chip.lint" 2>> "$work/$chip.err"
     step "host unit tests ($chip)" \
         env CARGO_TARGET_DIR="$target" cargo test --lib --manifest-path "$root/Cargo.toml" --features "$chip" --target "$host" \

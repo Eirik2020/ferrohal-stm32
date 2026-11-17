@@ -58,7 +58,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.9.2", "Spurious bus error detection in master mode", [0x1000], Workaround, Workaround("BERR is cleared and counted, and the transfer carries on"), []),
     erratum!("2.9.3", "10-bit master mode: new transfer cannot be launched if first part of the address is not acknowledged by the slave", [0x1000], Workaround, Avoided("7-bit addresses only: ADD10 stays clear"), []),
     ES0360_2_9_4,
-    erratum!("2.10.1", "nRTS is active while RE or UE = 0", [0x1000], Workaround, NotReached("no UART driver on the F7 yet: usart_v3 waits for the UART redesign"), []),
+    erratum!("2.10.1", "nRTS is active while RE or UE = 0", [0x1000], Workaround, Avoided("no RTS flow control: RTSE stays clear"), []),
     erratum!("2.11.1", "BSY bit may stay high at the end of a data transfer in Slave mode", [0x1000], Workaround, Avoided("master only: no slave mode"), []),
     erratum!("2.12.1", "Wrong CCRCFAIL status after a response without CRC is received", [0x1000], Workaround, NotReached("no SDMMC driver on the F7"), []),
     erratum!("2.12.2", "MMC stream write of less than 8 bytes does not work correctly", [0x1000], Workaround, NotReached("no SDMMC driver on the F7"), []),

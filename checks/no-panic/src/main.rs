@@ -1155,12 +1155,17 @@ mod chip {
 
 /// The Foxeer F405 V2's ports, from its 8 MHz crystal: HSE in the path. The
 /// F407 is the same die, and bonds every pin these name; the F427VI and
-/// F429ZI (die 0x419) carry the same IP versions and bond them too.
+/// F429ZI (die 0x419) carry the same IP versions and bond them too. The F7s
+/// bond the same pins with the same alternate functions and DMA requests, so
+/// their usart_v3, spi_v3 and i2c_v2 build through the same wiring.
 #[cfg(any(
     feature = "stm32f405rg",
     feature = "stm32f407vg",
     feature = "stm32f427vi",
-    feature = "stm32f429zi"
+    feature = "stm32f429zi",
+    feature = "stm32f722re",
+    feature = "stm32f745vg",
+    feature = "stm32f767zi"
 ))]
 mod chip {
     use ferrohal_stm32::{

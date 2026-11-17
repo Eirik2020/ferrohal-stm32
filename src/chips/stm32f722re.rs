@@ -8,9 +8,8 @@
 //! the F7 dies share (clock limits, the DMA's view of memory, the bootloader)
 //! is in `shared/f7.rs`.
 //!
-//! The chip's U(S)ARTs are usart_v3, which the UART redesign serves
-//! (ADR-011): until then this chip has no UART driver, and its glue no
-//! UART rows.
+//! The chip's U(S)ARTs are usart_v3, which the usart_v4 module serves
+//! (ADR-011).
 //!
 //! Requirements: GLUE-001, GLUE-002
 
@@ -26,17 +25,20 @@ use crate::{
     i2c::{SclPin, SdaPin},
     rcc_f7::{Bus, RCC, RccBit},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
+    uart::{Info, RxDma, RxPin, TxDma, TxPin},
+    usart_v4::Unit,
 };
 
 #[path = "shared/macros.rs"]
 #[macro_use]
 mod macros;
 
-// The F4's macro shapes: fixed-request stream DMA, bus-named RCC registers.
-// Its `usarts!` stays unused until the F7 has a UART driver.
+// The F4's macro shapes: fixed-request stream DMA, bus-named RCC registers. Its
+// `usarts!` takes each instance's kind: UART4/5/7/8 have no smartcard mode
+// (RM0431 Table 164), and 0.5 and 1.5 stop bits are smartcard settings (RM0431
+// 27.5.2), so the driver refuses them there, as on the F4.
 #[path = "shared/f4_macros.rs"]
 #[macro_use]
-#[allow(unused_macros)]
 mod family;
 
 /// Which ADC carries the temperature sensor and VREFINT channels.
@@ -217,5 +219,37 @@ mod tests {
         // block.
         assert_eq!(SRAM.0, 0x2000_0000 + 64 * 1024);
         assert_eq!(SRAM.0 + SRAM.1, 0x2004_0000);
+    }
+
+    #[test]
+    fn uart4_and_uart5_refuse_fractional_stop_bits() {
+        use crate::uart::{self, StopBits};
+        let clocks = Config::hsi().validate().unwrap();
+        let half = uart::Config::new(Hertz(115_200)).with_stop_bits(StopBits::Half);
+        let one_and_half = half.with_stop_bits(StopBits::OneAndHalf);
+        let two = half.with_stop_bits(StopBits::Two);
+        assert_eq!(
+            uart::check::<UART4>(&clocks, &half),
+            Err(uart::ConfigError::Unsupported)
+        );
+        assert_eq!(
+            uart::check::<UART5>(&clocks, &one_and_half),
+            Err(uart::ConfigError::Unsupported)
+        );
+        assert_eq!(uart::check::<UART4>(&clocks, &two), Ok(()));
+        assert_eq!(uart::check::<USART3>(&clocks, &half), Ok(()));
+    }
+
+    #[test]
+    fn usart_v3_takes_half_duplex_swap_and_inversion() {
+        let clocks = Config::hsi().validate().unwrap();
+        let frame = crate::uart::Config::new(Hertz(115_200));
+        for frame in [
+            frame.with_half_duplex(true),
+            frame.with_swap(true),
+            frame.with_inverted_rx(true).with_inverted_tx(true),
+        ] {
+            assert_eq!(crate::uart::check::<USART1>(&clocks, &frame), Ok(()));
+        }
     }
 }
