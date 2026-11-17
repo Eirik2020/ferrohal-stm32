@@ -65,6 +65,8 @@ jobs:
           workspaces: |
             . -> target
             checks/no-panic -> target
+            examples/nucleo-f401re -> target
+            examples/nucleo-h753zi -> target
 
       # The crate only: the bench and check packages under hil/ and checks/
       # are their own workspaces, and are not formatted.
