@@ -168,7 +168,8 @@ impl<const D: u8, const N: u8> Stream<D, N> {
 /// it for every stream.
 pub trait StreamInterrupt {
     const INTERRUPT: stm32_metapac::Interrupt;
-    const NAME: &'static str;
+    /// The vector's name.
+    const INTERRUPT_NAME: &'static str;
 }
 
 /// A stream token, erasable into an [`AnyStream`].

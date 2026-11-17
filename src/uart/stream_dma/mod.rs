@@ -782,8 +782,8 @@ where
             request: <Stream<RD, RN> as RxDma<U>>::REQUEST,
         },
         Resource::Interrupt(U::INTERRUPT_NAME),
-        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::NAME),
-        Resource::Interrupt(<Stream<TD, TN> as StreamInterrupt>::NAME),
+        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::INTERRUPT_NAME),
+        Resource::Interrupt(<Stream<TD, TN> as StreamInterrupt>::INTERRUPT_NAME),
     ];
 }
 
@@ -804,6 +804,6 @@ where
             request: <Stream<RD, RN> as RxDma<U>>::REQUEST,
         },
         Resource::Interrupt(U::INTERRUPT_NAME),
-        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::NAME),
+        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::INTERRUPT_NAME),
     ];
 }

@@ -344,7 +344,7 @@ macro_rules! stream_interrupts {
         $($(
             impl crate::dma::StreamInterrupt for crate::dma::Stream<$dma, $stream> {
                 const INTERRUPT: Interrupt = Interrupt::$vector;
-                const NAME: &'static str = stringify!($vector);
+                const INTERRUPT_NAME: &'static str = stringify!($vector);
             }
         )+)+
     };

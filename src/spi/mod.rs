@@ -186,7 +186,9 @@ where
             stream: RN,
             request: <crate::dma::Stream<RD, RN> as SpiRxDma<U>>::REQUEST,
         },
-        Resource::Interrupt(<crate::dma::Stream<RD, RN> as crate::dma::StreamInterrupt>::NAME),
+        Resource::Interrupt(
+            <crate::dma::Stream<RD, RN> as crate::dma::StreamInterrupt>::INTERRUPT_NAME,
+        ),
     ];
 }
 
