@@ -45,6 +45,8 @@ hil/run-f401.sh [runs]           # Nucleo-F401RE
 hil/run-h753.sh [runs]           # Nucleo-H753ZI
 hil/flash-dfu.sh <board>         # a DFU-flashed board (`FLSH` tier): Foxeer, Lucid
 hil/pico-i2c-sim.sh [flash|run]  # Pico 1 I2C slave, both benches
+python3 -I tools/rig_run.py hil/run-<bench>.sh [runs]  # the same run, timed into the rig telemetry
+python3 -I tools/rig_report.py [--since 24h] [--full]  # where the rig's time goes (hil/RIG.md)
 ```
 
 CI trap: a gitleaks CDN 504 fails Publication security spuriously; `gh run rerun <id> --failed`,

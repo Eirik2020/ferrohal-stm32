@@ -3,7 +3,7 @@
  "counts": {
   "documents": 77,
   "agent": 54,
-  "bytes": 394993
+  "bytes": 396736
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 5617
+   "bytes": 5813
   },
   {
    "path": "README.md",
@@ -518,7 +518,7 @@
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 5381
+   "bytes": 6928
   },
   {
    "path": "hil/WIRING.md",
