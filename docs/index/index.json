@@ -3,7 +3,7 @@
  "counts": {
   "documents": 74,
   "agent": 52,
-  "bytes": 372328
+  "bytes": 373201
  },
  "documents": [
   {
@@ -493,7 +493,7 @@
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 4508
+   "bytes": 5381
   },
   {
    "path": "hil/WIRING.md",
