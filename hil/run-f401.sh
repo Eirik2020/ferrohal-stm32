@@ -15,6 +15,19 @@ probe_for F401_PROBE 0x433 || exit 1
 port="${F401_VCP:-/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_${PROBE_RS_PROBE#*:*:}-if02}"
 mkdir -p "$here/logs"
 
+# Every image first, in one cargo call, which compiles them in parallel: each
+# run's own `cargo run` then only finds it built. A bin that fails to build here
+# still fails its own run below, with the compiler's message in that run's log.
+# Bins behind a feature (`required-features`) are left to their runs.
+case " ${*:-all} " in
+    " probe ") ;;
+    *) if (cd "$here/nucleo-f401re-loopback" && timeout 600 cargo build --release --bins) > "$here/logs/f401-build.log" 2>&1; then
+           echo "build: every image built ($(grep -oE 'in [0-9.]+(s|m [0-9]+s)$' "$here/logs/f401-build.log" | tail -1))"
+       else
+           echo "build: some images failed; their runs will say which (hil/logs/f401-build.log)"
+       fi ;;
+esac
+
 python3 -I "$here/vcp_echo.py" "$port" 115200 > "$here/logs/f401-echo.log" 2>&1 &
 echo_pid=$!
 trap 'kill "$echo_pid" 2>/dev/null; wait "$echo_pid" 2>/dev/null' EXIT

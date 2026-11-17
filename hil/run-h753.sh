@@ -19,6 +19,19 @@ mkdir -p "$here/logs"
 source "$here/probe.sh"
 probe_for H753_PROBE 0x450 || exit 1
 
+# Every image first, in one cargo call, which compiles them in parallel: each
+# run's own `cargo run` then only finds it built. A bin that fails to build here
+# still fails its own run below, with the compiler's message in that run's log.
+# Bins behind a feature (`required-features`) are left to their runs.
+case " ${*:-all} " in
+    " probe ") ;;
+    *) if (cd "$here/nucleo-h753zi-loopback" && timeout 600 cargo build --release --bins) > "$here/logs/h753-build.log" 2>&1; then
+           echo "build: every image built ($(grep -oE 'in [0-9.]+(s|m [0-9]+s)$' "$here/logs/h753-build.log" | tail -1))"
+       else
+           echo "build: some images failed; their runs will say which (hil/logs/h753-build.log)"
+       fi ;;
+esac
+
 status=0
 # Run M still runs when asked for (`./run-h753.sh m`), with the cable
 # moved back to CN13; it is off the defaults below while the cable

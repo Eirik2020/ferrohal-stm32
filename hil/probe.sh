@@ -3,7 +3,8 @@
 # after `--` (VID:PID:Serial), and exports it as PROBE_RS_PROBE, which
 # probe-rs reads for `--probe`.
 #
-# Order: PROBE_RS_PROBE if already set, then the board's own variable, then
+# Order: PROBE_RS_PROBE if already set, then the board's own variable (from
+# the environment, else hil/rig.env while that probe is attached), then
 # the only probe attached, then the one probe whose die has the bench's
 # DEV_ID (read over each probe without halting, as hil/rig_status.py does).
 # With several matching, or none, it fails and lists the probes.
@@ -27,12 +28,30 @@ dev_ids() {
     done
 }
 
+# The rig's own pins, hil/rig.env, for a board variable the environment leaves
+# unset: a line counts only while its probe is attached, so a swapped or
+# unplugged probe falls back to the DEV_ID scan instead of failing in probe-rs.
+rig_pin() {
+    local board_var=$1 file line value
+    file="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/rig.env"
+    [ -f "$file" ] || return 0
+    line=$(grep -E "^$board_var=" "$file" | tail -1)
+    value=${line#*=}
+    [ -n "$value" ] || return 0
+    if probe-rs list 2>/dev/null | grep -qF -- "-- $value "; then
+        printf -v "$board_var" '%s' "$value"
+    else
+        echo "probe: $board_var=$value from hil/rig.env is not attached; finding the die instead" >&2
+    fi
+}
+
 probe_for() {
     local board_var=$1 dev=${2:-}
     if [ -n "${PROBE_RS_PROBE:-}" ]; then
         export PROBE_RS_PROBE
         return 0
     fi
+    [ -n "${!board_var:-}" ] || rig_pin "$board_var"
     local chosen="${!board_var:-}"
     if [ -z "$chosen" ]; then
         local probes count

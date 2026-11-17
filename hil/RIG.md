@@ -9,14 +9,27 @@ its budget; the text is unchanged.
 `hil/probe.sh` picks the probe by its serial, as `probe-rs list` prints it after
 `--` (`VID:PID:Serial`): `PROBE_RS_PROBE` if already set, else the board's own
 variable (`F401_PROBE` for `hil/run-f401.sh`, `H753_PROBE` for `hil/run-h753.sh`,
-`DISCOVERY_PROBE` for `hil/run-discovery.sh`),
-else the only probe attached, else the one probe whose die has the bench's DEV_ID
+`DISCOVERY_PROBE` for `hil/run-discovery.sh`), from the environment or else from
+[`rig.env`](rig.env), which pins each bench's probe and counts only while that probe is
+attached; else the only probe attached, else the one probe whose die has the bench's DEV_ID
 (0x433 the F401, 0x450 the H753, 0x413 the Discovery; read without halting). With
-none or several matching it lists the probes and exits before building.
+none or several matching it lists the probes and exits before building. The scan opens
+every attached probe in turn and benches started together take turns at it; the pins
+skip it (0.1 s, measured 2026-11-17).
 `hil/pico-i2c-sim.sh` drives two boards, so it clears `PROBE_RS_PROBE` for each run. The
 choice reaches probe-rs through its `PROBE_RS_PROBE` variable, which the crate
 runners in `hil/*/.cargo/config.toml` leave unset. `hil/run-f401.sh`'s host echo
 runs over the chosen probe's own virtual COM port; `F401_VCP` overrides the path.
+
+## Images are built first
+
+`hil/run-f401.sh`, `hil/run-h753.sh` and `hil/run-discovery.sh` build every image of their
+crate in one `cargo build --release --bins` before the first run, so cargo compiles them in
+parallel; each run's own `cargo run` then finds its image built. The output goes to
+`hil/logs/<bench>-build.log`; a bin that fails there fails again in its own run, with the
+compiler's message in that run's log. Bins behind a feature (H753 run T) build in their run.
+Measured 2026-11-17 on the host, the H753's 24 images after a change to `hil/common/`:
+32.6 s one at a time, 8.8 s together.
 
 ## Firmware crates enable `rt`
 
