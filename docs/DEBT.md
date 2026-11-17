@@ -62,12 +62,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   center-aligned flag, not DMA requests; a bench lane with that step would show it. Fix
   after measuring: refuse or split the step in `CompareLane::arm`. *Spawned:* the
   ES0392 row review (2026-11-17).
-- `code` `errata` **Low: the H7 USB port sends a zero-length packet without ES0392 2.25.7's sequence.**
-  `synopsys-usb-otg` 0.4.0 sets CNAK and EPENA together for an empty IN packet; the
-  sheet asks for SNAK, a 20 AHB clock wait, EPENA, 15 more, then CNAK, or a wrong packet
-  may go out. Every revision. CDC passes on the H753 bench, which does not look for it.
-  Fix: the panic-free device core on the roadmap (`CHIPS.md`), or the crate. *Spawned:*
-  the ES0392 row review (2026-11-17).
 - `code` `bench` **Medium: above 1 Mbaud, `usart_v2` places a lone parity error late or
   loses it.** F401 run B, 8N2 into 8O1 (one bad byte, then a good frame), both
   directions, measured 2026-11-15: at 115200 and 1 Mbaud the error is seen once and

@@ -3,7 +3,11 @@
 //! `synopsys-usb-otg` the chip's facts. Behind the `usb` feature.
 //!
 //! The controller's driver is third-party, and it can panic: USB sits
-//! outside FerroHAL's no-panic proof, apart from [`UsbFs::new`].
+//! outside FerroHAL's no-panic proof, apart from [`UsbFs::new`]. It is
+//! `synopsys-usb-otg` 0.4.0 from a fork pinned by revision, which adds one
+//! erratum: ES0392 2.25.7, a zero-length IN packet enabled with CNAK set can
+//! send a wrong packet on the H7's core, so the fork sets SNAK, waits, enables
+//! the endpoint, waits, and only then clears the NAK.
 //!
 //! The firmware binds [`UsbFs::interrupt`]'s vector, or polls, and calls
 //! `UsbDevice::poll` from one context; FerroHAL enables nothing in the NVIC.
