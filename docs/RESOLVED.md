@@ -4,6 +4,11 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review S2: closed by design** (2026-11-17; owner: keep the directory rule). The
+  twelve directories holding a lone `mod.rs` are `design/naming.md`'s directory per IP
+  version, and the timer's submodules by `#[path]` follow from `timer.rs` being one
+  source compiled as two IP versions. `naming.md` now says both.
+
 - **API review D3: the engine-backed IP modules are crate-private** (2026-11-17).
   `usart_v2`/`v4`, `spi_v2`/`v4`, `i2c_v1`/`v2` and `adc_v2`/`v4` were public beside the
   neutral `uart`, `spi`, `i2c` and `adc` that board code uses, and exposed metapac

@@ -51,6 +51,11 @@ Which IP versions each series carries, as metapac measured them:
 
 - **[Decided]** A neutral module plus a directory per IP version for every new IP:
   `uart` with `usart_v2`/`usart_v4`, and so `spi`, `i2c`, `adc`.
+  A directory holding only `mod.rs` is that rule, not a leftover: it is where the IP
+  version's next file goes. The timer's `timer_pwm.rs` and `timer_awg.rs` stay children
+  of `timer.rs` by `#[path]`, because `timer.rs` is itself compiled as `timer_v1` and
+  `timer_v3` (the shared sources below). API review S2 closed on this (owner,
+  2026-11-17).
 - **[Decided]** Deliberate exceptions: one source compiled under two names
   (`iwdg.rs` as `iwdg_v1`/`iwdg_v2`, `exti.rs`, `dma_stream.rs`), and the timer split
   by function, not version (`timer.rs`, `timer_pwm.rs`, `timer_awg.rs`, as
