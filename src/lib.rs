@@ -9,17 +9,17 @@
 //! # Layout
 //!
 //! - One module per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`,
-//!   `spi_v4`, `i2c_v1`, `i2c_v2`, `dma_v1`, `dma_v2`, `exti_v1`,
-//!   `exti_h7`, `timer_v1`, `timer_v3`, `iwdg_v1`, `iwdg_v2`, `gpio_v2`,
-//!   `adc_v2`, `adc_v4`, `sdmmc_v2`, `rcc_f4`, `rcc_h7_rm0433`), each behind
-//!   its own feature. They speak
-//!   registers only.
+//!   `spi_v4`, `i2c_v1`, `i2c_v2`, `exti_v1`, `exti_h7`, `timer_v1`,
+//!   `timer_v3`, `iwdg_v1`, `iwdg_v2`, `gpio_v2`, `adc_v2`, `adc_v4`,
+//!   `sdmmc_v2`, `rcc_f4`, `rcc_h7_rm0433`), each behind its own feature.
+//!   They speak registers only. DMA is by engine instead: [`dma`] holds the
+//!   stream DMA (features `dma_v1`, `dma_v2`).
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
 //!   map) and the svd2rust-style [`chip::Peripherals`].
-//! - Neutral names: [`uart`], [`spi`], [`i2c`], `adc` and `usb`, and `exti`,
-//!   `timer`, `iwdg`, `rcc`, `gpio`, `dma`, `sdmmc` for whichever IP version
-//!   the chip carries.
+//! - Neutral names: [`uart`], [`spi`], [`i2c`], `adc`, [`rcc`], [`dma`] and
+//!   `usb`, and `exti`, `timer`, `iwdg`, `gpio`, `sdmmc` for whichever IP
+//!   version the chip carries.
 //! - [`device`] (feature `rt`): the module RTIC's `device = ...` names.
 //!
 //! # Ownership
@@ -67,9 +67,9 @@ compile_error!("enable only one chip feature");
 pub mod adc;
 pub mod errata;
 pub mod i2c;
-mod rcc_kernel;
+// The neutral RCC: what every RCC version shares, then the chip's own.
 #[macro_use]
-mod rcc_shared;
+pub mod rcc;
 pub mod reset;
 pub mod resource;
 pub mod signature;
@@ -99,23 +99,19 @@ pub mod iwdg_v2;
 
 // Timers: one source, two IP versions (see the module).
 #[cfg(feature = "timer_v1")]
-#[path = "timer.rs"]
+#[path = "timer/mod.rs"]
 pub mod timer_v1;
 #[cfg(feature = "timer_v3")]
-#[path = "timer.rs"]
+#[path = "timer/mod.rs"]
 pub mod timer_v3;
 
 #[cfg(feature = "adc_v2")]
 pub(crate) mod adc_v2;
 #[cfg(feature = "adc_v4")]
 pub(crate) mod adc_v4;
-// The stream DMA: one source, two IP versions (see the module).
-#[cfg(feature = "dma_v1")]
-#[path = "dma_stream.rs"]
-pub mod dma_v1;
-#[cfg(feature = "dma_v2")]
-#[path = "dma_stream.rs"]
-pub mod dma_v2;
+// DMA: the neutral module holds an engine per DMA kind (see the module).
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub mod dma;
 #[cfg(feature = "gpio_v2")]
 pub mod gpio_v2;
 #[cfg(feature = "i2c_v1")]
@@ -142,10 +138,6 @@ pub(crate) mod usart_v4;
 use adc_v2 as adc_ip;
 #[cfg(feature = "adc_v4")]
 use adc_v4 as adc_ip;
-#[cfg(feature = "dma_v1")]
-pub use dma_v1 as dma;
-#[cfg(feature = "dma_v2")]
-pub use dma_v2 as dma;
 #[cfg(feature = "exti_h7")]
 pub use exti_h7 as exti;
 #[cfg(feature = "exti_v1")]
@@ -160,10 +152,6 @@ use i2c_v2 as i2c_ip;
 pub use iwdg_v1 as iwdg;
 #[cfg(feature = "iwdg_v2")]
 pub use iwdg_v2 as iwdg;
-#[cfg(feature = "rcc_f4")]
-pub use rcc_f4 as rcc;
-#[cfg(feature = "rcc_h7_rm0433")]
-pub use rcc_h7_rm0433 as rcc;
 #[cfg(feature = "sdmmc_v2")]
 pub use sdmmc_v2 as sdmmc;
 #[cfg(feature = "spi_v2")]

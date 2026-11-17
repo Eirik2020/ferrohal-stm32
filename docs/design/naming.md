@@ -52,18 +52,23 @@ Which IP versions each series carries, as metapac measured them:
 - **[Decided]** A neutral module plus a directory per IP version for every new IP:
   `uart` with `usart_v2`/`usart_v4`, and so `spi`, `i2c`, `adc`.
   A directory holding only `mod.rs` is that rule, not a leftover: it is where the IP
-  version's next file goes. The timer's `timer_pwm.rs` and `timer_awg.rs` stay children
-  of `timer.rs` by `#[path]`, because `timer.rs` is itself compiled as `timer_v1` and
-  `timer_v3` (the shared sources below). API review S2 closed on this (owner,
-  2026-11-17).
-- **[Decided]** Deliberate exceptions: one source compiled under two names
-  (`iwdg.rs` as `iwdg_v1`/`iwdg_v2`, `exti.rs`, `dma_stream.rs`), and the timer split
-  by function, not version (`timer.rs`, `timer_pwm.rs`, `timer_awg.rs`, as
+  version's next file goes.
+- **[Decided]** A directory means "has children"; a file without children is a file
+  (ADR-012, reopening API review S2). A module is never pulled in beside its parent by
+  `#[path]`: the timer is `src/timer/{mod,pwm,awg}.rs`, and `#[path = "timer/mod.rs"]`
+  mounts the directory under each version name with its children.
+- **[Decided]** Deliberate exceptions: one source compiled under two version names
+  (`iwdg.rs` as `iwdg_v1`/`iwdg_v2`, `exti.rs` as `exti_v1`/`exti_h7`, `timer/` as
   `timer_v1`/`timer_v3`). Each is two IP versions, so each needs a chip per version.
-  This list is complete: these four are every `#[path]` alias in `src/lib.rs` and
-  `src/timer.rs` (the chip files' `#[path]`s pull in glue, not drivers). ADR-003 rule 4
-  named only the first and the timer; the 2026-11-13 debt sweep counted five. Both
-  counts are superseded by this one (API review K4, 2026-11-17).
+  This list is complete: these three are every `#[path]` alias in `src/lib.rs` (the chip
+  files' `#[path]`s pull in glue, not drivers). Earlier counts (ADR-003 rule 4, the
+  2026-11-13 debt sweep, API review K4) are superseded by this one.
+- **[Decided]** Neutral modules that own shared code take a directory like the
+  drivers': `rcc/` holds what every RCC version shares (`kernel.rs`, `shared.rs`) and
+  re-exports the chip's version (`rcc_f4`, `rcc_h7_rm0433`). `dma/` is organised by
+  engine, not by IP version, because one die can carry several DMA IPs at once (the H7:
+  stream DMA, BDMA, MDMA): `dma/stream.rs` serves `dma_v1` and `dma_v2`, the features
+  name the version, and a channel engine (BDMA) joins as a sibling (ADR-012).
 - **[Decided]** Not an exception: a neutral module's engine serving every IP version
   through that version's register wrapper (`Unit`, the UART's too since N7)
   (`uart/stream_dma/`, `spi/stream_dma.rs`,

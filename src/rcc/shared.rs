@@ -1,4 +1,4 @@
-//! What both RCC modules (`rcc_f4`, `rcc_h7_rm0433`) share word for word:
+//! What every RCC version (`rcc_f4`, `rcc_h7_rm0433`) shares word for word:
 //! the oscillator and prescaler choices, a peripheral's enable and reset
 //! bit, and the enable and reset writes over a family's bus registers
 //! ([`bus_registers!`]). Each RCC module re-exports the types as

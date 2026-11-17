@@ -1,6 +1,6 @@
-//! The stream DMA, exposed as it is: `dma_v2` (F2, F4, F7) and `dma_v1`
-//! (H7). The two differ only in how a stream picks its request, so they
-//! share this source:
+//! The stream DMA engine, for both of its IP versions: `dma_v2` (F2, F4,
+//! F7) and `dma_v1` (H7). The two differ only in how a stream picks its
+//! request, so they share this source:
 //!
 //! - `dma_v2`: a channel number (CHSEL, 0 to 7) on the stream, from the
 //!   chip's fixed request table.
