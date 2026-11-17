@@ -23,9 +23,9 @@ pub(crate) const INVERSION: bool = false;
 
 /// One USART's register block, as the driver uses it.
 #[derive(Clone, Copy)]
-pub struct LineRegs(Regs);
+pub struct Unit(Regs);
 
-impl LineRegs {
+impl Unit {
     pub(crate) const fn new(regs: Regs) -> Self {
         Self(regs)
     }
@@ -125,8 +125,8 @@ impl LineRegs {
         self.0.sr().read().tc()
     }
 
-    /// SBK in CR1. After `Uart::split`, the transmit half is the only
-    /// writer of CR1.
+    /// SBK in CR1, written by the `Uart` that owns the line, its only
+    /// writer.
     pub(crate) fn request_break(self) {
         self.0.cr1().modify(|w| w.set_sbk(true));
     }

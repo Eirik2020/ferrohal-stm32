@@ -30,7 +30,7 @@ use crate::{
     sdmmc::{CkPin, CmdPin, D0Pin, D1Pin, D2Pin, D3Pin},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     uart::{Info, RxDma, RxPin, TxDma, TxPin},
-    usart_v4::LineRegs,
+    usart_v4::Unit,
 };
 
 #[path = "shared/macros.rs"]

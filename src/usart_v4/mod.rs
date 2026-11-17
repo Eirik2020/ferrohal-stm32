@@ -27,9 +27,9 @@ pub(crate) const INVERSION: bool = true;
 
 /// One USART's register block, as the driver uses it.
 #[derive(Clone, Copy)]
-pub struct LineRegs(Regs);
+pub struct Unit(Regs);
 
-impl LineRegs {
+impl Unit {
     pub(crate) const fn new(regs: Regs) -> Self {
         Self(regs)
     }

@@ -27,7 +27,7 @@ use ferrohal_stm32::{
     i2c::{self, I2c},
     spi::{self, Spi},
     time::Hertz,
-    uart::{self, Buffers, Parity, StopBits, Uart, UartRx},
+    uart::{self, Buffers, Parity, StopBits, Uart},
 };
 
 static mut TX: [u8; 64] = [0; 64];
@@ -73,7 +73,7 @@ fn main() -> ! {
     };
     let config = black_box(uart::Config::new(Hertz(115_200)));
     // A refusal hands back what `new` took: retry once with it, 8N1.
-    let (mut uart, mut irq) = match Uart::new(&mut rcc, wiring, &config, buffers) {
+    let mut uart = match Uart::new(&mut rcc, wiring, &config, buffers) {
         Ok(opened) => opened,
         Err(refused) => {
             keep(refused.error());
@@ -104,12 +104,12 @@ fn main() -> ! {
     ));
     // SAFETY: as TX and RX above.
     let ring = black_box(unsafe { &mut *addr_of_mut!(RX2) });
-    let (rx_line, mut rx_only, mut rx_irq) = match UartRx::new(&mut rcc, rx_wiring, &sbus, ring) {
+    let mut rx_only = match Uart::new_rx(&mut rcc, rx_wiring, &sbus, ring) {
         Ok(opened) => opened,
         Err(refused) => {
             keep(refused.error());
             let (rx_wiring, ring) = refused.into_parts();
-            let Ok(opened) = UartRx::new(
+            let Ok(opened) = Uart::new_rx(
                 &mut rcc,
                 rx_wiring,
                 &uart::Config::new(Hertz(100_000)),
@@ -123,16 +123,25 @@ fn main() -> ! {
     let mut chunk = [0u8; 32];
     keep(rx_only.read_chunk(black_box(&mut chunk)));
     keep(rx_only.try_read(black_box(&mut chunk)));
-    rx_irq.on_interrupt();
+    keep(rx_only.on_interrupt());
+    keep(ferrohal_stm32::Service::on_interrupt(&mut rx_only));
+    keep(rx_only.set_config(&sbus));
+    rx_only.mask();
+    rx_only.unmask();
+    keep(rx_only.health());
+    keep(rx_only.generation());
     // The buffer check on its own, MPU walk included on the H7.
     keep(ferrohal_stm32::chip::check_dma_buffer(black_box(
         &[0u8; 8][..],
     )));
     // The interrupt requirements, checked against the NVIC, and the
     // resource lists.
-    let vectors = irq.interrupts();
+    let vectors = uart.vectors();
     keep(vectors.verify());
-    keep(rx_irq.interrupts().verify());
+    if let Some(vector) = black_box(vectors).iter().next() {
+        keep(vectors.contains(vector));
+    }
+    keep(rx_only.vectors().verify());
     vectors.iter().for_each(keep);
     black_box(&chip::UartWiring::RESOURCES)
         .iter()
@@ -141,10 +150,8 @@ fn main() -> ! {
         .iter()
         .for_each(keep);
     black_box(&chip::SpiWiring::RESOURCES).iter().for_each(keep);
-    irq.on_interrupt();
-    irq.on_uart();
-    irq.on_rx_dma();
-    irq.on_tx_dma();
+    keep(uart.on_interrupt().any());
+    keep(ferrohal_stm32::Service::on_interrupt(&mut uart));
 
     // SPI: the frame check, then every operation.
     let spi_config = black_box(
@@ -232,9 +239,8 @@ fn main() -> ! {
     keep(handle.remaining());
 
     // The teardowns: each stops what it ran and hands the token back.
-    let (line, tx, rx) = uart.split();
-    keep(Uart::join(line, tx, rx).free());
-    keep(rx_only.free(rx_line));
+    keep(uart.free());
+    keep(rx_only.free());
     keep(i2c.free());
     park()
 }
@@ -281,27 +287,29 @@ fn exercise_pure() {
     ));
 }
 
-fn exercise_uart<U: ferrohal_stm32::uart::UartParts>(uart: &mut Uart<U>) {
+fn exercise_uart(uart: &mut Uart<chip::UartWiring>) {
     use embedded_io::{Read, ReadReady, Write, WriteReady};
 
     let mut buf = [0u8; 32];
     let data = black_box(&[0x55u8; 40][..]);
-    keep(uart.tx().write(data));
+    keep(uart.write(data));
     // The transmit queue.
-    keep(uart.tx().try_send(data));
-    uart.tx().poll();
-    keep(uart.tx().queued());
-    keep(uart.tx().health());
-    keep(uart.tx().flush());
-    keep(uart.tx().is_idle());
+    keep(uart.try_send(data));
+    keep(uart.queued());
+    keep(uart.tx_health());
+    keep(uart.flush());
+    keep(uart.is_idle());
     keep(uart.send_break());
-    keep(uart.rx().try_read(black_box(&mut buf)));
-    keep(uart.rx().read_within(black_box(&mut buf), black_box(10)));
-    keep(uart.rx().available());
+    keep(uart.try_read(black_box(&mut buf)));
+    keep(uart.read_within(black_box(&mut buf), black_box(10)));
+    keep(uart.available());
     keep(Read::read(uart, black_box(&mut buf)));
+    keep(Read::read_exact(uart, black_box(&mut buf)));
     keep(Write::write(uart, data));
+    keep(Write::write_all(uart, data));
     keep(Write::flush(uart));
-    keep(uart.read_ready());
+    keep(ReadReady::read_ready(uart));
+    keep(WriteReady::write_ready(uart));
     keep(uart.write_ready());
     let config = black_box(
         uart::Config::new(Hertz(9_600))
@@ -312,19 +320,15 @@ fn exercise_uart<U: ferrohal_stm32::uart::UartParts>(uart: &mut Uart<U>) {
     );
     keep(uart.set_config(&config));
     // The line's event enables, off and on again.
-    uart.line().mask();
-    uart.line().unmask();
-    let (_line, tx, rx) = uart.halves();
-    keep(tx.write(data));
-    keep(rx.try_read(&mut buf));
+    uart.mask();
+    uart.unmask();
     // The chunk reader, the fault counts and the caller clock.
-    keep(rx.read_chunk(black_box(&mut buf)));
-    keep(rx.generation());
-    keep(rx.health());
-    rx.set_clock(Some(&CLOCK));
-    keep(rx.read_within(black_box(&mut buf), black_box(10)));
-    tx.set_clock(Some(&CLOCK));
-    keep(tx.flush());
+    keep(uart.read_chunk(black_box(&mut buf)));
+    keep(uart.generation());
+    keep(uart.health());
+    uart.set_clock(Some(&CLOCK));
+    keep(uart.read_within(black_box(&mut buf), black_box(10)));
+    keep(uart.flush());
     uart.set_clock(None);
 }
 

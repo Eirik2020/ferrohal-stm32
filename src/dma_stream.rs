@@ -453,26 +453,6 @@ impl AnyStream {
         st.fcr().modify(|w| w.set_feie(interrupts.fifo_error));
     }
 
-    /// A second handle on this stream, for a driver whose task and
-    /// interrupt both start transfers.
-    ///
-    /// # Safety
-    ///
-    /// The two handles must never use the stream at the same time; the
-    /// driver's own protocol has to guarantee it.
-    pub(crate) unsafe fn alias(&self) -> AnyStream {
-        AnyStream {
-            regs: self.regs,
-            index: self.index,
-            #[cfg(feature = "fault-injection")]
-            controller: self.controller,
-            #[cfg(feature = "dma_v1")]
-            mux: self.mux,
-            #[cfg(feature = "dma_v1")]
-            mux_channel: self.mux_channel,
-        }
-    }
-
     /// Tells the stream to stop. It finishes the word in flight first;
     /// [`is_running`](Self::is_running) turns false once it has.
     pub fn request_stop(&mut self) {
