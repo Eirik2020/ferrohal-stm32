@@ -5,5 +5,5 @@
 | class | path | size | purpose |
 |---|---|---|---|
 | a | AGENTS.md | 5617 B | STM32 HAL on stm32-metapac. Chips: stm32f401r |
-| h | README.md | 5543 B | A scheduler-agnostic STM32 HAL on stm32-metap |
+| h | README.md | 5682 B | A scheduler-agnostic STM32 HAL on stm32-metap |
 | h | THIRD-PARTY.md | 3055 B | FerroHAL is licensed under MIT OR Apache-2.0  |
