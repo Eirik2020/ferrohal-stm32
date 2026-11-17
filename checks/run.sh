@@ -57,6 +57,10 @@ step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
 step "names (ADR-003)" python3 -I "$root/tools/check_names.py"
 step "no-metapac probes" bash "$root/checks/no-metapac/run.sh"
 step "evidence recorder tests" python3 -I "$root/tools/test_record_evidence.py"
+# The requirements against the code (a renamed test a requirement names fails here):
+# reqtool from $REQTOOL, or the sibling checkout CI pins (tools/record_evidence.py too).
+reqtool="${REQTOOL:-$root/../reqtool/target/release/reqtool}"
+step "requirements valid (reqtool validate)" bash -c 'cd "$1" && "$2" validate' _ "$root" "$reqtool"
 step "docs index up to date" python3 -I "$root/tools/docs_index.py" --check
 step "doc size limits" python3 -I "$root/tools/check_docs.py"
 host=$(rustc -vV | sed -n 's/^host: //p')
