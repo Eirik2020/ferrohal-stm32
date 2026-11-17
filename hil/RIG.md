@@ -21,6 +21,16 @@ choice reaches probe-rs through its `PROBE_RS_PROBE` variable, which the crate
 runners in `hil/*/.cargo/config.toml` leave unset. `hil/run-f401.sh`'s host echo
 runs over the chosen probe's own virtual COM port; `F401_VCP` overrides the path.
 
+## Images are built first
+
+`hil/run-f401.sh`, `hil/run-h753.sh` and `hil/run-discovery.sh` build every image of their
+crate in one `cargo build --release --bins` before the first run, so cargo compiles them in
+parallel; each run's own `cargo run` then finds its image built. The output goes to
+`hil/logs/<bench>-build.log`; a bin that fails there fails again in its own run, with the
+compiler's message in that run's log. Bins behind a feature (H753 run T) build in their run.
+Measured 2026-11-17 on the host, the H753's 24 images after a change to `hil/common/`:
+32.6 s one at a time, 8.8 s together.
+
 ## Firmware crates enable `rt`
 
 `python3 -I tools/check_firmware_features.py`, a `checks/run.sh` step. Every crate

@@ -16,6 +16,19 @@ source "$here/probe.sh"
 probe_for DISCOVERY_PROBE 0x413 || exit 1
 mkdir -p "$here/logs"
 
+# Every image first, in one cargo call, which compiles them in parallel: each
+# run's own `cargo run` then only finds it built. A bin that fails to build here
+# still fails its own run below, with the compiler's message in that run's log.
+# Bins behind a feature (`required-features`) are left to their runs.
+case " ${*:-all} " in
+    " probe ") ;;
+    *) if (cd "$here/stm32f4-discovery" && timeout 600 cargo build --release --bins) > "$here/logs/discovery-build.log" 2>&1; then
+           echo "build: every image built ($(grep -oE 'in [0-9.]+(s|m [0-9]+s)$' "$here/logs/discovery-build.log" | tail -1))"
+       else
+           echo "build: some images failed; their runs will say which (hil/logs/discovery-build.log)"
+       fi ;;
+esac
+
 # The serial the ROM's DFU device reports: the UID's words 0 and 2 summed, then
 # word 1's upper half, in hex (measured on the Foxeer's ROM, 2026-11-14).
 rom_serial() {
