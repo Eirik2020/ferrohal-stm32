@@ -95,3 +95,20 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
+
+  - id: ADC-006
+    title: A channel is named without an open converter
+    statement: >-
+      Firmware shall name an analog pin's channel, and an ADC's internal
+      channels, without opening the converter.
+    rationale: >-
+      A board states which channels a sequence converts before init opens
+      the ADC, so the sequence can be configuration rather than code that
+      runs after the converter is up.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::tests::channels_are_named_without_a_converter

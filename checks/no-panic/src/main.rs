@@ -1580,6 +1580,7 @@ pub fn exercise_adc<A, P, S>(
     };
     let channel = adc.channel(&pin);
     keep(channel.number());
+    keep(ferrohal_stm32::adc::Channel::of(&pin).number());
     keep(adc.read(channel));
     keep(adc.max_sample());
     keep(adc.to_millivolts(black_box(1), black_box(3300)));
@@ -1636,6 +1637,8 @@ pub fn exercise_adc_internal<A: ferrohal_stm32::adc::InternalChannels>(
     keep(adc.temperature_decidegrees());
     keep(adc.vrefint_channel().number());
     keep(adc.temperature_channel().number());
+    keep(ferrohal_stm32::adc::Channel::<A>::vrefint().number());
+    keep(ferrohal_stm32::adc::Channel::<A>::temperature().number());
 }
 
 static mut ADC_BUFFER: [u16; 4] = [0; 4];

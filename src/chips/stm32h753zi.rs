@@ -106,6 +106,8 @@ pub(crate) fn revision() -> u16 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adc;
+    use crate::gpio_v2::Analog;
     use crate::uart::{Resource, Signal, Wiring};
 
     /// The TBS Lucid H7's receiver port, as the bench wires it.
@@ -154,5 +156,17 @@ mod tests {
                 Resource::Interrupt("DMA1_STREAM6"),
             ]
         );
+    }
+
+    #[test]
+    fn channels_are_named_without_a_converter() {
+        use crate::adc::Channel;
+        // The pin's channel as the routing trait states it, and the internal
+        // pair as the chip's ADC carries them.
+        let of: fn(&Pin<'F', 6, Analog>) -> Channel<ADC3> = Channel::of;
+        let _ = of;
+        assert_eq!(<Pin<'F', 6, Analog> as adc::AdcPin<ADC3>>::CHANNEL, 8);
+        assert_eq!(Channel::<ADC3>::temperature().number(), 18);
+        assert_eq!(Channel::<ADC3>::vrefint().number(), 19);
     }
 }
