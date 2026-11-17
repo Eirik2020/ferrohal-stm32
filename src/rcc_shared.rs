@@ -153,7 +153,7 @@ macro_rules! bus_registers {
         impl Rcc {
             /// Turns a peripheral's clock on, then reads the register back so
             /// the write has landed before the peripheral is touched (the
-            /// delay RM0368 asks for: ES0299 2.2.7, ES0182 2.2.13).
+            /// delay RM0368 asks for: ES0299 2.2.7, ES0287 2.2.7, ES0182 2.2.13).
             pub(crate) fn enable(&mut self, bit: RccBit) {
                 let mask = 1 << bit.bit;
                 match bit.bus {

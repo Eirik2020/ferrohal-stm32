@@ -2,7 +2,7 @@
 
 Source: ADR-010, [`../decisions/2026-11-15-errata-as-data.md`](../decisions/2026-11-15-errata-as-data.md).
 The tables (generated): [ES0182](../errata/ES0182.md) (die 0x413),
-[ES0299](../errata/ES0299.md) (die 0x433), [ES0392](../errata/ES0392.md) (die 0x450). The ES0392
+[ES0287](../errata/ES0287.md) (die 0x431), [ES0299](../errata/ES0299.md) (die 0x433), [ES0392](../errata/ES0392.md) (die 0x450). The ES0392
 review notes: [h7-errata.md](h7-errata.md).
 
 ## The data
@@ -11,11 +11,11 @@ review notes: [h7-errata.md](h7-errata.md).
   codes in time order with their markings) and `Erratum` (sheet, section, title,
   affected `REV_ID`s, the sheet's workaround status, FerroHAL's `Handling`,
   requirements). Each die's entries are one table beside its hand facts:
-  `chips/shared/errata_es0182.rs` (die 0x413), `errata_es0299.rs` (die 0x433),
+  `chips/shared/errata_es0182.rs` (die 0x413), `errata_es0287.rs` (die 0x431), `errata_es0299.rs` (die 0x433),
   `errata_es0392.rs` (die 0x450), exported as `chip::ERRATA` and `chip::ERRATA_SHEET`.
 - **[Decided]** Transcribed once from each sheet's "Summary of device limitations" with
   every row; titles from the section headings. ES0182 Rev 19 (91 rows, revisions A, Z, 1,
-  2, Y, 4/5/6), ES0299 Rev 6 (66 rows, A, 1/Z), ES0392 Rev 15 (155 rows, Y/W, X, V).
+  2, Y, 4/5/6), ES0287 Rev 6 (65 rows, A/1/2), ES0299 Rev 6 (66 rows, A, 1/Z), ES0392 Rev 15 (155 rows, Y/W, X, V).
 - **[Decided]** `Handling`: `Workaround` (FerroHAL applies one), `Avoided` (its code never
   meets the condition), `Firmware` (a rule the firmware follows; the text says which),
   `Board` (a package or board fact, no firmware action), `NotReached` (no FerroHAL path

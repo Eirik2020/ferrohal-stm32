@@ -356,11 +356,11 @@ pub const fn check<U: Instance>(clocks: &Clocks, config: &Config) -> Result<(), 
 ///   not yet taken the byte in DR, that read consumes it. `usart_v4` clears
 ///   through ICR and has no such loss.
 /// - **Parity detection is reliable only while the receiving USART is not
-///   transmitting** (ES0299 2.10.2, ES0182 2.11.2). An SR read followed by
+///   transmitting** (ES0299 2.10.2, ES0287 2.10.2, ES0182 2.11.2). An SR read followed by
 ///   a DR write also clears PE, and the transmit DMA writes DR, so a
 ///   parity error can go unreported in full duplex.
 /// - **IDLE can be missed when the sender's clock runs faster than the
-///   receiver's** (ES0299 2.10.1, ES0182 2.11.1). A read that ends at idle,
+///   receiver's** (ES0299 2.10.1, ES0287 2.10.1, ES0182 2.11.1). A read that ends at idle,
 ///   such as [`UartRx::read_chunk`], needs a timeout fallback on v2, such
 ///   as a timer, not IDLE alone.
 pub struct Uart<W: UartParts> {

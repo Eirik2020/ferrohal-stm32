@@ -79,7 +79,7 @@ pub enum Error {
     Rate,
     /// A duty within [`Pwm::top_margin`] of the period's end followed by 0,
     /// or ending the waveform (a lane ends on 0). ES0392 2.16.2,
-    /// ES0299 2.6.3 and ES0182 2.7.3 name the compare match at CNT = CCR = 0 after
+    /// ES0299 2.6.3, ES0287 2.6.3 and ES0182 2.7.3 name the compare match at CNT = CCR = 0 after
     /// one at CNT = CCR = ARR; on the H753 the duty after such a step started
     /// a period late for any duty up to 8 counts below the top, and kept
     /// time from 12 counts below (DShot600, 200 MHz counter, 2026-11-17).
@@ -959,7 +959,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
 /// one 16-bit sample of the whole port's input register per update.
 ///
 /// On F4 the stream must be DMA2's (`GpioDma`), whose peripheral port
-/// reaches GPIO. ES0299 2.2.11 and ES0182 2.2.19: DMA2 can corrupt data when
+/// reaches GPIO. ES0299 2.2.11, ES0287 2.2.11 and ES0182 2.2.19: DMA2 can corrupt data when
 /// it serves an AHB peripheral (this sampler) and an APB2 peripheral at the
 /// same time; keep APB2 traffic off DMA2 while sampling.
 ///

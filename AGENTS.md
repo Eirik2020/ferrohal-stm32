@@ -1,6 +1,6 @@
 # FerroHAL - agent entry
 
-STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f405rg, stm32f407vg, stm32h743vi, stm32h753zi.
+STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f411ce, stm32f405rg, stm32f407vg, stm32h743vi, stm32h753zi.
 Public repo. Bench-verified.
 
 ## Authority

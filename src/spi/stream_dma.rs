@@ -187,7 +187,7 @@ where
     /// stream tokens) and the buffers. What a `Drop` would do, made
     /// explicit so the parts can move out. A transfer still running is
     /// abandoned mid-frame: the streams stop and SPE drops, with ES0299
-    /// 2.11.1 / ES0182 2.12.1's BSY caveat on the dead peripheral, and the
+    /// 2.11.1 / ES0287 2.11.1 / ES0182 2.12.1's BSY caveat on the dead peripheral, and the
     /// vector finds an idle, disabled SPI that raises nothing. A reopen runs
     /// `Spi::new` again on the same parts.
     ///

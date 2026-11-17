@@ -44,6 +44,7 @@ extern crate std;
 
 #[cfg(not(any(
     feature = "stm32f401re",
+    feature = "stm32f411ce",
     feature = "stm32f405rg",
     feature = "stm32f407vg",
     feature = "stm32h743vi",
@@ -51,15 +52,20 @@ extern crate std;
 )))]
 compile_error!("enable one chip feature, such as `stm32f401re` or `stm32h753zi`");
 #[cfg(any(
+    all(feature = "stm32f401re", feature = "stm32f411ce"),
     all(feature = "stm32f401re", feature = "stm32f405rg"),
     all(feature = "stm32f401re", feature = "stm32f407vg"),
-    all(feature = "stm32f405rg", feature = "stm32f407vg"),
-    all(feature = "stm32f407vg", feature = "stm32h743vi"),
-    all(feature = "stm32f407vg", feature = "stm32h753zi"),
     all(feature = "stm32f401re", feature = "stm32h743vi"),
     all(feature = "stm32f401re", feature = "stm32h753zi"),
+    all(feature = "stm32f411ce", feature = "stm32f405rg"),
+    all(feature = "stm32f411ce", feature = "stm32f407vg"),
+    all(feature = "stm32f411ce", feature = "stm32h743vi"),
+    all(feature = "stm32f411ce", feature = "stm32h753zi"),
+    all(feature = "stm32f405rg", feature = "stm32f407vg"),
     all(feature = "stm32f405rg", feature = "stm32h743vi"),
     all(feature = "stm32f405rg", feature = "stm32h753zi"),
+    all(feature = "stm32f407vg", feature = "stm32h743vi"),
+    all(feature = "stm32f407vg", feature = "stm32h753zi"),
     all(feature = "stm32h743vi", feature = "stm32h753zi"),
 ))]
 compile_error!("enable only one chip feature");
@@ -180,6 +186,9 @@ use usart_v4 as usart_ip;
 
 #[cfg(feature = "stm32f401re")]
 #[path = "chips/stm32f401re.rs"]
+pub mod chip;
+#[cfg(feature = "stm32f411ce")]
+#[path = "chips/stm32f411ce.rs"]
 pub mod chip;
 #[cfg(feature = "stm32f405rg")]
 #[path = "chips/stm32f405rg.rs"]

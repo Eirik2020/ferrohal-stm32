@@ -98,6 +98,21 @@ stm32f401re = [
     "rcc_f4",
     "adc_v2",
 ]
+stm32f411ce = [
+    "stm32-metapac/stm32f411ce",
+    "_family-stm32f4",
+    "usart_v2",
+    "spi_v2",
+    "i2c_v1",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v1",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f4",
+    "adc_v2",
+]
 stm32f405rg = [
     "stm32-metapac/stm32f405rg",
     "_family-stm32f4",

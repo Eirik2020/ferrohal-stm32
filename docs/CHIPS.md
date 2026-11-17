@@ -14,7 +14,7 @@ part's clock limits (ADR-008 item 7); do not edit between the markers.
 | part | series, core | die | device | package (bonded pins) | clock as offered |
 |---|---|---|---|---|---|
 | STM32F401RE | F4, Cortex-M4F | 0x433 | STM32F401 | LQFP64 (50) | 84 MHz |
-| STM32F411CE | F4, Cortex-M4F | 0x431 | STM32F411 | UFQFPN48 (36) | ? |
+| STM32F411CE | F4, Cortex-M4F | 0x431 | STM32F411 | UFQFPN48 (36) | 100 MHz |
 | STM32F405RG | F4, Cortex-M4F | 0x413 | STM32F405 | LQFP64 (51) | 168 MHz |
 | STM32F407VG | F4, Cortex-M4F | 0x413 | STM32F407 | LQFP100 (82) | 168 MHz |
 | STM32H743VI | H7, Cortex-M7 | 0x450 | STM32H743 | LQFP100 (82) | 400 MHz (VOS1) |
@@ -71,7 +71,7 @@ policy as the glue (`tools/glue-gen/src/emit.rs`); n/a: the part has none.
 <!-- end generated -->
 
 What each driver does, hand-written: ✓ supported · – on the chip, not supported · n/a
-not on the chip. The F407VG is as the F405RG throughout.
+not on the chip. The F407VG is as the F405RG throughout, and the F411CE as the F401RE.
 
 | capability | F401RE | F405RG | H743VI | H753ZI |
 |---|---|---|---|---|
@@ -106,9 +106,9 @@ names where the code documents it.
 - `usart_v2`: clearing a line error reads SR then DR, so one byte may be lost per
   reported error (`Uart`; v4 clears through ICR).
 - `usart_v2`: parity detection is reliable only while the receiving USART is not
-  transmitting (ES0299 2.10.2, ES0182 2.11.2; `Uart`).
+  transmitting (ES0299 2.10.2, ES0287 2.10.2, ES0182 2.11.2; `Uart`).
 - `usart_v2`: IDLE is missed when the sender's clock runs faster than the receiver's,
-  so an idle-ended `read_chunk` needs a timeout fallback (ES0299 2.10.1, ES0182 2.11.1;
+  so an idle-ended `read_chunk` needs a timeout fallback (ES0299 2.10.1, ES0287 2.10.1, ES0182 2.11.1;
   `Uart`).
 - Frames: 8 data bits, parity as a ninth.
 - A transmit DMA error is reported after the frame was queued: in `TxHealth`, and from
@@ -142,8 +142,8 @@ names where the code documents it.
 - Arming and staging two lanes takes 14 µs on the F401 at 84 MHz.
 - Samplers are measured up to about 7 MHz.
 - Only the trigger routes in use are offered: TIM1→TIM3, TIM1→TIM8, and TIM3→TIM2 on
-  the F4 (RM0090 table 94, RM0368 table 54, RM0433 table 336).
-- F4: DMA2 serving GPIO and APB2 at once can corrupt data (ES0299 2.2.11, ES0182
+  the F4 (RM0090 table 94, RM0368 table 54, RM0383 table 53, RM0433 table 336).
+- F4: DMA2 serving GPIO and APB2 at once can corrupt data (ES0299 2.2.11, ES0287 2.2.11, ES0182
   2.2.19), and only DMA2 reaches GPIO, so samplers and two-way lanes must not overlap
   APB2 DMA (TIM1, TIM8, SPI1, USART1/6).
 
