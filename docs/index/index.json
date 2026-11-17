@@ -3,7 +3,7 @@
  "counts": {
   "documents": 75,
   "agent": 52,
-  "bytes": 379824
+  "bytes": 383444
  },
  "documents": [
   {
@@ -444,7 +444,7 @@
    "class": "human",
    "title": "Plan: the STM32F411, F722, F745 and G474",
    "purpose": "Opened 2026-11-17. The owner's fifth and last",
-   "bytes": 7193
+   "bytes": 10813
   },
   {
    "path": "docs/policies/agent-docs.md",
