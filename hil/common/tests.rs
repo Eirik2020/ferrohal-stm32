@@ -170,8 +170,8 @@ where
 }
 
 /// A UART shared with its interrupt handlers under the scheduler's lock, as
-/// firmware holds one (ADR-011): every call locks for that call alone, so the
-/// handlers run between calls. A wait (`read_within`, a write waiting for
+/// firmware holds one (`docs/design/uart-ownership.md`): every call locks for
+/// that call alone, so the handlers run between calls. A wait (`read_within`, a write waiting for
 /// room, a flush) is a loop of short locked calls, never one long lock, so a
 /// check never holds the handlers off for longer than one operation.
 pub struct Locked<M>(pub M);
