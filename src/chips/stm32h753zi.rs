@@ -59,7 +59,8 @@ pub use generated::*;
 mod h7;
 
 pub(crate) use h7::{
-    CLOCK_LIMITS, SYSTEM_MEMORY, TS_CAL1, TS_CAL2, UID_BASE, VREFIN_CAL, map_system_memory,
+    CLOCK_LIMITS, I2C_RELOAD_ERRATUM, SYSTEM_MEMORY, TS_CAL1, TS_CAL2, UID_BASE, VREFIN_CAL,
+    map_system_memory,
 };
 pub use h7::{ERRATA, ERRATA_SHEET, ES0392_2_2_10, ES0392_2_19_5, ES0392_2_22_6, check_dma_buffer};
 
