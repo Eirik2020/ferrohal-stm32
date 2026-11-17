@@ -32,11 +32,25 @@ pub struct Die {
 
 pub const PARTS: &[Part] = &[
     Part {
+        feature: "stm32f401ce",
+        series: "F4",
+        die: 0x433,
+        device: "STM32F401",
+        package: "UFQFPN48",
+    },
+    Part {
         feature: "stm32f401re",
         series: "F4",
         die: 0x433,
         device: "STM32F401",
         package: "LQFP64",
+    },
+    Part {
+        feature: "stm32f401ve",
+        series: "F4",
+        die: 0x433,
+        device: "STM32F401",
+        package: "LQFP100",
     },
     Part {
         feature: "stm32f411ce",
@@ -46,11 +60,46 @@ pub const PARTS: &[Part] = &[
         package: "UFQFPN48",
     },
     Part {
+        feature: "stm32f411re",
+        series: "F4",
+        die: 0x431,
+        device: "STM32F411",
+        package: "LQFP64",
+    },
+    Part {
+        feature: "stm32f411ve",
+        series: "F4",
+        die: 0x431,
+        device: "STM32F411",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f405og",
+        series: "F4",
+        die: 0x413,
+        device: "STM32F405",
+        package: "WLCSP90",
+    },
+    Part {
         feature: "stm32f405rg",
         series: "F4",
         die: 0x413,
         device: "STM32F405",
         package: "LQFP64",
+    },
+    Part {
+        feature: "stm32f405vg",
+        series: "F4",
+        die: 0x413,
+        device: "STM32F405",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f405zg",
+        series: "F4",
+        die: 0x413,
+        device: "STM32F405",
+        package: "LQFP144",
     },
     Part {
         feature: "stm32f407vg",
@@ -60,11 +109,46 @@ pub const PARTS: &[Part] = &[
         package: "LQFP100",
     },
     Part {
+        feature: "stm32f407zg",
+        series: "F4",
+        die: 0x413,
+        device: "STM32F407",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32f407ig",
+        series: "F4",
+        die: 0x413,
+        device: "STM32F407",
+        package: "LQFP176",
+    },
+    Part {
         feature: "stm32f722re",
         series: "F7",
         die: 0x452,
         device: "STM32F722",
         package: "LQFP64",
+    },
+    Part {
+        feature: "stm32f722ve",
+        series: "F7",
+        die: 0x452,
+        device: "STM32F722",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f722ze",
+        series: "F7",
+        die: 0x452,
+        device: "STM32F722",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32f722ie",
+        series: "F7",
+        die: 0x452,
+        device: "STM32F722",
+        package: "LQFP176",
     },
     Part {
         feature: "stm32f745vg",
@@ -74,11 +158,53 @@ pub const PARTS: &[Part] = &[
         package: "LQFP100",
     },
     Part {
+        feature: "stm32f745zg",
+        series: "F7",
+        die: 0x449,
+        device: "STM32F745",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32f745ig",
+        series: "F7",
+        die: 0x449,
+        device: "STM32F745",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32f767vi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F767",
+        package: "LQFP100",
+    },
+    Part {
         feature: "stm32f767zi",
         series: "F7",
         die: 0x451,
         device: "STM32F767",
         package: "LQFP144",
+    },
+    Part {
+        feature: "stm32f767ii",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F767",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32f767bi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F767",
+        package: "LQFP208",
+    },
+    Part {
+        feature: "stm32f767ni",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F767",
+        package: "TFBGA216",
     },
     Part {
         feature: "stm32h743vi",
@@ -90,12 +216,118 @@ pub const PARTS: &[Part] = &[
         package: "LQFP100",
     },
     Part {
+        feature: "stm32h743zi",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H743",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32h743ii",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H743",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32h743bi",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H743",
+        package: "LQFP208",
+    },
+    Part {
+        feature: "stm32h743ai",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H743",
+        package: "UFBGA169",
+    },
+    Part {
+        feature: "stm32h743xi",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H743",
+        package: "TFBGA240",
+    },
+    Part {
+        feature: "stm32h753vi",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H753",
+        package: "LQFP100",
+    },
+    Part {
         feature: "stm32h753zi",
         series: "H7",
         die: 0x450,
         device: "STM32H753",
         package: "LQFP144",
     },
+    Part {
+        feature: "stm32h753ii",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H753",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32h753bi",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H753",
+        package: "LQFP208",
+    },
+    Part {
+        feature: "stm32h753ai",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H753",
+        package: "UFBGA169",
+    },
+    Part {
+        feature: "stm32h753xi",
+        series: "H7",
+        die: 0x450,
+        device: "STM32H753",
+        package: "TFBGA240",
+    },
+];
+
+/// Parts that differ from a registered part only in flash size: the same
+/// device and package, so the same bonded pins and the same glue. Each is a
+/// Cargo feature of its own that mounts its registered part's glue. `model`
+/// dumps them too, so a variant whose metadata disagrees with its part fails
+/// the generator.
+pub const VARIANTS: &[(&str, &str)] = &[
+    ("stm32f401cd", "stm32f401ce"),
+    ("stm32f401rd", "stm32f401re"),
+    ("stm32f401vd", "stm32f401ve"),
+    ("stm32f411cc", "stm32f411ce"),
+    ("stm32f411rc", "stm32f411re"),
+    ("stm32f411vc", "stm32f411ve"),
+    ("stm32f405oe", "stm32f405og"),
+    ("stm32f407ve", "stm32f407vg"),
+    ("stm32f407ze", "stm32f407zg"),
+    ("stm32f407ie", "stm32f407ig"),
+    ("stm32f722rc", "stm32f722re"),
+    ("stm32f722vc", "stm32f722ve"),
+    ("stm32f722zc", "stm32f722ze"),
+    ("stm32f722ic", "stm32f722ie"),
+    ("stm32f745ve", "stm32f745vg"),
+    ("stm32f745ze", "stm32f745zg"),
+    ("stm32f745ie", "stm32f745ig"),
+    ("stm32f767vg", "stm32f767vi"),
+    ("stm32f767zg", "stm32f767zi"),
+    ("stm32f767ig", "stm32f767ii"),
+    ("stm32f767bg", "stm32f767bi"),
+    ("stm32f767ng", "stm32f767ni"),
+    ("stm32h743vg", "stm32h743vi"),
+    ("stm32h743zg", "stm32h743zi"),
+    ("stm32h743ig", "stm32h743ii"),
+    ("stm32h743bg", "stm32h743bi"),
+    ("stm32h743ag", "stm32h743ai"),
+    ("stm32h743xg", "stm32h743xi"),
 ];
 
 /// The benches evidence is recorded on (`hil/<crate>`), each with the part
@@ -240,6 +472,22 @@ pub fn check() -> Result<(), String> {
             ));
         }
     }
+    for (variant, part) in VARIANTS {
+        let registered = PARTS
+            .iter()
+            .find(|p| p.feature == *part)
+            .ok_or_else(|| format!("{variant}: {part} is not a registered part"))?;
+        // stm32 + line (3) + pin count (1): `stm32f401c` of `stm32f401cd`.
+        let prefix = &registered.feature[..10];
+        if variant.len() != registered.feature.len() || !variant.starts_with(prefix) {
+            return Err(format!(
+                "{variant}: differs from {part} in more than its flash size"
+            ));
+        }
+        if PARTS.iter().any(|p| p.feature == *variant) {
+            return Err(format!("{variant}: registered as a part and a variant"));
+        }
+    }
     Ok(())
 }
 
@@ -266,24 +514,42 @@ mod tests {
     fn selectors_resolve_to_parts() {
         assert_eq!(features("all").len(), PARTS.len());
         assert_eq!(
-            features("series F4"),
-            ["stm32f401re", "stm32f411ce", "stm32f405rg", "stm32f407vg"]
+            features("die 0x433"),
+            ["stm32f401ce", "stm32f401re", "stm32f401ve"]
         );
-        assert_eq!(features("series h7"), ["stm32h743vi", "stm32h753zi"]);
-        assert_eq!(
-            features("series f7"),
-            ["stm32f722re", "stm32f745vg", "stm32f767zi"]
-        );
+        assert_eq!(features("series F4").len(), 13);
+        assert_eq!(features("series f7").len(), 12);
+        assert_eq!(features("series h7").len(), 12);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);
     }
 
     #[test]
     fn a_die_is_named_by_its_id_or_any_line_cut_from_it() {
-        assert_eq!(features("die 0x450"), ["stm32h743vi", "stm32h753zi"]);
-        // The F407 shares the F405's die, so either line selects both parts.
-        assert_eq!(features("die STM32F407"), ["stm32f405rg", "stm32f407vg"]);
-        assert_eq!(features("die 0x413"), ["stm32f405rg", "stm32f407vg"]);
-        assert_eq!(features("die stm32h750"), ["stm32h743vi", "stm32h753zi"]);
+        // The F407 shares the F405's die, so either line selects both lines'
+        // parts.
+        let f405_f407 = [
+            "stm32f405og",
+            "stm32f405rg",
+            "stm32f405vg",
+            "stm32f405zg",
+            "stm32f407vg",
+            "stm32f407zg",
+            "stm32f407ig",
+        ];
+        assert_eq!(features("die STM32F407"), f405_f407);
+        assert_eq!(features("die 0x413"), f405_f407);
+        assert_eq!(features("die stm32h750"), features("die 0x450"));
+        assert_eq!(features("die 0x450").len(), 12);
+    }
+
+    #[test]
+    fn a_variant_differs_only_in_flash_size() {
+        for (variant, part) in VARIANTS {
+            assert_eq!(variant[..10], part[..10], "{variant}");
+            assert_ne!(variant, part);
+        }
+        // A variant is not a selectable part: it has no glue of its own.
+        assert!(Selector::Part("stm32f401rd".into()).parts().is_err());
     }
 
     #[test]

@@ -55,6 +55,17 @@ pub struct Die {
     pub packages: BTreeMap<String, BTreeSet<String>>,
     /// device -> the peripherals its parts enable.
     pub devices: BTreeMap<String, BTreeSet<String>>,
+    /// (device, package) -> the peripherals its parts enable. metapac's
+    /// per-part list mixes device and package (the H743VI's LQFP100 bonds
+    /// none of SPI5's pins, and metapac leaves SPI5 out), so the cut, not the
+    /// device, says what a part offers. Parts of one cut (flash-size
+    /// variants) must agree.
+    pub cuts: BTreeMap<(String, String), BTreeSet<String>>,
+    /// (device, package) -> its (peripheral, pin, signal) rows. Which signals
+    /// reach a pin can depend on the package: only the H7's TFBGA240 bonds
+    /// PC2 and PC2_C apart, and only there does metapac route ADC1's INP12
+    /// to PC2. Parts of one cut must agree.
+    pub rows: BTreeMap<(String, String), BTreeSet<(String, String, String)>>,
 }
 
 /// Merges the parts of one die. Every disagreement is reported, not only the
@@ -100,7 +111,31 @@ pub fn merge(id: u16, parts: &[(Part, Metadata)]) -> Result<Die, Vec<String>> {
         die.devices
             .entry(part.device.to_string())
             .or_default()
-            .extend(enabled);
+            .extend(enabled.iter().cloned());
+        let cut = (part.device.to_string(), part.package.to_string());
+        let rows: BTreeSet<(String, String, String)> = metadata
+            .peripherals
+            .iter()
+            .flat_map(|p| {
+                p.pins
+                    .iter()
+                    .map(|pin| (p.name.clone(), pin.pin.clone(), pin.signal.clone()))
+            })
+            .collect();
+        agree(
+            &mut conflicts,
+            &name,
+            &format!("{} {} peripherals", part.device, part.package),
+            die.cuts.entry(cut.clone()).or_insert_with(|| enabled.clone()),
+            &enabled,
+        );
+        agree(
+            &mut conflicts,
+            &name,
+            &format!("{} {} pin rows", part.device, part.package),
+            die.rows.entry(cut).or_insert_with(|| rows.clone()),
+            &rows,
+        );
 
         for vector in &metadata.interrupts {
             agree(

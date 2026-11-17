@@ -67,10 +67,19 @@ fn compact(names: &[String]) -> String {
         .join(", ")
 }
 
-/// A part's module text: its file and every shared module it mounts.
+/// A part's module text: its line's chip file, the one that mounts the
+/// part's generated glue, and every shared module that file mounts.
 fn module_text(root: &Path, part: &Part) -> String {
     let chips = root.join("src/chips");
-    let own = fs::read_to_string(chips.join(format!("{}.rs", part.feature))).unwrap_or_default();
+    let mount = format!("#[path = \"gen/{}.rs\"]", part.feature);
+    let own = fs::read_dir(&chips)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|entry| entry.path().extension().is_some_and(|e| e == "rs"))
+        .filter_map(|entry| fs::read_to_string(entry.path()).ok())
+        .find(|text| text.contains(&mount))
+        .unwrap_or_default();
     let mut text = own.clone();
     for line in own.lines() {
         if let Some(rest) = line.trim().strip_prefix("#[path = \"shared/")

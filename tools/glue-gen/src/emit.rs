@@ -135,6 +135,8 @@ struct Cut<'a> {
     die: &'a Die,
     bonded: &'a BTreeSet<String>,
     enabled: &'a BTreeSet<String>,
+    /// The cut's (peripheral, pin, signal) rows.
+    rows: &'a BTreeSet<(String, String, String)>,
 }
 
 impl<'a> Cut<'a> {
@@ -170,17 +172,25 @@ impl<'a> Cut<'a> {
             .any(|(name, p)| self.enabled.contains(name) && p.kind.as_deref() == Some(kind))
     }
 
-    /// The bonded pins carrying `signal`, as `('A', 9, 7)` rows.
-    fn pins(&self, p: &DiePeripheral, signal: &str) -> Vec<(char, u8, u8)> {
+    /// The bonded pins carrying `peripheral`'s `signal` in this cut, as
+    /// `('A', 9, 7)` rows.
+    fn pins(&self, peripheral: &str, p: &DiePeripheral, signal: &str) -> Vec<(char, u8, u8)> {
         let mut rows: Vec<(char, u8, u8)> = p
             .pins
             .iter()
-            .filter(|((name, s), _)| s == signal && self.bonded.contains(name))
+            .filter(|((name, s), _)| {
+                s == signal && self.bonded.contains(name) && self.has_row(peripheral, name, s)
+            })
             .filter_map(|((name, _), af)| Some((pin(name)?.0, pin(name)?.1, (*af)?)))
             .collect();
         rows.sort();
         rows.dedup();
         rows
+    }
+
+    fn has_row(&self, peripheral: &str, pin: &str, signal: &str) -> bool {
+        self.rows
+            .contains(&(peripheral.to_string(), pin.to_string(), signal.to_string()))
     }
 
     fn vector(&self, p: &'a DiePeripheral, signal: &str) -> Option<&'a String> {
@@ -276,16 +286,16 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         .packages
         .get(part.package)
         .ok_or("package not in the die table")?;
-    let enabled = die
-        .devices
-        .get(part.device)
-        .ok_or("device not in the die table")?;
+    let key = (part.device.to_string(), part.package.to_string());
+    let enabled = die.cuts.get(&key).ok_or("device and package not in the die table")?;
+    let cut_rows = die.rows.get(&key).ok_or("device and package not in the die table")?;
     let cut = Cut {
         family,
         part,
         die,
         bonded,
         enabled,
+        rows: cut_rows,
     };
     let mut out = String::new();
     let w = &mut out;
@@ -484,7 +494,7 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
     writeln!(w, ");\n").ok();
     for (name, p) in &timers {
         for signal in ["CH1", "CH1N", "CH2", "CH2N", "CH3", "CH3N", "CH4", "CH4N"] {
-            let r = cut.pins(p, signal);
+            let r = cut.pins(name, p, signal);
             if !r.is_empty() {
                 writeln!(w, "timer_pins!({name} {signal}: {});", rows(&r)).ok();
             }
@@ -532,7 +542,9 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         let mut channels: Vec<(char, u8, u8)> = p
             .pins
             .keys()
-            .filter(|(pin_name, _)| bonded.contains(pin_name))
+            .filter(|(pin_name, signal)| {
+                bonded.contains(pin_name) && cut.has_row(name, pin_name, signal)
+            })
             .filter_map(|(pin_name, signal)| {
                 let n = signal
                     .strip_prefix("INP")
@@ -574,7 +586,7 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
             .ok_or_else(|| fail(name, "no vector"))?;
         // The port's data pins: one route each on every part here, so the
         // driver names them as types rather than taking routing traits.
-        let pin = |signal: &str| match cut.pins(p, signal).as_slice() {
+        let pin = |signal: &str| match cut.pins(name, p, signal).as_slice() {
             [(port, pin, af)] => Ok(format!("('{port}', {pin}, {af})")),
             rows => Err(fail(
                 name,
@@ -642,7 +654,7 @@ fn pin_rows(
     let otype = otype.map(|t| format!(", {t}")).unwrap_or_default();
     for (name, p) in instances {
         for (signal, trait_name) in signals {
-            let r = cut.pins(p, signal);
+            let r = cut.pins(name, p, signal);
             if !r.is_empty() {
                 writeln!(w, "pins!({trait_name}<{name}>{otype}: {});", rows(&r)).ok();
             }
@@ -710,16 +722,16 @@ pub fn offer(die: &Die, part: &Part) -> Result<Offer, String> {
         .packages
         .get(part.package)
         .ok_or("package not in the die table")?;
-    let enabled = die
-        .devices
-        .get(part.device)
-        .ok_or("device not in the die table")?;
+    let key = (part.device.to_string(), part.package.to_string());
+    let enabled = die.cuts.get(&key).ok_or("device and package not in the die table")?;
+    let cut_rows = die.rows.get(&key).ok_or("device and package not in the die table")?;
     let cut = Cut {
         family,
         part,
         die,
         bonded,
         enabled,
+        rows: cut_rows,
     };
     let names = |v: Vec<(&String, &DiePeripheral)>| {
         v.into_iter().map(|(n, _)| n.clone()).collect::<Vec<_>>()
