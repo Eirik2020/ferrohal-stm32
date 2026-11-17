@@ -44,7 +44,7 @@ Not yet: BDMA, input capture.
 ## Checking it
 
 ```sh
-checks/run.sh        # clippy, no reachable panic, safe API, no-metapac probes, glue against metapac, host tests: all five chips; every example built
+checks/run.sh        # clippy, no reachable panic, safe API, no-metapac probes, glue against metapac, host tests: every supported chip line; every example built
 hil/run-f401.sh      # the Nucleo-F401RE bench
 hil/run-h753.sh      # the Nucleo-H753ZI bench
 hil/run-discovery.sh # the STM32F4 Discovery bench

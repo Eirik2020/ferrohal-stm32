@@ -6,16 +6,16 @@
 |---|---|---|---|
 | a | docs/design/api-surface.md | 3199 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/clocks.md | 958 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/errata.md | 2651 B | Source: ADR-010, ../decisions/2026-11-15-erra |
+| a | docs/design/errata.md | 3693 B | Source: ADR-010, ../decisions/2026-11-15-erra |
 | a | docs/design/execution-model.md | 934 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/ferroforge-seam.md | 2084 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/free-shapes.md | 3580 B | What blocked each driver's teardown, and the  |
 | a | docs/design/free.md | 3498 B | Every driver handle that owns a peripheral to |
-| a | docs/design/glue-generator.md | 8396 B | Source: ADR-008, ../decisions/2026-11-13-chip |
+| a | docs/design/glue-generator.md | 10376 B | Source: ADR-008, ../decisions/2026-11-13-chip |
 | a | docs/design/h7-errata.md | 1409 B | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/maturity.md | 3374 B | Source: ADR-009, ../decisions/2026-11-13-matu |
-| a | docs/design/naming.md | 8757 B | Source: ADR-003, ../decisions/2026-11-08-nami |
+| a | docs/design/naming.md | 10098 B | Source: ADR-003, ../decisions/2026-11-08-nami |
 | a | docs/design/ownership.md | 2774 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-ids.md | 1789 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-system.md | 5091 B | Source: ADR-006, ../decisions/2026-11-10-doc- |

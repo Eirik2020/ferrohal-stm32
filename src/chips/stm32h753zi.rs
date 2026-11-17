@@ -1,8 +1,10 @@
-//! STM32H753ZI glue: the chip facts the IP modules leave out.
+//! STM32H753 glue: the chip facts the IP modules leave out, for every package
+//! of the line, and of the H750 value line cut from the same die (RM0433):
+//! it differs in its 128 KiB of flash, which no fact here depends on.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMAMUX
 //! request IDs) are generated from stm32-metapac's metadata into
-//! `gen/stm32h753zi.rs` by `tools/glue-gen`. Clock limits and the memory map, shared with the H743,
+//! `gen/<part>.rs` by `tools/glue-gen`, one file per package. Clock limits and the memory map, shared with the H743,
 //! are in `shared/h7.rs`.
 //!
 //! Requirements: GLUE-001, GLUE-002
@@ -51,15 +53,45 @@ pub(crate) const USB_FS_FIFO_WORDS: usize = 1024;
 #[cfg(feature = "usb")]
 pub(crate) const USB_FS_ENDPOINTS: usize = 9;
 
-// The routing rows, generated from stm32-metapac's metadata.
+// The routing rows, generated from stm32-metapac's metadata for the
+// part's device and package; a flash-size variant takes its package's.
+#[cfg(feature = "stm32h753vi")]
+#[path = "gen/stm32h753vi.rs"]
+mod generated;
+#[cfg(feature = "stm32h753zi")]
 #[path = "gen/stm32h753zi.rs"]
+mod generated;
+#[cfg(feature = "stm32h753ii")]
+#[path = "gen/stm32h753ii.rs"]
+mod generated;
+#[cfg(feature = "stm32h753bi")]
+#[path = "gen/stm32h753bi.rs"]
+mod generated;
+#[cfg(feature = "stm32h753ai")]
+#[path = "gen/stm32h753ai.rs"]
+mod generated;
+#[cfg(feature = "stm32h753xi")]
+#[path = "gen/stm32h753xi.rs"]
+mod generated;
+#[cfg(feature = "stm32h750vb")]
+#[path = "gen/stm32h750vb.rs"]
+mod generated;
+#[cfg(feature = "stm32h750zb")]
+#[path = "gen/stm32h750zb.rs"]
+mod generated;
+#[cfg(feature = "stm32h750ib")]
+#[path = "gen/stm32h750ib.rs"]
+mod generated;
+#[cfg(feature = "stm32h750xb")]
+#[path = "gen/stm32h750xb.rs"]
 mod generated;
 pub use generated::*;
 #[path = "shared/h7.rs"]
 mod h7;
 
 pub(crate) use h7::{
-    CLOCK_LIMITS, SYSTEM_MEMORY, TS_CAL1, TS_CAL2, UID_BASE, VREFIN_CAL, map_system_memory,
+    CLOCK_LIMITS, I2C_RELOAD_ERRATUM, SYSTEM_MEMORY, TS_CAL1, TS_CAL2, UID_BASE, VREFIN_CAL,
+    map_system_memory,
 };
 pub use h7::{ERRATA, ERRATA_SHEET, ES0392_2_2_10, ES0392_2_19_5, ES0392_2_22_6, check_dma_buffer};
 

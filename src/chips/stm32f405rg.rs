@@ -1,8 +1,9 @@
-//! STM32F405RG glue: the chip facts the IP modules leave out.
+//! STM32F405 glue: the chip facts the IP modules leave out, for every package
+//! of the line.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMA
-//! request channels), cut to the LQFP64's bonded pins, are generated from
-//! stm32-metapac's metadata into `gen/stm32f405rg.rs` by `tools/glue-gen`;
+//! request channels), cut to each package's bonded pins, are generated from
+//! stm32-metapac's metadata into `gen/<part>.rs` by `tools/glue-gen`;
 //! this file holds the facts metapac does not carry, each citing its manual.
 //!
 //! The Foxeer F405 V2 flight controller carries this chip; there is no
@@ -40,8 +41,19 @@ mod family;
 mod die;
 pub use die::*;
 
-// The routing rows, generated from stm32-metapac's metadata.
+// The routing rows, generated from stm32-metapac's metadata for the
+// part's device and package; a flash-size variant takes its package's.
+#[cfg(any(feature = "stm32f405og", feature = "stm32f405oe"))]
+#[path = "gen/stm32f405og.rs"]
+mod generated;
+#[cfg(feature = "stm32f405rg")]
 #[path = "gen/stm32f405rg.rs"]
+mod generated;
+#[cfg(feature = "stm32f405vg")]
+#[path = "gen/stm32f405vg.rs"]
+mod generated;
+#[cfg(feature = "stm32f405zg")]
+#[path = "gen/stm32f405zg.rs"]
 mod generated;
 pub use generated::*;
 

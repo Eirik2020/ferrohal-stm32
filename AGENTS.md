@@ -1,6 +1,6 @@
 # FerroHAL - agent entry
 
-STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f405rg, stm32f407vg, stm32h743vi, stm32h753zi.
+STM32 HAL on stm32-metapac. Chips: every package of the STM32F401, F411, F405, F407, F722, F745, F767, H743 and H753 lines (`docs/CHIPS.md`); each line's chip module is named after its first part (`src/chips/stm32f401re.rs`).
 Public repo. Bench-verified.
 
 ## Authority
@@ -22,7 +22,7 @@ Public repo. Bench-verified.
 | touch IP driver | `src/<ip>/` (neutral driver, or the IP's own folder: ADR-012), `src/<ip>_vN/mod.rs` (register wrapper) + `src/requirements/<ip>.yaml` |
 | add/change a user example | `examples/README.md`; built by `checks/run.sh` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `docs/DEBT.md`; `docs/CHIPS.md` roadmap; no plan open; ADR-012 item 4 (`chips/` by family, generated chip selection) waits on the F7 glue branch |
+| plan work | `docs/DEBT.md`; `docs/CHIPS.md` roadmap; open plan: `docs/plans/2026-11-17-f411-f722-f745.md`; ADR-012 item 4 (`chips/` by family, generated chip selection) waits on the F7 glue branch |
 | naming/catalogs/IDs | `docs/design/naming.md`; `tools/check_names.py` holds it |
 | chip glue, parts, dies, packages | `docs/design/glue-generator.md` (ADR-008), `tools/glue-gen` |
 | maturity, tiers, evidence axes | `docs/design/maturity.md` (ADR-009) |

@@ -42,7 +42,7 @@ FAMILIES: dict[str, list[str]] = {
     "resource": ["RESOURCE"],
     "sdmmc": ["SDMMC"],
     "signature": ["UID", "REVISION"],
-    "spi": ["SPI", "SPIPOLL", "SPI-V2", "SPI-V4"],
+    "spi": ["SPI", "SPIPOLL", "SPI-V2", "SPI-V3", "SPI-V4"],
     "timer": ["TIMER", "PWM", "AWG"],
     "uart": ["UART", "UARTDMA", "USART-V2", "USART-V4"],
     "usb": ["USB", "USB-F4"],
@@ -62,7 +62,7 @@ DEFINED = re.compile(r"^  - id: (\S+)\s*$", re.M)
 TRAILER = re.compile(r"^//! Requirements: (.*)$")
 # <ip>_v<N>, <ip>_<family> (the families FerroHAL supports), or the RCC by family and
 # manual where one family has several RCC shapes.
-IP_FEATURE = re.compile(r"^[a-z][a-z0-9]*_(v\d+|f4|h7|h7_rm\d{4})$")
+IP_FEATURE = re.compile(r"^[a-z][a-z0-9]*_(v\d+|f4|f7|h7|h7_rm\d{4})$")
 CHIP = re.compile(r"^stm32[a-z0-9]+$")
 
 

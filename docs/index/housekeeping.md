@@ -5,4 +5,4 @@
 | class | path | size | purpose |
 |---|---|---|---|
 | a | docs/housekeeping/README.md | 2093 B | Documents rot by addition. An agent adds a no |
-| a | docs/housekeeping/state.md | 3387 B | Cadence: monthly, or immediately when more th |
+| a | docs/housekeeping/state.md | 4046 B | Cadence: monthly, or immediately when more th |

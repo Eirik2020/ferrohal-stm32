@@ -15,14 +15,27 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 | part | metapac's name | device + package + memory size | `stm32f405rg` |
 
 - **[Decided]** The user picks a part (its Cargo feature, metapac's name); FerroHAL dedups
-  by die. A die table is the union of its supported parts' metadata; two parts of one die
+  by die.
+- **[Decided]** Every package of a supported line is a registered part (owner,
+  2026-11-17), named by its largest flash size. A part that differs only in flash size is
+  a variant (`VARIANTS`): its own Cargo feature, mounting its package's glue. `model`
+  dumps variants too, so one that disagrees with its part on any fact fails the
+  generator. A line's hand facts are one chip module, named after its first part
+  (`chips/stm32f401re.rs`), which mounts each part's glue under that part's features.
+- **[Decided, 2026-11-17]** A part's glue is cut by device and package together, not by
+  device alone: metapac's peripheral list and pin rows can depend on the package. The
+  H743VI's LQFP100 has no SPI5, and only the TFBGA240, which bonds PC2 and PC2_C apart,
+  routes ADC1's INP12 to PC2. The die table keeps each cut's peripherals and pin rows,
+  and parts of one cut must agree on them. A die table is the union of its supported parts' metadata; two parts of one die
   that disagree on a row fail the generator.
 - **[Decided]** The device layer exists now, thin, and is pruned if it stays redundant:
   F405 vs F407 and H743 vs H753 differ only in peripherals FerroHAL has no driver for.
 - **[Decided]** A package is the bonded-pin set; `Port::split` follows it, so an unbonded
   pin cannot be named. Built 2026-11-14 (owner chose the shape): the glue emits one parts
   type per bonded port, a field per bonded pin, behind a sealed `gpio::Split`.
-- Die IDs: F401xD/E 0x433, F405/F407/F415/F417 0x413, H742/H743/H750/H753 0x450.
+- Die IDs: F401xD/E 0x433, F405/F407/F415/F417 0x413, F411xC/E 0x431, F722/F723/F732/F733
+  0x452, F745/F746/F756 0x449, F765/F767/F768/F769/F777/F778/F779 0x451,
+  H742/H743/H750/H753 0x450.
 - **[Measured 2026-11-13, metapac 21]** What the die fixes and parts agree on: each
   peripheral's address, IP and register block, RCC fields, a pin's alternate function for
   a signal, and the set of DMAMUX requests per signal. What does not: a fixed-request
@@ -48,6 +61,19 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 - **[Decided]** Offering policy is data in the generator (`tools/glue-gen/src/emit.rs`):
   which DMA controllers routes may use (DMA1, DMA2, DMAMUX1; not BDMA), which IP versions
   have a driver, and the instances left out, each with its reason.
+- **[Decided 2026-11-17]** The F7's rows take the F4's macro shapes (fixed-request stream
+  DMA, bus-named RCC registers), its usart_v3 rows included: the usart_v4 module serves
+  it (ADR-011). A block on the part that no driver serves shows – (on the part, not
+  driven) in the capability table, where it shows n/a for a block the part lacks.
+- **[Decided 2026-11-17]** Where metapac's metadata is incomplete on one device of a
+  die, a peripheral FerroHAL does not drive may be listed in `METADATA_GAPS`
+  (`tools/glue-gen/src/registry.rs`), and the merge keeps the die's values for it rather
+  than fail. The only entry: the STM32H750's HSEM, which metapac 21 gives no register
+  block.
+- **[Decided 2026-11-17]** The coverage matrix (`hil/COVERAGE.md`) gives an IP version
+  no bench carries no tier (–), even where its requirements are verified on a version
+  that shares its driver: the usart_v3 registers have no evidence of their own until
+  the F767 bench runs.
 - **[Decided 2026-11-14, owner]** The glue offers everything the silicon has for every IP
   version FerroHAL drives: each instance, pin row and DMA route metapac lists. Left out:
   an instance a driver cannot open without disturbing another (the F4's ADC2 and ADC3,

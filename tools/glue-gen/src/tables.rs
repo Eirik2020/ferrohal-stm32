@@ -67,10 +67,19 @@ fn compact(names: &[String]) -> String {
         .join(", ")
 }
 
-/// A part's module text: its file and every shared module it mounts.
+/// A part's module text: its line's chip file, the one that mounts the
+/// part's generated glue, and every shared module that file mounts.
 fn module_text(root: &Path, part: &Part) -> String {
     let chips = root.join("src/chips");
-    let own = fs::read_to_string(chips.join(format!("{}.rs", part.feature))).unwrap_or_default();
+    let mount = format!("#[path = \"gen/{}.rs\"]", part.feature);
+    let own = fs::read_dir(&chips)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|entry| entry.path().extension().is_some_and(|e| e == "rs"))
+        .filter_map(|entry| fs::read_to_string(entry.path()).ok())
+        .find(|text| text.contains(&mount))
+        .unwrap_or_default();
     let mut text = own.clone();
     for line in own.lines() {
         if let Some(rest) = line.trim().strip_prefix("#[path = \"shared/")
@@ -103,7 +112,7 @@ fn clock(text: &str) -> String {
 fn core(series: &str) -> &'static str {
     match series {
         "F4" => "Cortex-M4F",
-        "H7" => "Cortex-M7",
+        "F7" | "H7" => "Cortex-M7",
         _ => "?",
     }
 }
@@ -153,20 +162,22 @@ pub fn tables(
         rule += "---|";
         let offer = emit::offer(die, part)?;
         let cells = [
-            &offer.uarts,
-            &offer.spis_dma,
-            &offer.spis,
-            &offer.i2cs,
-            &offer.timers,
-            &offer.channel_timers,
-            &offer.complementary,
-            &offer.adcs,
-            &offer.usb,
-            &offer.sdmmcs,
-            &offer.dmas,
+            (&offer.uarts, "usart"),
+            (&offer.spis_dma, "spi"),
+            (&offer.spis, "spi"),
+            (&offer.i2cs, "i2c"),
+            (&offer.timers, "timer"),
+            (&offer.channel_timers, "timer"),
+            (&offer.complementary, "timer"),
+            (&offer.adcs, "adc"),
+            (&offer.usb, "otg"),
+            (&offer.sdmmcs, "sdmmc"),
+            (&offer.dmas, "dma"),
         ];
-        for ((_, column), names) in matrix.iter_mut().zip(cells) {
-            column.push(if names.is_empty() {
+        for ((_, column), (names, kind)) in matrix.iter_mut().zip(cells) {
+            column.push(if names.is_empty() && offer.undriven.contains(&kind) {
+                "–".into()
+            } else if names.is_empty() {
                 "n/a".into()
             } else {
                 compact(names)

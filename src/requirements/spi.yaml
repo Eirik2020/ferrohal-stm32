@@ -246,6 +246,35 @@ requirements:
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
 
+  - id: SPI-V3-001
+    title: SPI v3 holds SCK between transfers
+    statement: >-
+      SPI v3 shall hold SCK at its idle level between transfers.
+    rationale: >-
+      A device sees a stray edge as a clock otherwise.
+    derived_from: [SPI-004]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI on the Nucleo-F767ZI
+
+  - id: SPI-V3-002
+    title: SPI v3 receives one byte per request
+    statement: >-
+      SPI v3 shall raise a receive request for every 8-bit frame received.
+    rationale: >-
+      At the receive FIFO's reset threshold of 16 bits, the last byte of an
+      odd-length transfer stays in the FIFO and the transfer never ends.
+    derived_from: [SPI-004]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI on the Nucleo-F767ZI
+
   - id: SPI-V4-001
     title: SPI v4 holds SCK between transfers
     statement: >-

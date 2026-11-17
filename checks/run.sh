@@ -25,7 +25,38 @@
 
 set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
-chips=(stm32f401re stm32f405rg stm32f407vg stm32h743vi stm32h753zi)
+chips=(stm32f401re stm32f410rb stm32f411ce stm32f405rg stm32f407vg stm32f427vi stm32f429zi stm32f412zg stm32f413zh stm32f446re stm32f722re stm32f745vg stm32f767zi stm32h743vi stm32h753zi)
+# Every other package of those lines: the same hand facts, its own generated
+# glue, so it gets clippy, not the full set. A flash-size variant mounts its
+# package's glue and is not listed (tools/glue-gen/src/registry.rs). They run
+# as one more job, in its own target directory.
+packages=(
+    stm32f410tb stm32f410cb
+    stm32f401ce stm32f401ve stm32f411re stm32f411ve
+    stm32f405og stm32f405vg stm32f405zg stm32f407zg stm32f407ig
+    stm32f427zi stm32f427ii stm32f427ai
+    stm32f429vi stm32f429ii stm32f429ai stm32f429bi stm32f429ni
+    stm32f412cg stm32f412rg stm32f412vg
+    stm32f413ch stm32f413mh stm32f413rh stm32f413vh
+    stm32f446me stm32f446ve stm32f446ze
+    stm32f722ve stm32f722ze stm32f722ie stm32f745zg stm32f745ig
+    stm32f765vi stm32f765zi stm32f765ii stm32f765bi stm32f765ni
+    stm32f767vi stm32f767ii stm32f767bi stm32f767ni
+    stm32f768ai stm32f769ai stm32f769bi stm32f769ii stm32f769ni
+    stm32f777vi stm32f777zi stm32f777ii stm32f777bi stm32f777ni stm32f778ai
+    stm32f779ai stm32f779bi stm32f779ii stm32f779ni
+    stm32h743zi stm32h743ii stm32h743bi stm32h743ai stm32h743xi
+    stm32h750vb stm32h750zb stm32h750ib stm32h750xb
+    stm32h753vi stm32h753ii stm32h753bi stm32h753ai stm32h753xi
+)
+# `,usb` for a part with a USB port; the F410 has none (RM0401), and the
+# library refuses the feature there.
+usb() {
+    case $1 in
+        stm32f410*) ;;
+        *) echo ",usb" ;;
+    esac
+}
 status=0
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -55,13 +86,13 @@ chip_job() (
     status=0
     {
         step "clippy ($chip)" \
-            env CARGO_TARGET_DIR="$target" cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb" -- -D warnings
+            env CARGO_TARGET_DIR="$target" cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit$(usb "$chip")" -- -D warnings
         step "clippy without usb ($chip)" \
             env CARGO_TARGET_DIR="$target" cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit" -- -D warnings
         # A broken intra-doc link, or one into a private item, is a doc that
         # points nowhere for the crate's users.
         step "rustdoc ($chip)" \
-            env CARGO_TARGET_DIR="$target" RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb"
+            env CARGO_TARGET_DIR="$target" RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit$(usb "$chip")"
         # From its own directory: cargo reads .cargo/config.toml from where it
         # runs, and without that package's link.x the linker can discard
         # everything, panics included, and pass for nothing. A linker warning
@@ -86,6 +117,20 @@ for chip in "${chips[@]}"; do
         jobs+=($!)
     fi
 done
+packages_job() (
+    status=0
+    for part in "${packages[@]}"; do
+        step "clippy ($part)" \
+            env CARGO_TARGET_DIR="$root/target/checks/packages" cargo clippy --manifest-path "$root/Cargo.toml" --features "$part,rt,defmt,fugit$(usb "$part")" -- -D warnings
+    done > "$work/packages.lint" 2>> "$work/packages.err"
+    [ "$status" -eq 0 ] || : > "$work/packages.fail"
+)
+if [ "${CHECKS_JOBS:-0}" = 1 ]; then
+    packages_job
+else
+    packages_job &
+    jobs+=($!)
+fi
 # The chip-independent steps, while the chips build.
 shared=$(
     step "no-panic calls every public function" python3 -I "$root/tools/check_no_panic_coverage.py"
@@ -123,6 +168,9 @@ done
 for chip in "${chips[@]}"; do
     cat "$work/$chip.lint"
 done
+cat "$work/packages.lint"
+cat "$work/packages.err" >&2
+[ -e "$work/packages.fail" ] && status=1
 printf '%s\n' "$shared"
 for chip in "${chips[@]}"; do
     cat "$work/$chip.host"

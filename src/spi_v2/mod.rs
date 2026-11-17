@@ -5,7 +5,7 @@
 //!
 //! The SPI stays enabled (SPE) from `configure` on, holding SCK at its idle
 //! level between transfers; a transfer only turns the DMA requests on and
-//! off. That also keeps clear of ES0299 2.11.1 / ES0182 2.12.1 (BSY can
+//! off. That also keeps clear of ES0299 2.11.1 / ES0287 2.11.1 / ES0182 2.12.1 (BSY can
 //! stay high if the SPI is disabled mid-frame): SPE only drops in
 //! `configure`, with the bus idle.
 //!
@@ -131,7 +131,7 @@ impl Unit {
     /// Closes the SPI: SPE off. Only a teardown (`Spi::free`) calls this —
     /// between transfers the driver keeps SPE on (see the module header), so
     /// a disable here may land mid-frame if a transfer was running, and
-    /// ES0299 2.11.1 / ES0182 2.12.1's BSY-then-stuck caveat applies to the
+    /// ES0299 2.11.1 / ES0287 2.11.1 / ES0182 2.12.1's BSY-then-stuck caveat applies to the
     /// dead peripheral. A reopen starts from `configure`, which writes CR1
     /// with SPE clear first.
     pub(crate) fn disable(self) {
