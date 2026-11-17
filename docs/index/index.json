@@ -3,7 +3,7 @@
  "counts": {
   "documents": 75,
   "agent": 52,
-  "bytes": 378458
+  "bytes": 378856
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 11354
+   "bytes": 11550
   },
   {
    "path": "docs/DEBT.md",
@@ -444,7 +444,7 @@
    "class": "human",
    "title": "Plan: the STM32F411, F722 and F745",
    "purpose": "Opened 2026-11-17. The owner's fifth and last",
-   "bytes": 6029
+   "bytes": 6231
   },
   {
    "path": "docs/policies/agent-docs.md",
