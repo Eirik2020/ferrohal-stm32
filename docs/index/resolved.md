@@ -4,7 +4,7 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| h | docs/resolved/README.md | 22291 B | History: items moved out of DEBT.md../DEBT.md |
+| h | docs/resolved/README.md | 22397 B | History: items moved out of DEBT.md../DEBT.md |
 | h | docs/resolved/chips-and-features.md | 8491 B | The chip and feature sections of README.mdREA |
 | h | docs/resolved/crate-wide-2026-11-10-to-16.md | 21909 B | The crate-wide entries of README.mdREADME.md  |
-| h | docs/resolved/crate-wide-to-2026-11-09.md | 26530 B | The older crate-wide entries of README.mdREAD |
+| h | docs/resolved/crate-wide-to-2026-11-09.md | 26491 B | The older crate-wide entries of README.mdREAD |

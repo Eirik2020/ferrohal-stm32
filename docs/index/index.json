@@ -3,7 +3,7 @@
  "counts": {
   "documents": 77,
   "agent": 54,
-  "bytes": 396736
+  "bytes": 399259
  },
  "documents": [
   {
@@ -11,14 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 5813
+   "bytes": 6345
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5727
+   "bytes": 6364
   },
   {
    "path": "THIRD-PARTY.md",
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9408
+   "bytes": 9562
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -189,7 +189,7 @@
    "class": "agent",
    "title": "Execution model: scheduler-agnostic",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 890
+   "bytes": 934
   },
   {
    "path": "docs/design/ferroforge-seam.md",
@@ -203,7 +203,7 @@
    "class": "agent",
    "title": "`free()`: the landed shapes, driver by driver",
    "purpose": "What blocked each driver's teardown, and the ",
-   "bytes": 3399
+   "bytes": 3580
   },
   {
    "path": "docs/design/free.md",
@@ -336,7 +336,7 @@
    "class": "agent",
    "title": "Housekeeping state",
    "purpose": "Cadence: monthly, or immediately when more th",
-   "bytes": 2566
+   "bytes": 3387
   },
   {
    "path": "docs/notes/2026-11-08-naming-audit.md",
@@ -427,7 +427,7 @@
    "class": "agent",
    "title": "API review: consistency, naming, structure, reuse (hub)",
    "purpose": "Merged 2026-11-11, every fact re-measured at ",
-   "bytes": 3149
+   "bytes": 3213
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -462,7 +462,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.md../DEBT.md",
-   "bytes": 22291
+   "bytes": 22397
   },
   {
    "path": "docs/resolved/chips-and-features.md",
@@ -483,7 +483,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt, crate-wide, to 2026-11-09",
    "purpose": "The older crate-wide entries of README.mdREAD",
-   "bytes": 26530
+   "bytes": 26491
   },
   {
    "path": "examples/README.md",
@@ -560,7 +560,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 20233
+   "bytes": 20256
   },
   {
    "path": "requirements/goals.md",
