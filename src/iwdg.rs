@@ -38,7 +38,7 @@ const UPDATE_SPINS: u32 = 1_000_000;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Error {
+pub enum ConfigError {
     /// Shorter than one count at the fastest prescaler, or longer than the
     /// slowest prescaler's full reload: 125 us to about 32.8 s at 32 kHz.
     Timeout,
@@ -51,13 +51,13 @@ pub enum Error {
 
 /// The prescaler code and the reload value nearest `timeout_us` at the
 /// nominal LSI.
-pub const fn divider(timeout_us: u32) -> Result<(u8, u16), Error> {
+pub const fn divider(timeout_us: u32) -> Result<(u8, u16), ConfigError> {
     divider_with_lsi(timeout_us, LSI)
 }
 
 /// The prescaler code and the reload value nearest `timeout_us` at `lsi`,
 /// the frequency a board measured, instead of the nominal [`LSI`].
-pub const fn divider_with_lsi(timeout_us: u32, lsi: Hertz) -> Result<(u8, u16), Error> {
+pub const fn divider_with_lsi(timeout_us: u32, lsi: Hertz) -> Result<(u8, u16), ConfigError> {
     // LSI counts in the timeout, before the prescaler.
     let counts = timeout_us as u64 * lsi.0 as u64 / 1_000_000;
     let mut code = 0;
@@ -68,17 +68,20 @@ pub const fn divider_with_lsi(timeout_us: u32, lsi: Hertz) -> Result<(u8, u16), 
             return Ok((code, (reload - 1) as u16));
         }
         if reload == 0 {
-            return Err(Error::Timeout);
+            return Err(ConfigError::Timeout);
         }
         code += 1;
     }
-    Err(Error::Timeout)
+    Err(ConfigError::Timeout)
 }
 
 /// The prescaler code, reload and window for a windowed watchdog: the
 /// window, in counts at the chosen prescaler, must be inside the timeout
 /// and at least one count.
-pub const fn window_divider(timeout_us: u32, window_us: u32) -> Result<(u8, u16, u16), Error> {
+pub const fn window_divider(
+    timeout_us: u32,
+    window_us: u32,
+) -> Result<(u8, u16, u16), ConfigError> {
     let (code, reload) = match divider(timeout_us) {
         Ok(parts) => parts,
         Err(error) => return Err(error),
@@ -102,13 +105,13 @@ pub const fn window_divider(timeout_us: u32, window_us: u32) -> Result<(u8, u16,
     };
     let ticks = (counts + divide / 2) / divide;
     if ticks == 0 {
-        return Err(Error::Window);
+        return Err(ConfigError::Window);
     }
     let window = ticks - 1;
     if window <= reload as u64 {
         Ok((code, reload, window as u16))
     } else {
-        Err(Error::Window)
+        Err(ConfigError::Window)
     }
 }
 
@@ -138,7 +141,7 @@ impl Watchdog {
     /// feed it within the timeout. Refuses with the watchdog token handed
     /// back when the timeout cannot be set; once the watchdog is running
     /// (an `Update` refusal), only a reset stops it.
-    pub fn start(iwdg: IWDG, timeout_us: u32) -> Result<Self, Refused<Error, IWDG>> {
+    pub fn start(iwdg: IWDG, timeout_us: u32) -> Result<Self, Refused<ConfigError, IWDG>> {
         let (code, reload) = match divider(timeout_us) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, iwdg)),
@@ -154,7 +157,7 @@ impl Watchdog {
         iwdg: IWDG,
         timeout_us: u32,
         lsi: Hertz,
-    ) -> Result<Self, Refused<Error, IWDG>> {
+    ) -> Result<Self, Refused<ConfigError, IWDG>> {
         let (code, reload) = match divider_with_lsi(timeout_us, lsi) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, iwdg)),
@@ -174,7 +177,7 @@ impl Watchdog {
         iwdg: IWDG,
         timeout_us: u32,
         window_us: u32,
-    ) -> Result<Self, Refused<Error, IWDG>> {
+    ) -> Result<Self, Refused<ConfigError, IWDG>> {
         let (code, reload, window) = match window_divider(timeout_us, window_us) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, iwdg)),
@@ -188,7 +191,7 @@ impl Watchdog {
         code: u8,
         reload: u16,
         window: Option<u16>,
-    ) -> Result<Self, Refused<Error, IWDG>> {
+    ) -> Result<Self, Refused<ConfigError, IWDG>> {
         let regs = crate::chip::iwdg_regs();
         // A breakpoint must not become a reset: freeze the counter while a
         // debugger holds the core halted.
@@ -211,7 +214,7 @@ impl Watchdog {
             // in force once this returns.
             regs.winr().write(|w| w.set_win(window));
             if !updated() {
-                return Err(Refused::new(Error::Update, iwdg));
+                return Err(Refused::new(ConfigError::Update, iwdg));
             }
             return Ok(Self { timeout_us });
         }
@@ -223,14 +226,14 @@ impl Watchdog {
         // fed with whatever it had.
         regs.kr().write(|w| w.set_key(Key::RESET));
         if !settled {
-            return Err(Refused::new(Error::Update, iwdg));
+            return Err(Refused::new(ConfigError::Update, iwdg));
         }
         Ok(Self { timeout_us })
     }
 
     /// Whether `timeout_us` can be set. A `const fn`, for compile-time
     /// asserts.
-    pub const fn check(timeout_us: u32) -> Result<(), Error> {
+    pub const fn check(timeout_us: u32) -> Result<(), ConfigError> {
         match divider(timeout_us) {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
@@ -276,8 +279,8 @@ mod tests {
         assert_eq!(divider(1_000_000), Ok((1, 3999)));
         // 30 s: / 256 = 3750.
         assert_eq!(divider(30_000_000), Ok((6, 3749)));
-        assert_eq!(divider(0), Err(Error::Timeout));
-        assert_eq!(divider(40_000_000), Err(Error::Timeout));
+        assert_eq!(divider(0), Err(ConfigError::Timeout));
+        assert_eq!(divider(40_000_000), Err(ConfigError::Timeout));
     }
 
     #[test]
@@ -286,7 +289,10 @@ mod tests {
         // 375 ticks, reload 374. At the nominal 32 kHz it stays 399.
         assert_eq!(divider_with_lsi(50_000, Hertz::hz(30_000)), Ok((0, 374)));
         assert_eq!(divider_with_lsi(50_000, LSI), Ok((0, 399)));
-        assert_eq!(divider_with_lsi(50_000, Hertz::hz(0)), Err(Error::Timeout));
+        assert_eq!(
+            divider_with_lsi(50_000, Hertz::hz(0)),
+            Err(ConfigError::Timeout)
+        );
     }
 
     #[test]
@@ -297,7 +303,7 @@ mod tests {
         // A window as long as the timeout is the whole reload.
         assert_eq!(window_divider(50_000, 50_000), Ok((0, 399, 399)));
         // No window, or one longer than the timeout.
-        assert_eq!(window_divider(50_000, 0), Err(Error::Window));
-        assert_eq!(window_divider(50_000, 60_000), Err(Error::Window));
+        assert_eq!(window_divider(50_000, 0), Err(ConfigError::Window));
+        assert_eq!(window_divider(50_000, 60_000), Err(ConfigError::Window));
     }
 }

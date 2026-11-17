@@ -29,7 +29,7 @@ const MAX_ADC_CLOCK_HZ: u32 = 36_000_000;
 const CONVERSION_SPINS: u32 = 100_000;
 
 /// Nothing to start: the ADC runs from its bus.
-pub(crate) fn start_clock(_rcc: &mut Rcc) -> Result<(), Error> {
+pub(crate) fn start_clock(_rcc: &mut Rcc) -> Result<(), crate::adc::ConfigError> {
     Ok(())
 }
 
@@ -64,7 +64,7 @@ impl Unit {
         bus: crate::rcc::Kernel,
         internal: bool,
         sample_cycles: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<(), crate::adc::ConfigError> {
         let pclk = bus.clock(clocks).0;
         let divider = if pclk / 2 <= MAX_ADC_CLOCK_HZ {
             Adcpre::DIV2

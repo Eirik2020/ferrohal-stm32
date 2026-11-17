@@ -82,6 +82,16 @@ const OCR_HIGH_CAPACITY: u32 = 1 << 30;
 const STATE_TRANSFER: u32 = 4;
 const R1_ERRORS: u32 = 0xFDF9_8008;
 
+/// Why `Sdmmc::new` refused (API review D8: a refusal carries its module's
+/// `ConfigError`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ConfigError {
+    /// The kernel clock isn't running, or can't divide down to the bus
+    /// frequency asked for.
+    Clock,
+}
+
 /// Why an operation failed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -270,7 +280,7 @@ pub struct Sdmmc<W> {
 /// What [`Sdmmc::new`](Sdmmc::new) hands back when it refuses: the reason,
 /// and the wiring it took.
 pub type SdmmcRefused<U, Ck, Cmd, D0, D1, D2, D3> =
-    Refused<Error, Wiring<U, Ck, Cmd, D0, D1, D2, D3>>;
+    Refused<ConfigError, Wiring<U, Ck, Cmd, D0, D1, D2, D3>>;
 
 impl<U, Ck, Cmd, D0, D1, D2, D3> Sdmmc<Wiring<U, Ck, Cmd, D0, D1, D2, D3>>
 where
@@ -297,13 +307,13 @@ where
         let clocks = rcc.clocks();
         let kernel = match U::KERNEL.frequency(&clocks) {
             Some(kernel) => kernel,
-            None => return Err(Refused::new(Error::Clock, wiring)),
+            None => return Err(Refused::new(ConfigError::Clock, wiring)),
         };
         if config.frequency.0 > MAX_DEFAULT_SPEED_HZ
             || divider(kernel.0, IDENTIFICATION_HZ).is_none()
             || divider(kernel.0, config.frequency.0).is_none()
         {
-            return Err(Refused::new(Error::Clock, wiring));
+            return Err(Refused::new(ConfigError::Clock, wiring));
         }
         rcc.open(U::ENABLE);
         Ok(Self {

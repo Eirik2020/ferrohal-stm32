@@ -156,7 +156,7 @@ mod app {
         use embedded_hal::i2c::I2c as _;
         use embedded_hal::spi::SpiBus as _;
         use ferrohal_stm32::{
-            adc::{Adc, Config as AdcConfig, Error as AdcError},
+            adc::{Adc, Config as AdcConfig, ConfigError as AdcConfigError},
             i2c::{Config as I2cConfig, ConfigError as I2cConfigError, Error as I2cError, I2c},
             iwdg::Watchdog,
             spi::{
@@ -447,10 +447,10 @@ mod app {
             "ADC1 scan",
             "an empty sequence refuses; the parts scan the internals [API-001]",
             match adc.into_scan(run.scan_stream, &[], scan) {
-                Ok(_) => Err(Fail::Adc(AdcError::Sequence)),
+                Ok(_) => Err(Fail::AdcConfig(AdcConfigError::Sequence)),
                 Err(refused) => {
-                    if refused.error() != AdcError::Sequence {
-                        Err(Fail::Adc(refused.error()))
+                    if refused.error() != AdcConfigError::Sequence {
+                        Err(Fail::AdcConfig(refused.error()))
                     } else {
                         let (adc, stream, buffer) = refused.into_parts();
                         let Ok(mut scan) = adc.into_scan(stream, &channels, buffer) else {
@@ -777,9 +777,9 @@ mod app {
             "IWDG",
             "a 1 us timeout refuses; the peripheral comes back and starts [API-001]",
             match watchdog_refusal {
-                Some(ferrohal_stm32::iwdg::Error::Timeout) => Ok(()),
+                Some(ferrohal_stm32::iwdg::ConfigError::Timeout) => Ok(()),
                 Some(other) => Err(Fail::Count {
-                    expected: ferrohal_stm32::iwdg::Error::Timeout as u32,
+                    expected: ferrohal_stm32::iwdg::ConfigError::Timeout as u32,
                     got: other as u32,
                 }),
                 None => Err(Fail::Count {

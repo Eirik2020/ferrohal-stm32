@@ -297,7 +297,7 @@ fn main() -> ! {
     let cause = usb_bench::cause_text(rcc.reset_cause());
     let (watchdog_refused, iwdg) = match Watchdog::start(p.IWDG1, 1) {
         Err(refused) => {
-            let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
+            let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::ConfigError::Timeout);
             (refused_timeout, refused.into_parts())
         }
         Ok(_) => reboot_to_dfu(),
@@ -482,7 +482,7 @@ fn main() -> ! {
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
     let (scan_refused, adc1, scan_stream, samples) = match adc1.into_scan(dma2.s5, &[], samples) {
         Err(refused) => {
-            let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::Error::Sequence);
+            let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::ConfigError::Sequence);
             let (adc1, stream, samples) = refused.into_parts();
             (refused_empty, adc1, stream, samples)
         }
@@ -522,7 +522,7 @@ fn main() -> ! {
     let (sd_refused, sd_wiring) =
         match Sdmmc::new(&mut rcc, sd_wiring, &sdmmc::Config::new(Hertz::mhz(50))) {
             Err(refused) => {
-                let refused_clock = matches!(refused.error(), sdmmc::Error::Clock);
+                let refused_clock = matches!(refused.error(), sdmmc::ConfigError::Clock);
                 (refused_clock, refused.into_parts())
             }
             Ok(_) => reboot_to_dfu(),

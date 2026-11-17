@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 73,
+  "documents": 74,
   "agent": 52,
-  "bytes": 369422
+  "bytes": 370757
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9938
+   "bytes": 9800
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -47,6 +47,13 @@
    "title": "FerroHAL: resolved debt, by chip and feature",
    "purpose": "The chip and feature sections of RESOLVED.mdR",
    "bytes": 8495
+  },
+  {
+   "path": "docs/RESOLVED-crate-wide-2026-11-10-to-16.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
+   "purpose": "The crate-wide entries of RESOLVED.mdRESOLVED",
+   "bytes": 21943
   },
   {
    "path": "docs/RESOLVED-crate-wide-to-2026-11-09.md",
@@ -60,7 +67,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 40046
+   "bytes": 19265
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -171,7 +178,7 @@
    "class": "agent",
    "title": "Public API surface",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2888
+   "bytes": 3199
   },
   {
    "path": "docs/design/clocks.md",

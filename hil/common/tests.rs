@@ -145,8 +145,10 @@ pub enum Fail {
     Time { cycles: u32, min: u32, max: u32 },
     /// A timer refused a rate the check needs.
     Timer(ferrohal_stm32::timer::ConfigError),
-    /// The ADC refused or failed otherwise than the check expected.
+    /// The ADC failed otherwise than the check expected.
     Adc(ferrohal_stm32::adc::Error),
+    /// The ADC refused otherwise than the check expected.
+    AdcConfig(ferrohal_stm32::adc::ConfigError),
     /// The I2C driver reported an error the check did not expect.
     I2c(ferrohal_stm32::i2c::Error),
     /// The I2C refused a configuration the check needs.

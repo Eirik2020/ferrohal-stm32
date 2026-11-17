@@ -486,7 +486,7 @@ fn main() -> ! {
     let cause = usb_bench::cause_text(rcc.reset_cause());
     let (watchdog_refused, iwdg) = match Watchdog::start(p.IWDG, 1) {
         Err(refused) => {
-            let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
+            let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::ConfigError::Timeout);
             (refused_timeout, refused.into_parts())
         }
         Ok(_) => usb_bench::stop(line!()),
@@ -598,7 +598,7 @@ fn main() -> ! {
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
     let (scan_refused, adc1, scan_stream, samples) = match adc.into_scan(dma2.s4, &[], samples) {
         Err(refused) => {
-            let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::Error::Sequence);
+            let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::ConfigError::Sequence);
             let (adc1, stream, samples) = refused.into_parts();
             (refused_empty, adc1, stream, samples)
         }

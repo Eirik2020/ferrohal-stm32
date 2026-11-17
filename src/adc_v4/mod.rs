@@ -37,11 +37,11 @@ const STOP_SPINS: u32 = 100_000;
 const CALIBRATION_MS: u32 = 1000;
 
 /// Selects per_ck for the ADC's kernel clock.
-pub(crate) fn start_clock(rcc: &mut Rcc) -> Result<(), Error> {
+pub(crate) fn start_clock(rcc: &mut Rcc) -> Result<(), crate::adc::ConfigError> {
     if rcc.adc_clock() {
         Ok(())
     } else {
-        Err(Error::KernelClock)
+        Err(crate::adc::ConfigError::KernelClock)
     }
 }
 
@@ -76,7 +76,7 @@ impl Unit {
         _bus: crate::rcc::Kernel,
         internal: bool,
         sample_cycles: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<(), crate::adc::ConfigError> {
         let cycles_per_us = clocks.cpu.0 / 1_000_000;
         self.common.ccr().modify(|w| {
             w.set_ckmode(Ckmode::ASYNCHRONOUS);
@@ -110,7 +110,7 @@ impl Unit {
             cortex_m::asm::delay(cycles_per_us * 1000);
         }
         if !calibrated {
-            return Err(Error::Timeout);
+            return Err(crate::adc::ConfigError::Timeout);
         }
 
         self.regs.isr().write_value({
@@ -120,7 +120,7 @@ impl Unit {
         });
         self.regs.cr().modify(|w| w.set_aden(true));
         if !spin(READY_SPINS, || self.regs.isr().read().adrdy()) {
-            return Err(Error::Timeout);
+            return Err(crate::adc::ConfigError::Timeout);
         }
 
         let smp = sample_time(sample_cycles);

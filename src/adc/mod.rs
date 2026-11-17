@@ -36,7 +36,7 @@ use crate::{
 
 /// What [`Adc::into_scan`](Adc::into_scan) hands back when it refuses: the
 /// reason, and the ADC, the stream and the buffer it took.
-pub type ScanRefused<A, S> = crate::resource::Refused<Error, (Adc<A>, S, &'static mut [u16])>;
+pub type ScanRefused<A, S> = crate::resource::Refused<ConfigError, (Adc<A>, S, &'static mut [u16])>;
 
 /// The calibration values' supply, and the temperatures they were taken at.
 const CAL_VDDA_MV: u32 = 3300;
@@ -72,9 +72,7 @@ impl Config {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
-    /// The kernel clock isn't running (the H7's per_ck, from HSI).
-    KernelClock,
-    /// The converter didn't come up, calibrate or finish within its bound.
+    /// A conversion didn't finish within its bound.
     Timeout,
     /// A conversion overwrote one nobody had read.
     Overrun,
@@ -82,12 +80,25 @@ pub enum Error {
     Dma,
     /// A sequence is running.
     Busy,
-    /// No channels, or more than 16, or more than the buffer holds.
-    Sequence,
-    /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
-    Buffer(crate::dma::BufferError),
     /// The calibration values or the reading can't give an answer.
     Calibration,
+}
+
+/// Why `Adc::new` or `Adc::into_scan` refused (API review D8: a refusal
+/// carries its module's `ConfigError`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ConfigError {
+    /// The kernel clock isn't running (the H7's per_ck, from HSI).
+    KernelClock,
+    /// The converter didn't come up or calibrate within its bound.
+    Timeout,
+    /// No channels, or more than 16, or more than the buffer holds.
+    Sequence,
+    /// The stream was left running by an earlier owner and did not stop.
+    DmaBusy,
+    /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
+    Buffer(crate::dma::BufferError),
 }
 
 /// An ADC instance.
@@ -236,7 +247,7 @@ impl<A: Instance> Adc<A> {
     /// calibrates it, which takes a few milliseconds. Refuses with the ADC
     /// token handed back; on a power-up refusal the ADC is already enabled
     /// and reset.
-    pub fn new(rcc: &mut Rcc, token: A, config: &Config) -> Result<Self, Refused<Error, A>> {
+    pub fn new(rcc: &mut Rcc, token: A, config: &Config) -> Result<Self, Refused<ConfigError, A>> {
         if let Err(error) = crate::adc_ip::start_clock(rcc) {
             return Err(Refused::new(error, token));
         }
@@ -294,10 +305,13 @@ impl<A: Instance> Adc<A> {
         S: Dma<A>,
     {
         if channels.is_empty() || channels.len() > 16 || channels.len() > buffer.len() {
-            return Err(Refused::new(Error::Sequence, (self, stream, buffer)));
+            return Err(Refused::new(ConfigError::Sequence, (self, stream, buffer)));
         }
         if let Err(error) = crate::chip::check_dma_buffer(buffer) {
-            return Err(Refused::new(Error::Buffer(error), (self, stream, buffer)));
+            return Err(Refused::new(
+                ConfigError::Buffer(error),
+                (self, stream, buffer),
+            ));
         }
         let mut numbers = [0u8; 16];
         for (number, channel) in numbers.iter_mut().zip(channels) {
@@ -305,7 +319,7 @@ impl<A: Instance> Adc<A> {
         }
         let mut dma = crate::dma::claim(&stream);
         if dma.stop(crate::dma::STOP_SPINS).is_err() {
-            return Err(Refused::new(Error::Dma, (self, stream, buffer)));
+            return Err(Refused::new(ConfigError::DmaBusy, (self, stream, buffer)));
         }
         dma.clear_flags(Flags::ALL);
         self.unit

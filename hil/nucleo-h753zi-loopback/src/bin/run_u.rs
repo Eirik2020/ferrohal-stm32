@@ -157,7 +157,7 @@ mod app {
         use embedded_hal::i2c::I2c as _;
         use embedded_hal::spi::SpiBus as _;
         use ferrohal_stm32::{
-            adc::{Adc, Config as AdcConfig, Error as AdcError},
+            adc::{Adc, Config as AdcConfig, ConfigError as AdcConfigError},
             i2c::{Config as I2cConfig, ConfigError as I2cConfigError, Error as I2cError, I2c},
             iwdg::Watchdog,
             spi::{
@@ -411,10 +411,10 @@ mod app {
             "ADC1 scan",
             "an empty sequence refuses; the parts scan the pin twice [API-001]",
             match adc.into_scan(run.scan_stream, &[], scan) {
-                Ok(_) => Err(Fail::Adc(AdcError::Sequence)),
+                Ok(_) => Err(Fail::AdcConfig(AdcConfigError::Sequence)),
                 Err(refused) => {
-                    if refused.error() != AdcError::Sequence {
-                        Err(Fail::Adc(refused.error()))
+                    if refused.error() != AdcConfigError::Sequence {
+                        Err(Fail::AdcConfig(refused.error()))
                     } else {
                         let (adc, stream, buffer) = refused.into_parts();
                         let Ok(mut scan) = adc.into_scan(stream, &[pin, pin], buffer) else {
@@ -722,9 +722,9 @@ mod app {
                     name,
                     "a window longer than the timeout refuses [API-001]",
                     match refused.error() {
-                        ferrohal_stm32::iwdg::Error::Window => Ok(()),
+                        ferrohal_stm32::iwdg::ConfigError::Window => Ok(()),
                         other => Err(Fail::Count {
-                            expected: ferrohal_stm32::iwdg::Error::Window as u32,
+                            expected: ferrohal_stm32::iwdg::ConfigError::Window as u32,
                             got: other as u32,
                         }),
                     },
@@ -736,9 +736,9 @@ mod app {
                             name,
                             "a 1 us timeout refuses [API-001]",
                             match refused.error() {
-                                ferrohal_stm32::iwdg::Error::Timeout => Ok(()),
+                                ferrohal_stm32::iwdg::ConfigError::Timeout => Ok(()),
                                 other => Err(Fail::Count {
-                                    expected: ferrohal_stm32::iwdg::Error::Timeout as u32,
+                                    expected: ferrohal_stm32::iwdg::ConfigError::Timeout as u32,
                                     got: other as u32,
                                 }),
                             },

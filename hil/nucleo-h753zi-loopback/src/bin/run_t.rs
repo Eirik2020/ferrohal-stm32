@@ -495,7 +495,7 @@ mod app {
                     }
                 }
             }
-            Err(refused) => report.check(SCAN_NAME, "the scan", Err(Fail::Adc(refused.error()))),
+            Err(refused) => report.check(SCAN_NAME, "the scan", Err(Fail::AdcConfig(refused.error()))),
         }
 
         tests::finish(&report, || {});
