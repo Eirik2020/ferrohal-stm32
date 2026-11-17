@@ -91,6 +91,8 @@ impl Tx {
             let flags = self.dma.flags();
             if flags.failed() {
                 if self.dma.stop(crate::dma::STOP_SPINS).is_err() {
+                    // As in `time_out`: no vector for a stream left running.
+                    self.dma.set_interrupts(Interrupts::default());
                     self.halted = true;
                 }
                 self.dma.clear_flags(Flags::ALL);
@@ -143,8 +145,12 @@ impl Tx {
         // request.
         match unsafe { self.dma.start(&transfer) } {
             Ok(()) => self.running = true,
-            // Still enabled: a stop that never took. Fail closed.
-            Err(_) => self.halted = true,
+            // Still enabled: a stop that never took. Fail closed, its
+            // interrupts off as in `time_out`.
+            Err(_) => {
+                self.dma.set_interrupts(Interrupts::default());
+                self.halted = true;
+            }
         }
         finished
     }
@@ -173,6 +179,11 @@ impl Tx {
     /// A frame did not finish in time: stop the stream, drop the queue.
     fn time_out<T>(&mut self) -> Result<T, Error> {
         self.health.timeouts = self.health.timeouts.saturating_add(1);
+        // Interrupts off first: a stream that does not stop finishes its
+        // frame later and sets its complete flag, which nothing here will
+        // clear once transmission is halted, so its vector would fire
+        // without end. The next transfer's start enables them again.
+        self.dma.set_interrupts(Interrupts::default());
         let stopped = self.dma.stop(crate::dma::STOP_SPINS).is_ok();
         self.dma.clear_flags(Flags::ALL);
         self.frames.clear();

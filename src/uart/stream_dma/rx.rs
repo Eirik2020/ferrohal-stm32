@@ -451,6 +451,15 @@ fn line_error(kind: MarkKind) -> Option<Error> {
 }
 
 impl<W: Parts> Uart<W> {
+    /// Moves the transmit queue on, as every call does: a reader on a link
+    /// whose transmit stream's vector is unbound must not leave the frames
+    /// it waits for unsent (UARTDMA-008).
+    fn serve_tx(&mut self) {
+        if let Some(tx) = self.tx.as_mut() {
+            tx.service(self.unit);
+        }
+    }
+
     /// Copies out what has arrived, up to `buf.len()` bytes, without
     /// waiting. `Ok(0)` means nothing yet.
     ///
@@ -458,6 +467,7 @@ impl<W: Parts> Uart<W> {
     /// bytes received before a line error are returned first, and the error
     /// on the next call.
     pub fn try_read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        self.serve_tx();
         self.rx.try_read(self.unit, buf)
     }
 
@@ -469,6 +479,7 @@ impl<W: Parts> Uart<W> {
     /// since the last chunk are still arriving. `Err` only for
     /// [`Error::Halted`].
     pub fn read_chunk(&mut self, buf: &mut [u8]) -> Result<Option<Chunk>, Error> {
+        self.serve_tx();
         self.rx.read_chunk(self.unit, buf)
     }
 
@@ -495,6 +506,7 @@ impl<W: Parts> Uart<W> {
 
     /// Bytes waiting to be read, chunk boundaries or not.
     pub fn available(&mut self) -> Result<u16, Error> {
+        self.serve_tx();
         let (written, _) = self.rx.check_ring(self.unit)?;
         Ok(written.wrapping_sub(self.rx.read_count) as u16)
     }
