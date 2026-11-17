@@ -140,12 +140,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 - `bench` **Low: a Foxeer smoke image that fails before USB says nothing.** It restarts
   into DFU. *Spawned:* `926b210` 2026-11-02, a bench that reports over USB only.
 
-- `bench` **Low: the F401 bench clocks SPI1 at 84 MHz with SCK at reset speed.** ES0299
-  2.11.4 bounds APB at 25 MHz for a low-speed SCK pin (30 pF), or the last received bit
-  can be wrong; PA5 and the other SCK pins keep their reset speed in runs E to G. The
-  runs pass, so the short loopback holds, but they sit outside the sheet's bound. Fix:
-  set SCK to high speed in `hil/nucleo-f401re-loopback`. Inferred from the source.
-  *Spawned:* the ES0299 row review (2026-11-17).
 
 ## 4. Shipped code without hardware proof: rig work
 
