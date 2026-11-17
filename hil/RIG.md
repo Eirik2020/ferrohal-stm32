@@ -9,10 +9,13 @@ its budget; the text is unchanged.
 `hil/probe.sh` picks the probe by its serial, as `probe-rs list` prints it after
 `--` (`VID:PID:Serial`): `PROBE_RS_PROBE` if already set, else the board's own
 variable (`F401_PROBE` for `hil/run-f401.sh`, `H753_PROBE` for `hil/run-h753.sh`,
-`DISCOVERY_PROBE` for `hil/run-discovery.sh`),
-else the only probe attached, else the one probe whose die has the bench's DEV_ID
+`DISCOVERY_PROBE` for `hil/run-discovery.sh`), from the environment or else from
+[`rig.env`](rig.env), which pins each bench's probe and counts only while that probe is
+attached; else the only probe attached, else the one probe whose die has the bench's DEV_ID
 (0x433 the F401, 0x450 the H753, 0x413 the Discovery; read without halting). With
-none or several matching it lists the probes and exits before building.
+none or several matching it lists the probes and exits before building. The scan opens
+every attached probe in turn and benches started together take turns at it; the pins
+skip it (0.1 s, measured 2026-11-17).
 `hil/pico-i2c-sim.sh` drives two boards, so it clears `PROBE_RS_PROBE` for each run. The
 choice reaches probe-rs through its `PROBE_RS_PROBE` variable, which the crate
 runners in `hil/*/.cargo/config.toml` leave unset. `hil/run-f401.sh`'s host echo
