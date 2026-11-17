@@ -2,7 +2,7 @@
 
 Debt is work FerroHAL owes on what it already ships: a flaw, an inconsistency, shipped
 code with no hardware proof, or a missing check. Finished items move to
-[RESOLVED.md](RESOLVED.md). Three things are not debt and live elsewhere (owner,
+[resolved/](resolved/README.md). Three things are not debt and live elsewhere (owner,
 2026-11-13):
 
 - **A feature not built** is the roadmap: [CHIPS.md](CHIPS.md#not-supported-yet).
@@ -127,7 +127,7 @@ serve trait, which rewrite the code they name (owner, 2026-11-17).
   2026-11-15.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. Every F4 here
-  is past revision A, so ES0182 2.2.2's mapping (`RESOLVED.md`) stands on host tests
+  is past revision A, so ES0182 2.2.2's mapping (`resolved/`) stands on host tests
   alone. *Spawned:* the W11 audit (`ff3af8d`, 2026-11-10).
 
 ## 5. CI and merging

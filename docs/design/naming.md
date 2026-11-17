@@ -122,6 +122,8 @@ Which IP versions each series carries, as metapac measured them:
 
 ## Documents
 
-- **[Decided]** Registries in capitals (`DEBT`, `RESOLVED`, `README`, `WIRING`,
-  `AGENTS`); everything else kebab-case, with dated names where
-  `docs/policies/documentation.md` asks for them.
+- **[Decided]** Registries in capitals (`DEBT`, `README`, `WIRING`, `AGENTS`);
+  everything else kebab-case, with dated names where
+  `docs/policies/documentation.md` asks for them. The resolved-debt registry is a
+  folder, `docs/resolved/`, whose hub is its `README.md` and whose parts, split for the
+  size budget, are kebab-case (owner, 2026-11-17).

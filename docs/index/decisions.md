@@ -5,7 +5,7 @@
 | class | path | size | purpose |
 |---|---|---|---|
 | a | docs/decisions/2026-10-31-ferrowasp-integration.md | 3522 B | ADR-005 - Status: accepted |
-| a | docs/decisions/2026-11-08-free-teardown-brief.md | 2743 B | ADR-002 - Status: accepted |
+| a | docs/decisions/2026-11-08-free-teardown-brief.md | 2750 B | ADR-002 - Status: accepted |
 | a | docs/decisions/2026-11-08-g5-safe-by-default.md | 2606 B | ADR-001 - Status: promoted |
 | a | docs/decisions/2026-11-08-naming-scheme.md | 3234 B | ADR-003 - Status: promoted |
 | a | docs/decisions/2026-11-09-uart-capabilities.md | 2125 B | ADR-004 - Status: promoted |

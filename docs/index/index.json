@@ -3,7 +3,7 @@
  "counts": {
   "documents": 74,
   "agent": 52,
-  "bytes": 375943
+  "bytes": 376051
  },
  "documents": [
   {
@@ -11,14 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 5621
+   "bytes": 5617
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5536
+   "bytes": 5543
   },
   {
    "path": "THIRD-PARTY.md",
@@ -39,35 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9306
-  },
-  {
-   "path": "docs/RESOLVED-chips-and-features.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt, by chip and feature",
-   "purpose": "The chip and feature sections of RESOLVED.mdR",
-   "bytes": 8495
-  },
-  {
-   "path": "docs/RESOLVED-crate-wide-2026-11-10-to-16.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
-   "purpose": "The crate-wide entries of RESOLVED.mdRESOLVED",
-   "bytes": 21943
-  },
-  {
-   "path": "docs/RESOLVED-crate-wide-to-2026-11-09.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt, crate-wide, to 2026-11-09",
-   "purpose": "The older crate-wide entries of RESOLVED.mdRE",
-   "bytes": 26528
-  },
-  {
-   "path": "docs/RESOLVED.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt",
-   "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 22342
+   "bytes": 9309
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -83,7 +55,7 @@
    "class": "agent",
    "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
    "purpose": "ADR-002 - Status: accepted",
-   "bytes": 2743,
+   "bytes": 2750,
    "adr": "ADR-002",
    "status": "accepted"
   },
@@ -255,7 +227,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 7876
+   "bytes": 8035
   },
   {
    "path": "docs/design/ownership.md",
@@ -339,7 +311,7 @@
    "class": "agent",
    "title": "Housekeeping",
    "purpose": "Documents rot by addition. An agent adds a no",
-   "bytes": 2090
+   "bytes": 2093
   },
   {
    "path": "docs/housekeeping/state.md",
@@ -367,7 +339,7 @@
    "class": "agent",
    "title": "IP versions across families (stm32-metapac 21, measured)",
    "purpose": "From the architecture map's section 11, disso",
-   "bytes": 1259
+   "bytes": 1266
   },
   {
    "path": "docs/notes/2026-11-10-reference-implementations.md",
@@ -444,14 +416,14 @@
    "class": "agent",
    "title": "Agent-doc style",
    "purpose": "Agent docs = AGENTS.md + docs/{policies,decis",
-   "bytes": 1164
+   "bytes": 1165
   },
   {
    "path": "docs/policies/documentation.md",
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 4756
+   "bytes": 4768
   },
   {
    "path": "docs/policies/features.md",
@@ -466,6 +438,34 @@
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
    "bytes": 3035
+  },
+  {
+   "path": "docs/resolved/README.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt",
+   "purpose": "History: items moved out of DEBT.md../DEBT.md",
+   "bytes": 22291
+  },
+  {
+   "path": "docs/resolved/chips-and-features.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, by chip and feature",
+   "purpose": "The chip and feature sections of README.mdREA",
+   "bytes": 8491
+  },
+  {
+   "path": "docs/resolved/crate-wide-2026-11-10-to-16.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
+   "purpose": "The crate-wide entries of README.mdREADME.md ",
+   "bytes": 21909
+  },
+  {
+   "path": "docs/resolved/crate-wide-to-2026-11-09.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, crate-wide, to 2026-11-09",
+   "purpose": "The older crate-wide entries of README.mdREAD",
+   "bytes": 26530
   },
   {
    "path": "hil/CAPABILITIES.md",

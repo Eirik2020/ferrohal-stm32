@@ -1,6 +1,6 @@
 # FerroHAL: resolved debt
 
-History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature sections continue in [RESOLVED-chips-and-features.md](RESOLVED-chips-and-features.md); crate-wide entries from 2026-11-10 to 2026-11-16 in [RESOLVED-crate-wide-2026-11-10-to-16.md](RESOLVED-crate-wide-2026-11-10-to-16.md), and up to 2026-11-09 in [RESOLVED-crate-wide-to-2026-11-09.md](RESOLVED-crate-wide-to-2026-11-09.md). Limits a fix left behind stay in DEBT.md as open items. Newest first within each section. Section numbers (§) refer to the architecture map, dissolved into `docs/design/` topics on 2026-11-10; the numbers cite it as it was.
+History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and feature sections continue in [chips-and-features.md](chips-and-features.md); crate-wide entries from 2026-11-10 to 2026-11-16 in [crate-wide-2026-11-10-to-16.md](crate-wide-2026-11-10-to-16.md), and up to 2026-11-09 in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md). Limits a fix left behind stay in DEBT.md as open items. Newest first within each section. Section numbers (§) refer to the architecture map, dissolved into `docs/design/` topics on 2026-11-10; the numbers cite it as it was.
 
 ## Crate-wide
 
