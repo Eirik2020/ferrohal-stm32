@@ -19,7 +19,7 @@
 //!   against the factory calibration; elsewhere a board states its nominal
 //!   supply.
 //!
-//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005, API-002, API-003
+//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005, API-002, API-003, RESOURCE-002
 
 use core::marker::PhantomData;
 
@@ -403,6 +403,14 @@ pub struct AdcScan<A, S> {
     state: ScanState,
 }
 
+impl<A: Instance, S> crate::resource::Service for AdcScan<A, S> {
+    type Event = Option<Result<(), Error>>;
+
+    fn on_interrupt(&mut self) -> Self::Event {
+        AdcScan::on_interrupt(self)
+    }
+}
+
 impl<A: Instance, S> AdcScan<A, S> {
     /// Converts the sequence once. Returns at once.
     pub fn start(&mut self) -> Result<(), Error> {
@@ -439,8 +447,10 @@ impl<A: Instance, S> AdcScan<A, S> {
         Ok(())
     }
 
-    /// Serves the stream's interrupt: `Some` once the sequence has finished.
-    pub fn on_interrupt(&mut self) -> Option<Result<&[u16], Error>> {
+    /// Serves the stream's interrupt: `Some` once the sequence has finished,
+    /// after which [`samples`](Self::samples) holds it. Safe to call from a
+    /// task to poll.
+    pub fn on_interrupt(&mut self) -> Option<Result<(), Error>> {
         if self.state != ScanState::Running {
             self.dma.clear_flags(Flags::ALL);
             return None;
@@ -461,12 +471,7 @@ impl<A: Instance, S> AdcScan<A, S> {
             return Some(Err(Error::Overrun));
         }
         self.state = ScanState::Done;
-        Some(Ok(self.samples()))
-    }
-
-    /// As [`on_interrupt`](Self::on_interrupt), for a firmware that polls.
-    pub fn poll(&mut self) -> Option<Result<&[u16], Error>> {
-        self.on_interrupt()
+        Some(Ok(()))
     }
 
     /// The last finished sequence's samples, in channel order; empty otherwise.
@@ -516,8 +521,8 @@ impl<A: Instance, S> AdcScan<A, S> {
 
     /// The vector to bind to the handler that calls `on_interrupt`: the
     /// stream's.
-    pub const fn interrupt(&self) -> Interrupt {
-        self.vector
+    pub fn vectors(&self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(self.vector)
     }
 
     /// The largest sample: the full scale.

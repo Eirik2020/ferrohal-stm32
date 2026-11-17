@@ -237,9 +237,7 @@ impl<E: defmt::Format, P> defmt::Format for Refused<E, P> {
 }
 
 /// Checks the NVIC, reading only: every vector enabled.
-pub(crate) fn verify_vectors(
-    vectors: impl Iterator<Item = crate::chip::Interrupt>,
-) -> Result<(), IrqError> {
+fn verify_vectors(vectors: impl Iterator<Item = crate::chip::Interrupt>) -> Result<(), IrqError> {
     use cortex_m::peripheral::NVIC;
     for vector in vectors {
         if !NVIC::is_enabled(vector) {

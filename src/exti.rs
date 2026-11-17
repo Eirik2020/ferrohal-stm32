@@ -146,8 +146,8 @@ where
     Port<P>: PortInstance,
 {
     /// The vector to bind; shared with other lines for 5 and up.
-    pub const fn interrupt(&self) -> Interrupt {
-        vector(N)
+    pub const fn vectors(&self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(vector(N))
     }
 
     /// What an interrupt handler needs: pending check and clear.
@@ -237,8 +237,9 @@ impl ExtiHandle {
         EXTI_REGS.swier(0).write_value(lines(self.line));
     }
 
-    pub const fn interrupt(self) -> Interrupt {
-        vector(self.line)
+    /// The vector to bind; shared with other lines for 5 and up.
+    pub const fn vectors(self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(vector(self.line))
     }
 }
 

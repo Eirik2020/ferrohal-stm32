@@ -21,7 +21,7 @@
 //! A timer's counter clock is its bus's timer clock (`Clocks::timer`): twice
 //! the bus clock when the bus prescaler divides.
 //!
-//! Requirements: TIMER-001, TIMER-002, TIMER-003, TIMER-004, TIMER-005, API-002
+//! Requirements: TIMER-001, TIMER-002, TIMER-003, TIMER-004, TIMER-005, API-002, RESOURCE-002
 
 use stm32_metapac::timer::{
     TimCore, TimGp32,
@@ -40,7 +40,6 @@ pub use awg::{Awg, Lanes, recover};
 use crate::{
     chip::Interrupt,
     rcc::{Clocks, Rcc, RccBit},
-    resource::IrqError,
     resource::Refused,
     time::Hertz,
 };
@@ -371,14 +370,10 @@ impl<T: Instance> Tick<T> {
         self.rate
     }
 
-    /// The vector to bind to [`on_interrupt`](Self::on_interrupt).
-    pub fn interrupt(&self) -> Interrupt {
-        self.vector
-    }
-
-    /// Checks the NVIC, reading only: the vector is enabled.
-    pub fn verify(&self) -> Result<(), IrqError> {
-        crate::resource::verify_vectors([self.vector].into_iter())
+    /// The vector to bind to [`on_interrupt`](Self::on_interrupt): the
+    /// timer's update vector.
+    pub fn vectors(&self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(self.vector)
     }
 
     /// Stops counting; no more ticks until [`resume`](Self::resume).
@@ -430,6 +425,16 @@ pub struct TimebaseHandle {
 unsafe impl Send for TimebaseHandle {}
 // SAFETY: as above.
 unsafe impl Sync for TimebaseHandle {}
+
+impl<T: Instance> crate::resource::Service for Tick<T> {
+    /// Whether the update flag was set: `false` on a shared vector raised
+    /// by another timer.
+    type Event = bool;
+
+    fn on_interrupt(&mut self) -> bool {
+        Tick::on_interrupt(self)
+    }
+}
 
 impl<T: Instance32> Timebase<T> {
     /// Enables and resets the timer and starts it counting at `frequency`

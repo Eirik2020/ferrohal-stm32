@@ -21,7 +21,7 @@
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
 //!
-//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, PWM-009, API-002, API-003
+//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, PWM-009, API-002, API-003, RESOURCE-002
 
 use core::{
     marker::PhantomData,
@@ -52,7 +52,7 @@ use crate::{
     },
     gpio::{Port, PortInstance, PortRegisters},
     rcc::Rcc,
-    resource::{IrqError, Refused},
+    resource::Refused,
     time::Hertz,
 };
 
@@ -885,7 +885,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
 
     /// Serves the stream's interrupt: `Some` once the transfer has ended.
     /// The output then holds low at duty 0; the timer keeps counting until
-    /// the firmware stops it.
+    /// the firmware stops it. Safe to call from a task to poll.
     pub fn on_interrupt(&mut self) -> Option<Result<(), Error>> {
         if !self.running {
             self.dma.clear_flags(Flags::ALL);
@@ -904,11 +904,6 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         self.dma.clear_flags(Flags::ALL);
         self.running = false;
         Some(Ok(()))
-    }
-
-    /// [`on_interrupt`](Self::on_interrupt), for firmware that polls.
-    pub fn poll(&mut self) -> Option<Result<(), Error>> {
-        self.on_interrupt()
     }
 
     pub fn is_busy(&self) -> bool {
@@ -933,13 +928,10 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         stopped
     }
 
-    /// The vector to bind to [`on_interrupt`](Self::on_interrupt).
-    pub fn interrupt(&self) -> Interrupt {
-        self.vector
-    }
-
-    pub fn verify(&self) -> Result<(), IrqError> {
-        crate::resource::verify_vectors([self.vector].into_iter())
+    /// The vector to bind to [`on_interrupt`](Self::on_interrupt): the
+    /// stream's.
+    pub fn vectors(&self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(self.vector)
     }
 
     /// The channel's duty, for outside a transfer: the register read goes
@@ -1117,7 +1109,8 @@ impl<T: Instance, S> Sampler<T, S> {
         Ok(())
     }
 
-    /// Serves the stream's interrupt: `Some` once the samples are in.
+    /// Serves the stream's interrupt: `Some` once the samples are in. Safe to
+    /// call from a task to poll.
     pub fn on_interrupt(&mut self) -> Option<Result<usize, Error>> {
         let SampleState::Running(len) = self.state else {
             self.dma.clear_flags(Flags::ALL);
@@ -1134,10 +1127,6 @@ impl<T: Instance, S> Sampler<T, S> {
         self.abort();
         self.state = SampleState::Done(len);
         Some(Ok(usize::from(len)))
-    }
-
-    pub fn poll(&mut self) -> Option<Result<usize, Error>> {
-        self.on_interrupt()
     }
 
     /// The last completed run's samples; empty otherwise.
@@ -1165,12 +1154,26 @@ impl<T: Instance, S> Sampler<T, S> {
         stopped
     }
 
-    pub fn interrupt(&self) -> Interrupt {
-        self.vector
+    /// The vector to bind to [`on_interrupt`](Self::on_interrupt): the
+    /// stream's.
+    pub fn vectors(&self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(self.vector)
     }
+}
 
-    pub fn verify(&self) -> Result<(), IrqError> {
-        crate::resource::verify_vectors([self.vector].into_iter())
+impl<T: Instance, S> crate::resource::Service for Sampler<T, S> {
+    type Event = Option<Result<usize, Error>>;
+
+    fn on_interrupt(&mut self) -> Self::Event {
+        Sampler::on_interrupt(self)
+    }
+}
+
+impl<T: ChannelTimer, const C: u8, W> crate::resource::Service for CompareLane<T, C, W> {
+    type Event = Option<Result<(), Error>>;
+
+    fn on_interrupt(&mut self) -> Self::Event {
+        CompareLane::on_interrupt(self)
     }
 }
 

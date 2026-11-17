@@ -344,7 +344,7 @@ pub fn exercise_exti<const P: char, const N: u8>(
     use ferrohal_stm32::exti::Edge;
 
     let mut exti = line.route::<P>(ctrl, black_box(Edge::Both));
-    keep(exti.interrupt());
+    keep(exti.vectors().verify());
     keep(exti.is_pending());
     exti.trigger();
     exti.clear();
@@ -357,7 +357,7 @@ pub fn exercise_exti<const P: char, const N: u8>(
     keep(handle.is_pending());
     handle.clear();
     handle.trigger();
-    keep(handle.interrupt());
+    keep(handle.vectors().verify());
     keep(handle.line());
     keep(ferrohal_stm32::exti::vector(black_box(12)));
     keep(exti.free(ctrl));
@@ -398,8 +398,7 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
     };
     keep(tick.on_interrupt());
     keep(tick.rate());
-    keep(tick.interrupt());
-    keep(tick.verify());
+    keep(tick.vectors().verify());
     tick.pause();
     tick.resume();
     let base = match Timebase::new(rcc, base_timer, black_box(Hertz::mhz(1))) {
@@ -538,10 +537,9 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     pwm.stage(black_box(1));
     pwm.start();
     keep(lane.on_interrupt());
-    keep(lane.poll());
+    keep(ferrohal_stm32::Service::on_interrupt(&mut lane));
     keep(lane.is_busy());
-    keep(lane.interrupt());
-    keep(lane.verify());
+    keep(lane.vectors().verify());
     lane.set_duty(&pwm, black_box(0));
     lane.abort(&pwm);
     keep(pwm.top_margin());
@@ -556,9 +554,9 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     keep(awg.load(black_box(0), black_box(&[1, 2, 3][..])));
     keep(awg.is_busy());
     keep(awg.play());
-    keep(awg.on_interrupt(black_box(0)));
-    keep(awg.poll(black_box(0)));
-    keep(awg.interrupt(black_box(0)));
+    keep(awg.on_interrupt());
+    keep(ferrohal_stm32::Service::on_interrupt(&mut awg));
+    keep(awg.vectors().verify());
     awg.abort();
     awg.set_active_low(black_box(true));
     keep(awg.listen(black_box(Hertz::mhz(1)), black_box(4)));
@@ -697,10 +695,9 @@ where
     keep(sampler.rate());
     keep(sampler.start(black_box(32)));
     keep(sampler.on_interrupt());
-    keep(sampler.poll());
+    keep(ferrohal_stm32::Service::on_interrupt(&mut sampler));
     keep(sampler.samples().len());
-    keep(sampler.interrupt());
-    keep(sampler.verify());
+    keep(sampler.vectors().verify());
     keep(sampler.set_rate(black_box(Hertz::mhz(2))));
     sampler.abort();
     keep(sampler.free());
@@ -859,7 +856,7 @@ fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
 pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::usb::Wiring) {
     use ferrohal_stm32::usb::{UsbFs, Wiring};
 
-    keep(UsbFs::interrupt());
+    keep(UsbFs::vectors().verify());
     black_box(&Wiring::RESOURCES).iter().for_each(keep);
     keep(rcc.usb_clock());
     let usb = match UsbFs::new(rcc, wiring) {
@@ -887,7 +884,7 @@ fn exercise_spi<W: ferrohal_stm32::spi::Parts>(bus: &mut Spi<W>) {
     let mut buf = [0u8; 40];
     keep(bus.start(data));
     keep(bus.on_interrupt());
-    keep(bus.poll());
+    keep(ferrohal_stm32::Service::on_interrupt(bus));
     keep(bus.received().len());
     keep(bus.is_busy());
     bus.abort();
@@ -903,7 +900,7 @@ fn exercise_spi<W: ferrohal_stm32::spi::Parts>(bus: &mut Spi<W>) {
     keep(bus.name());
     keep(bus.kernel_clock());
     keep(bus.health());
-    keep(bus.interrupts().verify());
+    keep(bus.vectors().verify());
     bus.set_clock(Some(&CLOCK));
     keep(bus.transfer(data).map(<[u8]>::len));
 }
@@ -1595,18 +1592,12 @@ pub fn exercise_adc<A, P, S>(
         }
     };
     keep(scan.start());
-    keep(
-        scan.poll()
-            .map(|result| result.map(|samples| samples.len())),
-    );
-    keep(
-        scan.on_interrupt()
-            .map(|result| result.map(|samples| samples.len())),
-    );
+    keep(ferrohal_stm32::Service::on_interrupt(&mut scan));
+    keep(scan.on_interrupt());
     keep(scan.samples().first().copied());
     scan.abort();
     keep(scan.is_busy());
-    keep(scan.interrupt());
+    keep(scan.vectors().verify());
     keep(scan.max_sample());
     keep(scan.to_millivolts(black_box(1), black_box(3300)));
     // Freed back to the parts, a second scan from them, then the ADC freed

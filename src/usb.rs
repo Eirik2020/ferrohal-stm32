@@ -20,8 +20,8 @@ pub use usb_device;
 
 use crate::{
     chip::{
-        Interrupt, USB_FS, USB_FS_ENDPOINTS, USB_FS_FIFO_WORDS, USB_FS_HS_CORE, USB_FS_INTERRUPT,
-        USB_OTG_FS, UsbDm, UsbDp,
+        USB_FS, USB_FS_ENDPOINTS, USB_FS_FIFO_WORDS, USB_FS_HS_CORE, USB_FS_INTERRUPT, USB_OTG_FS,
+        UsbDm, UsbDp,
     },
     rcc::{ClockError, Rcc},
     resource::{Refused, Resource, Signal},
@@ -84,8 +84,8 @@ impl UsbFs {
     }
 
     /// The vector to bind to the handler that polls the device.
-    pub const fn interrupt() -> Interrupt {
-        USB_FS_INTERRUPT
+    pub const fn vectors() -> crate::resource::Vectors {
+        crate::resource::Vectors::one(USB_FS_INTERRUPT)
     }
 }
 

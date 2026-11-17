@@ -12,7 +12,7 @@
 //!   [`Refused`]: the reason, with the wiring and buffers handed back
 //!   (`BlockingSpi::new`: the wiring).
 //! - **transfer**: `start(tx)` begins one full-duplex DMA transfer and
-//!   returns; `on_interrupt()` (or `poll()`) reports its completion, after
+//!   returns; `on_interrupt()`, from the vector or a task, reports its completion, after
 //!   which `received()` holds the bytes clocked in. `abort()` recovers a
 //!   transfer that never finishes.
 //! - **blocking**: `embedded_hal::spi::SpiBus`, each operation bounded.
@@ -39,7 +39,7 @@ pub use stream_dma::Spi;
 
 pub use embedded_hal::spi::{MODE_0, MODE_1, MODE_2, MODE_3, Mode, Phase, Polarity};
 
-pub use crate::resource::{IrqError, Refused, Resource, Signal};
+pub use crate::resource::{IrqError, Refused, Resource, Signal, Vectors};
 pub use crate::time::CycleClock;
 use crate::time::Hertz;
 
@@ -217,29 +217,6 @@ pub type SpiRefused<U, Sck, Miso, Mosi, TxDma, RxDma> =
 /// refuses: the reason, and the wiring it took.
 pub type BlockingSpiRefused<U, Sck, Miso, Mosi> =
     crate::resource::Refused<ConfigError, BlockingWiring<U, Sck, Miso, Mosi>>;
-
-/// The interrupt vector an SPI needs bound, from `Spi::interrupts`: its
-/// receive stream's, whose handler calls `Spi::on_interrupt`.
-#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct SpiInterrupts {
-    pub rx_dma: crate::chip::Interrupt,
-}
-
-#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
-impl SpiInterrupts {
-    pub fn iter(&self) -> impl Iterator<Item = crate::chip::Interrupt> {
-        [self.rx_dma].into_iter()
-    }
-
-    /// Checks the NVIC, reading only: the vector is enabled. That the tasks
-    /// sharing the `Spi` with its handler lock it is for the firmware to
-    /// keep.
-    pub fn verify(&self) -> Result<(), IrqError> {
-        crate::resource::verify_vectors(self.iter())
-    }
-}
 
 /// Why `Spi::new`, `set_config` or `check` refused. `Spi::new` returns it
 /// in a [`Refused`], with what it took.
