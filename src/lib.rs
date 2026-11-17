@@ -134,7 +134,8 @@ pub(crate) mod spi_v2;
 pub(crate) mod spi_v4;
 #[cfg(feature = "usart_v2")]
 pub(crate) mod usart_v2;
-#[cfg(feature = "usart_v4")]
+// USART v3 is served by the v4 module (ADR-011).
+#[cfg(any(feature = "usart_v3", feature = "usart_v4"))]
 pub(crate) mod usart_v4;
 
 #[cfg(feature = "adc_v2")]
@@ -175,7 +176,7 @@ pub use timer_v1 as timer;
 pub use timer_v3 as timer;
 #[cfg(feature = "usart_v2")]
 use usart_v2 as usart_ip;
-#[cfg(feature = "usart_v4")]
+#[cfg(any(feature = "usart_v3", feature = "usart_v4"))]
 use usart_v4 as usart_ip;
 
 #[cfg(feature = "stm32f401re")]

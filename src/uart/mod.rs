@@ -1,8 +1,8 @@
 //! The UART every chip offers, independent of the hardware underneath.
 //!
 //! This module is chip-neutral. It defines what a UART driver takes and
-//! reports; each IP version (`usart_v2` on F4, `usart_v4` on H7, later
-//! others) supplies a driver with the same shape:
+//! reports; each IP version (`usart_v2` on F4, `usart_v4` on H7 and, for
+//! v3, F7; later others) supplies a driver with the same shape:
 //!
 //! - **init**: `Uart::new(&mut rcc, wiring, &config, buffers)`. The
 //!   [`Wiring`] comes from the board file and names the instance, pins and
@@ -30,7 +30,7 @@ pub(crate) mod stream_dma;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 mod tx_ring;
 
-#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+#[cfg(any(feature = "usart_v2", feature = "usart_v3", feature = "usart_v4"))]
 pub use stream_dma::{
     Events, Info, Instance, Parts, RxDma, RxPin, TxDma, TxPin, Uart, UartRefused, UartRxRefused,
     check,
@@ -121,7 +121,7 @@ impl Config {
     /// BRR for oversampling by 16 with no prescaler: the kernel clock over
     /// the baud rate, in 12.4 fixed point, which is the plain quotient
     /// rounded.
-    #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+    #[cfg(any(feature = "usart_v2", feature = "usart_v3", feature = "usart_v4"))]
     pub(crate) const fn divider(
         &self,
         kernel_clock: crate::time::Hertz,

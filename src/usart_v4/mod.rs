@@ -1,5 +1,7 @@
 //! USART v4 (`usart_v4`, the ISR/ICR/RDR/TDR register set of G4, H5, H7
 //! and others): the register operations the [`crate::uart`] driver needs.
+//! It serves USART v3 (F7) too: the same registers at the same offsets,
+//! less PRESC and the FIFOs, so only the PRESC write is gated (ADR-011).
 //! The driver and the routing traits the glue implements are
 //! [`crate::uart`]'s.
 //!
@@ -71,6 +73,8 @@ impl Unit {
             w.set_eie(true);
             w.set_hdsel(config.half_duplex);
         });
+        // v3 has no prescaler; on v4 it stays divide-by-one.
+        #[cfg(feature = "usart_v4")]
         regs.presc().write(|w| w.0 = 0);
         regs.brr().write(|w| w.set_brr(brr));
         regs.cr1().write(|w| {
