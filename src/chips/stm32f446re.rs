@@ -117,6 +117,7 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
         above: Hertz::mhz(168),
         pclk1_max: Hertz::mhz(45),
         pclk2_max: Hertz::mhz(90),
+        erratum: None,
     }),
 };
 

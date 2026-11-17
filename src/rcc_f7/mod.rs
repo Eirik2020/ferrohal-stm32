@@ -84,6 +84,11 @@ impl RCC {
             Ok(clocks) => clocks,
             Err(error) => return Err(Refused::new(error, self)),
         };
+        // A revision without the over-drive cannot run the HCLK that needs
+        // it: refused before anything is written (ES0206 2.2.12).
+        if CLOCK_LIMITS.overdrive_withheld(clocks.overdrive, crate::signature::revision()) {
+            return Err(Refused::new(ClockError::Hclk, self));
+        }
         apply(config, &clocks).map_err(|error| Refused::new(error, self))?;
         Ok(Rcc { clocks })
     }

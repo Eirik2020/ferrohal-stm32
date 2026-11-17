@@ -69,12 +69,13 @@ requirements:
       On a chip with a regulator over-drive, the driver shall run the
       regulator in over-drive exactly when the configuration's HCLK is above
       the chip's over-drive threshold, entering it before the system runs
-      from the PLL.
+      from the PLL, and refuse that configuration unwritten on a silicon
+      revision without one.
     rationale: >-
-      Above that threshold (180 MHz on the F7, 168 MHz on the F446) the chip
-      runs out of specification without the over-drive (DS11853 Table 16,
-      DS10916 Table 18, DS10693 Table 16), and the over-drive's higher APB
-      limits hold only while it is on.
+      Above the threshold (180 MHz on the F7, 168 MHz on the F446 and
+      F427/F429) running without it is out of specification (DS11853 Table
+      16, DS10916 Table 18, DS10693 Table 16, DS9405 Table 17); its APB limits
+      hold only while on. ES0206 2.2.12: revisions A and Y lack it.
     derived_from: [RCC-003]
     verification:
       entries:

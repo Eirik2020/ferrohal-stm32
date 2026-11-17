@@ -558,9 +558,25 @@ pub(crate) struct Overdrive {
     pub above: Hertz,
     pub pclk1_max: Hertz,
     pub pclk2_max: Hertz,
+    /// An erratum that takes the over-drive away on some revisions (ES0206
+    /// 2.2.12): `freeze` refuses a tree that needs it there.
+    pub erratum: Option<&'static crate::errata::Erratum>,
 }
 
 impl Limits {
+    /// Whether a tree that needs the over-drive (`overdrive`) is refused on
+    /// silicon `revision`, because an erratum takes the over-drive away there
+    /// (ES0206 2.2.12: none on the F427/F429's revisions A and Y).
+    pub(crate) fn overdrive_withheld(&self, overdrive: bool, revision: u16) -> bool {
+        match &self.overdrive {
+            Some(Overdrive {
+                erratum: Some(erratum),
+                ..
+            }) => overdrive && erratum.affects(revision),
+            _ => false,
+        }
+    }
+
     /// Whether `hclk` needs the over-drive: never on a chip without one.
     pub(crate) const fn needs_overdrive(&self, hclk: Hertz) -> bool {
         match &self.overdrive {

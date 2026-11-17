@@ -66,6 +66,31 @@ const CHIP_FEATURES: usize = cfg!(feature = "stm32f401ce") as usize
     + cfg!(feature = "stm32f407ze") as usize
     + cfg!(feature = "stm32f407ig") as usize
     + cfg!(feature = "stm32f407ie") as usize
+    + cfg!(feature = "stm32f427vi") as usize
+    + cfg!(feature = "stm32f427vg") as usize
+    + cfg!(feature = "stm32f427zi") as usize
+    + cfg!(feature = "stm32f427zg") as usize
+    + cfg!(feature = "stm32f427ii") as usize
+    + cfg!(feature = "stm32f427ig") as usize
+    + cfg!(feature = "stm32f427ai") as usize
+    + cfg!(feature = "stm32f427ag") as usize
+    + cfg!(feature = "stm32f429vi") as usize
+    + cfg!(feature = "stm32f429vg") as usize
+    + cfg!(feature = "stm32f429ve") as usize
+    + cfg!(feature = "stm32f429zi") as usize
+    + cfg!(feature = "stm32f429zg") as usize
+    + cfg!(feature = "stm32f429ze") as usize
+    + cfg!(feature = "stm32f429ii") as usize
+    + cfg!(feature = "stm32f429ig") as usize
+    + cfg!(feature = "stm32f429ie") as usize
+    + cfg!(feature = "stm32f429ai") as usize
+    + cfg!(feature = "stm32f429ag") as usize
+    + cfg!(feature = "stm32f429bi") as usize
+    + cfg!(feature = "stm32f429bg") as usize
+    + cfg!(feature = "stm32f429be") as usize
+    + cfg!(feature = "stm32f429ni") as usize
+    + cfg!(feature = "stm32f429ng") as usize
+    + cfg!(feature = "stm32f429ne") as usize
     + cfg!(feature = "stm32f446me") as usize
     + cfg!(feature = "stm32f446mc") as usize
     + cfg!(feature = "stm32f446re") as usize
@@ -256,6 +281,12 @@ pub mod chip;
 pub mod chip;
 #[cfg(feature = "_line-stm32f407")]
 #[path = "chips/stm32f407vg.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f427")]
+#[path = "chips/stm32f427vi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f429")]
+#[path = "chips/stm32f429zi.rs"]
 pub mod chip;
 #[cfg(feature = "_line-stm32f446")]
 #[path = "chips/stm32f446re.rs"]

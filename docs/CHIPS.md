@@ -32,6 +32,16 @@ part's clock limits (ADR-008 item 7); do not edit between the markers.
 | STM32F407VG | F4, Cortex-M4F | 0x413 | STM32F407 | LQFP100 (82) | 168 MHz |
 | STM32F407ZG | F4, Cortex-M4F | 0x413 | STM32F407 | LQFP144 (114) | 168 MHz |
 | STM32F407IG | F4, Cortex-M4F | 0x413 | STM32F407 | LQFP176 (140) | 168 MHz |
+| STM32F427VI | F4, Cortex-M4F | 0x419 | STM32F427 | LQFP100 (82) | 180 MHz |
+| STM32F427ZI | F4, Cortex-M4F | 0x419 | STM32F427 | LQFP144 (114) | 180 MHz |
+| STM32F427II | F4, Cortex-M4F | 0x419 | STM32F427 | LQFP176 (140) | 180 MHz |
+| STM32F427AI | F4, Cortex-M4F | 0x419 | STM32F427 | UFBGA169 (130) | 180 MHz |
+| STM32F429VI | F4, Cortex-M4F | 0x419 | STM32F429 | LQFP100 (82) | 180 MHz |
+| STM32F429ZI | F4, Cortex-M4F | 0x419 | STM32F429 | LQFP144 (114) | 180 MHz |
+| STM32F429II | F4, Cortex-M4F | 0x419 | STM32F429 | LQFP176 (140) | 180 MHz |
+| STM32F429AI | F4, Cortex-M4F | 0x419 | STM32F429 | UFBGA169 (130) | 180 MHz |
+| STM32F429BI | F4, Cortex-M4F | 0x419 | STM32F429 | LQFP208 (168) | 180 MHz |
+| STM32F429NI | F4, Cortex-M4F | 0x419 | STM32F429 | TFBGA216 (168) | 180 MHz |
 | STM32F446ME | F4, Cortex-M4F | 0x421 | STM32F446 | WLCSP81 (63) | 180 MHz |
 | STM32F446RE | F4, Cortex-M4F | 0x421 | STM32F446 | LQFP64 (50) | 180 MHz |
 | STM32F446VE | F4, Cortex-M4F | 0x421 | STM32F446 | LQFP100 (81) | 180 MHz |
@@ -85,6 +95,16 @@ the markers; the merge gate regenerates them.
 | STM32F407VG | – | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F407ZG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F407IG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F427VI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F427ZI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F427II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F427AI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F429VI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F429ZI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F429II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F429AI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F429BI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F429NI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F446ME | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F446RE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F446VE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
@@ -132,23 +152,23 @@ policy as the glue (`tools/glue-gen/src/emit.rs`); n/a: the part has none; –: 
 one in an IP version FerroHAL does not drive yet.
 
 <!-- generated: glue-gen instances -->
-| capability | F401CE | F401RE | F401VE | F411CE | F411RE | F411VE | F405OG | F405RG | F405VG | F405ZG | F407VG | F407ZG | F407IG | F446ME | F446RE | F446VE | F446ZE | F722RE | F722VE | F722ZE | F722IE | F745VG | F745ZG | F745IG | F767VI | F767ZI | F767II | F767BI | F767NI | H743VI | H743ZI | H743II | H743BI | H743AI | H743XI | H753VI | H753ZI | H753II | H753BI | H753AI | H753XI |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **UART** (`Uart`, `UartRx`) | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | – | – | – | – | – | – | – | – | – | – | – | – | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
-| **SPI** over DMA (`Spi`) | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 |
-| **SPI** polled (`BlockingSpi`) | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 |
-| **I2C** (`I2c`) | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 |
-| **Timers** (`Tick`, `Timebase`, `Pwm`) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 |
-| compare channels (PWM, lanes) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 |
-| complementary outputs (CHxN) | TIM1 | TIM1 | TIM1 | TIM1 | TIM1 | TIM1 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 |
-| **ADC** (`Adc`, `AdcScan`) | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 |
-| **USB** device (`UsbFs`) | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS |
-| **SDMMC** (`Sdmmc`) | n/a | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 |
-| **DMA** controllers | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 |
+| capability | F401CE | F401RE | F401VE | F411CE | F411RE | F411VE | F405OG | F405RG | F405VG | F405ZG | F407VG | F407ZG | F407IG | F427VI | F427ZI | F427II | F427AI | F429VI | F429ZI | F429II | F429AI | F429BI | F429NI | F446ME | F446RE | F446VE | F446ZE | F722RE | F722VE | F722ZE | F722IE | F745VG | F745ZG | F745IG | F767VI | F767ZI | F767II | F767BI | F767NI | H743VI | H743ZI | H743II | H743BI | H743AI | H743XI | H753VI | H753ZI | H753II | H753BI | H753AI | H753XI |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **UART** (`Uart`, `UartRx`) | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | – | – | – | – | – | – | – | – | – | – | – | – | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
+| **SPI** over DMA (`Spi`) | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-6 | SPI1-6 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-5 |
+| **SPI** polled (`BlockingSpi`) | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-5 | SPI1-6 | SPI1-6 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-4 | SPI1-3 | SPI1-4 | SPI1-5 | SPI1-5 | SPI1-4 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-4/6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 | SPI1-6 |
+| **I2C** (`I2c`) | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 |
+| **Timers** (`Tick`, `Timebase`, `Pwm`) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 | TIM1-8/12-17 |
+| compare channels (PWM, lanes) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 | TIM1-5/8/12-17 |
+| complementary outputs (CHxN) | TIM1 | TIM1 | TIM1 | TIM1 | TIM1 | TIM1 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 | TIM1/8/15-17 |
+| **ADC** (`Adc`, `AdcScan`) | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 | ADC1/3 |
+| **USB** device (`UsbFs`) | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS |
+| **SDMMC** (`Sdmmc`) | n/a | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 | SDMMC1/2 |
+| **DMA** controllers | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 |
 <!-- end generated -->
 
 What each driver does, hand-written: ✓ supported · – on the chip, not supported · n/a
-not on the chip. The F407VG and F446RE are as the F405RG throughout, the F411CE as the
+not on the chip. The F407VG, F427VI, F429ZI and F446RE are as the F405RG throughout, the F411CE as the
 F401RE, and the F745VG and F767ZI as the F722RE. Another package of a line is as its line's column, with
 the instances the table above gives it. The F7's UARTs (usart_v3) wait for the UART
 redesign.
@@ -222,11 +242,11 @@ names where the code documents it.
 - Arming and staging two lanes takes 14 µs on the F401 at 84 MHz.
 - Samplers are measured up to about 7 MHz.
 - Only the trigger routes in use are offered: TIM1→TIM3, TIM1→TIM8, and TIM3→TIM2 on
-  the F4 and F7 (RM0090 table 94, RM0368 table 54, RM0383 table 53, RM0390 table 112, RM0431 table 121,
+  the F4 and F7 (RM0090 tables 94 and 98, RM0368 table 54, RM0383 table 53, RM0390 table 112, RM0431 table 121,
   RM0385 table 154, RM0410 table 183, RM0433 table 336).
 - F4: DMA2 serving GPIO and APB2 at once can corrupt data (ES0299 2.2.11, ES0287 2.2.11, ES0182
   2.2.19), and only DMA2 reaches GPIO, so samplers and two-way lanes must not overlap
-  APB2 DMA (TIM1, TIM8, SPI1, USART1/6). On the F446 (RM0390 figure 1) and the F7 too
+  APB2 DMA (TIM1, TIM8, SPI1, USART1/6). The F427/F429 (ES0206) lack that erratum. On the F446 (RM0390 figure 1) and the F7 too
   only DMA2 reaches GPIO (RM0431, RM0385 and RM0410 8.3.2), without that erratum.
 
 **Watchdog**
@@ -251,11 +271,16 @@ names where the code documents it.
   reads zeros from the DTCM while the core sleeps (ES0334 2.2.4), so there
   `check_dma_buffer` refuses DTCM buffers.
 
-**Clocks and power (F446)**
+**Clocks and power (F446, F427, F429)**
 - HCLK above 168 MHz runs in over-drive, entered and left as on the F7 (RM0390 5.1.3).
   APB1 and APB2 are capped at 42 and 84 MHz without it, 45 and 90 with it.
-- SPI1 and SPI4 sit on APB2: a master receiving there wants PCLK2 at or below 84 MHz,
-  since ES0298 2.14.5 allows no more even with SCK at very high speed.
+- The F427/F429's revisions A and Y have no over-drive (ES0206 2.2.12): there `freeze`
+  refuses HCLK above 168 MHz with `ClockError::Hclk`.
+- The SPIs on APB2 (SPI1 and SPI4, and SPI5 and SPI6 on the F427/F429): a master
+  receiving there wants PCLK2 at or below 84 MHz, since ES0298 2.14.5 and ES0206 2.12.4
+  allow no more even with SCK at very high speed.
+- F427/F429 revisions A, Y and 1: on a 2 MiB part, or a 1 MiB part in dual-bank mode,
+  PA12 must stay unconnected and held low, so OTG_FS is unusable there (ES0206 2.2.14).
 
 **Clocks and power (F7)**
 - HCLK above 180 MHz runs in over-drive, which `freeze` enters and leaves on HSI: freeze

@@ -123,6 +123,76 @@ pub const PARTS: &[Part] = &[
         package: "LQFP176",
     },
     Part {
+        feature: "stm32f427vi",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F427",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f427zi",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F427",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32f427ii",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F427",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32f427ai",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F427",
+        package: "UFBGA169",
+    },
+    Part {
+        feature: "stm32f429vi",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F429",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f429zi",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F429",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32f429ii",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F429",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32f429ai",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F429",
+        package: "UFBGA169",
+    },
+    Part {
+        feature: "stm32f429bi",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F429",
+        package: "LQFP208",
+    },
+    Part {
+        feature: "stm32f429ni",
+        series: "F4",
+        die: 0x419,
+        device: "STM32F429",
+        package: "TFBGA216",
+    },
+    Part {
         feature: "stm32f446me",
         series: "F4",
         die: 0x421,
@@ -360,6 +430,21 @@ pub const VARIANTS: &[(&str, &str)] = &[
     ("stm32h743bg", "stm32h743bi"),
     ("stm32h743ag", "stm32h743ai"),
     ("stm32h743xg", "stm32h743xi"),
+    ("stm32f427vg", "stm32f427vi"),
+    ("stm32f427zg", "stm32f427zi"),
+    ("stm32f427ig", "stm32f427ii"),
+    ("stm32f427ag", "stm32f427ai"),
+    ("stm32f429vg", "stm32f429vi"),
+    ("stm32f429ve", "stm32f429vi"),
+    ("stm32f429zg", "stm32f429zi"),
+    ("stm32f429ze", "stm32f429zi"),
+    ("stm32f429ig", "stm32f429ii"),
+    ("stm32f429ie", "stm32f429ii"),
+    ("stm32f429ag", "stm32f429ai"),
+    ("stm32f429bg", "stm32f429bi"),
+    ("stm32f429be", "stm32f429bi"),
+    ("stm32f429ng", "stm32f429ni"),
+    ("stm32f429ne", "stm32f429ni"),
 ];
 
 /// The benches evidence is recorded on (`hil/<crate>`), each with the part
@@ -376,6 +461,11 @@ pub const DIES: &[Die] = &[
     Die {
         id: 0x413,
         lines: &["STM32F405", "STM32F407", "STM32F415", "STM32F417"],
+        manual: "RM0090",
+    },
+    Die {
+        id: 0x419,
+        lines: &["STM32F427", "STM32F429", "STM32F437", "STM32F439"],
         manual: "RM0090",
     },
     Die {
@@ -554,7 +644,7 @@ mod tests {
             features("die 0x433"),
             ["stm32f401ce", "stm32f401re", "stm32f401ve"]
         );
-        assert_eq!(features("series F4").len(), 17);
+        assert_eq!(features("series F4").len(), 27);
         assert_eq!(features("series f7").len(), 12);
         assert_eq!(features("series h7").len(), 12);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);
