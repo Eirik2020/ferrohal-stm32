@@ -57,6 +57,19 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def run_binaries(crate):
+    """{run letter: binary} from hil/<crate>/runs.tsv, the bench's alias table
+    (API review B1: binaries are named by test, letters stay the aliases)."""
+    table = {}
+    path = ROOT / "hil" / crate / "runs.tsv"
+    if path.exists():
+        for line in path.read_text().splitlines():
+            if line and not line.startswith("#"):
+                letter, binary = line.split()
+                table[letter] = binary
+    return table
+
+
 # The line a run script writes before it builds: `build features: a,b` or
 # `build features: none`. A log without one was built with the defaults.
 FEATURES = re.compile(r"^build features: (.+)$", re.M)
@@ -138,14 +151,16 @@ def prepare(folder, analysis_only=False, bench_only=None):
         (folder / f"{crate}-images.sha256").write_text("".join(lines))
     for bench, rs in runs.items():
         crate = BENCH[bench]
+        binaries = run_binaries(crate)
         lines = []
         for run in sorted(rs):
             log = ROOT / "hil/logs" / f"{bench}-run-{run}.log"
             if log.exists():
                 shutil.copy(log, folder / f"{crate}-run-{run}.log")
-            image = ROOT / "hil" / crate / "target/thumbv7em-none-eabihf/release" / f"run-{run}"
+            binary = binaries.get(run, f"run-{run}")
+            image = ROOT / "hil" / crate / "target/thumbv7em-none-eabihf/release" / binary
             if image.exists():
-                lines.append(f"{sha(image)}  run-{run}\n")
+                lines.append(f"{sha(image)}  {binary}\n")
         (folder / f"{crate}-images.sha256").write_text("".join(lines))
     out = subprocess.run(["checks/run.sh"], cwd=ROOT, capture_output=True, text=True)
     (folder / "checks-run.log").write_text(out.stdout + out.stderr)

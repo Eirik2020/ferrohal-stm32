@@ -48,4 +48,4 @@ contract. Ecosystem precedent exists: `stm32h7xx-hal-0.16` has 11 `free(...)` me
 - The fresh-boot bench runs stay valid; they simply become redundant and can be folded
   back once `free()` exists.
 - `DEBT.md`'s "no `release()`/`free()`" entry closes only when the redesign lands
-  (closed 2026-11-12, moved to [RESOLVED.md](../RESOLVED.md)).
+  (closed 2026-11-12, moved to [RESOLVED.md](../resolved/README.md)).

@@ -1,8 +1,8 @@
 # FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16
 
-The crate-wide entries of [RESOLVED.md](RESOLVED.md) resolved from 2026-11-10 to
+The crate-wide entries of [README.md](README.md) resolved from 2026-11-10 to
 2026-11-16, split out on 2026-11-17 to keep it in its budget. Newest first. Older ones are
-in [RESOLVED-crate-wide-to-2026-11-09.md](RESOLVED-crate-wide-to-2026-11-09.md).
+in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
 
 ## Crate-wide, 2026-11-10 to 2026-11-16
 
@@ -214,7 +214,7 @@ in [RESOLVED-crate-wide-to-2026-11-09.md](RESOLVED-crate-wide-to-2026-11-09.md).
 
 - **`Spi`, `BlockingSpi` and `I2c` hand their tokens back** (2026-11-12). DEBT's
   "`Spi` and `I2c` have no `free()`" closed the `free()` redesign
-  ([ADR-002](decisions/2026-11-08-free-teardown-brief.md)): `Spi<U>`,
+  ([ADR-002](../decisions/2026-11-08-free-teardown-brief.md)): `Spi<U>`,
   `BlockingSpi<U>` and `I2c<U>` carry the instance token; `free()` stops the
   streams (SPI) or closes the unit (I2C, polled SPI) and returns it; a
   constructor refusal hands the token back with the wiring; and `Spi::check`
@@ -242,7 +242,7 @@ in [RESOLVED-crate-wide-to-2026-11-09.md](RESOLVED-crate-wide-to-2026-11-09.md).
   `Uart::set_config` is that same call on the whole UART, so the benches' frame
   changes run it. Since 2026-11-13 the halves carry their instance, so only the
   line's own transmit half compiles in.
-- **FerroWasp adopted FerroHAL; the prototype's open questions are closed** (2026-11-10). DEBT §6 carried the map's two: the kill condition, undecided, and how to measure reuse. The swap landed - FerroWasp's `main` pins FerroHAL `b6d8e84` with `rt`, and the Foxeer's and the Lucid's images run on it - so the kill condition is moot: FerroHAL is the hardware layer, pinned by exact revision until it is published ([ADR-005](decisions/2026-10-31-ferrowasp-integration.md)). Reuse has its standing measurement: the shared UART engine runs unchanged on `usart_v2` and `usart_v4` - the per-IP `Line` is about 150 lines, the engine about 800 - measured as it shipped.
+- **FerroWasp adopted FerroHAL; the prototype's open questions are closed** (2026-11-10). DEBT §6 carried the map's two: the kill condition, undecided, and how to measure reuse. The swap landed - FerroWasp's `main` pins FerroHAL `b6d8e84` with `rt`, and the Foxeer's and the Lucid's images run on it - so the kill condition is moot: FerroHAL is the hardware layer, pinned by exact revision until it is published ([ADR-005](../decisions/2026-10-31-ferrowasp-integration.md)). Reuse has its standing measurement: the shared UART engine runs unchanged on `usart_v2` and `usart_v4` - the per-IP `Line` is about 150 lines, the engine about 800 - measured as it shipped.
 - **`hil/run-dfu.sh` refuses an ambiguous DFU pick and checks the download** (2026-11-10). It flashed whichever DFU device first matched the flash layout - the H743VI and H753ZI both list `16*128Kg` - and ran on after `dfu-util`'s trailing `get_status` error, which also hides a failed download (inferred from the script; found in review). More than one matching device now lists them and stops, `<BOARD>_DFU_SERIAL` pins the pick, and a flash must show `File downloaded successfully`; matches count per device (`devnum`), because one device lists a line per alt setting - a first pin version counted lines and refused the one Lucid it was meant to pick. Measured: a stub listing is refused at three devices on the layout and at two devices sharing one serial, a serial matching one device's two alt settings passes the guard, and a download without the success line fails the flash; the Lucid's bench then passes 51 of 51 with `LUCID_H7_DFU_SERIAL` set. Its H7 prints its IDCODE as the DFU serial (`200364500000`) and the H753ZI's IDCODE measured the same, so the count guard, not the pin, tells that pair apart.
 - **Every boot's watchdog checks reach the exit status** (2026-11-10). Runs J and K printed boot 1's fresh-start and debug-freeze checks, but only the last boot set the run's exit status, so a failure there passed the run. `hil/common/watchdog.rs` now stakes the starving boot's failure count in a third whole doubleword of `.uninit` RAM beside its magic-tagged marker - whole doublewords, because the H7's SRAM ECC drops an incomplete one across a reset (RM0433 2.4) - and the next boot's `after_reset` reports it; run K's window marker already carried boot 2. Measured: `run-h753.sh k` passes 10 of 10 and `run-f401.sh j` 7 of 7, both with `the starvation boot passed its checks` (2026-11-10).
 - **FerroWasp's H7 bootloader request survives the reset** (2026-11-10). DEBT §5 expected it lost: `ferrowasp-stm32h7-critical` wrote one word to AXI SRAM just before the reset, which RM0433 2.4 says a reset loses. Since the swap, ferro-wasp's `system_bootloader` calls FerroHAL's `reset::reboot_to_bootloader`, which fills the doubleword, and the Lucid entered its ROM DFU from FerroWasp's `reboot dfu` with no BOOT hold (DEBT's H743VI status, 2026-11-10).
@@ -250,4 +250,4 @@ in [RESOLVED-crate-wide-to-2026-11-09.md](RESOLVED-crate-wide-to-2026-11-09.md).
 
 - **The Lucid's die is revision V, and its UID is read** (2026-11-10). `signature::revision()` reads `DBGMCU_IDC.REV_ID`, and the USB-reporting benches print it beside the UID: the Lucid reports 0x2003, which ES0392 Table 2 maps to revision V, so 2.2.10 (AXI SRAM reads) and 2.2.21 (480 MHz/VOS0) do not apply to it. `hil/run-lucid.sh` passed 51 of 51 with `PASS rev: 0x2003 (V)` and twelve non-zero UID bytes; SIG-002 covers the read, and the earlier `device_uid` item is closed by the same log.
 
-Older crate-wide entries, up to 2026-11-09: [RESOLVED-crate-wide-to-2026-11-09.md](RESOLVED-crate-wide-to-2026-11-09.md).
+Older crate-wide entries, up to 2026-11-09: [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).

@@ -18,7 +18,7 @@
 //! | `0x34` | TRANS | nothing | transactions since CLEAR, u32 LE |
 //! | `0x38` | SHAPE | nothing | `[0]` none, `[1]` write, `[2]` read, `[3]` write-read |
 //! | `0x3C` | CLEAR | 1: zero BYTES, TRANS and SHAPE, spend the one-shots | `[0]` |
-//! | `0x3D` | BOOT | 1: reboot into the USB bootloader (run-t sends it) | `[0]` |
+//! | `0x3D` | BOOT | 1: reboot into the USB bootloader (the F401's `pico-reboot`, run T, sends it) | `[0]` |
 //!
 //! Every write's first byte is the register pointer; the rest is payload.
 //! The counters make the master's cross-checks byte-exact: the map counts
@@ -62,7 +62,7 @@ pub const REG_TRANS: u8 = 0x34;
 pub const REG_SHAPE: u8 = 0x38;
 pub const REG_CLEAR: u8 = 0x3C;
 /// 1: the simulator reboots into its USB bootloader, so the next flash
-/// needs no finger on the button. The run that sends it is `run-t`.
+/// needs no finger on the button. The run that sends it is the F401's `pico-reboot` (run T).
 pub const REG_BOOT: u8 = 0x3D;
 
 /// The refused-data capability: the slave ACKs the address, then NACKs

@@ -2,7 +2,7 @@
 
 Debt is work FerroHAL owes on what it already ships: a flaw, an inconsistency, shipped
 code with no hardware proof, or a missing check. Finished items move to
-[RESOLVED.md](RESOLVED.md). Three things are not debt and live elsewhere (owner,
+[resolved/](resolved/README.md). Three things are not debt and live elsewhere (owner,
 2026-11-13):
 
 - **A feature not built** is the roadmap: [CHIPS.md](CHIPS.md#not-supported-yet).
@@ -85,12 +85,9 @@ each leaves for `RESOLVED.md` when the F401 and H753 benches rerun on that code.
 | N9 | `code` `api` | L | Vector-name constants differ by driver. | `2e7f7fe`, `4070cd8` |
 | N10 | `code` `api` | L | DMA fault variant `DmaTransfer`/`DmaOverrun` vs `Dma`. | `42cbcaf` UART, then `99e6404` |
 | N12 | `code` `api` | L | Health counters differ in plurality, type and overflow. | `42cbcaf`, `99e6404`, `cdfe190` |
-| S2 | `code` | L | Timer submodules by `#[path]`; twelve lone `mod.rs`. | `ea7a9f8` |
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
 | U10 | `code` | L | `interrupt()` + `verify_vectors` three times. | `4070cd8`, `ea7a9f8` |
-| B1 | `bench` `owner` | L | A run letter means a different test on each bench. | `55025e8` the H753 bench numbered its own runs |
-| B2 | `bench` `tool` | L | H753 runs generated, F401 runs by hand. | `8b0266b` generator for the H753 only |
 
 ## 3. Shipped code without hardware proof: bench work
 
@@ -131,7 +128,7 @@ each leaves for `RESOLVED.md` when the F401 and H753 benches rerun on that code.
   2026-11-15.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. Every F4 here
-  is past revision A, so ES0182 2.2.2's mapping (`RESOLVED.md`) stands on host tests
+  is past revision A, so ES0182 2.2.2's mapping (`resolved/`) stands on host tests
   alone. *Spawned:* the W11 audit (`ff3af8d`, 2026-11-10).
 
 ## 5. CI and merging

@@ -5,134 +5,134 @@ edition = "2024"
 publish = false
 
 [[bin]]
-name = "run-a"
-path = "src/bin/run_a.rs"
+name = "uart-each"
+path = "src/bin/uart_each.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-b"
-path = "src/bin/run_b.rs"
+name = "uart-cross"
+path = "src/bin/uart_cross.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-c"
-path = "src/bin/run_c.rs"
+name = "uart-other-stream"
+path = "src/bin/uart_other_stream.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-d"
-path = "src/bin/run_d.rs"
+name = "uart-rx-only"
+path = "src/bin/uart_rx_only.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-e"
-path = "src/bin/run_e.rs"
+name = "spi-exti"
+path = "src/bin/spi_exti.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-f"
-path = "src/bin/run_f.rs"
+name = "spi-other-pins"
+path = "src/bin/spi_other_pins.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-g"
-path = "src/bin/run_g.rs"
+name = "spi3-port-b"
+path = "src/bin/spi3_port_b.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-h"
-path = "src/bin/run_h.rs"
+name = "timers-against-dwt"
+path = "src/bin/timers_against_dwt.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-i"
-path = "src/bin/run_i.rs"
+name = "dshot-lanes"
+path = "src/bin/dshot_lanes.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-j"
-path = "src/bin/run_j.rs"
+name = "watchdog"
+path = "src/bin/watchdog.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-k"
-path = "src/bin/run_k.rs"
+name = "spi-polled"
+path = "src/bin/spi_polled.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-l"
-path = "src/bin/run_l.rs"
+name = "bootloader-request"
+path = "src/bin/bootloader_request.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-m"
-path = "src/bin/run_m.rs"
+name = "adc"
+path = "src/bin/adc.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-n"
-path = "src/bin/run_n.rs"
+name = "timer-trigger"
+path = "src/bin/timer_trigger.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-o"
-path = "src/bin/run_o.rs"
+name = "awg-out"
+path = "src/bin/awg_out.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-p"
-path = "src/bin/run_p.rs"
+name = "lane-in"
+path = "src/bin/lane_in.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-q"
-path = "src/bin/run_q.rs"
+name = "i2c-master"
+path = "src/bin/i2c_master.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-r"
-path = "src/bin/run_r.rs"
+name = "motor-lanes"
+path = "src/bin/motor_lanes.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-s"
-path = "src/bin/run_s.rs"
+name = "i2c-pico"
+path = "src/bin/i2c_pico.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-t"
-path = "src/bin/run_t.rs"
+name = "pico-reboot"
+path = "src/bin/pico_reboot.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-v"
-path = "src/bin/run_v.rs"
+name = "refusals"
+path = "src/bin/refusals.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-w"
-path = "src/bin/run_w.rs"
+name = "faults"
+path = "src/bin/faults.rs"
 test = false
 bench = false
 

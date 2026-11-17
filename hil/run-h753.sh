@@ -15,6 +15,8 @@
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
+# A run letter's binary, from the bench's alias table (API review B1).
+bin_of() { awk -v r="$1" '$1 == r { print $2 }' "$here/nucleo-h753zi-loopback/runs.tsv"; }
 mkdir -p "$here/logs"
 source "$here/probe.sh"
 probe_for H753_PROBE 0x450 || exit 1
@@ -62,7 +64,7 @@ for run in ${*:-probe a b c d e f g h i j k l m n o p q r s t u w x y z}; do
     host=""
     code=0
     if [ "$run" = m ]; then
-        (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo build --release --bin run-m) >> "$log" 2>&1
+        (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo build --release --bin "$(bin_of m)") >> "$log" 2>&1
         code=$?
         if [ "$code" -eq 0 ]; then
             python3 -I "$here/usb_cdc_host.py" --fresh 30 h753zi > "$log.host" 2>&1 &
@@ -74,10 +76,10 @@ for run in ${*:-probe a b c d e f g h i j k l m n o p q r s t u w x y z}; do
         # so the script checks for its DFU device, then erases the chip.
         prefix=$(idcode)
         before=$(dfu_serials)
-        (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo build --release --bin run-z) >> "$log" 2>&1 || code=$?
+        (cd "$here/nucleo-h753zi-loopback" && timeout 300 cargo build --release --bin "$(bin_of z)") >> "$log" 2>&1 || code=$?
         if [ "$code" -eq 0 ]; then
             (cd "$here/nucleo-h753zi-loopback" && CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER="probe-rs run --no-catch-reset --chip STM32H753ZI" \
-                timeout 60 cargo run --release --bin run-z) >> "$log" 2>&1 &
+                timeout 60 cargo run --release --bin "$(bin_of z)") >> "$log" 2>&1 &
             runner_pid=$!
             found=""
             for _ in $(seq 1 30); do
@@ -107,7 +109,7 @@ for run in ${*:-probe a b c d e f g h i j k l m n o p q r s t u w x y z}; do
             [ "$run" = t ] && features=(--features fault-injection)
             # For tools/record_evidence.py: what this image was built with.
             if [ "${#features[@]}" -gt 0 ]; then echo "build features: ${features[1]}"; else echo "build features: none"; fi >> "$log"
-            (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release "${features[@]}" --bin "run-$run") >> "$log" 2>&1
+            (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release "${features[@]}" --bin "$(bin_of "$run")") >> "$log" 2>&1
         fi
         code=$?
     fi

@@ -71,9 +71,12 @@ def owed_by_code(files, runs_of):
             if f in whole or f.startswith("hil/common/"):
                 owed[bench].update(runs_of[bench])
             elif f.startswith(f"hil/{crate}/"):
-                m = re.fullmatch(rf"hil/{re.escape(crate)}/src/bin/run_([a-z])\.rs", f)
-                if m:
-                    owed[bench].add(m.group(1))
+                letters = {
+                    f"hil/{crate}/src/bin/{binary.replace('-', '_')}.rs": letter
+                    for letter, binary in record_evidence.run_binaries(crate).items()
+                }
+                if f in letters:
+                    owed[bench].add(letters[f])
                 else:
                     owed[bench].update(runs_of[bench])
             elif f.startswith("tools/glue-gen/") and "probe" in runs_of[bench]:

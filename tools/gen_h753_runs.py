@@ -2,7 +2,7 @@
 
     python3 -I tools/gen_h753_runs.py
 
-The four runs (hil/nucleo-h753zi-loopback/src/bin/run_[a-d].rs) differ only
+The four runs A to D (hil/nucleo-h753zi-loopback/src/bin/, named in runs.tsv) differ only
 in which UARTs they open, their interrupt vectors, their frames and run A's
 cache phase and Service count, so they are generated from `RUNS` below rather than kept in
 step by hand. Edit `RUNS` (and the board's wiring in board.rs), rerun this,
@@ -14,6 +14,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 out = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "hil" / "nucleo-h753zi-loopback" / "src" / "bin"
+
+
+def file_of(run):
+    """The run's source file, named by its binary in the bench's alias table."""
+    for line in (ROOT / "hil" / "nucleo-h753zi-loopback" / "runs.tsv").read_text().splitlines():
+        if line and not line.startswith("#") and line.split()[0] == run:
+            return line.split()[1].replace("-", "_") + ".rs"
+    raise SystemExit(f"run {run} is not in runs.tsv")
 
 # run, summary lines, uarts: (field, label, line vector, rx dma vector, tx dma vector, config expr)
 RUNS = {
@@ -359,7 +367,7 @@ mod app {{
     }}
 }}
 """
-    (out / f"run_{run}.rs").write_text(src)
+    (out / file_of(run)).write_text(src)
 # rustfmt, so the files match what `cargo fmt` would leave after a hand edit.
-subprocess.run(["rustfmt", "--edition", "2024", *(str(out / f"run_{run}.rs") for run in RUNS)], check=True)
+subprocess.run(["rustfmt", "--edition", "2024", *(str(out / file_of(run)) for run in RUNS)], check=True)
 print("written")
