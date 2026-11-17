@@ -57,11 +57,17 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
-- `code` `errata` **Low: most errata entries are unreviewed.** ADR-010 transcribed every row
-  of the three sheets: ES0182 86 of 91 have no verdict yet (`Unreviewed` in
-  `docs/errata/`); ES0392 and ES0299 were reviewed row by row on 2026-11-17. Fix:
-  review sheet by sheet, IP versions FerroHAL drives first. *Spawned:* ADR-010's transcription
-  (2026-11-15), which made the unreviewed visible.
+- `code` `errata` **Medium: an F405 revision A reads REV_ID 0x2000, which the errata table takes for a newer revision.**
+  ES0182 2.2.2: on revision A, DBGMCU_IDCODE reads DEV_ID 0x411 (the F2's) and REV_ID
+  0x2000, not 0x1000. `revision()` returns the raw code and `Erratum::affects` treats
+  0x2000 as newer than the sheet's newest (0x101F), so it takes revision 5/6's
+  verdicts: every revision-A-only erratum reads as unaffected, ES0182 2.2.1 among them,
+  and `freeze` sets PRFTEN on the one revision the sheet says has no prefetch queue,
+  the fault ADR-010 fixed. Not High: the sheet says prefetch is "not supported" there,
+  not what it does. Fix: die 0x413's `revision()` maps 0x2000 to 0x1000 (a host test
+  for the mapping); no revision-A part is on the rig. Inferred from the sheet and the
+  source. *Spawned:* the ES0182 row review (2026-11-17), found in ADR-010's matching
+  (2026-11-15).
 - `code` `errata` **Medium: the H7 I2C lacks three ES0392 workarounds.** (2.19.4, every
   revision) `i2c_v2` fails a transfer with `Error::Bus` on BERR, which the sheet says can
   rise spuriously in controller mode while the transfer carries on; fix: clear it and
@@ -73,7 +79,7 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   the source; no bench has been checked for any of them, and both H7s here are rev V.
   *Spawned:* the ES0392 row review (2026-11-17).
 - `code` `errata` **Low: a compare lane may lose a DMA request when its duty steps from the period's top to 0.**
-  ES0392 2.16.2, ES0299 2.6.3: a compare match at CNT = CCR = ARR followed by one at
+  ES0392 2.16.2, ES0299 2.6.3, ES0182 2.7.3: a compare match at CNT = CCR = ARR followed by one at
   CNT = CCR = 0 (edge-aligned, the preloaded duty going from period - 1 to 0) misses
   the second compare event. A lane's next duty is written on its compare request, so the stream
   would fall a period behind. Inferred: the sheet names toggle outputs and the
@@ -86,14 +92,15 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   may go out. Every revision. CDC passes on the H753 bench, which does not look for it.
   Fix: the panic-free device core on the roadmap (`CHIPS.md`), or the crate. *Spawned:*
   the ES0392 row review (2026-11-17).
-- `code` `errata` **Medium: the F4 I2C lacks two errata workarounds.** (ES0299 2.9.1)
+- `code` `errata` **Medium: the F4 I2C lacks two errata workarounds.** (ES0299 2.9.1,
+  ES0182 2.10.1)
   `i2c_v1` fails a transfer with `Error::Bus` on BERR, which the sheet says can rise
   spuriously in controller mode while the transfer carries on; fix: clear it and
-  continue. (ES0299 2.9.3) after another controller's misplaced Stop, START is not
+  continue. (ES0299 2.9.3, ES0182 2.10.3) after another controller's misplaced Stop, START is not
   generated, and the sheet's fix is SWRST, where `recover` toggles PE; fix: SWRST in
   `recover`, keeping CCR and TRISE. Every revision. Inferred from the sheet and the
-  source; no bench has been checked for either. *Spawned:* the ES0299 row review
-  (2026-11-17).
+  source; no bench has been checked for either. *Spawned:* the ES0299 and ES0182
+  row reviews (2026-11-17).
 - `code` `bench` **Medium: above 1 Mbaud, `usart_v2` places a lone parity error late or
   loses it.** F401 run B, 8N2 into 8O1 (one bad byte, then a good frame), both
   directions, measured 2026-11-15: at 115200 and 1 Mbaud the error is seen once and
