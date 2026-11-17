@@ -23,7 +23,7 @@
 //! A NACK during the address or a byte sets SR1's AF; the bus errors set
 //! BERR, ARLO or OVR. All four clear by writing zero. Recovery is a
 //! software reset (SWRST) with the timing registers written back, which
-//! also frees a Start a misplaced Stop blocked (ES0299 2.9.3, ES0287 2.9.3).
+//! also frees a Start a misplaced Stop blocked (ES0299 2.9.3, ES0287 2.9.3, ES0298 2.11.3).
 //!
 //! Requirements: I2C-005, I2C-V1-001, I2C-002, I2C-004, I2C-006
 
@@ -297,7 +297,7 @@ impl Unit {
     /// Nothing to clear: BUSY drops by itself.
     pub(crate) fn stop_clear(self) {}
 
-    /// BERR, cleared by writing zero if set. ES0299 2.9.1, ES0287 2.9.1, ES0182 2.10.1:
+    /// BERR, cleared by writing zero if set. ES0299 2.9.1, ES0287 2.9.1, ES0298 2.11.1, ES0182 2.10.1:
     /// in controller mode it can rise spuriously and has no effect on the
     /// transfer, which carries on; the driver counts it and does not fail
     /// the transfer.
@@ -335,7 +335,7 @@ impl Unit {
     /// back to idle within a bound (BUSY clears only after a stop, RM0368
     /// §27.6.8), then a reset of the peripheral.
     ///
-    /// ES0299 2.9.3, ES0287 2.9.3, ES0182 2.10.3: after a misplaced Stop on the bus, the
+    /// ES0299 2.9.3, ES0287 2.9.3, ES0298 2.11.3, ES0182 2.10.3: after a misplaced Stop on the bus, the
     /// peripheral cannot generate a Start until SWRST, which cycling PE does
     /// not replace. SWRST returns every register to its reset value, so the
     /// timing (CR2's FREQ, CCR, TRISE) is read first and written back before

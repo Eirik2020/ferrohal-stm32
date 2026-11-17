@@ -170,6 +170,28 @@ stm32f407ig = ["stm32-metapac/stm32f407ig", "_line-stm32f407"]
 stm32f407ie = ["stm32-metapac/stm32f407ie", "_line-stm32f407"]
 # The F7s carry usart_v3, which the UART redesign serves (ADR-011); until
 # then they have no UART driver.
+_line-stm32f446 = [
+    "_family-stm32f4",
+    "usart_v2",
+    "spi_v2",
+    "i2c_v1",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v1",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f4",
+    "adc_v2",
+]
+stm32f446me = ["stm32-metapac/stm32f446me", "_line-stm32f446"]
+stm32f446mc = ["stm32-metapac/stm32f446mc", "_line-stm32f446"]
+stm32f446re = ["stm32-metapac/stm32f446re", "_line-stm32f446"]
+stm32f446rc = ["stm32-metapac/stm32f446rc", "_line-stm32f446"]
+stm32f446ve = ["stm32-metapac/stm32f446ve", "_line-stm32f446"]
+stm32f446vc = ["stm32-metapac/stm32f446vc", "_line-stm32f446"]
+stm32f446ze = ["stm32-metapac/stm32f446ze", "_line-stm32f446"]
+stm32f446zc = ["stm32-metapac/stm32f446zc", "_line-stm32f446"]
 _line-stm32f722 = [
     "_family-stm32f7",
     "spi_v3",

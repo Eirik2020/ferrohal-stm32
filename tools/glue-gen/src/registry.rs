@@ -123,6 +123,34 @@ pub const PARTS: &[Part] = &[
         package: "LQFP176",
     },
     Part {
+        feature: "stm32f446me",
+        series: "F4",
+        die: 0x421,
+        device: "STM32F446",
+        package: "WLCSP81",
+    },
+    Part {
+        feature: "stm32f446re",
+        series: "F4",
+        die: 0x421,
+        device: "STM32F446",
+        package: "LQFP64",
+    },
+    Part {
+        feature: "stm32f446ve",
+        series: "F4",
+        die: 0x421,
+        device: "STM32F446",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f446ze",
+        series: "F4",
+        die: 0x421,
+        device: "STM32F446",
+        package: "LQFP144",
+    },
+    Part {
         feature: "stm32f722re",
         series: "F7",
         die: 0x452,
@@ -310,6 +338,10 @@ pub const VARIANTS: &[(&str, &str)] = &[
     ("stm32f407ve", "stm32f407vg"),
     ("stm32f407ze", "stm32f407zg"),
     ("stm32f407ie", "stm32f407ig"),
+    ("stm32f446mc", "stm32f446me"),
+    ("stm32f446rc", "stm32f446re"),
+    ("stm32f446vc", "stm32f446ve"),
+    ("stm32f446zc", "stm32f446ze"),
     ("stm32f722rc", "stm32f722re"),
     ("stm32f722vc", "stm32f722ve"),
     ("stm32f722zc", "stm32f722ze"),
@@ -345,6 +377,11 @@ pub const DIES: &[Die] = &[
         id: 0x413,
         lines: &["STM32F405", "STM32F407", "STM32F415", "STM32F417"],
         manual: "RM0090",
+    },
+    Die {
+        id: 0x421,
+        lines: &["STM32F446"],
+        manual: "RM0390",
     },
     Die {
         id: 0x431,
@@ -517,7 +554,7 @@ mod tests {
             features("die 0x433"),
             ["stm32f401ce", "stm32f401re", "stm32f401ve"]
         );
-        assert_eq!(features("series F4").len(), 13);
+        assert_eq!(features("series F4").len(), 17);
         assert_eq!(features("series f7").len(), 12);
         assert_eq!(features("series h7").len(), 12);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);

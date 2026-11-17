@@ -36,11 +36,11 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
     flash_step_2v7: Hertz::mhz(30),
     max_wait_states: 7,
     vos: pac::pwr::vals::Vos::SCALE1,
-    overdrive: Overdrive {
+    overdrive: Some(Overdrive {
         above: Hertz::mhz(180),
         pclk1_max: Hertz::mhz(54),
         pclk2_max: Hertz::mhz(108),
-    },
+    }),
 };
 
 /// Whether `buffer` can be handed to a DMA stream. `dtcm` is the chip's

@@ -49,9 +49,8 @@ pub struct Clocks {
     /// The PLL's Q output (USB, SDIO), when the PLL is on.
     pub pll_q: Option<Hertz>,
     pub(crate) flash_wait_states: u8,
-    /// Whether HCLK needs the F7's over-drive (RM0431 4.1.4), which
-    /// `freeze` then turns on.
-    #[cfg(feature = "rcc_f7")]
+    /// Whether HCLK needs the regulator's over-drive (RM0390 5.1.4, RM0431
+    /// 4.1.4), which `freeze` then turns on. Never on a chip without one.
     pub(crate) overdrive: bool,
 }
 
@@ -198,7 +197,6 @@ impl Config {
             timclk2: timer_clock(pclk2, self.apb2_pre),
             pll_q,
             flash_wait_states: wait_states,
-            #[cfg(feature = "rcc_f7")]
             overdrive: limits.needs_overdrive(hclk),
         })
     }
@@ -546,15 +544,15 @@ pub(crate) struct Limits {
     /// field: `freeze` writes it before the PLL starts. It must be a value
     /// the chip's reference manual defines, never a reserved one.
     pub vos: Vos,
-    /// The F7's over-drive (RM0431 4.1.4, RM0385 4.1.4): the HCLK above
+    /// The regulator's over-drive, on the chips that have one (the F446,
+    /// F427/F429 and every F7; RM0390 5.1.3, RM0431 4.1.4): the HCLK above
     /// which it is needed, and the APB1 and APB2 limits while it is on.
-    /// `pclk1_max` and `pclk2_max` hold with it off.
-    #[cfg(feature = "rcc_f7")]
-    pub overdrive: Overdrive,
+    /// `pclk1_max` and `pclk2_max` hold with it off. `None`: no over-drive,
+    /// and `freeze` never touches its bits.
+    pub overdrive: Option<Overdrive>,
 }
 
-/// The F7's over-drive limits.
-#[cfg(feature = "rcc_f7")]
+/// A chip's over-drive limits.
 pub(crate) struct Overdrive {
     /// HCLK above this needs the over-drive.
     pub above: Hertz,
@@ -563,20 +561,22 @@ pub(crate) struct Overdrive {
 }
 
 impl Limits {
-    /// Whether `hclk` needs the F7's over-drive.
-    #[cfg(feature = "rcc_f7")]
+    /// Whether `hclk` needs the over-drive: never on a chip without one.
     pub(crate) const fn needs_overdrive(&self, hclk: Hertz) -> bool {
-        hclk.0 > self.overdrive.above.0
+        match &self.overdrive {
+            Some(overdrive) => hclk.0 > overdrive.above.0,
+            None => false,
+        }
     }
 
-    /// The APB1 and APB2 limits at `hclk`: the F7's are higher with the
-    /// over-drive on, which `hclk` decides; the F4's are fixed.
+    /// The APB1 and APB2 limits at `hclk`: higher with the over-drive on,
+    /// which `hclk` decides; fixed on a chip without one.
     pub(crate) const fn apb_max(&self, hclk: Hertz) -> (Hertz, Hertz) {
-        #[cfg(feature = "rcc_f7")]
-        if self.needs_overdrive(hclk) {
-            return (self.overdrive.pclk1_max, self.overdrive.pclk2_max);
+        match &self.overdrive {
+            Some(overdrive) if hclk.0 > overdrive.above.0 => {
+                (overdrive.pclk1_max, overdrive.pclk2_max)
+            }
+            _ => (self.pclk1_max, self.pclk2_max),
         }
-        let _ = hclk;
-        (self.pclk1_max, self.pclk2_max)
     }
 }

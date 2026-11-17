@@ -43,6 +43,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `usart_v2` | HIL | nucleo-f401re-loopback |
 | IP `usart_v4` | HIL | nucleo-h753zi-loopback |
 | die `0x413` (glue probe) | – |  |
+| die `0x421` (glue probe) | – |  |
 | die `0x431` (glue probe) | – |  |
 | die `0x433` (glue probe) | – |  |
 | die `0x449` (glue probe) | – |  |

@@ -108,6 +108,7 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
     flash_step_2v7: Hertz::mhz(30),
     max_wait_states: 3,
     vos: pac::pwr::vals::Vos::SCALE1,
+    overdrive: None,
 };
 
 pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {

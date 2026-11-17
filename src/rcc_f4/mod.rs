@@ -26,7 +26,11 @@
 //! See `THIRD-PARTY.md`. The voltage scale is not: embassy writes scale 1 on
 //! every F4, which is reserved on the F401.
 //!
-//! Requirements: RCC-001, RCC-002, RCC-003, RESET-001
+//! The F446, F427 and F429 reach 180 MHz only in the regulator's over-drive,
+//! which `freeze` enters and leaves as the F7's `rcc_f7` does (RM0390
+//! 5.1.3); the chip's `Limits::overdrive` says whether it has one.
+//!
+//! Requirements: RCC-001, RCC-002, RCC-003, RCC-004, RESET-001
 
 use crate::wait::spin;
 use stm32_metapac::{
@@ -45,6 +49,9 @@ use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 #[path = "tree.rs"]
 mod tree;
 pub(crate) use tree::Limits;
+// Named only by the chips with an over-drive (the F446, F427 and F429).
+#[allow(unused_imports)]
+pub(crate) use tree::Overdrive;
 pub use tree::{Bus, Clocks, Config, HSI, Pll, PllP, Request, Supply, Sysclk};
 
 /// Spins allowed for each wait below. One spin takes at least one cycle,
@@ -57,6 +64,7 @@ const PLL_SPINS: u32 = 100_000;
 const VOS_SPINS: u32 = 100_000;
 const SWITCH_SPINS: u32 = 10_000;
 const LATENCY_SPINS: u32 = 1_000;
+const OVERDRIVE_SPINS: u32 = 100_000;
 
 /// The RCC token from `Peripherals`.
 pub struct RCC {
@@ -155,6 +163,24 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         return Err(ClockError::SwitchTimeout);
     }
 
+    // On a chip with an over-drive (the F446, F427 and F429), a tree an
+    // earlier freeze left in it leaves it now, on HSI (RM0390 5.1.3,
+    // sequence 1); it is entered again below if needed. A chip without one
+    // never has these bits touched.
+    if CLOCK_LIMITS.overdrive.is_some() {
+        RCC_REGS.apb1enr().modify(|w| w.set_pwren(true));
+        let _ = RCC_REGS.apb1enr().read();
+        if PWR.cr1().read().oden() {
+            PWR.cr1().modify(|w| {
+                w.set_oden(false);
+                w.set_odswen(false);
+            });
+            if !spin(OVERDRIVE_SPINS, || !PWR.csr1().read().odswrdy()) {
+                return Err(ClockError::SupplyTimeout);
+            }
+        }
+    }
+
     if let Some(hse) = config.hse {
         // HSEBYP may only change while HSE is off.
         RCC_REGS.cr().modify(|w| w.set_hseon(false));
@@ -192,6 +218,19 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
             w.set_pllq(Pllq::from_bits(pll.divq.unwrap_or(2)));
         });
         RCC_REGS.cr().modify(|w| w.set_pllon(true));
+        // The over-drive while the PLL locks, still on HSI or HSE (RM0390
+        // 5.1.3, steps 3 to 5). `clocks.overdrive` is never set on a chip
+        // without one.
+        if clocks.overdrive {
+            PWR.cr1().modify(|w| w.set_oden(true));
+            if !spin(OVERDRIVE_SPINS, || PWR.csr1().read().odrdy()) {
+                return Err(ClockError::SupplyTimeout);
+            }
+            PWR.cr1().modify(|w| w.set_odswen(true));
+            if !spin(OVERDRIVE_SPINS, || PWR.csr1().read().odswrdy()) {
+                return Err(ClockError::SupplyTimeout);
+            }
+        }
         if !spin(PLL_SPINS, || RCC_REGS.cr().read().pllrdy()) {
             return Err(ClockError::PllTimeout);
         }

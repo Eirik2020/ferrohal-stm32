@@ -845,14 +845,14 @@ fn exercise_i2c<W: i2c::Parts>(bus: &mut I2c<W>) {
 }
 
 /// The USB clock check alone.
-#[cfg(any(feature = "stm32f401re", feature = "stm32f411ce"))]
+#[cfg(any(feature = "stm32f401re", feature = "stm32f411ce", feature = "stm32f446re"))]
 fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
     keep(rcc.usb_clock());
 }
 
 /// USB's own part: the clock and the constructor. The controller's driver is
 /// third-party and sits outside this check.
-#[cfg(not(any(feature = "stm32f401re", feature = "stm32f411ce")))]
+#[cfg(not(any(feature = "stm32f401re", feature = "stm32f411ce", feature = "stm32f446re")))]
 pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::usb::Wiring) {
     use ferrohal_stm32::usb::{UsbFs, Wiring};
 
@@ -942,7 +942,7 @@ impl<C: StreamInstance> Spare<C> {
     }
 }
 
-#[cfg(any(feature = "stm32f401re", feature = "stm32f411ce"))]
+#[cfg(any(feature = "stm32f401re", feature = "stm32f411ce", feature = "stm32f446re"))]
 mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, USART1, USART6},
@@ -957,7 +957,11 @@ mod chip {
     use super::Spare;
 
     pub type RxUart = USART6;
+    #[cfg(not(feature = "stm32f446re"))]
     pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>;
+    /// The F446 bonds USART6 RX to PC7 and PG9 only (DS10693 Table 11).
+    #[cfg(feature = "stm32f446re")]
+    pub type RxOnlyWiring = RxWiring<USART6, Pin<'C', 7, Alternate<8>>, Stream<2, 1>>;
     pub type SpiUnit = SPI2;
     pub type I2cUnit = I2C1;
     pub type SpiWiring = spi::Wiring<
@@ -1029,7 +1033,13 @@ mod chip {
         rx.set_pull(&mut a.ctrl, core::hint::black_box(Pull::Up));
         let out = a.p5.into_push_pull_output(&mut a.ctrl);
         let input = a.p0.into_input(&mut a.ctrl);
+        #[cfg(not(feature = "stm32f446re"))]
         let rx6 = a.p12.into_alternate::<8>(&mut a.ctrl);
+        #[cfg(feature = "stm32f446re")]
+        let rx6 = {
+            let mut c = p.GPIOC.split(&mut rcc);
+            c.p7.into_alternate::<8>(&mut c.ctrl)
+        };
         let analog = a.p1.into_analog(&mut a.ctrl);
         let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
@@ -1054,8 +1064,9 @@ mod chip {
             a.p8.into_alternate::<1>(&mut a.ctrl),
             spare2.s1,
         );
-        // PA12 is USART6's here, so the constructor is left to the F405,
-        // which shares this code; the F4's clock check runs on its own.
+        // PA12 is USART6's on the F401 and F411, so the constructor is left
+        // to the F405, which shares this code; the F4's clock check runs on
+        // its own.
         super::keep_usb_clock(&mut rcc);
         super::exercise_blocking(
             &mut rcc,

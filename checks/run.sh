@@ -16,7 +16,7 @@
 
 set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
-chips=(stm32f401re stm32f411ce stm32f405rg stm32f407vg stm32f722re stm32f745vg stm32f767zi stm32h743vi stm32h753zi)
+chips=(stm32f401re stm32f411ce stm32f405rg stm32f407vg stm32f446re stm32f722re stm32f745vg stm32f767zi stm32h743vi stm32h753zi)
 # Every other package of those lines: the same hand facts, its own generated
 # glue, so it gets clippy and the unit tests, not the full set. A flash-size
 # variant mounts its package's glue and is not listed
@@ -24,6 +24,7 @@ chips=(stm32f401re stm32f411ce stm32f405rg stm32f407vg stm32f722re stm32f745vg s
 packages=(
     stm32f401ce stm32f401ve stm32f411re stm32f411ve
     stm32f405og stm32f405vg stm32f405zg stm32f407zg stm32f407ig
+    stm32f446me stm32f446ve stm32f446ze
     stm32f722ve stm32f722ze stm32f722ie stm32f745zg stm32f745ig
     stm32f767vi stm32f767ii stm32f767bi stm32f767ni
     stm32h743zi stm32h743ii stm32h743bi stm32h743ai stm32h743xi
