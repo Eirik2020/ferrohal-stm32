@@ -4,6 +4,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review B1: bench binaries are named by test** (2026-11-17; owner's pick A). A
+  run letter meant a different test on each bench (only S and W matched). Every run file
+  on the F401, the H753 and the Discovery is renamed after its test, the same name where
+  two benches run the same test (`watchdog`, `refusals`, `i2c-pico`, `usb-cdc`, ...).
+  The letters stay as each bench's aliases: `hil/<crate>/runs.tsv` maps them, and the run
+  scripts, `tools/record_evidence.py`, `tools/stale_runs.py` and `tools/gen_h753_runs.py`
+  read it, so the procedures' commands are unchanged. `design/naming.md` records the
+  rule. Spawned by `55025e8`.
+
 - **API review B2: closed with a rule** (2026-11-17; owner's choice). The H753's runs A
   to D are generated and the F401's written by hand, because the H753's four differ only
   in data while the F401's A to D test different things (each UART, a cross-wired pair,

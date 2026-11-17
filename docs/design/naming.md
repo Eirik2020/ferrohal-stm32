@@ -109,8 +109,12 @@ Which IP versions each series carries, as metapac measured them:
 - **[Decided]** `hil/run-<bench>.sh` runs a bench: `run-f401`, `run-h753`, `run-foxeer`,
   `run-lucid`. Helpers that are not benches take their own names: `flash-dfu.sh`,
   `pico-i2c-sim.sh` (owner, 2026-11-13).
-- **[Decided]** Run letters upper case in prose (run M), lower case in file names
-  (`run_m.rs`, `run-m`).
+- **[Decided]** A bench binary is named by its test, `src/bin/usb_cdc.rs` building
+  `usb-cdc`, the same name on every bench that runs the test (owner, 2026-11-17, API
+  review B1). The run letters stay as each bench's aliases, upper case in prose (run M)
+  and lower case on the command line (`hil/run-h753.sh m`); `hil/<crate>/runs.tsv` maps
+  them, and the run scripts and `tools/` read it. A letter still means a different test
+  on each bench; the binary's name says which.
 - **[Decided]** A bench generates its runs only where several runs differ only in data:
   the H753's runs A to D (`tools/gen_h753_runs.py`), which open different UARTs at
   different rates on one template. Every other run, on every bench, is written by hand,

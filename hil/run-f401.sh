@@ -9,6 +9,8 @@
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
+# A run letter's binary, from the bench's alias table (API review B1).
+bin_of() { awk -v r="$1" '$1 == r { print $2 }' "$here/nucleo-f401re-loopback/runs.tsv"; }
 source "$here/probe.sh"
 probe_for F401_PROBE 0x433 || exit 1
 # The host echo runs over this probe's own virtual COM port.
@@ -48,7 +50,7 @@ for run in ${*:-probe a b c d e f g h i j k l m n o p q r s v w}; do
         # through this board's probe, no firmware.
         (cd "$here/../tools/glue-gen" && timeout 300 cargo run -q --release -- probe part stm32f401re) > "$log" 2>&1
     else
-        (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1
+        (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "$(bin_of "$run")") > "$log" 2>&1
     fi
     code=$?
     pass=$(grep -c "PASS" "$log")

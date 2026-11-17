@@ -1,0 +1,27 @@
+# Run letter, then the binary (src/bin/<name with _>.rs) it names. The letters are
+# aliases (API review B1): hil/run-*.sh, the procedures and tools/ take them.
+a	uart-lucid
+b	uart-first-pins
+c	uart-other-pins
+d	uart-shared-link
+e	uart-rx-only
+f	spi-exti
+g	spi-other-pins
+h	spi3-spi2
+i	timers-against-dwt
+j	dshot-lanes
+k	watchdog
+l	spi-polled
+m	usb-cdc
+n	bootloader-request
+o	adc
+p	timer-trigger
+q	awg-both-ways
+r	i2c-master
+s	i2c-pico
+t	stuck-streams
+u	refusals
+w	faults
+x	cache-mpu
+y	uart-cross
+z	rom-bootloader

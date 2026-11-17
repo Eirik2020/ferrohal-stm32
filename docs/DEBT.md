@@ -87,7 +87,6 @@ serve trait, which rewrite the code they name (owner, 2026-11-17).
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
 | U10 | `code` | L | `interrupt()` + `verify_vectors` three times. | `4070cd8`, `ea7a9f8` |
-| B1 | `bench` `owner` | L | A run letter means a different test on each bench. | `55025e8` the H753 bench numbered its own runs |
 
 ## 3. Shipped code without hardware proof: bench work
 

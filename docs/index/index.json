@@ -3,7 +3,7 @@
  "counts": {
   "documents": 74,
   "agent": 52,
-  "bytes": 374888
+  "bytes": 375943
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9437
+   "bytes": 9306
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -67,7 +67,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 21696
+   "bytes": 22342
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -255,7 +255,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 7504
+   "bytes": 7876
   },
   {
    "path": "docs/design/ownership.md",
@@ -535,7 +535,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 19367
+   "bytes": 19535
   },
   {
    "path": "requirements/goals.md",
