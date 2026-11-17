@@ -6,6 +6,7 @@
 //!
 //! Requirements: ADC-001, API-002
 
+use crate::wait::{Deadline, poll};
 use stm32_metapac::{
     adc::{
         Adc,
@@ -108,17 +109,18 @@ impl Unit {
         self.set_sequence(&[channel]);
         self.regs.sr().write_value(Sr(0));
         self.regs.cr2().modify(|w| w.set_swstart(true));
-        for _ in 0..CONVERSION_SPINS {
+        let ended = poll(Deadline::passes(CONVERSION_SPINS), || {
             let sr = self.regs.sr().read();
-            if sr.ovr() {
+            (sr.ovr() || sr.eoc()).then_some(sr.ovr())
+        });
+        match ended {
+            Some(true) => {
                 self.regs.sr().write_value(Sr(0));
-                return Err(Error::Overrun);
+                Err(Error::Overrun)
             }
-            if sr.eoc() {
-                return Ok(self.regs.dr().read().data());
-            }
+            Some(false) => Ok(self.regs.dr().read().data()),
+            None => Err(Error::Timeout),
         }
-        Err(Error::Timeout)
     }
 
     /// Sets the sequence's channels, in order. At most 16: the caller checks.

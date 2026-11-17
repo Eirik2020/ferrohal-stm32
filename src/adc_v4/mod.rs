@@ -7,6 +7,7 @@
 //!
 //! Requirements: ADC-001, API-002
 
+use crate::wait::spin;
 use stm32_metapac::{
     adc::{
         Adc,
@@ -118,14 +119,7 @@ impl Unit {
             isr
         });
         self.regs.cr().modify(|w| w.set_aden(true));
-        let mut ready = false;
-        for _ in 0..READY_SPINS {
-            if self.regs.isr().read().adrdy() {
-                ready = true;
-                break;
-            }
-        }
-        if !ready {
+        if !spin(READY_SPINS, || self.regs.isr().read().adrdy()) {
             return Err(Error::Timeout);
         }
 
@@ -152,10 +146,8 @@ impl Unit {
         self.regs.cfgr().modify(|w| w.set_dmngt(Dmngt::DR));
         self.clear_flags();
         self.regs.cr().modify(|w| w.set_adstart(true));
-        for _ in 0..CONVERSION_SPINS {
-            if self.regs.isr().read().eoc() {
-                return Ok(self.regs.dr().read().rdata());
-            }
+        if spin(CONVERSION_SPINS, || self.regs.isr().read().eoc()) {
+            return Ok(self.regs.dr().read().rdata());
         }
         self.stop();
         Err(Error::Timeout)
@@ -196,11 +188,7 @@ impl Unit {
     fn stop(&self) {
         if self.regs.cr().read().adstart() {
             self.regs.cr().modify(|w| w.set_adstp(Adstp::STOP));
-            for _ in 0..STOP_SPINS {
-                if !self.regs.cr().read().adstart() {
-                    break;
-                }
-            }
+            let _ = spin(STOP_SPINS, || !self.regs.cr().read().adstart());
         }
     }
 
@@ -235,11 +223,7 @@ impl Unit {
         self.regs.cfgr().modify(|w| w.set_dmngt(Dmngt::DR));
         if self.regs.cr().read().aden() {
             self.regs.cr().modify(|w| w.set_addis(true));
-            for _ in 0..STOP_SPINS {
-                if !self.regs.cr().read().aden() {
-                    break;
-                }
-            }
+            let _ = spin(STOP_SPINS, || !self.regs.cr().read().aden());
         }
         self.regs.cr().modify(|w| w.set_advregen(false));
         self.regs.cr().modify(|w| w.set_deeppwd(true));

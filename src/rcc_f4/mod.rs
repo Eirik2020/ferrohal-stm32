@@ -28,6 +28,7 @@
 //!
 //! Requirements: RCC-001, RCC-002, RCC-003, RESET-001
 
+use crate::wait::spin;
 use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,
     flash::vals::Latency,
@@ -813,43 +814,34 @@ pub(crate) struct Limits {
 }
 
 /// Spins until `done` or `spins` run out.
-fn wait(spins: u32, mut done: impl FnMut() -> bool) -> bool {
-    for _ in 0..spins {
-        if done() {
-            return true;
-        }
-    }
-    done()
-}
-
 fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
     // Run from HSI while everything else is reconfigured.
     RCC_REGS.cr().modify(|w| w.set_hsion(true));
-    if !wait(SWITCH_SPINS, || RCC_REGS.cr().read().hsirdy()) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cr().read().hsirdy()) {
         return Err(ClockError::SwitchTimeout);
     }
     RCC_REGS.cfgr().modify(|w| w.set_sw(Sw::HSI));
-    if !wait(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == Sw::HSI) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == Sw::HSI) {
         return Err(ClockError::SwitchTimeout);
     }
 
     if let Some(hse) = config.hse {
         // HSEBYP may only change while HSE is off.
         RCC_REGS.cr().modify(|w| w.set_hseon(false));
-        if !wait(HSE_SPINS, || !RCC_REGS.cr().read().hserdy()) {
+        if !spin(HSE_SPINS, || !RCC_REGS.cr().read().hserdy()) {
             return Err(ClockError::HseTimeout);
         }
         RCC_REGS
             .cr()
             .modify(|w| w.set_hsebyp(hse.mode == HseMode::Bypass));
         RCC_REGS.cr().modify(|w| w.set_hseon(true));
-        if !wait(HSE_SPINS, || RCC_REGS.cr().read().hserdy()) {
+        if !spin(HSE_SPINS, || RCC_REGS.cr().read().hserdy()) {
             return Err(ClockError::HseTimeout);
         }
     }
 
     RCC_REGS.cr().modify(|w| w.set_pllon(false));
-    if !wait(PLL_SPINS, || !RCC_REGS.cr().read().pllrdy()) {
+    if !spin(PLL_SPINS, || !RCC_REGS.cr().read().pllrdy()) {
         return Err(ClockError::PllTimeout);
     }
     if let Some(pll) = config.pll {
@@ -870,12 +862,12 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
             w.set_pllq(Pllq::from_bits(pll.divq.unwrap_or(2)));
         });
         RCC_REGS.cr().modify(|w| w.set_pllon(true));
-        if !wait(PLL_SPINS, || RCC_REGS.cr().read().pllrdy()) {
+        if !spin(PLL_SPINS, || RCC_REGS.cr().read().pllrdy()) {
             return Err(ClockError::PllTimeout);
         }
         // The F401's scale takes effect only once the PLL runs (RM0368), so
         // ready is asked only now, before anything is switched to the PLL.
-        if !wait(VOS_SPINS, || PWR.csr1().read().vosrdy()) {
+        if !spin(VOS_SPINS, || PWR.csr1().read().vosrdy()) {
             return Err(ClockError::SupplyTimeout);
         }
     }
@@ -892,7 +884,7 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         w.set_icen(true);
         w.set_dcen(true);
     });
-    if !wait(LATENCY_SPINS, || FLASH.acr().read().latency() == latency) {
+    if !spin(LATENCY_SPINS, || FLASH.acr().read().latency() == latency) {
         return Err(ClockError::SwitchTimeout);
     }
 
@@ -907,7 +899,7 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         w.set_ppre2(config.apb2_pre.bits());
         w.set_sw(sw);
     });
-    if !wait(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == sw) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == sw) {
         return Err(ClockError::SwitchTimeout);
     }
     Ok(())

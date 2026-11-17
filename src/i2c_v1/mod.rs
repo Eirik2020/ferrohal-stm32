@@ -343,11 +343,7 @@ impl Unit {
             w.set_arlo(false);
             w.set_ovr(false);
         });
-        for _ in 0..SPINS {
-            if !regs.sr2().read().busy() {
-                break;
-            }
-        }
+        let _ = crate::wait::spin(SPINS, || !regs.sr2().read().busy());
         regs.cr1().modify(|w| w.set_pe(false));
         regs.cr1().modify(|w| w.set_pe(true));
     }

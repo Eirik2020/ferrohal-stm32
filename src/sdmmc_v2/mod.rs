@@ -19,6 +19,7 @@
 //!
 //! Requirements: SDMMC-001, SDMMC-002, SDMMC-003, SDMMC-004, API-002
 
+use crate::wait::{Deadline, poll, spin};
 use stm32_metapac::sdmmc::{
     Sdmmc as Regs,
     regs::{Clkcr, Icr},
@@ -373,13 +374,11 @@ impl<W> Sdmmc<W> {
     }
 
     fn wait_idle(&self) -> Result<(), Error> {
-        for _ in 0..COMMAND_SPINS {
+        let idle = spin(COMMAND_SPINS, || {
             let star = self.regs.star().read();
-            if !star.cpsmact() && !star.dpsmact() {
-                return Ok(());
-            }
-        }
-        Err(Error::Stuck)
+            !star.cpsmact() && !star.dpsmact()
+        });
+        if idle { Ok(()) } else { Err(Error::Stuck) }
     }
 
     fn clear_flags(&self) {
@@ -390,11 +389,7 @@ impl<W> Sdmmc<W> {
 
     fn command(&self, index: u8, argument: u32, response: Response) -> Result<(), Error> {
         self.clear_flags();
-        for _ in 0..COMMAND_SPINS {
-            if !self.regs.star().read().cpsmact() {
-                break;
-            }
-        }
+        let _ = spin(COMMAND_SPINS, || !self.regs.star().read().cpsmact());
         self.regs.argr().write(|w| w.set_cmdarg(argument));
         self.regs.cmdr().write(|w| {
             w.set_cmdindex(index);
@@ -406,27 +401,23 @@ impl<W> Sdmmc<W> {
             });
             w.set_cpsmen(true);
         });
-        for _ in 0..COMMAND_SPINS {
+        poll(Deadline::passes(COMMAND_SPINS), || {
             let star = self.regs.star().read();
             if star.ctimeout() {
-                return Err(Error::CommandTimeout);
-            }
-            if star.ccrcfail() {
-                return if response == Response::ShortNoCrc {
+                Some(Err(Error::CommandTimeout))
+            } else if star.ccrcfail() {
+                Some(if response == Response::ShortNoCrc {
                     Ok(())
                 } else {
                     Err(Error::CommandCrc)
-                };
+                })
+            } else if response == Response::None {
+                star.cmdsent().then_some(Ok(()))
+            } else {
+                star.cmdrend().then_some(Ok(()))
             }
-            if response == Response::None {
-                if star.cmdsent() {
-                    return Ok(());
-                }
-            } else if star.cmdrend() {
-                return Ok(());
-            }
-        }
-        Err(Error::Stuck)
+        })
+        .unwrap_or(Err(Error::Stuck))
     }
 
     fn short(&self) -> u32 {
@@ -565,15 +556,13 @@ impl<W> Sdmmc<W> {
     /// Waits for the end of the data: a CRC error on the last block shows up
     /// only after its last byte is in.
     fn wait_data_end(&self) -> Result<(), Error> {
-        for _ in 0..DATA_SPINS {
+        poll(Deadline::passes(DATA_SPINS), || {
             if let Some(error) = self.data_error() {
-                return Err(error);
+                return Some(Err(error));
             }
-            if self.regs.star().read().dataend() {
-                return Ok(());
-            }
-        }
-        Err(Error::Stuck)
+            self.regs.star().read().dataend().then_some(Ok(()))
+        })
+        .unwrap_or(Err(Error::Stuck))
     }
 
     /// Waits for `ready` on the status register, or a data error.
@@ -581,15 +570,13 @@ impl<W> Sdmmc<W> {
         &self,
         ready: impl Fn(stm32_metapac::sdmmc::regs::Star) -> bool,
     ) -> Result<(), Error> {
-        for _ in 0..DATA_SPINS {
+        poll(Deadline::passes(DATA_SPINS), || {
             if let Some(error) = self.data_error() {
-                return Err(error);
+                return Some(Err(error));
             }
-            if ready(self.regs.star().read()) {
-                return Ok(());
-            }
-        }
-        Err(Error::Stuck)
+            ready(self.regs.star().read()).then_some(Ok(()))
+        })
+        .unwrap_or(Err(Error::Stuck))
     }
 
     fn receive(&self, blocks: &mut [[u8; BLOCK_SIZE]]) -> Result<(), Error> {

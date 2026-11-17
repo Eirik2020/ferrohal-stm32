@@ -21,6 +21,7 @@
 //!
 //! Requirements: RCC-001, RCC-002, RCC-003, RESET-001
 
+use crate::wait::spin;
 use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,
     pwr::vals::Vos,
@@ -118,12 +119,12 @@ impl Rcc {
     /// USB start-of-frame doesn't work on revision Y (ES0392 2.2.3).
     pub fn usb_clock(&mut self) -> Result<(), ClockError> {
         RCC_REGS.cr().modify(|w| w.set_hsi48on(true));
-        if !wait(HSI48_SPINS, || RCC_REGS.cr().read().hsi48rdy()) {
+        if !spin(HSI48_SPINS, || RCC_REGS.cr().read().hsi48rdy()) {
             return Err(ClockError::UsbTimeout);
         }
         RCC_REGS.d2ccip2r().modify(|w| w.set_usbsel(Usbsel::HSI48));
         PWR.cr3().modify(|w| w.set_usb33den(true));
-        if !wait(HSI48_SPINS, || PWR.cr3().read().usb33rdy()) {
+        if !spin(HSI48_SPINS, || PWR.cr3().read().usb33rdy()) {
             return Err(ClockError::UsbTimeout);
         }
         Ok(())
@@ -989,21 +990,12 @@ const fn prediv_value(reference: u32, request: Request) -> u32 {
 }
 
 /// Spins until `done` or `spins` run out.
-fn wait(spins: u32, mut done: impl FnMut() -> bool) -> bool {
-    for _ in 0..spins {
-        if done() {
-            return true;
-        }
-    }
-    done()
-}
-
 fn set_flash(latency: u8, wrhighfreq: u8) -> Result<(), ClockError> {
     FLASH.acr().modify(|w| {
         w.set_latency(latency);
         w.set_wrhighfreq(wrhighfreq);
     });
-    if wait(SWITCH_SPINS, || FLASH.acr().read().latency() == latency) {
+    if spin(SWITCH_SPINS, || FLASH.acr().read().latency() == latency) {
         Ok(())
     } else {
         Err(ClockError::SwitchTimeout)
@@ -1022,12 +1014,12 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
             w.set_bypass(false);
         }),
     }
-    if !wait(SUPPLY_SPINS, || PWR.csr1().read().actvosrdy()) {
+    if !spin(SUPPLY_SPINS, || PWR.csr1().read().actvosrdy()) {
         return Err(ClockError::SupplyTimeout);
     }
     PWR.d3cr()
         .modify(|w| w.set_vos(config.voltage_scale.bits()));
-    if !wait(SUPPLY_SPINS, || PWR.d3cr().read().vosrdy()) {
+    if !spin(SUPPLY_SPINS, || PWR.d3cr().read().vosrdy()) {
         return Err(ClockError::SupplyTimeout);
     }
 
@@ -1036,11 +1028,11 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         w.set_hsidiv(Hsidiv::DIV1);
         w.set_hsion(true);
     });
-    if !wait(SWITCH_SPINS, || RCC_REGS.cr().read().hsirdy()) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cr().read().hsirdy()) {
         return Err(ClockError::SwitchTimeout);
     }
     RCC_REGS.cfgr().modify(|w| w.set_sw(Sw::HSI));
-    if !wait(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == Sw::HSI) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == Sw::HSI) {
         return Err(ClockError::SwitchTimeout);
     }
 
@@ -1048,14 +1040,14 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         Some(hse) => {
             // HSEBYP may only change while HSE is off.
             RCC_REGS.cr().modify(|w| w.set_hseon(false));
-            if !wait(HSE_SPINS, || !RCC_REGS.cr().read().hserdy()) {
+            if !spin(HSE_SPINS, || !RCC_REGS.cr().read().hserdy()) {
                 return Err(ClockError::HseTimeout);
             }
             RCC_REGS
                 .cr()
                 .modify(|w| w.set_hsebyp(hse.mode == HseMode::Bypass));
             RCC_REGS.cr().modify(|w| w.set_hseon(true));
-            if !wait(HSE_SPINS, || RCC_REGS.cr().read().hserdy()) {
+            if !spin(HSE_SPINS, || RCC_REGS.cr().read().hserdy()) {
                 return Err(ClockError::HseTimeout);
             }
         }
@@ -1063,7 +1055,7 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
     }
 
     RCC_REGS.cr().modify(|w| w.set_pllon(0, false));
-    if !wait(PLL_SPINS, || !RCC_REGS.cr().read().pllrdy(0)) {
+    if !spin(PLL_SPINS, || !RCC_REGS.cr().read().pllrdy(0)) {
         return Err(ClockError::PllTimeout);
     }
     if let Some(pll) = config.pll1 {
@@ -1097,7 +1089,7 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
             w.set_pllr(Plldiv::from_bits(pll.divr.unwrap_or(2) - 1));
         });
         RCC_REGS.cr().modify(|w| w.set_pllon(0, true));
-        if !wait(PLL_SPINS, || RCC_REGS.cr().read().pllrdy(0)) {
+        if !spin(PLL_SPINS, || RCC_REGS.cr().read().pllrdy(0)) {
             return Err(ClockError::PllTimeout);
         }
     }
@@ -1130,7 +1122,7 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         Sysclk::Pll1P => Sw::PLL1_P,
     };
     RCC_REGS.cfgr().modify(|w| w.set_sw(sw));
-    if !wait(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == sw) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == sw) {
         return Err(ClockError::SwitchTimeout);
     }
     set_flash(clocks.setup.flash_latency, clocks.setup.flash_wrhighfreq)?;

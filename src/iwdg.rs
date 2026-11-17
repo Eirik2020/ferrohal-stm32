@@ -117,17 +117,14 @@ pub const fn window_divider(timeout_us: u32, window_us: u32) -> Result<(u8, u16,
 /// status register reading zero, which RM0433 45.3.3 waits for.
 fn updated() -> bool {
     let regs = crate::chip::iwdg_regs();
-    for _ in 0..UPDATE_SPINS {
+    crate::wait::spin(UPDATE_SPINS, || {
         let sr = regs.sr().read();
         #[cfg(feature = "iwdg_v2")]
         let busy = sr.pvu() || sr.rvu() || sr.wvu();
         #[cfg(feature = "iwdg_v1")]
         let busy = sr.pvu() || sr.rvu();
-        if !busy {
-            return true;
-        }
-    }
-    false
+        !busy
+    })
 }
 
 /// The running watchdog. `feed` is a single key write, so the handle can

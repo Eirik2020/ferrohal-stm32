@@ -485,19 +485,12 @@ impl Channel {
     /// that is left for the caller to clear.
     pub fn stop(&mut self, spins: u32) -> Result<(), StopTimeout> {
         self.request_stop();
-        for _ in 0..spins {
-            if !self.is_running() {
-                // Nothing the stream wrote may be read before this.
-                fence(Ordering::SeqCst);
-                return Ok(());
-            }
+        if !crate::wait::spin(spins, || !self.is_running()) {
+            return Err(StopTimeout);
         }
-        if self.is_running() {
-            Err(StopTimeout)
-        } else {
-            fence(Ordering::SeqCst);
-            Ok(())
-        }
+        // Nothing the stream wrote may be read before this.
+        fence(Ordering::SeqCst);
+        Ok(())
     }
 
     /// Configures and starts a transfer.

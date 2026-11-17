@@ -4,6 +4,16 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review D11: one wait mechanism** (2026-11-17). Besides `wait::Deadline`, 17 raw
+  spin loops in nine files (both RCC modules with a private `wait`, both ADCs, SDMMC,
+  IWDG, `i2c_v1`, `spi_v2`, DMA) counted their own polls. They now all go through
+  `wait`: `Deadline::passes(n)` is the clockless bound, `wait::spin` its shorthand, and
+  `wait::poll` a wait that can end with a value (an error met on the way). Bounds and
+  behaviour are unchanged: each still polls its `*_SPINS` count. Left as they are: the
+  `*_TRIES` retries (SDMMC power-up and busy), which resend a command each pass, and the
+  H7 ADC's calibration, which already waits in milliseconds. Proven on the merge-gate
+  benches of PR #49. Spawned by `af65cad`.
+
 - **API review D10: every wiring describes itself** (2026-11-17). USB and SDMMC were the
   two wirings without `RESOURCES`. USB's came with D9; `sdmmc::Wiring::RESOURCES` lists
   the instance and its six pins (new `Signal::Ck`, `Cmd`, `Data(n)`). Spawned by
