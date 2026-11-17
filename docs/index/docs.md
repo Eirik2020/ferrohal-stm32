@@ -9,4 +9,4 @@
 | h | docs/RESOLVED-chips-and-features.md | 8495 B | The chip and feature sections of RESOLVED.mdR |
 | h | docs/RESOLVED-crate-wide-2026-11-10-to-16.md | 21943 B | The crate-wide entries of RESOLVED.mdRESOLVED |
 | h | docs/RESOLVED-crate-wide-to-2026-11-09.md | 26528 B | The older crate-wide entries of RESOLVED.mdRE |
-| h | docs/RESOLVED.md | 20755 B | History: items moved out of DEBT.mdDEBT.md on |
+| h | docs/RESOLVED.md | 21002 B | History: items moved out of DEBT.mdDEBT.md on |

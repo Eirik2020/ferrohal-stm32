@@ -333,11 +333,17 @@ impl Unit {
     /// Puts the bus back: the stop the refused transfer never got, then
     /// the flags cleared by writing zero (RM0368 §27.6.7), the bus waited
     /// back to idle within a bound (BUSY clears only after a stop, RM0368
-    /// §27.6.8), and a software reset. ES0299 2.9.3, ES0182 2.10.3: after
-    /// a misplaced Stop on the bus, the peripheral cannot generate a Start
-    /// until SWRST, which cycling PE does not replace. SWRST returns every
-    /// register to its reset value, so the timing (CR2's FREQ, CCR, TRISE)
-    /// is read first and written back before PE (RM0368 §27.6.1).
+    /// §27.6.8), then a reset of the peripheral.
+    ///
+    /// ES0299 2.9.3, ES0182 2.10.3: after a misplaced Stop on the bus, the
+    /// peripheral cannot generate a Start until SWRST, which cycling PE does
+    /// not replace. SWRST returns every register to its reset value, so the
+    /// timing (CR2's FREQ, CCR, TRISE) is read first and written back before
+    /// PE (RM0368 §27.6.1). It runs only once the bus is idle, which is where
+    /// that erratum leaves it: a SWRST while a slave still held a line (a
+    /// stretch past the bound) left the F401 bench's bus with SDA held low
+    /// for good (measured 2026-11-17, F401 run S), where cycling PE, as
+    /// before, recovers it. A bus still busy after the bound gets PE cycled.
     pub(crate) fn recover(self) {
         let regs = self.0;
         regs.cr1().modify(|w| {
@@ -352,14 +358,18 @@ impl Unit {
             w.set_arlo(false);
             w.set_ovr(false);
         });
-        let _ = crate::wait::spin(SPINS, || !regs.sr2().read().busy());
-        let (cr2, ccr, trise) = (regs.cr2().read(), regs.ccr().read(), regs.trise().read());
-        regs.cr1().write(|w| w.set_swrst(true));
-        regs.cr1().write(|w| w.set_swrst(false));
-        regs.cr2().write_value(cr2);
-        regs.ccr().write_value(ccr);
-        regs.trise().write_value(trise);
-        regs.cr1().write(|w| w.set_pe(true));
+        if crate::wait::spin(SPINS, || !regs.sr2().read().busy()) {
+            let (cr2, ccr, trise) = (regs.cr2().read(), regs.ccr().read(), regs.trise().read());
+            regs.cr1().write(|w| w.set_swrst(true));
+            regs.cr1().write(|w| w.set_swrst(false));
+            regs.cr2().write_value(cr2);
+            regs.ccr().write_value(ccr);
+            regs.trise().write_value(trise);
+            regs.cr1().write(|w| w.set_pe(true));
+        } else {
+            regs.cr1().modify(|w| w.set_pe(false));
+            regs.cr1().modify(|w| w.set_pe(true));
+        }
     }
 }
 

@@ -176,10 +176,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 - **The F4 I2C has its two errata workarounds** (2026-11-17). ES0299 2.9.1, ES0182
   2.10.1: a spurious BERR no longer fails the transfer (the shared driver's change with
   the H7's 2.19.4). ES0299 2.9.3, ES0182 2.10.3: after a misplaced Stop the peripheral
-  cannot start until SWRST; `i2c_v1`'s `recover` now resets through SWRST and writes
-  CR2's FREQ, CCR and TRISE back, where it cycled PE. Every recovery takes that path, so
-  the F4 I2C live runs (NACK, held line, timeout) exercise it. Spawned by the ES0299 and
-  ES0182 row reviews (2026-11-17).
+  cannot start until SWRST; `i2c_v1`'s `recover` resets through SWRST and writes CR2's
+  FREQ, CCR and TRISE back once the bus is idle, and cycles PE, as before, when it is
+  not. Measured on F401 run S (2026-11-17): a SWRST on every recovery, the first
+  version, left the bus with SDA held low by the Pico after the stretch-past-the-bound
+  check, and every later transfer `Busy`; with SWRST only on an idle bus runs Q, R, S and
+  V pass, the NACK recoveries taking the SWRST path. Spawned by the ES0299 and ES0182
+  row reviews (2026-11-17).
 
 - **The H7 I2C has its three ES0392 workarounds** (2026-11-17). 2.19.4: a BERR in
   controller mode can be spurious and leaves the transfer running, but `i2c_v2` failed
