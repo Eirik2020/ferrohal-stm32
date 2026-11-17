@@ -125,11 +125,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
   reset, no host within 30 s - `usb_bench` now writes a four-word stop record to the top
   32 bytes of SRAM, which the Foxeer's `memory.x` keeps out of RAM and the ROM
   bootloader does not use (AN2606: its 8 to 16 KiB start at 0x2000_0000).
-  `hil/flash-dfu.sh` reads it over DFU (`STOP_RECORD`, set by `run-foxeer.sh`) when a run
-  fails and the board sits in DFU, and the next run that reaches USB reports it as a
-  `FAIL` and clears it. The Lucid keeps no record yet (`STOP_RECORD` = `None`). Not yet
-  on the Foxeer: that the ROM leaves the words and lets DFU upload them is the first
-  Foxeer run's to show. Spawned by `926b210` (2026-11-02).
+  The next run that reaches USB reports it as a `FAIL` and clears it. Reading it over DFU
+  was dropped: the F4 ROM DFU cannot read SRAM ("Page at 0x2001ffe0 is not readable";
+  alt 0 maps internal flash only), measured on the Foxeer in #49. That the record lives
+  through the ROM is `run-foxeer.sh`'s round trip to show: `BENCHSTP` leaves a probe
+  record, the image is flashed over the ROM DFU, and `STOPREC?` must answer with it. The
+  Lucid keeps no record yet (`STOP_RECORD` = `None`). Spawned by `926b210` (2026-11-02).
 
 - **A compare lane refuses the duty step the timer misses** (2026-11-17; owner: measure
   first). ES0392 2.16.2, ES0299 2.6.3 and ES0182 2.7.3 name a compare match at

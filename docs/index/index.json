@@ -3,7 +3,7 @@
  "counts": {
   "documents": 74,
   "agent": 52,
-  "bytes": 371961
+  "bytes": 372081
  },
  "documents": [
   {
@@ -67,7 +67,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 20635
+   "bytes": 20755
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
