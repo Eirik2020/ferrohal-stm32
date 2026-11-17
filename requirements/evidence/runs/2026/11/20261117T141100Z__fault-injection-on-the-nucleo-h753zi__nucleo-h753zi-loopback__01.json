@@ -1,0 +1,234 @@
+{
+  "schema_version": 5,
+  "run_id": "20261117T141100Z__fault-injection-on-the-nucleo-h753zi__nucleo-h753zi-loopback__01",
+  "recorded_at_utc": "2026-11-17T14:11:00Z",
+  "board": "nucleo-h753zi-loopback",
+  "tier": "HIL",
+  "revision": "efcfe08204b473f84e8e9021fb1bf73d005f84d0",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "nucleo-h753zi-loopback",
+    "features": [],
+    "files": {
+      "hil/nucleo-h753zi-loopback/../../Cargo.toml": "f985b58125e2d158094acb395fc1b096f50afc337b7a157f8a146eda3ff9cc20",
+      "hil/nucleo-h753zi-loopback/.cargo/config.toml": "18a99741c776d8912d7430205f345a053ac09d73e8aa760fbd721096d91c1f70",
+      "hil/nucleo-h753zi-loopback/Cargo.toml": "ae03303dbec59a207f22226164e3b215e18070dd6d404d19b7457d4822fbd862",
+      "hil/nucleo-h753zi-loopback/memory.x": "387f974bb0ecbff98fefbb7baea941d8a5d1df7152fdf23d2da0f590068d2fd9",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/adc.rs": "63d4e8e4a69e1c6cc7af23eec5e885da1e1256f9b73da27ba879c559f6562a8e",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/bootloader.rs": "9ed4481a69f48069bf9be506d58755dc32d43b2ea36dacc544f14fc55bd5555c",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/i2c.rs": "79e163403e4d0f754bb83ec5cdde81f0d5797f23b8510875dae703535e323995",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/i2c_live.rs": "52369a4b3a62c24331214c76d1ce25906ea28b55cd3503e3d8a9797a8e9c86a6",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/ident.rs": "75e05b29ee2cab428023f841cd1b3229f726e01d1342a167c1efffb7b433d68a",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/pwm.rs": "089ce70aa3283f0a4c410edbbce3c2736e6b6a5b0033e6ba5fb614ee0710a73e",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/spi_exti.rs": "2eebc6c3d01535daa314f3bff013d04ece754fb7899f98eebf1bd6b97f59e867",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/tests.rs": "1b24ba7de8706c92f6ebdefbdedef444027361f2753b0f189f7ce4e7bc97664d",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/timers.rs": "118a2246261030182348957b50986cea0ad320aa25fbe506730f68bc11261ac2",
+      "hil/nucleo-h753zi-loopback/src/bin/../../../common/watchdog.rs": "41ef77ec384c0d8dd7799de1506920704c79644308c0c883e9b4fd71d12db4dd",
+      "hil/nucleo-h753zi-loopback/src/bin/../board.rs": "f7b2f7e4dfd2105d301991a9c84e28978daf173a643ed76f11dd18d54ba27212",
+      "hil/nucleo-h753zi-loopback/src/bin/adc.rs": "b579619aa206834b778e5613244855ea050404b7b9055079e926b7da3105fdf7",
+      "hil/nucleo-h753zi-loopback/src/bin/awg_both_ways.rs": "5931391b20085e24b8a0d596b97a4552c0b40da3271b5a128b8569672a2ce87c",
+      "hil/nucleo-h753zi-loopback/src/bin/bootloader_request.rs": "52f5f0b9cba7e0d22eff5350433609c77be9cda1709e00423ea8d0978b245466",
+      "hil/nucleo-h753zi-loopback/src/bin/cache_mpu.rs": "3a070bcbd50b07306435374fffa9d70de7b4508c2b15376e33f03b8f98969464",
+      "hil/nucleo-h753zi-loopback/src/bin/dshot_lanes.rs": "b9b156ff5576a839cd150766025b144029967a081cf4c70f1217d1e01fbf486b",
+      "hil/nucleo-h753zi-loopback/src/bin/faults.rs": "9c778f213f9f4ea92ff61b3060d60211ece5b2f8422a7da7e3acb8ecad3f61a2",
+      "hil/nucleo-h753zi-loopback/src/bin/i2c_master.rs": "8d3385c08e76080cb9bf96f590e1791bfeb0632ae4765fcf84cb36af374eaed4",
+      "hil/nucleo-h753zi-loopback/src/bin/i2c_pico.rs": "a910293d141cfa1436ac430fa67606821535e0feeb69e9f76647ef59d79c6448",
+      "hil/nucleo-h753zi-loopback/src/bin/refusals.rs": "d41117b755c979729e06052fb7bf7277b8e6a1b47271a1fc1fc8f317aab8d025",
+      "hil/nucleo-h753zi-loopback/src/bin/rom_bootloader.rs": "1f29a4dd389ba70d7c2b7452c8cc196aa5a8951e8adb6d2996040a6d28075ef8",
+      "hil/nucleo-h753zi-loopback/src/bin/spi3_spi2.rs": "33e4f4d0ad2fc042fff2fd136d22681459c4fdc2f7e469438b65b82926c15750",
+      "hil/nucleo-h753zi-loopback/src/bin/spi_exti.rs": "1879d3b5977fa0aa4c303371ee45b0a0b3150c0d698dd0dde892de54beda4232",
+      "hil/nucleo-h753zi-loopback/src/bin/spi_other_pins.rs": "5d5bd3f71e8177b74a93dfc7f6e4711d4a6c49fcd0f0860bc519e5ea0c7e142e",
+      "hil/nucleo-h753zi-loopback/src/bin/spi_polled.rs": "7177f391d3bd7dfb8a26bf63fcc4c0a9aa728485bec98ecc699a0a5fd321b365",
+      "hil/nucleo-h753zi-loopback/src/bin/timer_trigger.rs": "5881e00679d37ba576aa5f1a5aa179cf26c7d06582616c000f1eb1a6bd962102",
+      "hil/nucleo-h753zi-loopback/src/bin/timers_against_dwt.rs": "9415dd5c92ebb902632e0fa3aef9e06e16c25cd006390943ea1c4feff6f34944",
+      "hil/nucleo-h753zi-loopback/src/bin/uart_cross.rs": "dbff0a0d5449d88cd98c046a09cf756ad87a313ef06e1cb4594230f205c583f7",
+      "hil/nucleo-h753zi-loopback/src/bin/uart_first_pins.rs": "334697b4ef1e8ebc5faa973f3a7fa4907faebe7d9d109b1dcb806878c525e5cd",
+      "hil/nucleo-h753zi-loopback/src/bin/uart_lucid.rs": "e50fd3877cf4b6805f0d1a5c7ec7af28ee977e13afa893f243820e4547ccef4e",
+      "hil/nucleo-h753zi-loopback/src/bin/uart_other_pins.rs": "ca22c73c9b296c2fde4a23c27fdb49f7fddcd5ca176050a22846d95c5d46fd01",
+      "hil/nucleo-h753zi-loopback/src/bin/uart_rx_only.rs": "3b07e8e2d5b5f805f0088cfbede57ea57e5e2f3641e0492ecb7ab4545c690d9a",
+      "hil/nucleo-h753zi-loopback/src/bin/uart_shared_link.rs": "b1ec893fa81691deaca32b68b322987748a7b683b3c829f084d0787f7702a0b3",
+      "hil/nucleo-h753zi-loopback/src/bin/usb_cdc.rs": "3ee7c32672a5a007bcffdb6a6d0de5cfd20f22cefc8750701fc6fd484d27291d",
+      "hil/nucleo-h753zi-loopback/src/bin/watchdog.rs": "a6340ca4368abc0bbfb17ef8d9363eb7d05563cd5f698119bc80de941b2b96c2",
+      "src/adc/mod.rs": "623e9512519d45b28a6e59442b157402f5b6c1925e96a71695c7dd8d0aeb0af4",
+      "src/adc_v4/mod.rs": "7bc34b1214cf9afddcd01b4c6a3b26f07c13986e68ee4c8b48eeef748d71961d",
+      "src/chips/gen/stm32h753zi.rs": "b6d40fd8e3155f7b66b837aa43fcd8d0f1280f3a603b201eec9a7bc938a0d65d",
+      "src/chips/shared/errata_es0392.rs": "2a0d924fe2d49c766e91c6328c5858a1e8d973b81bda784343feaec0c71c9ef3",
+      "src/chips/shared/h7.rs": "df35e3874f9c072eaef8d957c0e474e97a9a584d3440b4f1d862fa0d3daa5a8a",
+      "src/chips/shared/h7_macros.rs": "15ad96ee37da7ba84f9b0e7e9fe53219e931c3c1bed97f12ec96ece5c291ec5b",
+      "src/chips/shared/macros.rs": "3ee8c5120ebbd9f130c38094ef6c512d83649b4fe7f07dd1117e9a4d231a725e",
+      "src/chips/stm32h753zi.rs": "aba5a7068d5b66d54425a2d6182d25723f23bb68480db249f95f1016f009fc02",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma_stream.rs": "ce50530fd1530f985ae4472095e6766e8d6bb69bfcc17e517f33440d09a47f2f",
+      "src/errata.rs": "800114cb735e801adcccb9e66f348538e0b18201134356bb97e7a9b5288f7da3",
+      "src/exti.rs": "d48fcd0d6ecac92aa0c8dcb88814797ad470ca08b6ea6ad5c162383e6ccec1e4",
+      "src/gpio_v2/mod.rs": "8d9ecf0fd728b67e41245c0486a1fba54922f372e7cafccf4d3f345c81cfb71b",
+      "src/i2c/mod.rs": "251ef070193c9758e66d929f97b8fd001ea846779c4760546c2846e11bdc7d62",
+      "src/i2c_v2/mod.rs": "d852d6254fd5119eb2beb07bebd7c5ffd62ff5d0c92ee31e6b595a50c9daa39b",
+      "src/iwdg.rs": "513442c57ee11182d607e6f87246d6af4c87f4e0a639b478b8f5eb7fbfdb6eb9",
+      "src/lib.rs": "fb32208bc346f5408ccb9177d5190d342239da5831720b98de9f8c3fb1dd43e5",
+      "src/rcc_h7_rm0433/mod.rs": "e425f9a55b7248b1899144fee08e1c4e03cfa3598a829645a3c9ce9ffdbb9d94",
+      "src/rcc_kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+      "src/rcc_shared.rs": "abd1b08c98d3955cc6c1dd937de6597d3157ed8d03b4553873e1e0a8bc991c5e",
+      "src/reset.rs": "1607d70a1aca0a2e4f1717f82c7e167b4805d8714b4efeecc84b676f3a6c5763",
+      "src/resource.rs": "fadadd58379baccda213765f34c2632ee4e83da3a2e5f516590e1dd846f73996",
+      "src/sdmmc_v2/mod.rs": "8a8f3a02f0bc5e3cc7ca19cf16ab19342899d101fdb2241c5f5366555689cbce",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/instance.rs": "c74841baa531e4c781a005d813a38022df9d034d656c384fb92704dab4607fee",
+      "src/spi/mod.rs": "6ae4da0b2255ffd00ceed94a92eeefe2e699af2e2ddd789c8768d9dbd114416c",
+      "src/spi/polled.rs": "bd072765c9b2b88b99084b2f3a5991fcf9f8a39ef12fa401ca75b2efea23700f",
+      "src/spi/stream_dma.rs": "1b5f6e3c1603a9cf38b21823a713a3b99c8002ea0eecb3eb21b1c17744277b9a",
+      "src/spi_v4/mod.rs": "c19c87204132a242214040afc36c83b5e7d4db17353b2be4cc4440359a86e8e3",
+      "src/syscfg.rs": "2ae9fa779ef1bb55a892668b55205479745af74f7bb4ae79881a0130ec55739a",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer.rs": "435f0e08ad82cb20321b9579f7de4441f75f765241bcfead0a0fea511084e4fa",
+      "src/timer_awg.rs": "10b7411c12861ad671d3b61cb5b4fc5e374badcc5dfb67c00b3dc4bd32aad8b9",
+      "src/timer_pwm.rs": "4bdd54f089b2bc2b67386a0f2f808ba109e88e37e5e1dfa19201341c19b70b30",
+      "src/uart/mod.rs": "b9ce4aa0a624af5b41f507ccc23c15cdc0459f79184f131349896a6040cea30a",
+      "src/uart/ring.rs": "1c568c6bf674451a80a21a9fcf875f92ed32358bab235adc3628b708b2901ded",
+      "src/uart/stream_dma/io.rs": "c54f20abad23d0efc8691765b5e59fa395824b104dc6b3993258af9bde573ad6",
+      "src/uart/stream_dma/mod.rs": "ac30dfa3a461c3901aaf90e5cf97b73cf78a34470a8ed2668be1f01cbccc4e49",
+      "src/uart/stream_dma/rx.rs": "58a0f3760ad6971793685b8c8217fd5feaa2a5405b95cc456ba1b96539e9d586",
+      "src/uart/stream_dma/tx.rs": "939fc5e0611ab01a580d4bef4d9d1f89e2f1474c833f6b76e8af2ee5d055839a",
+      "src/uart/tx_ring.rs": "6983703c6a19a1b4f0251fa0579f5321d015539fc1735c13d95adb48adb6468f",
+      "src/usart_v4/mod.rs": "077f270f928bae61f4bb52c6f53cb993ddd7e19d66d60cc999130dab34147de6",
+      "src/usb.rs": "a497f6d78bc4c0a7d19961edda34a5380e760ef46a5383cae6a9f17b9131449e",
+      "src/wait.rs": "e81144f39b38427ba861350232161bd56ef497b997b87e44045afe49895d0c70"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "bitflags": "1.3.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "cortex-m-semihosting": "0.5.0",
+      "critical-section": "1.2.0",
+      "defmt": "0.3.101, 1.2.0",
+      "defmt-macros": "1.2.0",
+      "defmt-parser": "1.1.0",
+      "defmt-rtt": "1.3.1",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.6.1, 0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "panic-probe": "1.0.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.9",
+      "synopsys-usb-otg": "0.4.0+902ebe9494899ef13d1a9e7b757fb86b6f308727",
+      "thiserror": "2.0.21",
+      "thiserror-impl": "2.0.21",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "usbd-serial": "0.2.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "CARGO_PKG_NAME": "nucleo-h753zi-loopback",
+      "DEFMT_LOG": "info"
+    }
+  },
+  "results": [
+    {
+      "requirement": "UART-015",
+      "method": {
+        "procedure": "requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "bc0ca35547ed0151c135c9fd7405dc65f55516154bfe91b68f8cb004494bdb89",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-019",
+      "method": {
+        "procedure": "requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "ec252795de9ad5ff7937715ae1461725646143ca08da0a4435da32b0703f66c1",
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-011",
+      "method": {
+        "procedure": "requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "628be4f010dc5c3ce4474c98fa23c9babd5739827c8a996255638d294b2c6ce6",
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-012",
+      "method": {
+        "procedure": "requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "1345b7b06bf8c90ce7154f38335e30bb27efd65ad8f2da26475281fdf2f6a45e",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "fe41f88f2c17abae41e74ab286f1ef795d7604d5894064fc91688413a87b0986",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-h753.sh w",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "nucleo-h753zi-loopback-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/uart-single-owner-20261117/nucleo-h753zi-loopback-images.sha256",
+        "bytes": 1953,
+        "sha256": "fe41f88f2c17abae41e74ab286f1ef795d7604d5894064fc91688413a87b0986"
+      },
+      {
+        "id": "nucleo-h753zi-loopback-run-w",
+        "kind": "log",
+        "path": "requirements/evidence/logs/uart-single-owner-20261117/nucleo-h753zi-loopback-run-w.log",
+        "bytes": 2336,
+        "sha256": "ab75c704e59f99106c39b0f44fd1b104bc0b4b62f8fd104c8d09c13210541801"
+      }
+    ],
+    "observations": [
+      "Every check in every run of the subset passed (PASS lines in the logs; no FAIL)."
+    ]
+  }
+}
