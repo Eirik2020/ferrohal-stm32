@@ -58,7 +58,7 @@ use crate::{
 
 /// What [`Sampler::new`](Sampler::new) hands back: the reason, and the
 /// timer, stream and buffer it took.
-pub type SamplerNewRefused<T, S> =
+pub type SamplerRefused<T, S> =
     crate::resource::Refused<super::ConfigError, (T, S, &'static mut [u16])>;
 
 /// Why a lane or sampler refused or failed.
@@ -606,7 +606,7 @@ where
         buffer: &'static mut [u32],
     ) -> Result<
         CompareLane<T, C, Self>,
-        super::LaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
+        super::LaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
     > {
         assemble_lane(pwm, self, |w| &w.stream, false, buffer, None)
             .map_err(|(error, wiring, buffer, _)| Refused::new(error, (wiring, buffer)))
@@ -620,7 +620,10 @@ where
         pwm: &Pwm<T>,
         buffer: &'static mut [u32],
         samples: &'static mut [u16],
-    ) -> super::TwoWayLaneAssembly<T, C, Pin, crate::dma::Stream<CD, SN>>
+    ) -> Result<
+        CompareLane<T, C, Self>,
+        super::TwoWayLaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>>,
+    >
     where
         crate::dma::Stream<CD, SN>: GpioDma,
         Port<PORT>: PortInstance,
@@ -656,7 +659,7 @@ where
         buffer: &'static mut [u32],
     ) -> Result<
         CompareLane<T, C, Self>,
-        super::ComplementaryLaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
+        super::ComplementaryLaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
     > {
         assemble_lane(pwm, self, |w| &w.stream, true, buffer, None)
             .map_err(|(error, wiring, buffer, _)| Refused::new(error, (wiring, buffer)))
@@ -672,7 +675,7 @@ where
         samples: &'static mut [u16],
     ) -> Result<
         CompareLane<T, C, Self>,
-        super::ComplementaryLaneRefusal<
+        super::ComplementaryLaneRefused<
             T,
             C,
             Pin,
@@ -995,7 +998,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
         stream: S,
         rate: Hertz,
         buffer: &'static mut [u16],
-    ) -> Result<Self, SamplerNewRefused<T, S>>
+    ) -> Result<Self, SamplerRefused<T, S>>
     where
         Port<P>: PortInstance,
     {

@@ -79,7 +79,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | D8 | `code` `api` | L | Refusals carry three error families. | `af65cad` `ClockError`, `1e1bbdf` IWDG, `a8a3a05` ADC, `4237048` SDMMC |
 | D12 | `code` `api` | L | Interrupt service is not uniform. | per driver; `1ca19a9` added a third shape |
 | D13 | `code` `api` | L | Vectors come in four shapes; `verify()` on five of nine. | `2e7f7fe` UART, `b55c640` EXTI, `4070cd8` timers |
-| N1 | `code` `api` | M | Refusal aliases follow four naming patterns. | `c6c5d23`, `ee05895` 2026-11-06 |
 | N2 | `code` `api` | L | Module-prefix stutter is mixed; 17 clippy hits. | per driver from `af65cad` |
 | N5 | `docs` `owner` | L | "Handle" has no fixed shape. | `b55c640` `ExtiHandle`, `1e1bbdf` `Watchdog::handle` |
 | N7 | `code` | L | Register wrapper `Unit` vs `LineRegs`. | `99e6404` `Unit`; `4bb8398` ADR-004 named `LineRegs` |

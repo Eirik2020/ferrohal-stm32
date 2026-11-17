@@ -4,6 +4,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review N1: refusal aliases are `<What>Refused`** (2026-11-17; owner's pick A).
+  Four patterns (`<Type>Refused`, `<Type>NewRefused`, `<Type>Refusal`, a `Result`
+  alias) become one: `LaneRefusal`, `ComplementaryLaneRefusal`, `SdmmcNewRefused`,
+  `UsbNewRefused` and `SamplerNewRefused` are `LaneRefused`, `ComplementaryLaneRefused`,
+  `SdmmcRefused`, `UsbRefused` and `SamplerRefused`; the `TwoWayLaneAssembly` result
+  alias is `TwoWayLaneRefused`; SPI and I2C gain `SpiRefused`, `BlockingSpiRefused` and
+  `I2cRefused`, so their constructors lose `#[allow(clippy::type_complexity)]`. The
+  UART's alias comes with its single-owner redesign. Spawned by `c6c5d23`, `ee05895`.
+
 - **API review N3: one quantity, one word** (2026-11-17; owner's pick A). I2C said
   speed, SPI and SDMMC frequency, the PWM `new(rate)` but `set_frequency`, and the UART
   a bare `u32` baudrate. Now, as `design/naming.md` records: I2C's `Config.speed`,

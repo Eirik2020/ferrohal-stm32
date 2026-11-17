@@ -110,13 +110,12 @@ where
     ///
     /// On success the handle keeps the wiring; [`free`](Self::free) returns
     /// it with the buffers.
-    #[allow(clippy::type_complexity)]
     pub fn new(
         rcc: &mut Rcc,
         wiring: Wiring<U, Sck, Miso, Mosi, TxD, RxD>,
         config: &Config,
         mut buffers: Buffers,
-    ) -> Result<Self, Refused<ConfigError, (Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers)>> {
+    ) -> Result<Self, super::SpiRefused<U, Sck, Miso, Mosi, TxD, RxD>> {
         // On success `open` has taken the buffers; a refusal hands both back.
         match Self::open(rcc, wiring, config, &mut buffers) {
             Ok(handle) => Ok(handle),

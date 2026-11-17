@@ -299,7 +299,7 @@ pub struct Sdmmc<W> {
 
 /// What [`Sdmmc::new`](Sdmmc::new) hands back when it refuses: the reason,
 /// and the wiring it took.
-pub type SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3> =
+pub type SdmmcRefused<U, Ck, Cmd, D0, D1, D2, D3> =
     Refused<Error, Wiring<U, Ck, Cmd, D0, D1, D2, D3>>;
 
 impl<U, Ck, Cmd, D0, D1, D2, D3> Sdmmc<Wiring<U, Ck, Cmd, D0, D1, D2, D3>>
@@ -323,7 +323,7 @@ where
         rcc: &mut Rcc,
         wiring: Wiring<U, Ck, Cmd, D0, D1, D2, D3>,
         config: &Config,
-    ) -> Result<Self, SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3>> {
+    ) -> Result<Self, SdmmcRefused<U, Ck, Cmd, D0, D1, D2, D3>> {
         let clocks = rcc.clocks();
         let kernel = match U::KERNEL.frequency(&clocks) {
             Some(kernel) => kernel,

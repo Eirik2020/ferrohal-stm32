@@ -68,13 +68,13 @@ pub struct UsbFs {
 
 /// What [`UsbFs::new`](UsbFs::new) hands back when it refuses: the reason,
 /// and the wiring it took.
-pub type UsbNewRefused = Refused<ClockError, Wiring>;
+pub type UsbRefused = Refused<ClockError, Wiring>;
 
 impl UsbFs {
     /// Starts the port's 48 MHz clock (the F4's PLLQ must already give it;
     /// the H7 turns on HSI48 and the USB supply) and enables the controller.
     /// Refuses with the wiring handed back.
-    pub fn new(rcc: &mut Rcc, wiring: Wiring) -> Result<Self, UsbNewRefused> {
+    pub fn new(rcc: &mut Rcc, wiring: Wiring) -> Result<Self, UsbRefused> {
         if let Err(error) = rcc.usb_clock() {
             return Err(Refused::new(error, wiring));
         }

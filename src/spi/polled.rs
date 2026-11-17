@@ -55,12 +55,11 @@ where
     ///
     /// On success the handle keeps the wiring; [`free`](Self::free) returns
     /// it.
-    #[allow(clippy::type_complexity)]
     pub fn new(
         rcc: &mut Rcc,
         wiring: BlockingWiring<U, Sck, Miso, Mosi>,
         config: &Config,
-    ) -> Result<Self, Refused<ConfigError, BlockingWiring<U, Sck, Miso, Mosi>>> {
+    ) -> Result<Self, super::BlockingSpiRefused<U, Sck, Miso, Mosi>> {
         let info = U::info();
         let clocks = rcc.clocks();
         let Some(kernel_clock) = U::KERNEL.frequency(&clocks) else {

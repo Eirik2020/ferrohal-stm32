@@ -76,6 +76,10 @@ Which IP versions each series carries, as metapac measured them:
   is a clock's (the I2C bus's SCL, SPI's SCK, the SDMMC card clock, a timebase's count);
   *rate* is events a second (a PWM's periods, a tick, a sampler's samples); *baudrate*
   stays the UART's, as a `Hertz`; *speed* is GPIO slew only.
+- **[Decided]** A refusal's alias is `<What>Refused`, named after what refuses, not
+  after the method (owner, 2026-11-17, API review N1): `SpiRefused`, `I2cRefused`,
+  `LaneRefused`, `SamplerRefused`, `ScanRefused`. Names stay put when a method is
+  renamed. The UART's comes with its single-owner redesign.
 
 ## Benches and scripts
 

@@ -99,6 +99,10 @@ pub struct Wiring<U, Scl, Sda> {
     pub sda: Sda,
 }
 
+/// What [`I2c::new`] hands back when it refuses: the reason, and the wiring
+/// it took.
+pub type I2cRefused<U, Scl, Sda> = Refused<ConfigError, Wiring<U, Scl, Sda>>;
+
 impl<U, Scl, Sda> Wiring<U, Scl, Sda>
 where
     U: Instance,
@@ -291,7 +295,7 @@ where
         rcc: &mut Rcc,
         wiring: Wiring<U, Scl, Sda>,
         config: &Config,
-    ) -> Result<Self, Refused<ConfigError, Wiring<U, Scl, Sda>>> {
+    ) -> Result<Self, I2cRefused<U, Scl, Sda>> {
         let info = U::info();
         let clocks = rcc.clocks();
         let kernel_clock = U::KERNEL.clock(&clocks);

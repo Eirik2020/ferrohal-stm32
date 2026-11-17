@@ -151,6 +151,16 @@ pub struct Buffers {
     pub rx: &'static mut [u8],
 }
 
+/// What [`Spi::new`](crate::spi::Spi::new) hands back when it refuses: the
+/// reason, and the wiring and buffers it took.
+pub type SpiRefused<U, Sck, Miso, Mosi, TxDma, RxDma> =
+    crate::resource::Refused<ConfigError, (Wiring<U, Sck, Miso, Mosi, TxDma, RxDma>, Buffers)>;
+
+/// What [`BlockingSpi::new`](crate::spi::BlockingSpi::new) hands back when it
+/// refuses: the reason, and the wiring it took.
+pub type BlockingSpiRefused<U, Sck, Miso, Mosi> =
+    crate::resource::Refused<ConfigError, BlockingWiring<U, Sck, Miso, Mosi>>;
+
 /// The interrupt vector an SPI needs bound, from `Spi::interrupts`: its
 /// receive stream's, whose handler calls `Spi::on_interrupt`.
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
