@@ -77,3 +77,8 @@ a changed meaning does.
   answers the query `FERRO-ID?` and a newline with the line, adding `dev`, `rev` and
   `uid` it reads itself.
 
+## Improving the rig
+
+What the rig cannot reach, and the upgrades that would reach it, each with the
+`docs/DEBT.md` items it unblocks: [RIG-IMPROVEMENTS.md](RIG-IMPROVEMENTS.md). The agreed
+order is the queue in [CAPABILITIES.md](CAPABILITIES.md#the-improvement-queue).
