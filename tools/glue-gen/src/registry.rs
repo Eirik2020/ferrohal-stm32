@@ -39,6 +39,13 @@ pub const PARTS: &[Part] = &[
         package: "LQFP64",
     },
     Part {
+        feature: "stm32f411ce",
+        series: "F4",
+        die: 0x431,
+        device: "STM32F411",
+        package: "UFQFPN48",
+    },
+    Part {
         feature: "stm32f405rg",
         series: "F4",
         die: 0x413,
@@ -85,6 +92,11 @@ pub const DIES: &[Die] = &[
         id: 0x413,
         lines: &["STM32F405", "STM32F407", "STM32F415", "STM32F417"],
         manual: "RM0090",
+    },
+    Die {
+        id: 0x431,
+        lines: &["STM32F411"],
+        manual: "RM0383",
     },
     Die {
         id: 0x433,
@@ -211,7 +223,7 @@ mod tests {
         assert_eq!(features("all").len(), PARTS.len());
         assert_eq!(
             features("series F4"),
-            ["stm32f401re", "stm32f405rg", "stm32f407vg"]
+            ["stm32f401re", "stm32f411ce", "stm32f405rg", "stm32f407vg"]
         );
         assert_eq!(features("series h7"), ["stm32h743vi", "stm32h753zi"]);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);

@@ -14,6 +14,7 @@ part's clock limits (ADR-008 item 7); do not edit between the markers.
 | part | series, core | die | device | package (bonded pins) | clock as offered |
 |---|---|---|---|---|---|
 | STM32F401RE | F4, Cortex-M4F | 0x433 | STM32F401 | LQFP64 (50) | 84 MHz |
+| STM32F411CE | F4, Cortex-M4F | 0x431 | STM32F411 | UFQFPN48 (36) | ? |
 | STM32F405RG | F4, Cortex-M4F | 0x413 | STM32F405 | LQFP64 (51) | 168 MHz |
 | STM32F407VG | F4, Cortex-M4F | 0x413 | STM32F407 | LQFP100 (82) | 168 MHz |
 | STM32H743VI | H7, Cortex-M7 | 0x450 | STM32H743 | LQFP100 (82) | 400 MHz (VOS1) |
@@ -53,19 +54,19 @@ The instances each driver offers, per part, generated from the same cut and offe
 policy as the glue (`tools/glue-gen/src/emit.rs`); n/a: the part has none.
 
 <!-- generated: glue-gen instances -->
-| capability | F401RE | F405RG | F407VG | H743VI | H753ZI |
-|---|---|---|---|---|---|
-| **UART** (`Uart`, `UartRx`) | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
-| **SPI** over DMA (`Spi`) | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 |
-| **SPI** polled (`BlockingSpi`) | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4/6 | SPI1-6 |
-| **I2C** (`I2c`) | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-4 | I2C1-4 |
-| **Timers** (`Tick`, `Timebase`, `Pwm`) | TIM1-5/9-11 | TIM1-14 | TIM1-14 | TIM1-8/12-17 | TIM1-8/12-17 |
-| compare channels (PWM, lanes) | TIM1-5/9-11 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8/12-17 | TIM1-5/8/12-17 |
-| complementary outputs (CHxN) | TIM1 | TIM1/8 | TIM1/8 | TIM1/8/15-17 | TIM1/8/15-17 |
-| **ADC** (`Adc`, `AdcScan`) | ADC1 | ADC1 | ADC1 | ADC1/3 | ADC1/3 |
-| **USB** device (`UsbFs`) | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS |
-| **SDMMC** (`Sdmmc`) | n/a | n/a | n/a | SDMMC1/2 | SDMMC1/2 |
-| **DMA** controllers | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 |
+| capability | F401RE | F411CE | F405RG | F407VG | H743VI | H753ZI |
+|---|---|---|---|---|---|---|
+| **UART** (`Uart`, `UartRx`) | USART1/2/6 | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
+| **SPI** over DMA (`Spi`) | SPI1-3 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 |
+| **SPI** polled (`BlockingSpi`) | SPI1-3 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-4/6 | SPI1-6 |
+| **I2C** (`I2c`) | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-4 | I2C1-4 |
+| **Timers** (`Tick`, `Timebase`, `Pwm`) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-14 | TIM1-14 | TIM1-8/12-17 | TIM1-8/12-17 |
+| compare channels (PWM, lanes) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8/12-17 | TIM1-5/8/12-17 |
+| complementary outputs (CHxN) | TIM1 | TIM1 | TIM1/8 | TIM1/8 | TIM1/8/15-17 | TIM1/8/15-17 |
+| **ADC** (`Adc`, `AdcScan`) | ADC1 | ADC1 | ADC1 | ADC1 | ADC1/3 | ADC1/3 |
+| **USB** device (`UsbFs`) | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS |
+| **SDMMC** (`Sdmmc`) | n/a | n/a | n/a | n/a | SDMMC1/2 | SDMMC1/2 |
+| **DMA** controllers | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 |
 <!-- end generated -->
 
 What each driver does, hand-written: ✓ supported · – on the chip, not supported · n/a

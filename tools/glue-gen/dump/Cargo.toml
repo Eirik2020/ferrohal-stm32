@@ -16,6 +16,7 @@ stm32-metapac = { version = "=21.0.0", default-features = false, features = ["me
 # One per part in the generator's registry.
 [features]
 stm32f401re = ["stm32-metapac/stm32f401re"]
+stm32f411ce = ["stm32-metapac/stm32f411ce"]
 stm32f405rg = ["stm32-metapac/stm32f405rg"]
 stm32f407vg = ["stm32-metapac/stm32f407vg"]
 stm32h743vi = ["stm32-metapac/stm32h743vi"]
