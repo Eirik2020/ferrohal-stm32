@@ -182,6 +182,7 @@ names where the code documents it.
 
 The roadmap: features FerroHAL does not offer. None is debt; the owner sets the order.
 
+- **Chips:** the STM32F411, F722 and F745, in progress: [the plan](plans/2026-11-17-f411-f722-f745.md).
 - **UART:** 7- and 9-bit data, RTS/CTS, half-duplex, RS-485 DE, LIN; LPUART1; the
   H7's hardware FIFOs.
 - **SPI:** slave, simplex, half-duplex, 16-bit frames, hardware NSS, CRC; SPI6.

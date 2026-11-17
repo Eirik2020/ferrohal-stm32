@@ -21,7 +21,7 @@ Public repo. Bench-verified.
 | what the benches prove | `hil/COVERAGE.md`, `hil/CAPABILITIES.md` |
 | touch IP driver | `src/<ip>_vN/mod.rs` + `src/requirements/<ip>.yaml` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `docs/DEBT.md`; `docs/CHIPS.md` roadmap; no plan open (the glue generator's finished 2026-11-15) |
+| plan work | `docs/DEBT.md`; `docs/CHIPS.md` roadmap; open plan: `docs/plans/2026-11-17-f411-f722-f745.md` |
 | naming/catalogs/IDs | `docs/design/naming.md`; `tools/check_names.py` holds it |
 | chip glue, parts, dies, packages | `docs/design/glue-generator.md` (ADR-008), `tools/glue-gen` |
 | maturity, tiers, evidence axes | `docs/design/maturity.md` (ADR-009) |

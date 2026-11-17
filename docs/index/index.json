@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 74,
+  "documents": 75,
   "agent": 52,
-  "bytes": 372328
+  "bytes": 378458
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 5533
+   "bytes": 5530
   },
   {
    "path": "README.md",
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 11250
+   "bytes": 11354
   },
   {
    "path": "docs/DEBT.md",
@@ -438,6 +438,13 @@
    "title": "API review: consistency, naming, structure, reuse (hub)",
    "purpose": "Merged 2026-11-11, every fact re-measured at ",
    "bytes": 3149
+  },
+  {
+   "path": "docs/plans/2026-11-17-f411-f722-f745.md",
+   "class": "human",
+   "title": "Plan: the STM32F411, F722 and F745",
+   "purpose": "Opened 2026-11-17. The owner's fifth and last",
+   "bytes": 6029
   },
   {
    "path": "docs/policies/agent-docs.md",
