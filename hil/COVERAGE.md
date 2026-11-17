@@ -29,22 +29,34 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `dma_v2` | – |  |
 | IP `exti_h7` | – |  |
 | IP `exti_v1` | – |  |
-| IP `i2c_v1` | HIL | nucleo-f401re-loopback |
-| IP `i2c_v2` | HIL | nucleo-h753zi-loopback |
+| IP `i2c_v1` | – | nucleo-f401re-loopback |
+| IP `i2c_v2` | – |  |
 | IP `iwdg_v1` | – |  |
 | IP `iwdg_v2` | – |  |
 | IP `otg_v1` | – |  |
 | IP `sdmmc_v2` | FLSH | lucid-h7 |
-| IP `spi_v2_i2s` | HIL | nucleo-f401re-loopback |
-| IP `spi_v4_i2s` | HIL | nucleo-h753zi-loopback |
+| IP `spi_v2_i2s` | – | nucleo-f401re-loopback |
+| IP `spi_v3_i2s` | – |  |
+| IP `spi_v4_i2s` | – | nucleo-h753zi-loopback |
 | IP `timer_v1` | – |  |
 | IP `timer_v3` | – |  |
 | IP `usart_v2` | HIL | nucleo-f401re-loopback |
+| IP `usart_v3` | – |  |
 | IP `usart_v4` | HIL | nucleo-h753zi-loopback |
 | die `0x413` (glue probe) | – |  |
+| die `0x419` (glue probe) | – |  |
+| die `0x421` (glue probe) | – |  |
+| die `0x431` (glue probe) | – |  |
 | die `0x433` (glue probe) | – |  |
+| die `0x441` (glue probe) | – |  |
+| die `0x449` (glue probe) | – |  |
 | die `0x450` (glue probe) | – |  |
+| die `0x451` (glue probe) | – |  |
+| die `0x452` (glue probe) | – |  |
+| die `0x458` (glue probe) | – |  |
+| die `0x463` (glue probe) | – |  |
 | series F4 platform | – | nucleo-f401re-loopback, stm32f4-discovery |
+| series F7 platform | – |  |
 | series H7 platform | – | nucleo-h753zi-loopback |
 <!-- end generated -->
 
@@ -54,7 +66,6 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 |---|---|---|---|---|
 | `usart_v2` | F401, F405 | F401: A, B, C, D, V, W | – | USART2's break, baud and parity (ST-LINK); parity clear above 115200 |
 | `usart_v4` | H743, H753 | H753: A, B, C, D, E, U, W, Y | – | UART8 TX and the morpho-only pins |
-| `usart_v3` (served by `usart_v4`) | none enabled | – | – | everything: no chip carries it yet |
 | `spi_v2` | F401, F405 | F401: E, F, G (DMA), K (polled); E samples the wire (bit order, phase) | Foxeer: IMU, NOR | – |
 | `spi_v4` | H743, H753 | H753: F, G, H (DMA), L (polled); F samples the wire (bit order, phase); H again with caches on | Lucid: IMU | – |
 | `i2c_v1` | F401, F405 | F401: Q, S (Pico simulator) | – | – |
@@ -80,7 +91,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 
 | what | proven on: runs | not proven |
 |---|---|---|
-| UART engine (`uart/stream_dma/`), both IP versions | the UART runs on both Nucleos | UARTDMA-009 (a stream that will not stop) |
+| UART engine (`uart/stream_dma.rs`), both IP versions | the UART runs on both Nucleos | UARTDMA-009 (a stream that will not stop) |
 | SPI engines, DMA and polled | the SPI runs on both Nucleos | – |
 | Waveform generator, two-way lanes | F401: O, P, R; H753: Q | – |
 | Reset cause, ROM bootloader request | F401: L; Discovery: C (ROM DFU on CN5); H753: N, Z (ROM DFU on CN13) | RESET-004 on both families |

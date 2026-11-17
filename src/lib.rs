@@ -9,9 +9,9 @@
 //! # Layout
 //!
 //! - One module per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`,
-//!   `spi_v4`, `i2c_v1`, `i2c_v2`, `exti_v1`, `exti_h7`, `timer_v1`,
+//!   `spi_v3`, `spi_v4`, `i2c_v1`, `i2c_v2`, `exti_v1`, `exti_h7`, `timer_v1`,
 //!   `timer_v3`, `iwdg_v1`, `iwdg_v2`, `gpio_v2`, `adc_v2`, `adc_v4`,
-//!   `sdmmc_v2`, `rcc_f4`, `rcc_h7_rm0433`, `dma_v1`, `dma_v2`), each behind
+//!   `sdmmc_v2`, `rcc_f4`, `rcc_f7`, `rcc_h7_rm0433`, `dma_v1`, `dma_v2`), each behind
 //!   its own feature, each in its own folder. They speak registers only.
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
@@ -41,27 +41,166 @@
 #[cfg(test)]
 extern crate std;
 
-#[cfg(not(any(
-    feature = "stm32f401re",
-    feature = "stm32f405rg",
-    feature = "stm32f407vg",
-    feature = "stm32h743vi",
-    feature = "stm32h753zi"
-)))]
-compile_error!("enable one chip feature, such as `stm32f401re` or `stm32h753zi`");
-#[cfg(any(
-    all(feature = "stm32f401re", feature = "stm32f405rg"),
-    all(feature = "stm32f401re", feature = "stm32f407vg"),
-    all(feature = "stm32f405rg", feature = "stm32f407vg"),
-    all(feature = "stm32f407vg", feature = "stm32h743vi"),
-    all(feature = "stm32f407vg", feature = "stm32h753zi"),
-    all(feature = "stm32f401re", feature = "stm32h743vi"),
-    all(feature = "stm32f401re", feature = "stm32h753zi"),
-    all(feature = "stm32f405rg", feature = "stm32h743vi"),
-    all(feature = "stm32f405rg", feature = "stm32h753zi"),
-    all(feature = "stm32h743vi", feature = "stm32h753zi"),
-))]
-compile_error!("enable only one chip feature");
+/// How many chip features are on: exactly one must be.
+const CHIP_FEATURES: usize = cfg!(feature = "stm32f401ce") as usize
+    + cfg!(feature = "stm32f401cd") as usize
+    + cfg!(feature = "stm32f401re") as usize
+    + cfg!(feature = "stm32f401rd") as usize
+    + cfg!(feature = "stm32f401ve") as usize
+    + cfg!(feature = "stm32f401vd") as usize
+    + cfg!(feature = "stm32f410tb") as usize
+    + cfg!(feature = "stm32f410t8") as usize
+    + cfg!(feature = "stm32f410cb") as usize
+    + cfg!(feature = "stm32f410c8") as usize
+    + cfg!(feature = "stm32f410rb") as usize
+    + cfg!(feature = "stm32f410r8") as usize
+    + cfg!(feature = "stm32f411ce") as usize
+    + cfg!(feature = "stm32f411cc") as usize
+    + cfg!(feature = "stm32f411re") as usize
+    + cfg!(feature = "stm32f411rc") as usize
+    + cfg!(feature = "stm32f411ve") as usize
+    + cfg!(feature = "stm32f411vc") as usize
+    + cfg!(feature = "stm32f405og") as usize
+    + cfg!(feature = "stm32f405oe") as usize
+    + cfg!(feature = "stm32f405rg") as usize
+    + cfg!(feature = "stm32f405vg") as usize
+    + cfg!(feature = "stm32f405zg") as usize
+    + cfg!(feature = "stm32f407vg") as usize
+    + cfg!(feature = "stm32f407ve") as usize
+    + cfg!(feature = "stm32f407zg") as usize
+    + cfg!(feature = "stm32f407ze") as usize
+    + cfg!(feature = "stm32f407ig") as usize
+    + cfg!(feature = "stm32f407ie") as usize
+    + cfg!(feature = "stm32f427vi") as usize
+    + cfg!(feature = "stm32f427vg") as usize
+    + cfg!(feature = "stm32f427zi") as usize
+    + cfg!(feature = "stm32f427zg") as usize
+    + cfg!(feature = "stm32f427ii") as usize
+    + cfg!(feature = "stm32f427ig") as usize
+    + cfg!(feature = "stm32f427ai") as usize
+    + cfg!(feature = "stm32f427ag") as usize
+    + cfg!(feature = "stm32f429vi") as usize
+    + cfg!(feature = "stm32f429vg") as usize
+    + cfg!(feature = "stm32f429ve") as usize
+    + cfg!(feature = "stm32f429zi") as usize
+    + cfg!(feature = "stm32f429zg") as usize
+    + cfg!(feature = "stm32f429ze") as usize
+    + cfg!(feature = "stm32f429ii") as usize
+    + cfg!(feature = "stm32f429ig") as usize
+    + cfg!(feature = "stm32f429ie") as usize
+    + cfg!(feature = "stm32f429ai") as usize
+    + cfg!(feature = "stm32f429ag") as usize
+    + cfg!(feature = "stm32f429bi") as usize
+    + cfg!(feature = "stm32f429bg") as usize
+    + cfg!(feature = "stm32f429be") as usize
+    + cfg!(feature = "stm32f429ni") as usize
+    + cfg!(feature = "stm32f429ng") as usize
+    + cfg!(feature = "stm32f429ne") as usize
+    + cfg!(feature = "stm32f412cg") as usize
+    + cfg!(feature = "stm32f412ce") as usize
+    + cfg!(feature = "stm32f412rg") as usize
+    + cfg!(feature = "stm32f412re") as usize
+    + cfg!(feature = "stm32f412vg") as usize
+    + cfg!(feature = "stm32f412ve") as usize
+    + cfg!(feature = "stm32f412zg") as usize
+    + cfg!(feature = "stm32f412ze") as usize
+    + cfg!(feature = "stm32f413ch") as usize
+    + cfg!(feature = "stm32f413cg") as usize
+    + cfg!(feature = "stm32f413mh") as usize
+    + cfg!(feature = "stm32f413mg") as usize
+    + cfg!(feature = "stm32f413rh") as usize
+    + cfg!(feature = "stm32f413rg") as usize
+    + cfg!(feature = "stm32f413vh") as usize
+    + cfg!(feature = "stm32f413vg") as usize
+    + cfg!(feature = "stm32f413zh") as usize
+    + cfg!(feature = "stm32f413zg") as usize
+    + cfg!(feature = "stm32f446me") as usize
+    + cfg!(feature = "stm32f446mc") as usize
+    + cfg!(feature = "stm32f446re") as usize
+    + cfg!(feature = "stm32f446rc") as usize
+    + cfg!(feature = "stm32f446ve") as usize
+    + cfg!(feature = "stm32f446vc") as usize
+    + cfg!(feature = "stm32f446ze") as usize
+    + cfg!(feature = "stm32f446zc") as usize
+    + cfg!(feature = "stm32f722re") as usize
+    + cfg!(feature = "stm32f722rc") as usize
+    + cfg!(feature = "stm32f722ve") as usize
+    + cfg!(feature = "stm32f722vc") as usize
+    + cfg!(feature = "stm32f722ze") as usize
+    + cfg!(feature = "stm32f722zc") as usize
+    + cfg!(feature = "stm32f722ie") as usize
+    + cfg!(feature = "stm32f722ic") as usize
+    + cfg!(feature = "stm32f745vg") as usize
+    + cfg!(feature = "stm32f745ve") as usize
+    + cfg!(feature = "stm32f745zg") as usize
+    + cfg!(feature = "stm32f745ze") as usize
+    + cfg!(feature = "stm32f745ig") as usize
+    + cfg!(feature = "stm32f745ie") as usize
+    + cfg!(feature = "stm32f765vi") as usize
+    + cfg!(feature = "stm32f765vg") as usize
+    + cfg!(feature = "stm32f765zi") as usize
+    + cfg!(feature = "stm32f765zg") as usize
+    + cfg!(feature = "stm32f765ii") as usize
+    + cfg!(feature = "stm32f765ig") as usize
+    + cfg!(feature = "stm32f765bi") as usize
+    + cfg!(feature = "stm32f765bg") as usize
+    + cfg!(feature = "stm32f765ni") as usize
+    + cfg!(feature = "stm32f765ng") as usize
+    + cfg!(feature = "stm32f767vi") as usize
+    + cfg!(feature = "stm32f767vg") as usize
+    + cfg!(feature = "stm32f767zi") as usize
+    + cfg!(feature = "stm32f767zg") as usize
+    + cfg!(feature = "stm32f767ii") as usize
+    + cfg!(feature = "stm32f767ig") as usize
+    + cfg!(feature = "stm32f767bi") as usize
+    + cfg!(feature = "stm32f767bg") as usize
+    + cfg!(feature = "stm32f767ni") as usize
+    + cfg!(feature = "stm32f767ng") as usize
+    + cfg!(feature = "stm32f768ai") as usize
+    + cfg!(feature = "stm32f769ai") as usize
+    + cfg!(feature = "stm32f769ag") as usize
+    + cfg!(feature = "stm32f769bi") as usize
+    + cfg!(feature = "stm32f769bg") as usize
+    + cfg!(feature = "stm32f769ii") as usize
+    + cfg!(feature = "stm32f769ig") as usize
+    + cfg!(feature = "stm32f769ni") as usize
+    + cfg!(feature = "stm32f769ng") as usize
+    + cfg!(feature = "stm32f777vi") as usize
+    + cfg!(feature = "stm32f777zi") as usize
+    + cfg!(feature = "stm32f777ii") as usize
+    + cfg!(feature = "stm32f777bi") as usize
+    + cfg!(feature = "stm32f777ni") as usize
+    + cfg!(feature = "stm32f778ai") as usize
+    + cfg!(feature = "stm32f779ai") as usize
+    + cfg!(feature = "stm32f779bi") as usize
+    + cfg!(feature = "stm32f779ii") as usize
+    + cfg!(feature = "stm32f779ni") as usize
+    + cfg!(feature = "stm32h743vi") as usize
+    + cfg!(feature = "stm32h743vg") as usize
+    + cfg!(feature = "stm32h743zi") as usize
+    + cfg!(feature = "stm32h743zg") as usize
+    + cfg!(feature = "stm32h743ii") as usize
+    + cfg!(feature = "stm32h743ig") as usize
+    + cfg!(feature = "stm32h743bi") as usize
+    + cfg!(feature = "stm32h743bg") as usize
+    + cfg!(feature = "stm32h743ai") as usize
+    + cfg!(feature = "stm32h743ag") as usize
+    + cfg!(feature = "stm32h743xi") as usize
+    + cfg!(feature = "stm32h743xg") as usize
+    + cfg!(feature = "stm32h750vb") as usize
+    + cfg!(feature = "stm32h750zb") as usize
+    + cfg!(feature = "stm32h750ib") as usize
+    + cfg!(feature = "stm32h750xb") as usize
+    + cfg!(feature = "stm32h753vi") as usize
+    + cfg!(feature = "stm32h753zi") as usize
+    + cfg!(feature = "stm32h753ii") as usize
+    + cfg!(feature = "stm32h753bi") as usize
+    + cfg!(feature = "stm32h753ai") as usize
+    + cfg!(feature = "stm32h753xi") as usize;
+const _: () = assert!(
+    CHIP_FEATURES == 1,
+    "enable exactly one chip feature, such as `stm32f401re` or `stm32h753zi`"
+);
 
 pub mod adc;
 pub mod errata;
@@ -75,9 +214,13 @@ pub mod signature;
 pub mod spi;
 pub mod syscfg;
 pub mod time;
+#[cfg(any(feature = "usart_v2", feature = "usart_v3", feature = "usart_v4"))]
 pub mod uart;
 #[cfg(feature = "usb")]
 pub mod usb;
+// The STM32F410 has no USB port (RM0401 has no OTG chapter).
+#[cfg(all(feature = "usb", feature = "_line-stm32f410"))]
+compile_error!("the STM32F410 has no USB port: drop the `usb` feature");
 mod wait;
 
 // EXTI: one source, two IP versions (see the module).
@@ -123,12 +266,16 @@ pub(crate) mod i2c_v1;
 pub(crate) mod i2c_v2;
 #[cfg(feature = "rcc_f4")]
 pub mod rcc_f4;
+#[cfg(feature = "rcc_f7")]
+pub mod rcc_f7;
 #[cfg(feature = "rcc_h7_rm0433")]
 pub mod rcc_h7_rm0433;
 #[cfg(feature = "sdmmc_v2")]
 pub mod sdmmc_v2;
 #[cfg(feature = "spi_v2")]
 pub(crate) mod spi_v2;
+#[cfg(feature = "spi_v3")]
+pub(crate) mod spi_v3;
 #[cfg(feature = "spi_v4")]
 pub(crate) mod spi_v4;
 #[cfg(feature = "usart_v2")]
@@ -163,6 +310,8 @@ pub use iwdg_v2 as iwdg;
 pub use sdmmc_v2 as sdmmc;
 #[cfg(feature = "spi_v2")]
 use spi_v2 as spi_ip;
+#[cfg(feature = "spi_v3")]
+use spi_v3 as spi_ip;
 #[cfg(feature = "spi_v4")]
 use spi_v4 as spi_ip;
 #[cfg(feature = "timer_v1")]
@@ -174,19 +323,70 @@ use usart_v2 as usart_ip;
 #[cfg(any(feature = "usart_v3", feature = "usart_v4"))]
 use usart_v4 as usart_ip;
 
-#[cfg(feature = "stm32f401re")]
+#[cfg(feature = "_line-stm32f401")]
 #[path = "chips/stm32f401re.rs"]
 pub mod chip;
-#[cfg(feature = "stm32f405rg")]
+#[cfg(feature = "_line-stm32f410")]
+#[path = "chips/stm32f410rb.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f411")]
+#[path = "chips/stm32f411ce.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f405")]
 #[path = "chips/stm32f405rg.rs"]
 pub mod chip;
-#[cfg(feature = "stm32f407vg")]
+#[cfg(feature = "_line-stm32f407")]
 #[path = "chips/stm32f407vg.rs"]
 pub mod chip;
-#[cfg(feature = "stm32h743vi")]
+#[cfg(feature = "_line-stm32f427")]
+#[path = "chips/stm32f427vi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f429")]
+#[path = "chips/stm32f429zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f412")]
+#[path = "chips/stm32f412zg.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f413")]
+#[path = "chips/stm32f413zh.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f446")]
+#[path = "chips/stm32f446re.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f722")]
+#[path = "chips/stm32f722re.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f745")]
+#[path = "chips/stm32f745vg.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f765")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f767")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f768")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f769")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f777")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f778")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f779")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32h743")]
 #[path = "chips/stm32h743vi.rs"]
 pub mod chip;
-#[cfg(feature = "stm32h753zi")]
+#[cfg(feature = "_line-stm32h750")]
+#[path = "chips/stm32h753zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32h753")]
 #[path = "chips/stm32h753zi.rs"]
 pub mod chip;
 

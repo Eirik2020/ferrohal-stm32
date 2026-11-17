@@ -149,15 +149,15 @@ impl RccBit {
 /// `Bus => enable register, reset register;` per bus, expanded in the RCC
 /// module, where `Rcc`, `Bus`, `RccBit` and `RCC_REGS` resolve.
 macro_rules! bus_registers {
-    ($($bus:ident => $enr:ident, $rstr:ident;)+) => {
+    ($($(#[$meta:meta])* $bus:ident => $enr:ident, $rstr:ident;)+) => {
         impl Rcc {
             /// Turns a peripheral's clock on, then reads the register back so
             /// the write has landed before the peripheral is touched (the
-            /// delay RM0368 asks for: ES0299 2.2.7, ES0182 2.2.13).
+            /// delay RM0368 asks for: ES0299 2.2.7, ES0287 2.2.7, ES0298 2.2.7, ES0206 2.2.7, ES0305 2.2.7, ES0372 2.2.7, ES0325 2.2.7, ES0182 2.2.13).
             pub(crate) fn enable(&mut self, bit: RccBit) {
                 let mask = 1 << bit.bit;
                 match bit.bus {
-                    $(Bus::$bus => {
+                    $($(#[$meta])* Bus::$bus => {
                         RCC_REGS.$enr().modify(|w| w.0 |= mask);
                         let _ = RCC_REGS.$enr().read();
                     })+
@@ -169,7 +169,7 @@ macro_rules! bus_registers {
             pub(crate) fn reset(&mut self, bit: RccBit) {
                 let mask = 1 << bit.bit;
                 match bit.bus {
-                    $(Bus::$bus => {
+                    $($(#[$meta])* Bus::$bus => {
                         RCC_REGS.$rstr().modify(|w| w.0 |= mask);
                         RCC_REGS.$rstr().modify(|w| w.0 &= !mask);
                     })+

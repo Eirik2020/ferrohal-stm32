@@ -1,7 +1,7 @@
 # Bench Procedures
 
 What each requirement's bench entry runs. The rig itself, what it can prove and what to
-improve next, is [hil.md](hil/CAPABILITIES.md). A run proves the files that declare the
+improve next, is [hil/CAPABILITIES.md](../hil/CAPABILITIES.md). A run proves the files that declare the
 requirement it covers, so after the first pass, a change to one file owes only that
 file's requirements a new run.
 
@@ -10,7 +10,7 @@ name, so a log shows which layer each line speaks for. A record's image hash is 
 hash of the manifest beside its logs, which lists every binary of the run by SHA-256.
 
 How the rig is driven, before any procedure here runs — which probe a script flashes
-through, and the `rt` feature every firmware crate needs — is [rig.md](hil/RIG.md).
+through, and the `rt` feature every firmware crate needs — is [hil/RIG.md](../hil/RIG.md).
 The injected faults, split out to keep this file in its budget, are
 [benches-faults.md](benches-faults.md); the host analyses (no reachable panic, the
 chip glue) are [benches-analysis.md](benches-analysis.md).
@@ -70,6 +70,26 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 ## SPI and EXTI on the Nucleo-H753ZI
 
 `hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Run F also samples port A with TIM2's update request on DMA1 stream 1 while SPI1 runs at its slowest, as the F401's run E does [SPI-010]. Run H then turns both caches on and runs SPI2's suite again, its buffers in the MPU's non-cacheable block. Pass: every check in every run passes and the script exits zero.
+
+## Clocks, timers, watchdog and I2C on the Nucleo-F767ZI
+
+`hil/run-f767.sh`, no links (`nucleo-f767zi/src/board.rs`). The glue probe first. Run A
+sets voltage scale 3 before `freeze`, which must then read back scale 1 with VOSRDY
+[RCC-003] and the over-drive on and ready (ODEN, ODSWEN, ODRDY, ODSWRDY) at 216 MHz
+[RCC-004], then ticks TIM1 to TIM5 and TIM8 to TIM14 against the cycle counter as the
+F401's timer run does. Run B is the watchdog across its reset, as the F401's; run C the
+I2C master on I2C1 with no slave fitted, as the H753's. The F7's Cortex-M7 needs its DWT
+unlocked before the cycle counter runs (measured: without it every timed check read 0).
+First pass 2026-11-17: probe 139, A 44, B 7, C 9 checks, none failed. Pass: every check in
+every run passes and the script exits zero.
+
+## SPI on the Nucleo-F767ZI
+
+Proposed: no bench code yet, which waits for the owner's go. Link S1 (PB5 to PB4,
+`docs/plans/2026-11-17-f411-f722-f745.md`) fitted; the board's clocks frozen at 216 MHz
+from the ST-LINK's 8 MHz MCO in bypass, so the over-drive is on [RCC-004]. SPI1's suite
+as the F401's run E, with transfers of odd and even lengths [SPI-V3-002] and SCK
+sampled between them [SPI-V3-001]. Pass: every check passes and the script exits zero.
 
 ## Timers on the Nucleo-F401RE
 

@@ -5,6 +5,9 @@
 # generator's tests, and fails on any difference from what is checked in. CI runs it on
 # pull requests into main; run it on demand anywhere, with reqtool on the PATH or REQTOOL.
 #
+# Each part's metapac dump is cached (tools/glue-gen/target/dump-cache, or GLUE_DUMP_CACHE;
+# `off` disables it) under a key covering all it depends on; every part is still regenerated.
+#
 # `--no-tiers` leaves the tier tables alone: the glue and the silicon tables only. The
 # evidence step (tools/record_evidence.py prepare) runs it that way, because the tiers
 # follow from the very evidence it is about to record, so they differ until then.

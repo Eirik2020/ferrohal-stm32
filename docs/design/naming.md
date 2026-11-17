@@ -35,14 +35,27 @@ How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
 - **[Decided]** metapac numbers DMA backwards: the F4's stream DMA is `dma_v2`, the H7's
   `dma_v1`. The numbers are metapac's, not an order.
 - **[Decided]** A chip feature is metapac's chip name and turns on every IP version the
-  chip carries:
+  chip carries, through its line's private feature (`_line-stm32f401`); every part of a
+  line carries the same versions, so the table names one part per line:
 
 | chip | family | usart | spi | i2c | exti | timer | iwdg | dma | gpio | rcc | adc | sdmmc | USB core |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `stm32f401re` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
+| `stm32f410rb` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | - |
+| `stm32f411ce` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
 | `stm32f405rg` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
+| `stm32f412zg` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
+| `stm32f413zh` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
+| `stm32f427vi` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
+| `stm32f429zi` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
+| `stm32f446re` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
+| `stm32f722re` | F7 | v3 | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
+| `stm32f745vg` | F7 | v3 | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
+| `stm32f767zi` | F7 | v3 | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
 | `stm32h743vi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
 | `stm32h753zi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
+
+usart v3: the F7's, served by the `usart_v4` module (ADR-011).
 
 Which IP versions each series carries, as metapac measured them:
 [`../notes/2026-11-10-ip-versions.md`](../notes/2026-11-10-ip-versions.md).
@@ -66,12 +79,14 @@ Which IP versions each series carries, as metapac measured them:
   folder, so `timer/mod.rs`'s `mod pwm;` finds `timer/pwm.rs` under both names. This
   list is complete: these four are every `#[path]` alias in `src/lib.rs` (the chip files'
   `#[path]`s pull in glue, not drivers). Earlier counts (ADR-003 rule 4, the 2026-11-13
-  debt sweep, API review K4) are superseded by this one.
+  debt sweep, API review K4) are superseded by this one. Not a driver alias either: the
+  F4 clock tree's configuration and solver (`rcc_f4/tree.rs`), mounted by `rcc_f4` and by
+  `rcc_f7`, which keeps its own register writes (the F7 plan's Q3, owner, 2026-11-17).
 - **[Decided]** A die with two DMA IPs (the H7: stream DMA, BDMA, MDMA) gives each its own
   folder and neutral name, as metapac does (`dma`, `bdma`), not one name for both.
 - **[Decided]** The RCC's shared code is a neutral module like `uart/`: `rcc/` holds what
   every RCC version shares (`kernel.rs`, `shared.rs`) and re-exports the chip's version
-  (`rcc_f4`, `rcc_h7_rm0433`).
+  (`rcc_f4`, `rcc_f7`, `rcc_h7_rm0433`).
 - **[Decided]** Not an exception: a neutral module's engine serving every IP version
   through that version's register wrapper (`Unit`, the UART's too since N7)
   (`uart/stream_dma/`, `spi/stream_dma.rs`,

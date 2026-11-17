@@ -305,11 +305,12 @@ pub fn tables(dies: &BTreeMap<u16, Die>, json: &str) -> Result<(String, String),
         };
         let carries =
             |p: &Part| dies.get(&p.die).and_then(|d| version(d, p, kind)).as_ref() == Some(v);
-        coverage += &format!(
-            "| IP `{kind}_{v}` | {} | {} |\n",
-            fmt(tier),
-            benches_of(&ids, &carries)
-        );
+        let benches = benches_of(&ids, &carries);
+        // A version no bench carries has no evidence of its own: its
+        // requirements' tiers come from the versions that share the driver
+        // (the F7's usart_v3 beside usart_v4), not from its registers.
+        let tier = if benches.is_empty() { None } else { tier };
+        coverage += &format!("| IP `{kind}_{v}` | {} | {benches} |\n", fmt(tier));
     }
     for die in dies.keys() {
         // The benches of the die whose glue probe is verified.

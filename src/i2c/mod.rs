@@ -172,7 +172,7 @@ pub enum Error {
     Timeout,
     /// A bus error: a misplaced START or STOP, or a line that didn't
     /// behave. Neither IP version raises it: in controller mode the errata
-    /// sheets (ES0392 2.19.4, ES0299 2.9.1, ES0182 2.10.1) say BERR can
+    /// sheets (ES0392 2.19.4, ES0299 2.9.1, ES0287 2.9.1, ES0182 2.10.1) say BERR can
     /// rise spuriously and leaves the transfer running, so the driver
     /// clears it, counts it in [`Health::bus_errors`] and carries on.
     Bus,
@@ -346,7 +346,7 @@ impl<W: Parts> I2c<W> {
     /// One bounded wait: ready, an error flag, or the bound. A bus error
     /// is counted and cleared, and the wait goes on: in controller mode it
     /// can rise spuriously while the transfer carries on (ES0392 2.19.4,
-    /// ES0299 2.9.1, ES0182 2.10.1).
+    /// ES0299 2.9.1, ES0287 2.9.1, ES0182 2.10.1).
     fn wait_ready(
         &mut self,
         unit: Unit,

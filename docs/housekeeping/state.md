@@ -1,13 +1,31 @@
 # Housekeeping state
 
-- Last review: 2026-11-13
-- Next due: 2026-12-13
-- Documents at last review: 72
+- Last review: 2026-11-17
+- Next due: 2026-12-17
+- Documents at last review: 87
 
 Cadence: monthly, or immediately when more than ten documents have been added since the
 last review. The owner changes the cadence by editing the two dates above.
 
 ## Reviews
+
+- 2026-11-17 - owner-requested sweep after #52 to #55 (+5 documents, none added by
+  the pass). README and AGENTS brought level with ADR-011 (one owner, `Service`), ADR-012
+  (one folder per IP), the F407VG Discovery bench, `examples/` and rig telemetry; two dead
+  links in `requirements/benches.md` and one in `resolved/` fixed; `free-shapes.md`'s UART
+  entries, the S2 resolved entry and the API-review hub marked superseded or closed; DEBT's
+  status line notes the owed F4/H7 rerun. No orphans. Duplicate hints: ES0182/ES0299 and the two `resolved/` crate-wide parts
+  (distinct sheets and date ranges, kept), and the benches pair kept 2026-11-13. The
+  ADR-002, ADR-003, ADR-005 and ADR-006 promote-or-archive calls stay the owner's. The
+  workspace pass (`agent-memory`) was not run: it is not in this checkout.
+- 2026-11-17 - pass forced by the chip work merged with the src layout (+13 documents,
+  mostly eight errata sheets, ES0206, ES0287, ES0290, ES0298, ES0305, ES0334, ES0360 and
+  ES0372, the F7 plan, and ADR-011 and ADR-012).
+  No orphans. Duplicate-title hints: the errata sheets share ST's titles, one document
+  per sheet by ADR-010, kept; the two dated `docs/resolved/` files are one log split by
+  period, kept; `benches-analysis.md` and `benches-refusals.md` as on 2026-11-13. ADR-002,
+  ADR-005, ADR-006 still await the owner's promote-or-archive call. No plans or notes
+  older than 90 days. Workspace: `agent-memory` is not in this checkout, not run.
 
 - 2026-11-13 - pass forced by the day's restructuring (+13 documents: `docs/CHIPS.md`,
   `hil/COVERAGE.md`, `docs/policies/features.md`, ADR-007 to ADR-009 with

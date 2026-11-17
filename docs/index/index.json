@@ -1,45 +1,45 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 77,
+  "documents": 87,
   "agent": 54,
-  "bytes": 396736
+  "bytes": 541229
  },
  "documents": [
   {
    "path": "AGENTS.md",
    "class": "agent",
    "title": "FerroHAL - agent entry",
-   "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 5813
+   "purpose": "STM32 HAL on stm32-metapac. Chips: every pack",
+   "bytes": 6511
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5727
+   "bytes": 6375
   },
   {
    "path": "THIRD-PARTY.md",
    "class": "human",
    "title": "Third-party code",
    "purpose": "FerroHAL is licensed under MIT OR Apache-2.0 ",
-   "bytes": 3055
+   "bytes": 3077
   },
   {
    "path": "docs/CHIPS.md",
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 11534
+   "bytes": 39538
   },
   {
    "path": "docs/DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9408
+   "bytes": 9562
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -182,14 +182,14 @@
    "class": "agent",
    "title": "Errata as data",
    "purpose": "Source: ADR-010, ../decisions/2026-11-15-erra",
-   "bytes": 2651
+   "bytes": 3693
   },
   {
    "path": "docs/design/execution-model.md",
    "class": "agent",
    "title": "Execution model: scheduler-agnostic",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 890
+   "bytes": 934
   },
   {
    "path": "docs/design/ferroforge-seam.md",
@@ -203,7 +203,7 @@
    "class": "agent",
    "title": "`free()`: the landed shapes, driver by driver",
    "purpose": "What blocked each driver's teardown, and the ",
-   "bytes": 3399
+   "bytes": 3580
   },
   {
    "path": "docs/design/free.md",
@@ -217,7 +217,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 7718
+   "bytes": 10376
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -245,7 +245,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 8757
+   "bytes": 10098
   },
   {
    "path": "docs/design/ownership.md",
@@ -311,11 +311,74 @@
    "bytes": 14626
   },
   {
+   "path": "docs/errata/ES0206.md",
+   "class": "human",
+   "title": "ES0206: errata of die 0x419 (F427/437, F429/439)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 15543
+  },
+  {
+   "path": "docs/errata/ES0287.md",
+   "class": "human",
+   "title": "ES0287: errata of die 0x431 (F411xC/xE)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 10701
+  },
+  {
+   "path": "docs/errata/ES0290.md",
+   "class": "human",
+   "title": "ES0290: errata of die 0x449 (F74xxx/F75xxx)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 5788
+  },
+  {
+   "path": "docs/errata/ES0298.md",
+   "class": "human",
+   "title": "ES0298: errata of die 0x421 (F446xC/xE)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 13542
+  },
+  {
    "path": "docs/errata/ES0299.md",
    "class": "human",
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
    "bytes": 10772
+  },
+  {
+   "path": "docs/errata/ES0305.md",
+   "class": "human",
+   "title": "ES0305: errata of die 0x441 (F412xE/xG)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 11907
+  },
+  {
+   "path": "docs/errata/ES0325.md",
+   "class": "human",
+   "title": "ES0325: errata of die 0x458 (F410x8/xB)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 9958
+  },
+  {
+   "path": "docs/errata/ES0334.md",
+   "class": "human",
+   "title": "ES0334: errata of die 0x451 (F76xxx/F77xxx)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 10114
+  },
+  {
+   "path": "docs/errata/ES0360.md",
+   "class": "human",
+   "title": "ES0360: errata of die 0x452 (F72xxx/F73xxx)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 4307
+  },
+  {
+   "path": "docs/errata/ES0372.md",
+   "class": "human",
+   "title": "ES0372: errata of die 0x463 (F413xG/xH, F423xH)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 11724
   },
   {
    "path": "docs/errata/ES0392.md",
@@ -336,7 +399,7 @@
    "class": "agent",
    "title": "Housekeeping state",
    "purpose": "Cadence: monthly, or immediately when more th",
-   "bytes": 2566
+   "bytes": 4046
   },
   {
    "path": "docs/notes/2026-11-08-naming-audit.md",
@@ -427,7 +490,14 @@
    "class": "agent",
    "title": "API review: consistency, naming, structure, reuse (hub)",
    "purpose": "Merged 2026-11-11, every fact re-measured at ",
-   "bytes": 3149
+   "bytes": 3213
+  },
+  {
+   "path": "docs/plans/2026-11-17-f411-f722-f745.md",
+   "class": "human",
+   "title": "Plan: the STM32F411, F722, F745 and G474",
+   "purpose": "Opened 2026-11-17. The owner's fifth and last",
+   "bytes": 12918
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -462,7 +532,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.md../DEBT.md",
-   "bytes": 22291
+   "bytes": 22397
   },
   {
    "path": "docs/resolved/chips-and-features.md",
@@ -483,7 +553,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt, crate-wide, to 2026-11-09",
    "purpose": "The older crate-wide entries of README.mdREAD",
-   "bytes": 26530
+   "bytes": 26491
   },
   {
    "path": "examples/README.md",
@@ -504,7 +574,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6255
+   "bytes": 6563
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",
@@ -560,7 +630,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 20233
+   "bytes": 21513
   },
   {
    "path": "requirements/goals.md",
