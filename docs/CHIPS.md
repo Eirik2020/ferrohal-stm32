@@ -30,11 +30,11 @@ the markers; the merge gate regenerates them.
 <!-- generated: glue-gen tiers -->
 | part | platform | UART | SPI | I2C | Timers | ADC | USB | SDMMC | Watchdog | EXTI | DMA |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| STM32F401RE | HIL | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F405RG | HIL `INH` | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F407VG | HIL | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32H743VI | HIL | HIL | HIL | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H753ZI | HIL | HIL | HIL | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32F401RE | – | HIL | HIL | – | – | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F405RG | – `INH` | HIL | HIL | – | – | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F407VG | – | HIL | HIL | – | – | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32H743VI | – `INH` | HIL | HIL | – | – | HIL | HIL | – | HIL | HIL | HIL |
+| STM32H753ZI | – | HIL | HIL | – | – | HIL | HIL | – | HIL | HIL | HIL |
 <!-- end generated -->
 
 The rig's parts, measured on each bench's identity line:
