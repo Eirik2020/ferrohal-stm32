@@ -235,7 +235,7 @@ requirements:
   - id: UART-013
     title: A break can be sent
     statement: >-
-      The transmit half shall send a line break on request.
+      A UART with a transmitter shall send a line break on request.
     rationale: >-
       Some protocols use a break to mark a frame.
     derived_from: [G3]
@@ -581,7 +581,7 @@ requirements:
       Requesting a break shall send one, and show it pending until its stop
       bit.
     rationale: >-
-      The transmit half waits for the break to finish before sending more.
+      The UART waits for the break to finish before sending more.
     derived_from: [UART-013]
     verification:
       entries:

@@ -3,7 +3,7 @@
  "counts": {
   "documents": 75,
   "agent": 53,
-  "bytes": 381662
+  "bytes": 384089
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 11250
+   "bytes": 11536
   },
   {
    "path": "docs/DEBT.md",
@@ -163,10 +163,10 @@
    "path": "docs/decisions/2026-11-17-uart-single-owner.md",
    "class": "agent",
    "title": "ADR-011: One owner per UART, and a scheduler-neutral `Service` trait (2026-11-17)",
-   "purpose": "ADR-011 - Status: accepted",
-   "bytes": 7784,
+   "purpose": "ADR-011 - Status: promoted",
+   "bytes": 7870,
    "adr": "ADR-011",
-   "status": "accepted"
+   "status": "promoted"
   },
   {
    "path": "docs/decisions/README.md",
@@ -229,7 +229,7 @@
    "class": "agent",
    "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3547
+   "bytes": 3498
   },
   {
    "path": "docs/design/glue-generator.md",
@@ -264,14 +264,14 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 6817
+   "bytes": 6869
   },
   {
    "path": "docs/design/ownership.md",
    "class": "agent",
    "title": "Ownership and shared registers",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2601
+   "bytes": 2774
   },
   {
    "path": "docs/design/requirements-ids.md",
@@ -318,9 +318,9 @@
   {
    "path": "docs/design/uart-ownership.md",
    "class": "agent",
-   "title": "UART ownership: line, flags, data (2026-11-09)",
-   "purpose": "Source: ADR-004, ../decisions/2026-11-09-uart",
-   "bytes": 1710
+   "title": "UART ownership: one owner, served by `on_interrupt` (2026-11-17)",
+   "purpose": "Source: ADR-011, ../decisions/2026-11-17-uart",
+   "bytes": 3423
   },
   {
    "path": "docs/errata/ES0182.md",
@@ -488,7 +488,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6452
+   "bytes": 6616
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",
@@ -530,7 +530,7 @@
    "class": "human",
    "title": "Bench Procedures: the injected faults and the cache matrix",
    "purpose": "The fault-injection and cache-matrix runs of ",
-   "bytes": 5903
+   "bytes": 5905
   },
   {
    "path": "requirements/benches-refusals.md",

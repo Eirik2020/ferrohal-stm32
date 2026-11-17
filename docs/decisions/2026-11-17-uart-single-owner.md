@@ -1,6 +1,8 @@
 # ADR-011: One owner per UART, and a scheduler-neutral `Service` trait (2026-11-17)
 
-ADR-011 - Status: accepted
+ADR-011 - Status: promoted
+
+Promoted to: [uart-ownership.md](../design/uart-ownership.md).
 
 Supersedes [ADR-004](2026-11-09-uart-capabilities.md) whole: its decisions 1 to 5 (the
 `Line` handle, the flag-only `UartIrq`, the `UartTx`/`UartRx` data halves, `split` handing
@@ -77,8 +79,8 @@ and N16 were assigned to this redesign (owner, 2026-11-17, `docs/DEBT.md` sectio
 
 - USART v3 (F722, F745, F767) is USART v4 without PRESC and the FIFOs, at the same
   offsets: it is served by the `usart_v4` code with only the PRESC write gated.
-- The engine reaches DMA only through the erased stream's start, stop, flags, clear,
-  remaining count and interrupt enables. A channel-DMA engine (`bdma_v1` behind DMAMUX,
+- The engine reaches DMA only through the erased stream's start, stop, running state,
+  flags, clear, remaining count and interrupt enables. A channel-DMA engine (`bdma_v1` behind DMAMUX,
   for the G474 and the H7's BDMA) slots in by offering the same operations; the crate-
   internal trait that names them is written when that second engine lands, not before.
 
@@ -115,4 +117,4 @@ UART, and `lock` where it used a half. Every bench and `hil/` run that used `spl
 `UartIrq` or `Line` changes, and the F401 (`usart_v2`) and H753 (`usart_v4`) benches rerun.
 The bench also measures how long a low-priority lock holder delays the USART and DMA
 handlers, so the cost of decision 3 is on record. UART-013 names the UART, not a transmit
-half. Once built, the design moves to `docs/design/uart-ownership.md`.
+half. The design is promoted to `docs/design/uart-ownership.md` (2026-11-17).

@@ -1,37 +1,51 @@
-# UART ownership: line, flags, data (2026-11-09)
+# UART ownership: one owner, served by `on_interrupt` (2026-11-17)
 
-Source: ADR-004, [`../decisions/2026-11-09-uart-capabilities.md`](../decisions/2026-11-09-uart-capabilities.md).
+Source: ADR-011, [`../decisions/2026-11-17-uart-single-owner.md`](../decisions/2026-11-17-uart-single-owner.md),
+which superseded ADR-004's line, flag and data handles
+([`../decisions/2026-11-09-uart-capabilities.md`](../decisions/2026-11-09-uart-capabilities.md)).
 
-One USART is handed out as capabilities, so each register has exactly one writer.
+One `Uart<W>` holds the instance token, both pins, both stream tokens, both buffers and
+all driver state as plain fields. Every operation takes `&mut self`, so the one owner is
+the single writer of every USART and stream register. A task and a handler that both use
+the UART share it under the scheduler's lock (RTIC: a `#[shared]` resource); the driver
+has no atomics, no critical section and no protocol of its own.
 
-| Handle | Registers | Writes |
+| Operation | Registers | Present on |
 |---|---|---|
-| `Line` | CR1, CR2, CR3, BRR, PRESC | frame, enables, `mask`/`unmask`, break |
-| `UartIrq` | SR/ISR read, ICR write, DR read on v2 | flag clears only |
-| `UartTx` | TDR via DMA, SR/ICR for TC | data, TC clear |
-| `UartRx` | RDR via DMA | data |
+| `new`, `new_rx`, `set_config`, `free` | CR1, CR2, CR3, BRR, PRESC (v4 only), both streams | every UART; `set_config` per wiring |
+| `mask`, `unmask` | CR1 IDLEIE/PEIE, CR3 EIE | every UART |
+| `send_break` | RQR (v4) or CR1 SBK (v2) | a full `Wiring` only |
+| `try_send`, `write`, `flush`, `embedded_io::Write` | TDR via DMA, TC | a full `Wiring` only |
+| reads, `available`, `embedded_io::Read` | RDR via DMA, receive stream flags | every UART |
+| `on_interrupt` (also `Service`) | SR/ISR read, ICR write, DR read on v2, all three vectors' flags | every UART |
 
 ## Rules
 
-- Only `Line` writes CR1 to CR3. `send_break` and `set_config` are `Line` methods that
-  borrow `&mut UartTx`, so a break, a frame change and a mask cannot reach the register
-  from two contexts.
-- `UartIrq` has no method that writes a control register; masking is not one of its
-  operations.
-- Flag registers are store-only on the write side: ICR on v4 and SR on v2 are written as
-  a whole pattern with write-one-to-clear bits, never read-modify-written, so a second
-  writer cannot lose another's bit. Reads are unconstrained.
-- The transmit stream keeps its `servicing`/`deferred` protocol for its own CR: that
-  register is written from both the task and the interrupt.
+- **One owner.** No handle is handed out: no `split`, `join` or per-context view. A
+  firmware that reads in one task and writes in another locks the one resource; the cost
+  is that a low-priority holder delays the UART's handlers by its critical section.
+- **Events out.** `on_interrupt` serves the USART, the receive stream and the transmit
+  stream from any of the three vectors, or from a task, and returns `Events` (idle,
+  filled, sent, fault). The handler acts on them (spawns the reader); it reads nothing.
+- **Reception does not need its vector.** A read serves the receive stream's flags before
+  counting, and still-pending half and complete flags count with the served ones, so a
+  service up to most of a lap late loses nothing (UARTDMA-002). Transmission likewise
+  chains queued frames on any call.
+- **Flag registers are store-only on the write side.** ICR on v4 and SR on v2 are written
+  as a whole pattern of write-one-to-clear bits, never read-modify-written. The v2 clear
+  reads DR, the byte DMA also reads: the documented cost of SR/DR clearing on v2.
+- **Receive-only is the same type.** `Uart::new_rx` opens on an `RxWiring`; the transmit
+  operations exist only on a full `Wiring`, so a UART without a TX pin cannot be asked to
+  send (`checks/no-metapac`). It refuses half-duplex and swap, which need the TX pin.
+- **`free` is the inverse of `new`.** It hands back the wiring and buffers whole, or the
+  UART itself while a stream has not stopped ([free](free.md)).
 
-## Shapes
+## IP versions and DMA
 
-- `Uart::open` returns `(Uart, UartIrq)`; `Uart` holds the `Line`.
-- `Uart::split` returns `(Line, UartTx, UartRx)`; `halves` borrows the three.
-- `UartRx::new` returns `(Line, UartRx, UartIrq)`.
-- Receive-only has no `UartTx`, so no break and no frame change that borrows one.
-
-## Not solved here
-
-The token is still not carried by any handle (`free.md`). The v2 flag clear reads DR,
-which is the byte DMA also reads; that is the documented cost of SR/DR clearing on v2.
+- `usart_v2` (F4) and `usart_v4` (H7) each supply a register wrapper, `Unit`; the engine
+  in `uart/stream_dma/` is shared. `usart_v3` (F7) is served by the v4 module with only
+  the PRESC write gated.
+- The engine reaches DMA only through the erased stream: start, stop, running state,
+  flags and their clear, remaining count, and interrupt enables. A channel-DMA engine
+  (BDMA behind DMAMUX) slots in by offering the same operations; the crate-internal trait
+  naming them is written when that engine lands (ADR-011).

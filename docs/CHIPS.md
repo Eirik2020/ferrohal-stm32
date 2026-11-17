@@ -55,7 +55,7 @@ policy as the glue (`tools/glue-gen/src/emit.rs`); n/a: the part has none.
 <!-- generated: glue-gen instances -->
 | capability | F401RE | F405RG | F407VG | H743VI | H753ZI |
 |---|---|---|---|---|---|
-| **UART** (`Uart`, `UartRx`) | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
+| **UART** (`Uart`; receive-only by `new_rx`) | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
 | **SPI** over DMA (`Spi`) | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 |
 | **SPI** polled (`BlockingSpi`) | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4/6 | SPI1-6 |
 | **I2C** (`I2c`) | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-4 | I2C1-4 |
@@ -111,14 +111,15 @@ names where the code documents it.
 - Frames: 8 data bits, parity as a ninth.
 - A transmit DMA error is reported after the frame was queued: in `TxHealth`, and from
   the next `write` or `flush`.
-- `write_count` gives up after `COUNT_TRIES` if interrupts keep landing between its reads,
-  and uses the last sample.
-- The receive ring must be served within one ring's worth of bytes, and reading code
-  must never preempt `UartIrq` (`Buffers::rx`).
+- The receive ring must be read within one ring's worth of bytes, and its stream served
+  (by `on_interrupt` or a read) within most of a lap (`Buffers::rx`).
+- Half-duplex: the receive ring holds the echo of every byte sent; the TX pin is
+  push-pull, so the line idles high only through a pull-up. `usart_v2` refuses TX/RX
+  swap (no SWAP bit); a receive-only UART refuses both.
 - Line-error positions are approximate: the mark sits where DMA had written; more than
   16 between reads report without a mark.
-- `verify()` checks the vectors are enabled at one priority, not that it is above every
-  task using the UART.
+- `Vectors::verify()` checks the vectors are enabled, not their priorities: with one
+  owner under the scheduler's lock, any priorities are sound.
 
 **Waits**
 - Counted-wait floors are measurements (UART `RX_PASS_CYCLES` 224, `TX_PASS_CYCLES` 48;
@@ -182,8 +183,9 @@ names where the code documents it.
 
 The roadmap: features FerroHAL does not offer. None is debt; the owner sets the order.
 
-- **UART:** 7- and 9-bit data, RTS/CTS, half-duplex, RS-485 DE, LIN; LPUART1; the
-  H7's hardware FIFOs.
+- **UART:** 7- and 9-bit data, RTS/CTS, an open-drain TX pin for half-duplex, RS-485
+  DE, LIN; LPUART1; the H7's hardware FIFOs; USART v3 chips (the driver is ready behind
+  `usart_v3`; no F7 chip is enabled).
 - **SPI:** slave, simplex, half-duplex, 16-bit frames, hardware NSS, CRC; SPI6.
 - **I2C:** slave, 10-bit addresses, SMBus, DMA.
 - **Timers:** input capture, dead time, the break input, trigger routes beyond those in
