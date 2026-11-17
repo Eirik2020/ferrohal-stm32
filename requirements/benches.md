@@ -46,7 +46,10 @@ the same checks in `hil/common/tests.rs`; run A also masks USART1's line for the
 UART-020 drill, as the F401's run A does. Run Y crosses two UARTs over Z6, USART3's
 TX on PC10 into UART4's RX on PC11, for what a loop cannot show: even parity into
 odd reaches UART4's reader as a parity error [UART-014], half the baud rate as a
-framing error. TX and RX swap [USART-V4-002]: run B runs USART3's PC10/PC11 loop
+framing error. Half-duplex [UART-021]: run Y's pair is wired one way, so USART3
+in half-duplex must put a frame on PC10 that reaches UART4 and comes back into its
+own ring, and back in full duplex its ring (on the unwired PB11) must stay silent.
+TX and RX swap [USART-V4-002]: run B runs USART3's PC10/PC11 loop
 swapped, which must still carry a line and a stream, and run Y swaps USART3 alone,
 so it sends on PB11 and UART4 on PC11 must hear nothing.
 

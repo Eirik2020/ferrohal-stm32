@@ -5,8 +5,10 @@
 //! listens on those. Even parity into odd must reach UART4's reader as a
 //! parity error [UART-014], and half the baud rate as a framing error
 //! [UART-005 UART-017]; then both ends go back to 8N1 and a line must
-//! cross again. Swapped, USART3 sends on PB11, so UART4 must hear nothing
-//! [USART-V4-002].
+//! cross again. In half-duplex USART3's receiver listens on PC10, so a
+//! frame it sends reaches UART4 and its own ring; in full duplex its ring,
+//! on the unwired PB11, stays silent [UART-021]. Swapped, USART3 sends on
+//! PB11, so UART4 must hear nothing [USART-V4-002].
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
 //! streams' own interrupt bits. Each UART is one shared resource, served by
@@ -174,6 +176,15 @@ mod app {
             "UART-005 UART-017",
             "half baud rate reported as framing error",
             tests::framing_mismatch(&mut cross),
+        );
+        report.check_for(
+            NAME,
+            "UART-021",
+            "half-duplex USART3: a frame out reaches UART4 and USART3's own ring; in full duplex its ring stays silent",
+            tests::half_duplex_one_way(
+                &mut cross,
+                &Config::new(ferrohal_stm32::time::Hertz(115_200)),
+            ),
         );
         report.check_for(
             NAME,

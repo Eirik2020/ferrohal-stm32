@@ -1559,6 +1559,49 @@ fn half_duplex_drill<T: Full, R: Full>(single: &mut T, far: &mut R) -> Result<()
     silent(&mut inward)
 }
 
+/// Half-duplex over a one-way cross [UART-021], for a bench whose pair is
+/// wired in one direction only: `cross.from`'s TX to `cross.to`'s RX, its
+/// own RX pin connected to nothing. In half-duplex the sender's receiver
+/// listens on its TX pin, so a frame it sends reaches `to` and also comes
+/// back into its own ring once. Back in full duplex, a frame it sends
+/// leaves its own ring silent, so that copy came from the TX pin alone.
+pub fn half_duplex_one_way<T: Full, R: Receiver>(
+    cross: &mut Cross<'_, T, R>,
+    base: &Config,
+) -> Result<(), Fail> {
+    const FRAME: &[u8] = b"half duplex";
+    cross.from.set_config(&base.with_half_duplex(true))?;
+    let result = (|| {
+        drain(&mut Loop {
+            name: "half-duplex own ring",
+            uart: &mut *cross.from,
+        });
+        echo(cross, FRAME)?;
+        let mut own = [0; FRAME.len()];
+        read_exact(
+            &mut Loop {
+                name: "half-duplex own ring",
+                uart: &mut *cross.from,
+            },
+            &mut own,
+        )?;
+        for (at, (&sent, &got)) in FRAME.iter().zip(own.iter()).enumerate() {
+            if sent != got {
+                return Err(Fail::Mismatch { at, sent, got });
+            }
+        }
+        Ok(())
+    })();
+    cross.from.set_config(base)?;
+    drain(cross);
+    echo(cross, b"full duplex again")?;
+    let quiet = silent(&mut Loop {
+        name: "full-duplex own ring",
+        uart: &mut *cross.from,
+    });
+    result.and(quiet)
+}
+
 /// TX and RX swapped on a looped UART [USART-V4-002]: the TX function moves
 /// to the RX pin and the jumper carries it back the other way, so the loop
 /// still carries a line and a stream. Then `base` again, and a line.

@@ -52,8 +52,8 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 
 | IP version | chips | proven on (`HIL`): runs | flashed (`FLSH`) | not proven (`docs/DEBT.md`) |
 |---|---|---|---|---|
-| `usart_v2` | F401, F405 | F401: A, B, C, D, V, W | – | USART2's break, baud and parity (ST-LINK); parity clear above 115200; half-duplex (UART-021) |
-| `usart_v4` | H743, H753 | H753: A, B, C, D, E, U, W, Y | – | UART8 TX and the morpho-only pins; half-duplex, TX/RX swap (USART-V4-002) |
+| `usart_v2` | F401, F405 | F401: A, B, C, D, V, W | – | USART2's break, baud and parity (ST-LINK); parity clear above 115200 |
+| `usart_v4` | H743, H753 | H753: A, B, C, D, E, U, W, Y | – | UART8 TX and the morpho-only pins |
 | `usart_v3` (served by `usart_v4`) | none enabled | – | – | everything: no chip carries it yet |
 | `spi_v2` | F401, F405 | F401: E, F, G (DMA), K (polled); E samples the wire (bit order, phase) | Foxeer: IMU, NOR | – |
 | `spi_v4` | H743, H753 | H753: F, G, H (DMA), L (polled); F samples the wire (bit order, phase); H again with caches on | Lucid: IMU | – |
