@@ -19,7 +19,7 @@
 //! The driver for the enabled chip is re-exported here, so firmware names
 //! `ferrohal_stm32::uart::Uart` whatever the IP version.
 //!
-//! Requirements: UART-001, UART-002, UART-003, UART-004, UART-005, UART-007, UART-008, UART-009, UART-010, UART-012, UART-013, UART-014, UART-015
+//! Requirements: UART-001, UART-002, UART-003, UART-004, UART-005, UART-007, UART-008, UART-009, UART-010, UART-012, UART-013, UART-014, UART-015, UART-021
 
 use core::fmt;
 
@@ -50,10 +50,22 @@ pub struct Config {
     pub invert_rx: bool,
     /// The TX line likewise.
     pub invert_tx: bool,
+    /// Single-wire half-duplex (HDSEL): the TX pin carries both directions
+    /// and the RX pin is left unused. The receiver hears every byte this UART
+    /// sends, so the receive ring holds the echo of each frame. The line
+    /// idles high only through a pull-up, the board's or the pin's. A
+    /// receive-only UART refuses it with [`ConfigError::Unsupported`], since
+    /// it holds no TX pin.
+    pub half_duplex: bool,
+    /// TX and RX swapped (SWAP): the TX pin receives and the RX pin sends,
+    /// for a board wired crossed. Only some IP versions can do this; the
+    /// others refuse it with [`ConfigError::Unsupported`], as does a
+    /// receive-only UART, which holds no TX pin.
+    pub swap: bool,
 }
 
 impl Config {
-    /// `baudrate`, 8N1, not inverted.
+    /// `baudrate`, 8N1, not inverted, full duplex, not swapped.
     pub const fn new(baudrate: crate::time::Hertz) -> Self {
         Self {
             baudrate,
@@ -61,6 +73,8 @@ impl Config {
             stop_bits: StopBits::One,
             invert_rx: false,
             invert_tx: false,
+            half_duplex: false,
+            swap: false,
         }
     }
 
@@ -78,6 +92,17 @@ impl Config {
 
     pub const fn with_inverted_tx(self, invert_tx: bool) -> Self {
         Self { invert_tx, ..self }
+    }
+
+    pub const fn with_half_duplex(self, half_duplex: bool) -> Self {
+        Self {
+            half_duplex,
+            ..self
+        }
+    }
+
+    pub const fn with_swap(self, swap: bool) -> Self {
+        Self { swap, ..self }
     }
 
     /// Whether a UART clocked at `kernel_clock` can take this frame: the
@@ -103,6 +128,9 @@ impl Config {
         fractional_stop: bool,
     ) -> Result<u16, ConfigError> {
         if (self.invert_rx || self.invert_tx) && !crate::usart_ip::INVERSION {
+            return Err(ConfigError::Unsupported);
+        }
+        if self.swap && !crate::usart_ip::SWAP {
             return Err(ConfigError::Unsupported);
         }
         if !fractional_stop && matches!(self.stop_bits, StopBits::Half | StopBits::OneAndHalf) {
@@ -264,7 +292,8 @@ pub enum ConfigError {
     /// The baud rate cannot be reached from this UART's clock within 1 %.
     BaudRate,
     /// The frame asks for something this IP version cannot do, such as
-    /// inversion on `usart_v2`.
+    /// inversion on `usart_v2`, or that needs a TX pin on a receive-only
+    /// UART (half-duplex, swap).
     Unsupported,
     /// The transmit buffer is empty or longer than one DMA transfer.
     TxBuffer,

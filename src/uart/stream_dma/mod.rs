@@ -60,7 +60,7 @@
 //! (`bdma_v1` behind DMAMUX) slots in by offering the same operations
 //! (ADR-011, forward compatibility).
 //!
-//! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UART-014, UART-015, UART-020, UARTDMA-002, UARTDMA-008, UARTDMA-009, API-002, API-003, UARTDMA-011, UARTDMA-012, RESOURCE-002
+//! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UART-014, UART-015, UART-020, UARTDMA-002, UARTDMA-008, UARTDMA-009, API-002, API-003, UARTDMA-011, UARTDMA-012, RESOURCE-002, UART-022
 
 mod io;
 mod rx;
@@ -594,6 +594,7 @@ where
     /// byte arriving during the change is lost.
     pub fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         let brr = config.divider(self.kernel_clock, self.fractional_stop)?;
+        check_rx_only(config)?;
         self.write_frame(config, brr, false);
         Ok(())
     }
@@ -725,6 +726,9 @@ fn check_open(
     rx: &[u8],
 ) -> Result<Checked, ConfigError> {
     let brr = config.divider(kernel.clock(&clocks), fractional_stop)?;
+    if tx.is_none() {
+        check_rx_only(config)?;
+    }
     let tx_len = match tx {
         Some(tx) => {
             let len = u16::try_from(tx.len())
@@ -744,6 +748,16 @@ fn check_open(
         rx_len,
         frame_cycles,
     })
+}
+
+/// What a receive-only UART refuses beyond [`Config::divider`]: half-duplex
+/// and swap, which both need the TX pin it does not hold.
+fn check_rx_only(config: &Config) -> Result<(), ConfigError> {
+    if config.half_duplex || config.swap {
+        Err(ConfigError::Unsupported)
+    } else {
+        Ok(())
+    }
 }
 
 /// CPU cycles per frame, the unit of every counted wait.
@@ -806,4 +820,23 @@ where
         Resource::Interrupt(U::INTERRUPT_NAME),
         Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::INTERRUPT_NAME),
     ];
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_receive_only_uart_refuses_what_needs_a_tx_pin() {
+        let frame = Config::new(Hertz(115_200));
+        assert_eq!(check_rx_only(&frame), Ok(()));
+        assert_eq!(
+            check_rx_only(&frame.with_half_duplex(true)),
+            Err(ConfigError::Unsupported)
+        );
+        assert_eq!(
+            check_rx_only(&frame.with_swap(true)),
+            Err(ConfigError::Unsupported)
+        );
+    }
 }

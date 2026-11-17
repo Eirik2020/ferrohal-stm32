@@ -211,6 +211,34 @@ mod tests {
         assert_eq!(crate::spi::check::<SPI4>(&reset, &imu), Ok(Hertz::mhz(16)));
     }
 
+    /// USART v4 has SWAP and HDSEL, so it takes both.
+    #[test]
+    fn usart_v4_takes_half_duplex_and_swap() {
+        use crate::{
+            rcc::{AhbPrescaler, ApbPrescaler, Config, Supply, Sysclk, VoltageScale},
+            time::Hertz,
+        };
+        let clocks = Config {
+            hse: None,
+            pll1: None,
+            sys: Sysclk::Hsi,
+            cpu_pre: AhbPrescaler::Div1,
+            ahb_pre: AhbPrescaler::Div1,
+            apb1_pre: ApbPrescaler::Div1,
+            apb2_pre: ApbPrescaler::Div1,
+            apb3_pre: ApbPrescaler::Div1,
+            apb4_pre: ApbPrescaler::Div1,
+            supply: Supply::Ldo,
+            voltage_scale: VoltageScale::Scale1,
+        }
+        .validate()
+        .unwrap();
+        let frame = crate::uart::Config::new(Hertz(115_200))
+            .with_half_duplex(true)
+            .with_swap(true);
+        assert_eq!(crate::uart::check::<USART6>(&clocks, &frame), Ok(()));
+    }
+
     #[test]
     fn wiring_describes_itself() {
         assert_eq!(

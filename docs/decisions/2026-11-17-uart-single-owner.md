@@ -82,17 +82,20 @@ and N16 were assigned to this redesign (owner, 2026-11-17, `docs/DEBT.md` sectio
   for the G474 and the H7's BDMA) slots in by offering the same operations; the crate-
   internal trait that names them is written when that second engine lands, not before.
 
-## Questions put to the owner (2026-11-17)
+## Questions put to the owner, answered (2026-11-17)
 
-- Q1: half-duplex (HDSEL) and TX/RX swap as `Config` fields, in this redesign
-  (recommended), right after it, or not now.
-- Q2: the trait exactly as above, with `AdcScan` reporting completion and `samples()`
-  reading them, and `Awg` serving every lane per call (recommended); or a generic
-  associated type plus a lane-indexed variant.
-- Q3: a receive-only UART as the same `Uart<W>`, opened by `Uart::new_rx`, with the
-  transmit operations present only on a full wiring (recommended); or a separate type.
+The owner took the recommended answer to each:
 
-The recommended answers are built until the owner answers; the record is amended then.
+- Q1: half-duplex (HDSEL) and TX/RX swap are `Config` fields, in this redesign. Both are
+  frame settings: `usart_v4` has both bits; `usart_v2` has HDSEL and refuses swap. A
+  receive-only UART refuses both, since each needs the TX pin it does not hold. In
+  half-duplex the receiver hears every byte the UART sends, so the ring holds the echo;
+  the driver does not filter it.
+- Q2: the trait exactly as decision 6 states it, with `AdcScan` reporting completion and
+  `samples()` reading them, and `Awg` serving every lane per call and reporting the
+  lanes that ended as a mask.
+- Q3: a receive-only UART is the same `Uart<W>`, opened by `Uart::new_rx` on an
+  `RxWiring`; the transmit operations exist only on a full `Wiring`.
 
 ## Rejected
 

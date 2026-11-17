@@ -317,7 +317,9 @@ fn exercise_uart(uart: &mut Uart<chip::UartWiring>) {
             .with_parity(Parity::Even)
             .with_stop_bits(StopBits::Two)
             .with_inverted_rx(true)
-            .with_inverted_tx(true),
+            .with_inverted_tx(true)
+            .with_half_duplex(black_box(true))
+            .with_swap(black_box(true)),
     );
     keep(uart.set_config(&config));
     // The line's event enables, off and on again.

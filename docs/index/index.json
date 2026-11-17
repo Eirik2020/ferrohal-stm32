@@ -3,7 +3,7 @@
  "counts": {
   "documents": 75,
   "agent": 53,
-  "bytes": 381471
+  "bytes": 381662
  },
  "documents": [
   {
@@ -164,7 +164,7 @@
    "class": "agent",
    "title": "ADR-011: One owner per UART, and a scheduler-neutral `Service` trait (2026-11-17)",
    "purpose": "ADR-011 - Status: accepted",
-   "bytes": 7593,
+   "bytes": 7784,
    "adr": "ADR-011",
    "status": "accepted"
   },

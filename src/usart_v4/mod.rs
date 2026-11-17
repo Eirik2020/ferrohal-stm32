@@ -7,7 +7,7 @@
 //! clearing one never reads the data register. The receive and transmit
 //! FIFOs stay off: DMA serves one byte per request.
 //!
-//! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V4-001
+//! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V4-001, USART-V4-002, UART-021
 
 use stm32_metapac::usart::{
     regs::Icr,
@@ -24,6 +24,9 @@ pub type Regs = stm32_metapac::usart::Usart;
 
 /// RX and TX inversion: CR2's RXINV and TXINV.
 pub(crate) const INVERSION: bool = true;
+
+/// TX/RX swap: CR2's SWAP.
+pub(crate) const SWAP: bool = true;
 
 /// One USART's register block, as the driver uses it.
 #[derive(Clone, Copy)]
@@ -57,6 +60,7 @@ impl Unit {
             });
             w.set_rxinv(config.invert_rx);
             w.set_txinv(config.invert_tx);
+            w.set_swap(config.swap);
         });
         // EIE raises the USART interrupt on overrun, framing and noise.
         // DDRE stays clear, so a byte with an error still goes to DMA and
@@ -65,6 +69,7 @@ impl Unit {
             w.set_dmat(true);
             w.set_dmar(true);
             w.set_eie(true);
+            w.set_hdsel(config.half_duplex);
         });
         regs.presc().write(|w| w.0 = 0);
         regs.brr().write(|w| w.set_brr(brr));

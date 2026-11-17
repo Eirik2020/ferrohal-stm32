@@ -226,6 +226,20 @@ mod tests {
     }
 
     #[test]
+    fn usart_v2_takes_half_duplex_and_refuses_swap() {
+        let clocks = crate::rcc_f4::Config::hsi().validate().unwrap();
+        let frame = crate::uart::Config::new(Hertz(115_200));
+        assert_eq!(
+            crate::uart::check::<USART1>(&clocks, &frame.with_half_duplex(true)),
+            Ok(())
+        );
+        assert_eq!(
+            crate::uart::check::<USART1>(&clocks, &frame.with_swap(true)),
+            Err(crate::uart::ConfigError::Unsupported)
+        );
+    }
+
+    #[test]
     fn validate_accepts_168_mhz_from_an_8_mhz_crystal() {
         use crate::rcc_f4::{
             AhbPrescaler, ApbPrescaler, Config, Hse, HseMode, Pll, PllP, PllSource, Supply, Sysclk,
