@@ -4,7 +4,7 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | docs/design/api-surface.md | 2318 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/api-surface.md | 2888 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/clocks.md | 958 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/errata.md | 2651 B | Source: ADR-010, ../decisions/2026-11-15-erra |
 | a | docs/design/execution-model.md | 890 B | Source: ADR-006, ../decisions/2026-11-10-doc- |

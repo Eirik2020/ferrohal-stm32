@@ -120,6 +120,7 @@ where
 
 /// The bus settings: the SCL frequency asked for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Config {
     /// The fastest SCL allowed. The driver computes its timing registers
     /// for it and reports the rate in use through [`I2c::frequency`].
@@ -132,25 +133,28 @@ impl Config {
         Self { frequency }
     }
 
-    /// Whether this frequency can run from this kernel clock, and why not if
-    /// it can't. A `const fn`, so a board can check its buses while
+    /// The SCL this frequency gives from this kernel clock, or why it
+    /// can't run. A `const fn`, so a board can check its buses while
     /// compiling.
-    pub const fn check(&self, kernel_clock: Hertz) -> Result<(), ConfigError> {
+    pub const fn check(&self, kernel_clock: Hertz) -> Result<Hertz, ConfigError> {
         if self.frequency.0 == 0 {
             return Err(ConfigError::Frequency);
         }
         match Unit::timing(kernel_clock, self.frequency) {
-            Ok(_) => Ok(()),
+            Ok(timing) => Ok(timing.frequency()),
             Err(error) => Err(error),
         }
     }
 }
 
-#[cfg(feature = "defmt")]
-impl defmt::Format for Config {
-    fn format(&self, f: defmt::Formatter) {
-        defmt::write!(f, "Config {{ frequency: {} Hz }}", self.frequency.0)
-    }
+/// The SCL `config` would give on instance `U` under `clocks`, as
+/// [`spi::check`](crate::spi::check) does for SCK. A `const fn`, so a board
+/// can assert its buses while compiling.
+pub const fn check<U: Instance>(
+    clocks: &crate::rcc::Clocks,
+    config: &Config,
+) -> Result<Hertz, ConfigError> {
+    config.check(U::KERNEL.clock(clocks))
 }
 
 /// Why `I2c::new` refused a configuration.
@@ -290,7 +294,7 @@ where
         let clocks = rcc.clocks();
         let kernel_clock = U::KERNEL.clock(&clocks);
         let timing = match config.check(kernel_clock) {
-            Ok(()) => Unit::timing(kernel_clock, config.frequency),
+            Ok(_) => Unit::timing(kernel_clock, config.frequency),
             Err(error) => Err(error),
         };
         let timing = match timing {

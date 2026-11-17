@@ -185,6 +185,10 @@ fn main() -> ! {
         i2c::Config::new(Hertz::khz(400))
             .check(<chip::I2cUnit as i2c::Instance>::KERNEL.clock(&black_box(rcc.clocks()))),
     );
+    keep(i2c::check::<chip::I2cUnit>(
+        &black_box(rcc.clocks()),
+        &black_box(i2c::Config::new(Hertz::khz(400))),
+    ));
     // A refusal hands back the wiring: retry once with it, at 100 kHz.
     let mut i2c = match I2c::new(
         &mut rcc,
@@ -706,10 +710,7 @@ where
 }
 
 /// The watchdog and the reset cause.
-pub fn exercise_watchdog(
-    rcc: &mut ferrohal_stm32::rcc::Rcc,
-    iwdg: ferrohal_stm32::chip::IWDG,
-) {
+pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm32::chip::IWDG) {
     use ferrohal_stm32::{
         iwdg::{Watchdog, divider, divider_with_lsi, window_divider},
         reset,
@@ -807,6 +808,7 @@ pub fn exercise_blocking<U, K, I, O>(
     )));
     keep(bus.frequency());
     keep(bus.name());
+    keep(bus.kernel_clock());
     bus.set_clock(Some(&CLOCK));
     keep(SpiBus::write(&mut bus, data));
     keep(bus.free());
@@ -901,6 +903,8 @@ fn exercise_spi<W: ferrohal_stm32::spi::Parts>(bus: &mut Spi<W>) {
     keep(bus.set_config(&black_box(spi::Config::new(Hertz::khz(400)))));
     keep(bus.frequency());
     keep(bus.capacity());
+    keep(bus.name());
+    keep(bus.kernel_clock());
     keep(bus.health());
     keep(bus.interrupts().verify());
     bus.set_clock(Some(&CLOCK));
@@ -1565,6 +1569,7 @@ pub fn exercise_adc<A, P, S>(
     // The wiring as a board states it, taken apart again.
     let wiring = Wiring::<A, P, S>::new(pin, stream);
     let (pin, stream) = (wiring.pin, wiring.stream);
+    keep(Config::new(black_box(480)));
     let mut adc = match Adc::new(rcc, token, &Config::slow_source()) {
         Ok(adc) => adc,
         Err(refused) => {

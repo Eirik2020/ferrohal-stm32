@@ -107,6 +107,11 @@ impl<W: Parts> BlockingSpi<W> {
         self.frequency
     }
 
+    /// The kernel clock SCK is divided from.
+    pub fn kernel_clock(&self) -> Hertz {
+        self.kernel_clock
+    }
+
     /// The instance's name in the reference manual.
     pub fn name(&self) -> &'static str {
         self.name

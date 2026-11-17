@@ -239,6 +239,16 @@ impl<W: Parts> Spi<W> {
         self.frequency
     }
 
+    /// The kernel clock SCK is divided from.
+    pub fn kernel_clock(&self) -> Hertz {
+        self.kernel_clock
+    }
+
+    /// The instance's name in the reference manual.
+    pub fn name(&self) -> &'static str {
+        <W::Instance as Instance>::NAME
+    }
+
     /// The longest transfer: the shorter of the two buffers.
     pub fn capacity(&self) -> usize {
         usize::from(self.cap)

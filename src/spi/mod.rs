@@ -62,6 +62,7 @@ pub struct Config {
     pub bit_order: BitOrder,
 }
 
+// Written out: embedded-hal's `Mode` has no `defmt::Format`.
 #[cfg(feature = "defmt")]
 impl defmt::Format for Config {
     fn format(&self, f: defmt::Formatter) {

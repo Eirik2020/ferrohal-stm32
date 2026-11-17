@@ -84,8 +84,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | N9 | `code` `api` | L | Vector-name constants differ by driver. | `2e7f7fe`, `4070cd8` |
 | N10 | `code` `api` | L | DMA fault variant `DmaTransfer`/`DmaOverrun` vs `Dma`. | `42cbcaf` UART, then `99e6404` |
 | N12 | `code` `api` | L | Health counters differ in plurality, type and overflow. | `42cbcaf`, `99e6404`, `cdfe190` |
-| N18 | `code` `api` | L | Accessors present on some drivers only. | per driver |
-| N19 | `code` `api` | L | `Config` builders and `defmt` derives differ. | per driver |
 | S2 | `code` | L | Timer submodules by `#[path]`; twelve lone `mod.rs`. | `ea7a9f8` |
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
 | S5 | `code` | L | Clock-solver tests in chip files, named by board. | `8ad4510` 2026-11-06 |

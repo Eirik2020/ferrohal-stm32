@@ -53,6 +53,12 @@ pub struct Config {
 }
 
 impl Config {
+    /// `sample_cycles` ADC clock cycles a sample, rounded up to one the chip
+    /// has.
+    pub const fn new(sample_cycles: u16) -> Self {
+        Self { sample_cycles }
+    }
+
     /// Long enough for a divider on a battery input and the internal channels
     /// (480 cycles at 21 MHz on the F4, 64.5 at 4 MHz on the H7).
     pub const fn slow_source() -> Self {

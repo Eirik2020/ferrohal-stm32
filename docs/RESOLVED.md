@@ -4,6 +4,16 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review N18 and N19: one accessor set, one `Config` shape** (2026-11-17). `Spi`
+  had no `name` or `kernel_clock`, `BlockingSpi` no `kernel_clock`, I2C no module
+  `check::<U>`, `adc::Config` no `new`, and `i2c::Config` hand-wrote its
+  `defmt::Format`. Now every bus driver answers `name`, `frequency`, `kernel_clock` and
+  `set_clock`; `i2c::check::<U>` and `i2c::Config::check` return the SCL in use, as SPI's
+  return SCK; `adc::Config::new` exists; `i2c::Config` derives `Format` (SPI's stays
+  written out: embedded-hal's `Mode` lacks it). `design/api-surface.md` records the set,
+  including why the polled SPI has no `health`. The UART's follow its redesign. Spawned
+  per driver.
+
 - **API review S4: `RESOURCES` beside its wiring** (2026-11-17). I2C, ADC, SDMMC and
   USB defined `Wiring::RESOURCES` beside the struct; SPI's two sat in its engines
   (`spi/stream_dma.rs`, `spi/polled.rs`). Both now sit in `spi/mod.rs` beside `Wiring`
