@@ -3,7 +3,7 @@
  "counts": {
   "documents": 77,
   "agent": 54,
-  "bytes": 394691
+  "bytes": 394993
  },
  "documents": [
   {
@@ -18,7 +18,7 @@
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5682
+   "bytes": 5727
   },
   {
    "path": "THIRD-PARTY.md",
@@ -490,7 +490,7 @@
    "class": "human",
    "title": "FerroHAL examples",
    "purpose": "Small programs, one per driver, each on a boa",
-   "bytes": 2614
+   "bytes": 2871
   },
   {
    "path": "hil/CAPABILITIES.md",

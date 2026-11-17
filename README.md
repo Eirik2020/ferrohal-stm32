@@ -38,7 +38,7 @@ Not yet: BDMA, input capture.
 
 ## Examples
 
-[examples/](examples/README.md) has one small program per driver on a Nucleo board: GPIO, PWM, ADC, SPI, I2C and USB serial.
+[examples/](examples/README.md) has one small program per driver on a Nucleo board: GPIO, PWM, ADC, SPI, I2C, UART over DMA and USB serial, and the UART echo under RTIC.
 
 ## Checking it
 

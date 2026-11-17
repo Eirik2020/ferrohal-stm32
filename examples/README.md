@@ -2,7 +2,7 @@
 
 Small programs, one per driver, each on a board you can buy: start here to see how FerroHAL is used. Each is one file, top to bottom: clocks, pins, the driver, a loop. The bench crates under `hil/` prove the drivers; these only show them.
 
-FerroHAL owns no scheduler. These examples use plain `cortex-m-rt`, an `#[entry]` and a loop; a firmware under RTIC or any other scheduler opens the same drivers the same way and calls their service methods from its own handlers.
+FerroHAL owns no scheduler. Most examples use plain `cortex-m-rt`, an `#[entry]` and a loop; `rtic-uart-echo` shows the same drivers under RTIC, whose handlers call the driver's `on_interrupt`. Any other scheduler opens the drivers the same way and calls the same methods from its own handlers.
 
 ## Running one
 
@@ -24,6 +24,8 @@ cargo run --release --bin blinky
 | Nucleo-F401RE | `adc-read` | ADC: A0 in millivolts, the supply and die temperature | a voltage of 0 to 3.3 V on A0 |
 | Nucleo-F401RE | `spi-loopback` | Polled SPI master: SPI2 reads back what it sends | CN10-26 (PB15, MOSI) to CN10-28 (PB14, MISO) |
 | Nucleo-F401RE | `i2c-scan` | I2C master: lists the addresses that answer on I2C1 | an I2C device on D15 (SCL) and D14 (SDA) |
+| Nucleo-F401RE | `uart-echo` | UART over DMA: echoes the ST-LINK's serial port, polled | none |
+| Nucleo-F401RE | `rtic-uart-echo` | The same echo under RTIC, served from interrupts | none |
 | Nucleo-H753ZI | `usb-serial` | USB device: a CDC-ACM serial port that echoes | a USB cable to CN13 |
 
 Each file's header names its pins, its connectors and what to expect.

@@ -4,4 +4,4 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| h | examples/README.md | 2614 B | Small programs, one per driver, each on a boa |
+| h | examples/README.md | 2871 B | Small programs, one per driver, each on a boa |
