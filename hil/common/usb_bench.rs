@@ -5,15 +5,20 @@
 //! and reports `PASS` and `FAIL` lines, ending `DONE`; `BENCHECH` echoes until
 //! `BENCHEND`; `BENCHDFU` restarts into the ROM DFU bootloader. The line
 //! `FERRO-ID?` gets the image's identity line (`hil/RIG.md`, Identity).
+//! `BENCHSTP` leaves a probe stop record and restarts into the bootloader;
+//! `STOPREC?` answers with the record the last run left (`STOP none`, or
+//! `STOP why=<n> line=<l>` and what it means), for the host to show that a
+//! record lives through the ROM DFU and a flash (`hil/flash-dfu.sh`).
 //!
 //! The board has no other way back but its BOOT button, so a run that goes
 //! wrong restarts into the bootloader too: a panic, a fault, a watchdog reset
 //! (3 s without the main loop), clocks that don't start, or no host
 //! configuring the device within 30 s. Each of those first leaves a stop
 //! record where the board keeps one ([`crate::ident::STOP_RECORD`]): why, and
-//! the source line. `hil/flash-dfu.sh` reads it over DFU when the board comes up
-//! there instead of as a serial port, and the next run that reaches USB
-//! reports it as a `FAIL` before its checks and clears it.
+//! the source line. The next run that reaches USB reports it as a `FAIL`
+//! before its checks and clears it. The F4's ROM DFU cannot read SRAM (alt 0
+//! maps internal flash only, measured on the Foxeer 2026-11-17), so the record
+//! is read only by the next image, never over DFU.
 
 // Each board compiles this file and uses what it needs.
 #![allow(dead_code)]
@@ -55,6 +60,8 @@ const ECHO: &[u8; 8] = b"BENCHECH";
 const END: &[u8; 8] = b"BENCHEND";
 const DFU: &[u8; 8] = b"BENCHDFU";
 const QUERY: &[u8; 10] = b"FERRO-ID?\n";
+const PROBE: &[u8; 8] = b"BENCHSTP";
+const STOP_QUERY: &[u8; 8] = b"STOPREC?";
 
 pub const WATCHDOG_US: u32 = 3_000_000;
 pub const CONFIGURED_PATIENCE_US: u32 = 30_000_000;
@@ -85,7 +92,12 @@ pub enum Stop {
     Watchdog = 4,
     /// No host configured the device within `CONFIGURED_PATIENCE_US`.
     NoHost = 5,
+    /// The host's `BENCHSTP`: not a failure, the round trip's marker.
+    Probe = 6,
 }
+
+/// The probe record's line field: "PROB".
+pub const PROBE_LINE: u32 = 0x5052_4F42;
 
 /// A stop record's first word: "STOP".
 const STOP_MAGIC: u32 = 0x5354_4F50;
@@ -123,6 +135,7 @@ pub fn stop_text(why: u32) -> &'static str {
         3 => "a hard fault",
         4 => "a watchdog reset",
         5 => "no host configuring the device",
+        6 => "the host's round-trip probe",
         _ => "an unknown stop",
     }
 }
@@ -469,10 +482,26 @@ pub fn serve(link: &mut Link, cause: &str, mut run: impl FnMut(&mut Report, &mut
             if tail == *ECHO {
                 echoing = true;
             }
+            if tail == *PROBE {
+                record_stop(Stop::Probe, PROBE_LINE);
+                link.settle(100_000);
+                reboot_to_dfu();
+            }
+            if tail == *STOP_QUERY {
+                match stopped.take() {
+                    None => link.line(format_args!("STOP none")),
+                    Some((why, line)) => link.line(format_args!(
+                        "STOP why={why} line={line} ({})",
+                        stop_text(why)
+                    )),
+                }
+            }
             if tail == *RUN {
                 let mut report = Report::default();
                 link.line(format_args!("INFO reset cause: {cause}"));
-                if let Some((why, line)) = stopped.take() {
+                if let Some((why, line)) = stopped.take()
+                    && why != Stop::Probe as u32
+                {
                     report.check(
                         link,
                         false,

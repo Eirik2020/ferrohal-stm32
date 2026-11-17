@@ -16,9 +16,9 @@
 # firmware. From anything else, it asks: hold BOOT while plugging in the USB
 # cable. Log goes to hil/logs/<board>.log.
 #
-# STOP_RECORD (run-foxeer.sh sets it) is the address of the board's stop
-# record (hil/common/usb_bench.rs): when a run fails and the board sits in DFU
-# instead of answering on its port, it is read over DFU and reported.
+# STOP_RECORD_PROBE (run-foxeer.sh sets it) adds the stop record's round
+# trip after the report: BENCHSTP, a flash over the ROM DFU, then STOPREC?
+# (hil/common/usb_bench.rs).
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -87,39 +87,26 @@ flash() {
     sleep 1
 }
 
-# Reads and reports the stop record of a board that came up in DFU.
-stop_record() {
-    [ -n "${STOP_RECORD:-}" ] || return 0
-    local serial bin="$here/logs/$board-stop.bin"
-    serial="$(dfu_serial)" || return 0
-    [ -n "$serial" ] || return 0
-    rm -f "$bin"
-    if ! dfu-util -d 0483:df11 -S "$serial" -a 0 -s "$STOP_RECORD:16" -U "$bin" >/dev/null 2>&1; then
-        echo "INFO stop record: the DFU upload from $STOP_RECORD failed"
-        return 0
-    fi
-    python3 -I - "$bin" <<'PY'
-import struct, sys
-data = open(sys.argv[1], "rb").read()
-if len(data) < 16:
-    print("INFO stop record: short upload"); sys.exit()
-magic, why, line, check = struct.unpack("<4I", data[:16])
-texts = {1: "a step it could not go on from", 2: "a panic", 3: "a hard fault",
-         4: "a watchdog reset", 5: "no host configuring the device"}
-if magic != 0x53544F50 or check != magic ^ why ^ line:
-    print("INFO stop record: none")
-else:
-    print(f"FAIL the run stopped before reporting, on {texts.get(why, 'an unknown stop')} at line {line}")
-PY
-}
-
 status=0
 # USB under RTIC: only its interrupt services it, the host checks every byte.
 flash usb-irq || exit 1
 python3 -I "$here/usb_cdc_host.py" 30 "$board" 2>&1 | tee "$here/logs/$board-usb-irq.log"
-[ "${PIPESTATUS[0]}" -eq 0 ] || { status=1; stop_record | tee -a "$here/logs/$board-usb-irq.log"; }
+[ "${PIPESTATUS[0]}" -eq 0 ] || status=1
 
 flash "$board" || exit 1
 python3 -I "$here/usb_cdc_host.py" 30 "$board" report 2>&1 | tee "$here/logs/$board.log"
-[ "${PIPESTATUS[0]}" -eq 0 ] || { status=1; stop_record | tee -a "$here/logs/$board.log"; }
+[ "${PIPESTATUS[0]}" -eq 0 ] || status=1
+
+# The stop record's round trip, on a board that keeps one: the image leaves a
+# probe record and restarts into the ROM DFU, the same image is flashed over
+# it, and the new boot must still hold the probe.
+if [ -n "${STOP_RECORD_PROBE:-}" ]; then
+    for port in /dev/serial/by-id/*FerroHAL*"$board"*; do
+        [ -e "$port" ] && printf BENCHSTP > "$port"
+    done
+    sleep 1
+    flash "$board" || exit 1
+    python3 -I "$here/usb_cdc_host.py" 30 "$board" stop-record 2>&1 | tee "$here/logs/$board-stop-record.log"
+    [ "${PIPESTATUS[0]}" -eq 0 ] || status=1
+fi
 exit "$status"
