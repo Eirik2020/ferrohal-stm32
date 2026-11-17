@@ -4,7 +4,7 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| h | docs/CHIPS.md | 27978 B | What FerroHAL supports on each chip, the limi |
+| h | docs/CHIPS.md | 29203 B | What FerroHAL supports on each chip, the limi |
 | h | docs/DEBT.md | 9634 B | Debt is work FerroHAL owes on what it already |
 | h | docs/RESOLVED-chips-and-features.md | 8495 B | The chip and feature sections of RESOLVED.mdR |
 | h | docs/RESOLVED-crate-wide-2026-11-10-to-16.md | 21943 B | The crate-wide entries of RESOLVED.mdRESOLVED |

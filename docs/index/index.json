@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 81,
+  "documents": 82,
   "agent": 52,
-  "bytes": 466692
+  "bytes": 480146
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 27978
+   "bytes": 29203
   },
   {
    "path": "docs/DEBT.md",
@@ -192,7 +192,7 @@
    "class": "agent",
    "title": "Errata as data",
    "purpose": "Source: ADR-010, ../decisions/2026-11-15-erra",
-   "bytes": 3372
+   "bytes": 3483
   },
   {
    "path": "docs/design/execution-model.md",
@@ -255,7 +255,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 7902
+   "bytes": 7994
   },
   {
    "path": "docs/design/ownership.md",
@@ -354,6 +354,13 @@
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
    "bytes": 10768
+  },
+  {
+   "path": "docs/errata/ES0305.md",
+   "class": "human",
+   "title": "ES0305: errata of die 0x441 (F412xE/xG)",
+   "purpose": "Generated from the chip's errata table src/ch",
+   "bytes": 11948
   },
   {
    "path": "docs/errata/ES0334.md",
@@ -486,7 +493,7 @@
    "class": "human",
    "title": "Plan: the STM32F411, F722, F745 and G474",
    "purpose": "Opened 2026-11-17. The owner's fifth and last",
-   "bytes": 13516
+   "bytes": 13556
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -528,7 +535,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6614
+   "bytes": 6652
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",

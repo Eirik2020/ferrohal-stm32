@@ -845,14 +845,24 @@ fn exercise_i2c<W: i2c::Parts>(bus: &mut I2c<W>) {
 }
 
 /// The USB clock check alone.
-#[cfg(any(feature = "stm32f401re", feature = "stm32f411ce", feature = "stm32f446re"))]
+#[cfg(any(
+    feature = "stm32f401re",
+    feature = "stm32f411ce",
+    feature = "stm32f412zg",
+    feature = "stm32f446re"
+))]
 fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
     keep(rcc.usb_clock());
 }
 
 /// USB's own part: the clock and the constructor. The controller's driver is
 /// third-party and sits outside this check.
-#[cfg(not(any(feature = "stm32f401re", feature = "stm32f411ce", feature = "stm32f446re")))]
+#[cfg(not(any(
+    feature = "stm32f401re",
+    feature = "stm32f411ce",
+    feature = "stm32f412zg",
+    feature = "stm32f446re"
+)))]
 pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::usb::Wiring) {
     use ferrohal_stm32::usb::{UsbFs, Wiring};
 
@@ -942,7 +952,12 @@ impl<C: StreamInstance> Spare<C> {
     }
 }
 
-#[cfg(any(feature = "stm32f401re", feature = "stm32f411ce", feature = "stm32f446re"))]
+#[cfg(any(
+    feature = "stm32f401re",
+    feature = "stm32f411ce",
+    feature = "stm32f412zg",
+    feature = "stm32f446re"
+))]
 mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, USART1, USART6},

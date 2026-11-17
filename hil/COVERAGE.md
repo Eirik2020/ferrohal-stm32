@@ -47,6 +47,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | die `0x421` (glue probe) | – |  |
 | die `0x431` (glue probe) | – |  |
 | die `0x433` (glue probe) | – |  |
+| die `0x441` (glue probe) | – |  |
 | die `0x449` (glue probe) | – |  |
 | die `0x450` (glue probe) | – |  |
 | die `0x451` (glue probe) | – |  |
