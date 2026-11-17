@@ -128,7 +128,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | N3 | `code` `api` | M | One quantity, four names: speed, frequency, rate, baudrate. | `ea7a9f8`, `99e6404`, `cdfe190` |
 | N4 | `code` `api` | M | `dma::Channel` is an erased stream. | `14f7492` 2026-11-04 `claim_channel` |
 | N5 | `docs` `owner` | L | "Handle" has no fixed shape. | `b55c640` `ExtiHandle`, `1e1bbdf` `Watchdog::handle` |
-| N6 | `code` | L | Used `_` bindings, mixed aliases, `vdda_mv`, an unused `Block`. | `cdfe190` `Block`; others per driver |
 | N7 | `code` | L | Register wrapper `Unit` vs `LineRegs`. | `99e6404` `Unit`; `4bb8398` ADR-004 named `LineRegs` |
 | N8 | `code` `api` | L | Routing traits and wirings named outside N2; USB has no wiring. | `ea7a9f8`, `9bd9d1e` |
 | N9 | `code` `api` | L | Vector-name constants differ by driver. | `2e7f7fe`, `4070cd8` |
@@ -145,7 +144,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
 | S4 | `code` | L | `RESOURCES` placement differs. | `2e7f7fe` vs `cdfe190` |
 | S5 | `code` | L | Clock-solver tests in chip files, named by board. | `8ad4510` 2026-11-06 |
-| S7 | `code` | L | `Tick::free` repeats `stop`. | ADR-002 `free` (2026-11-10) |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
 | U5 | `code` | L | `Resource::Pin` rows written 13 times. | from `2e7f7fe` |
 | U6 | `code` | L | DMA and polled SPI repeat clock logic; `spi::Info` = `i2c::Info`. | `66afdaa` copied `99e6404`; `cdfe190` |

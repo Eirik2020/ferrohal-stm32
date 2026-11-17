@@ -36,9 +36,6 @@ use crate::time::Hertz;
 /// wire, bounded.
 const SPINS: u32 = 10_000;
 
-/// The register block.
-pub type Block = Regs;
-
 /// One I2C's registers, as the driver uses them.
 #[derive(Clone, Copy)]
 pub struct Unit(Regs);

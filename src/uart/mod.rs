@@ -100,7 +100,7 @@ impl Config {
         kernel_clock: crate::time::Hertz,
         fractional_stop: bool,
     ) -> Result<u16, ConfigError> {
-        if (self.invert_rx || self.invert_tx) && !crate::usart::INVERSION {
+        if (self.invert_rx || self.invert_tx) && !crate::usart_ip::INVERSION {
             return Err(ConfigError::Unsupported);
         }
         if !fractional_stop && matches!(self.stop_bits, StopBits::Half | StopBits::OneAndHalf) {

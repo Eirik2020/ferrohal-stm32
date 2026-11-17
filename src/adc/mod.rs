@@ -268,9 +268,9 @@ impl<A: Instance> Adc<A> {
         MAX_SAMPLE
     }
 
-    /// What a sample means with `vdda_mv` on the reference.
-    pub const fn to_millivolts(&self, sample: u16, vdda_mv: u32) -> u32 {
-        sample as u32 * vdda_mv / MAX_SAMPLE as u32
+    /// What a sample means with `vdda_millivolts` on the reference.
+    pub const fn to_millivolts(&self, sample: u16, vdda_millivolts: u32) -> u32 {
+        sample as u32 * vdda_millivolts / MAX_SAMPLE as u32
     }
 
     /// Hands the ADC to a [`AdcScan`] converting `channels` in order over
@@ -352,13 +352,13 @@ pub fn vdda_from_vrefint(sample: u16) -> Result<u32, Error> {
 
 /// The die's temperature in tenths of a degree, from a sensor sample and the
 /// VDDA it was taken with.
-pub fn temperature_from_samples(sample: u16, vdda_mv: u32) -> Result<i32, Error> {
+pub fn temperature_from_samples(sample: u16, vdda_millivolts: u32) -> Result<i32, Error> {
     // SAFETY: the chip's factory-programmed values, read-only halfwords.
     let (low, high) = unsafe { (TS_CAL1.read_volatile(), TS_CAL2.read_volatile()) };
     if high <= low {
         return Err(Error::Calibration);
     }
-    let at_cal_vdda = (u32::from(sample) * vdda_mv / CAL_VDDA_MV) as i32;
+    let at_cal_vdda = (u32::from(sample) * vdda_millivolts / CAL_VDDA_MV) as i32;
     let span = i32::from(high) - i32::from(low);
     Ok(TS_CAL1_C * 10 + (at_cal_vdda - i32::from(low)) * (TS_CAL2_C - TS_CAL1_C) * 10 / span)
 }
@@ -505,8 +505,8 @@ impl<A: Instance, S> AdcScan<A, S> {
         MAX_SAMPLE
     }
 
-    /// What a sample means with `vdda_mv` on the reference.
-    pub const fn to_millivolts(&self, sample: u16, vdda_mv: u32) -> u32 {
-        self.adc.to_millivolts(sample, vdda_mv)
+    /// What a sample means with `vdda_millivolts` on the reference.
+    pub const fn to_millivolts(&self, sample: u16, vdda_millivolts: u32) -> u32 {
+        self.adc.to_millivolts(sample, vdda_millivolts)
     }
 }

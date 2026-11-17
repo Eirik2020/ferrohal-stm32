@@ -4,6 +4,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review S7 and N6: timer leftovers and small naming drift** (2026-11-17).
+  `Tick::free` repeated `stop`'s three writes; it calls `stop` now (S7's F4 RCC half
+  went with U2). N6: the owned timer tokens were held in `_timer` fields that were then
+  used (`clippy::used_underscore_binding`, three hits); they are `timer`. The private
+  UART alias is `usart_ip`, like `adc_ip`, `i2c_ip` and `spi_ip`; the ADC's `vdda_mv`
+  parameters are `vdda_millivolts`, like `vdda_millivolts()`; the unused
+  `i2c_v1::Block`/`i2c_v2::Block` aliases are gone. Spawned by `ea7a9f8`, `cdfe190`,
+  ADR-002's `free`.
+
 - **API review U2, S7 (F4 half) and U9: the RCC modules share what is the same**
   (2026-11-17). `Hse`, `HseMode`, `PllSource`, `AhbPrescaler`, `ApbPrescaler` and
   `RccBit` were written twice, identically; the F4 hand-wrote its `enable` and `reset`

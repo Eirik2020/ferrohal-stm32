@@ -332,7 +332,7 @@ pub struct Tick<T: Instance> {
     core: TimCore,
     rate: Hertz,
     vector: Interrupt,
-    _timer: T,
+    timer: T,
 }
 
 impl<T: Instance> Tick<T> {
@@ -356,7 +356,7 @@ impl<T: Instance> Tick<T> {
             core,
             rate,
             vector: T::UPDATE,
-            _timer: timer,
+            timer,
         })
     }
 
@@ -414,17 +414,9 @@ impl<T: Instance> Tick<T> {
     /// Hands the timer token back, stopping the counter and its update
     /// interrupt: what a `Drop` would do, made explicit so the token can
     /// move out.
-    pub fn free(self) -> T {
-        let Self {
-            core,
-            rate: _,
-            vector: _,
-            _timer,
-        } = self;
-        core.cr1().modify(|w| w.set_cen(false));
-        core.dier().write_value(DierCore(0));
-        clear_update(core);
-        _timer
+    pub fn free(mut self) -> T {
+        self.stop();
+        self.timer
     }
 }
 
@@ -433,7 +425,7 @@ impl<T: Instance> Tick<T> {
 pub struct Timebase<T: Instance32> {
     core: TimCore,
     reader: TimebaseReader,
-    _timer: T,
+    timer: T,
 }
 
 /// Reads a [`Timebase`]: one register read, so `Copy` and usable from any
@@ -471,7 +463,7 @@ impl<T: Instance32> Timebase<T> {
                 counter: T::gp32(),
                 frequency,
             },
-            _timer: timer,
+            timer,
         })
     }
 
@@ -507,7 +499,7 @@ impl<T: Instance32> Timebase<T> {
     /// would do, made explicit so the token can move out.
     pub fn free(self) -> T {
         self.core.cr1().modify(|w| w.set_cen(false));
-        self._timer
+        self.timer
     }
 }
 

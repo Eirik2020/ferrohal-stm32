@@ -121,7 +121,7 @@ pub struct Pwm<T> {
     clock: Hertz,
     period: u32,
     frequency: Hertz,
-    _timer: T,
+    timer: T,
 }
 
 impl<T: ChannelTimer> Pwm<T> {
@@ -153,7 +153,7 @@ impl<T: ChannelTimer> Pwm<T> {
             clock,
             period: reload as u32,
             frequency,
-            _timer: timer,
+            timer,
         })
     }
 
@@ -167,7 +167,7 @@ impl<T: ChannelTimer> Pwm<T> {
             clock: _,
             period: _,
             frequency: _,
-            _timer,
+            timer,
         } = self;
         gp.cr1().modify(|w| w.set_cen(false));
         gp.dier().modify(|w| {
@@ -183,7 +183,7 @@ impl<T: ChannelTimer> Pwm<T> {
         // load them: without one, each output would hold the level it
         // stopped at, high mid-pulse. See `latch`.
         latch(gp);
-        _timer
+        timer
     }
 
     /// Loads the preloaded duties now, the counter left at 0: what the next

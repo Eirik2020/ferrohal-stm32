@@ -22,9 +22,6 @@ use stm32_metapac::i2c::I2c as Regs;
 pub use crate::i2c::{ConfigError, Error};
 use crate::time::Hertz;
 
-/// The register block.
-pub type Block = Regs;
-
 /// One I2C's registers, as the driver uses them.
 #[derive(Clone, Copy)]
 pub struct Unit(Regs);

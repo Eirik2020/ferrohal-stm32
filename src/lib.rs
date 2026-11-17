@@ -174,9 +174,9 @@ pub use timer_v1 as timer;
 #[cfg(feature = "timer_v3")]
 pub use timer_v3 as timer;
 #[cfg(feature = "usart_v2")]
-use usart_v2 as usart;
+use usart_v2 as usart_ip;
 #[cfg(feature = "usart_v4")]
-use usart_v4 as usart;
+use usart_v4 as usart_ip;
 
 #[cfg(feature = "stm32f401re")]
 #[path = "chips/stm32f401re.rs"]

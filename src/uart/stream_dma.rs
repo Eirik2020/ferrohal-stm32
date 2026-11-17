@@ -69,7 +69,7 @@ use crate::{
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
-    usart::LineRegs,
+    usart_ip::LineRegs,
     wait::{Deadline, wait},
 };
 
