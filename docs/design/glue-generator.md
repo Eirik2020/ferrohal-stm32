@@ -94,6 +94,14 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
   (`tools/glue-gate.sh`, CI's "Generated glue" job: regenerate, fail on any difference). It
   does not run on development-branch pushes. Making it required is the owner's branch
   protection setting.
+- **[Decided, 2026-11-17]** Speed without narrowing: the gate always regenerates every
+  part. Each part's metapac dump is cached under a key that covers everything it depends
+  on (the generator's lockfile, `glue-dump` and `glue-model`, that part's feature line),
+  and a key mismatch redumps; `GLUE_DUMP_CACHE` moves the cache, `off` disables it. CI
+  skips the job for a pull request touching none of its inputs (the generator, `src/`, the
+  bench crates under `hil/`, `hil/COVERAGE.md`, `requirements/`, the manifests and
+  lockfile, `reqtool.toml`, `docs/CHIPS.md`, the workflow), and also runs it on pushes to
+  `main`, whose caches are the only ones pull requests share.
 
 ## Generated documentation
 

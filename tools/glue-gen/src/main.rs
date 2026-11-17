@@ -276,8 +276,119 @@ fn parts_dir() -> PathBuf {
     dir
 }
 
-/// One part's metadata, from `glue-dump` built with that part's feature.
+/// One part's metadata: from the dump cache while its key still matches,
+/// otherwise from `glue-dump` built with that part's feature, then cached.
+///
+/// Building `glue-dump` compiles stm32-metapac once per part, which is most of
+/// a cold regeneration. The cache skips only that: every part is still
+/// emitted, merged and checked. A part's key covers everything its dump can
+/// depend on (`dump_key`), so a stale entry is never read. `GLUE_DUMP_CACHE`
+/// names the cache directory (CI keeps it between runs); `off` disables it.
 fn dump(part: &Part) -> Result<Metadata, String> {
+    let cache = match std::env::var("GLUE_DUMP_CACHE") {
+        Ok(dir) if dir == "off" => None,
+        Ok(dir) => Some(PathBuf::from(dir)),
+        Err(_) => Some(tool_dir().join("target/dump-cache")),
+    };
+    let Some(cache) = cache else {
+        return dumped(part);
+    };
+    let key = dump_key(part.feature)?;
+    let path = cache.join(format!("{}.json", part.feature));
+    if let Ok(text) = fs::read_to_string(&path)
+        && let Some((head, json)) = text.split_once('\n')
+        && head == key
+        && let Ok(metadata) = serde_json::from_str::<Metadata>(json)
+        && metadata.name.eq_ignore_ascii_case(part.feature)
+    {
+        return Ok(metadata);
+    }
+    let metadata = dumped(part)?;
+    // Best effort: a cache that cannot be written only costs the next run time.
+    if let Ok(json) = serde_json::to_string(&metadata) {
+        let _ = fs::create_dir_all(&cache);
+        let _ = fs::write(&path, format!("{key}\n{json}"));
+    }
+    Ok(metadata)
+}
+
+/// What one part's dump depends on, hashed: the generator's lockfile (the
+/// metapac and serde_json it builds), `glue-dump` and `glue-model`'s sources,
+/// and `dump/Cargo.toml` with the other parts' feature lines left out, so
+/// registering a part does not invalidate every other part's entry.
+fn dump_key(feature: &str) -> Result<String, String> {
+    let root = tool_dir();
+    let mut files = vec![root.join("Cargo.lock"), root.join("model/Cargo.toml")];
+    for dir in ["dump/src", "model/src"] {
+        sources(&root.join(dir), &mut files)?;
+    }
+    files.sort();
+    let mut hash = Fnv::default();
+    hash.write(b"glue-dump cache 1\0");
+    hash.write(feature.as_bytes());
+    for file in &files {
+        let text = fs::read(file).map_err(|e| format!("{}: {e}", file.display()))?;
+        hash.write(
+            file.strip_prefix(&root)
+                .unwrap_or(file)
+                .to_string_lossy()
+                .as_bytes(),
+        );
+        hash.write(b"\0");
+        hash.write(&text);
+        hash.write(b"\0");
+    }
+    let manifest = root.join("dump/Cargo.toml");
+    let text = fs::read_to_string(&manifest).map_err(|e| format!("{}: {e}", manifest.display()))?;
+    for line in text.lines() {
+        let other_part = line
+            .split_once(" = [\"stm32-metapac/")
+            .is_some_and(|(name, _)| name.starts_with("stm32") && name != feature);
+        if !other_part {
+            hash.write(line.as_bytes());
+            hash.write(b"\n");
+        }
+    }
+    Ok(format!(
+        "{feature} metapac {} inputs {:016x}",
+        locked_metapac(&root.join("Cargo.lock"))?,
+        hash.0
+    ))
+}
+
+/// Every file under `dir`, at any depth.
+fn sources(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
+    for entry in fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))? {
+        let path = entry.map_err(|e| e.to_string())?.path();
+        if path.is_dir() {
+            sources(&path, out)?;
+        } else {
+            out.push(path);
+        }
+    }
+    Ok(())
+}
+
+/// FNV-1a, 64 bits: a hash that is the same on every toolchain and host,
+/// unlike std's, so a cache restored on another runner still matches.
+struct Fnv(u64);
+
+impl Default for Fnv {
+    fn default() -> Self {
+        Self(0xcbf2_9ce4_8422_2325)
+    }
+}
+
+impl Fnv {
+    fn write(&mut self, bytes: &[u8]) {
+        for byte in bytes {
+            self.0 = (self.0 ^ u64::from(*byte)).wrapping_mul(0x0000_0100_0000_01b3);
+        }
+    }
+}
+
+/// One part's metadata, from `glue-dump` built with that part's feature.
+fn dumped(part: &Part) -> Result<Metadata, String> {
     let output = Command::new(env!("CARGO"))
         .args([
             "run",
@@ -336,4 +447,28 @@ fn locked_metapac(lockfile: &Path) -> Result<String, String> {
         }
     }
     Err(format!("{}: no stm32-metapac", lockfile.display()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fnv_matches_its_reference_values() {
+        let hash = |text: &[u8]| {
+            let mut fnv = Fnv::default();
+            fnv.write(text);
+            fnv.0
+        };
+        assert_eq!(hash(b""), 0xcbf2_9ce4_8422_2325);
+        assert_eq!(hash(b"a"), 0xaf63_dc4c_8601_ec8c);
+    }
+
+    #[test]
+    fn a_dump_key_names_its_part_and_metapac() {
+        let key = dump_key("stm32f401re").unwrap();
+        assert!(key.starts_with("stm32f401re metapac "), "{key}");
+        assert_ne!(key, dump_key("stm32f405rg").unwrap());
+        assert!(!key.contains('\n'));
+    }
 }
