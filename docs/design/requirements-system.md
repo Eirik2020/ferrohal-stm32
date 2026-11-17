@@ -21,6 +21,11 @@ the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
   Discovery. The flashed boards (Foxeer F405 V2, TBS Lucid H7) run only when something
   they alone reach changes: crystal-mode clocks, DFU flashing, the SD slot. Running a
   bench out of habit is exhaustive testing.
+- **[Decided 2026-11-17, owner]** The runs before a merge are the runs owed, not every
+  run of each bench: `tools/stale_runs.py` names them from reqtool's statuses (each
+  entry not verified on its board names its procedure, each procedure its runs) plus
+  every run whose bench code changed, which declares no requirement and so never goes
+  stale by itself. An H7 I2C driver change owes H753 runs R and S alone.
 - **[Decided 2026-11-13]** Evidence follows files, not images. A requirement verified on a bench stands while the files that bench exercised for it are unchanged; another file added to the image, another run's code, or a rebuilt binary does not re-owe it. reqtool does this since reqtool#4 and #5 (2026-11-13): board evidence holds while its declaring files, and the external crates they import, are unchanged; CI pins that revision (`.github/workflows/ci.yml`).
 
 ## Files and hashes

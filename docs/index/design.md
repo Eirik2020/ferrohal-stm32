@@ -18,7 +18,7 @@
 | a | docs/design/naming.md | 6817 B | Source: ADR-003, ../decisions/2026-11-08-nami |
 | a | docs/design/ownership.md | 2601 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-ids.md | 1789 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/requirements-system.md | 4679 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/requirements-system.md | 5094 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-tooling.md | 2741 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/scope.md | 3746 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/structure.md | 1497 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
