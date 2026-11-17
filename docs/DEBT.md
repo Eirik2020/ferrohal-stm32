@@ -73,6 +73,9 @@ order. Re-measure before fixing. Every row is `code`, so each changed file's evi
 reruns. The spawn pattern: each driver landed in its own commit between 2026-10-31 and
 2026-11-06 with no shared template, and later drivers reused the first ones' types.
 
+D12, D13, N7, N9, N10, N12, S3, U3 and U10 go with the UART single-owner redesign and the
+serve trait, which rewrite the code they name (owner, 2026-11-17).
+
 | id | tags | sev | finding | spawned |
 |---|---|---|---|---|
 | D12 | `code` `api` | L | Interrupt service is not uniform. | per driver; `1ca19a9` added a third shape |
