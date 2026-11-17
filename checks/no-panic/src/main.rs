@@ -71,15 +71,19 @@ fn main() -> ! {
         tx: black_box(unsafe { &mut *addr_of_mut!(TX) }),
         rx: black_box(unsafe { &mut *addr_of_mut!(RX) }),
     };
-    let config = black_box(uart::Config::new(115_200));
+    let config = black_box(uart::Config::new(Hertz(115_200)));
     // A refusal hands back what `new` took: retry once with it, 8N1.
     let (mut uart, mut irq) = match Uart::new(&mut rcc, wiring, &config, buffers) {
         Ok(opened) => opened,
         Err(refused) => {
             keep(refused.error());
             let (wiring, buffers) = refused.into_parts();
-            let Ok(opened) = Uart::new(&mut rcc, wiring, &uart::Config::new(115_200), buffers)
-            else {
+            let Ok(opened) = Uart::new(
+                &mut rcc,
+                wiring,
+                &uart::Config::new(Hertz(115_200)),
+                buffers,
+            ) else {
                 park()
             };
             opened
@@ -89,7 +93,7 @@ fn main() -> ! {
 
     // A receive-only UART, and the frame check with inversion asked for.
     let sbus = black_box(
-        uart::Config::new(100_000)
+        uart::Config::new(Hertz(100_000))
             .with_parity(Parity::Even)
             .with_stop_bits(StopBits::Two)
             .with_inverted_rx(black_box(true)),
@@ -105,8 +109,12 @@ fn main() -> ! {
         Err(refused) => {
             keep(refused.error());
             let (rx_wiring, ring) = refused.into_parts();
-            let Ok(opened) = UartRx::new(&mut rcc, rx_wiring, &uart::Config::new(100_000), ring)
-            else {
+            let Ok(opened) = UartRx::new(
+                &mut rcc,
+                rx_wiring,
+                &uart::Config::new(Hertz(100_000)),
+                ring,
+            ) else {
                 park()
             };
             opened
@@ -177,6 +185,10 @@ fn main() -> ! {
         i2c::Config::new(Hertz::khz(400))
             .check(<chip::I2cUnit as i2c::Instance>::KERNEL.clock(&black_box(rcc.clocks()))),
     );
+    keep(i2c::check::<chip::I2cUnit>(
+        &black_box(rcc.clocks()),
+        &black_box(i2c::Config::new(Hertz::khz(400))),
+    ));
     // A refusal hands back the wiring: retry once with it, at 100 kHz.
     let mut i2c = match I2c::new(
         &mut rcc,
@@ -200,7 +212,7 @@ fn main() -> ! {
     exercise_i2c(&mut i2c);
 
     // The DMA API, on a stream the UART does not use.
-    let mut channel = spare.take_channel();
+    let mut channel = spare.take_stream();
     keep(channel.flags());
     keep(channel.flags().any_error());
     channel.clear_flags(black_box(Flags::ALL));
@@ -212,7 +224,6 @@ fn main() -> ! {
     }));
     keep(channel.remaining());
     keep(channel.is_running());
-    keep(channel.current_target());
     channel.request_stop();
     keep(channel.stop(black_box(1_000)));
     let handle = channel.flag_handle();
@@ -256,14 +267,7 @@ fn exercise_pure() {
     #[cfg(not(any(feature = "stm32h743vi", feature = "stm32h753zi")))]
     keep(black_box(Config::hsi()).validate());
 
-    #[cfg(not(any(feature = "stm32h743vi", feature = "stm32h753zi")))]
-    use ferrohal_stm32::i2c_v1 as i2c_ip;
-    #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
-    use ferrohal_stm32::i2c_v2 as i2c_ip;
-    if let Ok(timing) = i2c_ip::Unit::timing(black_box(Hertz::mhz(42)), black_box(Hertz::khz(400)))
-    {
-        keep(timing.speed());
-    }
+    keep(i2c::Config::new(black_box(Hertz::khz(400))).check(black_box(Hertz::mhz(42))));
 
     for erratum in ferrohal_stm32::chip::ERRATA {
         keep(erratum.affects(black_box(0x2003)));
@@ -300,7 +304,7 @@ fn exercise_uart<U: ferrohal_stm32::uart::UartParts>(uart: &mut Uart<U>) {
     keep(uart.read_ready());
     keep(uart.write_ready());
     let config = black_box(
-        uart::Config::new(9_600)
+        uart::Config::new(Hertz(9_600))
             .with_parity(Parity::Even)
             .with_stop_bits(StopBits::Two)
             .with_inverted_rx(true)
@@ -343,8 +347,8 @@ pub fn exercise_exti<const P: char, const N: u8>(
     keep(exti.is_high());
     keep(InputPin::is_low(&mut exti));
     exti.set_edge(ctrl, black_box(Edge::Falling));
-    exti.unlisten(ctrl);
-    exti.listen(ctrl);
+    exti.mask(ctrl);
+    exti.unmask(ctrl);
     let handle = exti.handle();
     keep(handle.is_pending());
     handle.clear();
@@ -352,7 +356,7 @@ pub fn exercise_exti<const P: char, const N: u8>(
     keep(handle.interrupt());
     keep(handle.line());
     keep(ferrohal_stm32::exti::vector(black_box(12)));
-    keep(exti.release(ctrl));
+    keep(exti.free(ctrl));
 }
 
 /// Timers: a tick and a timebase through every operation. Each chip's
@@ -406,7 +410,7 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
         }
     };
     keep(base.now());
-    let reader = base.reader();
+    let reader = base.handle();
     keep(reader.now());
     keep(reader.frequency());
     let tick_token = tick.free();
@@ -502,7 +506,7 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     ));
     let pwm = retried_pwm(rcc, timer, Hertz::khz(600));
     keep(pwm.period());
-    keep(pwm.frequency());
+    keep(pwm.rate());
     pwm.set_output::<1>(black_box(false));
     pwm.set_output::<1>(black_box(true));
     // The wiring's constructor, from the pin and the stream: a refusal hands
@@ -536,6 +540,7 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     keep(lane.verify());
     lane.set_duty(&pwm, black_box(0));
     lane.abort(&pwm);
+    keep(pwm.top_margin());
     pwm.close_requests();
     pwm.stop();
     // The generator over the same lane.
@@ -622,7 +627,7 @@ pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
     ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<B, 1>,
 {
     let mut pwm = retried_pwm(rcc, timer, Hertz::khz(1));
-    keep(pwm.set_frequency(black_box(Hertz::khz(2))));
+    keep(pwm.set_rate(black_box(Hertz::khz(2))));
     // The plain complementary channel first, freed back to its pin.
     let channel = pwm.complementary::<1, N>(pin);
     let pin = channel.free();
@@ -693,15 +698,12 @@ where
     keep(sampler.interrupt());
     keep(sampler.verify());
     keep(sampler.set_rate(black_box(Hertz::mhz(2))));
-    sampler.stop();
+    sampler.abort();
     keep(sampler.free());
 }
 
 /// The watchdog and the reset cause.
-pub fn exercise_watchdog(
-    rcc: &mut ferrohal_stm32::rcc::Rcc,
-    iwdg: ferrohal_stm32::chip::WatchdogPeripheral,
-) {
+pub fn exercise_watchdog(rcc: &mut ferrohal_stm32::rcc::Rcc, iwdg: ferrohal_stm32::chip::IWDG) {
     use ferrohal_stm32::{
         iwdg::{Watchdog, divider, divider_with_lsi, window_divider},
         reset,
@@ -799,6 +801,7 @@ pub fn exercise_blocking<U, K, I, O>(
     )));
     keep(bus.frequency());
     keep(bus.name());
+    keep(bus.kernel_clock());
     bus.set_clock(Some(&CLOCK));
     keep(SpiBus::write(&mut bus, data));
     keep(bus.free());
@@ -806,7 +809,7 @@ pub fn exercise_blocking<U, K, I, O>(
 
 /// The I2C through every operation of the bus trait, and the empty
 /// operation inside a transaction.
-fn exercise_i2c<W: i2c::I2cParts>(bus: &mut I2c<W>) {
+fn exercise_i2c<W: i2c::Parts>(bus: &mut I2c<W>) {
     use embedded_hal::i2c::{I2c as HalI2c, Operation};
 
     let data = black_box(&[0x5au8; 4][..]);
@@ -849,35 +852,31 @@ fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
 /// USB's own part: the clock and the constructor. The controller's driver is
 /// third-party and sits outside this check.
 #[cfg(not(feature = "stm32f401re"))]
-pub fn exercise_usb(
-    rcc: &mut ferrohal_stm32::rcc::Rcc,
-    token: ferrohal_stm32::chip::USB_OTG_FS,
-    dm: ferrohal_stm32::gpio::Pin<'A', 11, ferrohal_stm32::gpio::Alternate<10>>,
-    dp: ferrohal_stm32::gpio::Pin<'A', 12, ferrohal_stm32::gpio::Alternate<10>>,
-) {
-    keep(ferrohal_stm32::usb::UsbFs::interrupt());
+pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::usb::Wiring) {
+    use ferrohal_stm32::usb::{UsbFs, Wiring};
+
+    keep(UsbFs::interrupt());
+    black_box(&Wiring::RESOURCES).iter().for_each(keep);
     keep(rcc.usb_clock());
-    let usb = match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+    let usb = match UsbFs::new(rcc, wiring) {
         Ok(usb) => usb,
         Err(refused) => {
             keep(refused.error());
-            let (token, dm, dp) = refused.into_parts();
-            match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+            match UsbFs::new(rcc, refused.into_parts()) {
                 Ok(usb) => usb,
                 Err(_) => park(),
             }
         }
     };
     // Freed, and reopened from what came back.
-    let (token, dm, dp) = usb.free();
-    let usb = match ferrohal_stm32::usb::UsbFs::new(rcc, token, dm, dp) {
+    let usb = match UsbFs::new(rcc, usb.free()) {
         Ok(usb) => usb,
         Err(_) => park(),
     };
     keep(usb);
 }
 
-fn exercise_spi<W: ferrohal_stm32::spi::SpiParts>(bus: &mut Spi<W>) {
+fn exercise_spi<W: ferrohal_stm32::spi::Parts>(bus: &mut Spi<W>) {
     use embedded_hal::spi::SpiBus;
 
     let data = black_box(&[0xa5u8; 40][..]);
@@ -897,6 +896,8 @@ fn exercise_spi<W: ferrohal_stm32::spi::SpiParts>(bus: &mut Spi<W>) {
     keep(bus.set_config(&black_box(spi::Config::new(Hertz::khz(400)))));
     keep(bus.frequency());
     keep(bus.capacity());
+    keep(bus.name());
+    keep(bus.kernel_clock());
     keep(bus.health());
     keep(bus.interrupts().verify());
     bus.set_clock(Some(&CLOCK));
@@ -932,9 +933,9 @@ struct Spare<C: StreamInstance> {
 }
 
 impl<C: StreamInstance> Spare<C> {
-    fn take_channel(&mut self) -> ferrohal_stm32::dma::Channel {
+    fn take_stream(&mut self) -> ferrohal_stm32::dma::AnyStream {
         match self.stream.take() {
-            Some(stream) => stream.into_channel(),
+            Some(stream) => stream.into_any(),
             None => park(),
         }
     }
@@ -945,7 +946,7 @@ mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, USART1, USART6},
         dma::Stream,
-        gpio::{Alternate, Input, Output, Pin, Pull, Speed},
+        gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{AhbPrescaler, ApbPrescaler, Config, Pll, PllP, PllSource, Rcc, Supply, Sysclk},
         spi,
@@ -969,7 +970,11 @@ mod chip {
 
     /// I2C1 on PB8 and PB9, the pins the Nucleo bench's Arduino connector
     /// carries.
-    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+    pub type I2cWiring = i2c::Wiring<
+        I2C1,
+        Pin<'B', 8, Alternate<4, OpenDrain>>,
+        Pin<'B', 9, Alternate<4, OpenDrain>>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -1025,7 +1030,7 @@ mod chip {
         let input = a.p0.into_input(&mut a.ctrl);
         let rx6 = a.p12.into_alternate::<8>(&mut a.ctrl);
         let analog = a.p1.into_analog(&mut a.ctrl);
-        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
         super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
         super::exercise_timers(&mut rcc, p.TIM10, p.TIM5);
         super::exercise_watchdog(&mut rcc, p.IWDG);
@@ -1102,8 +1107,8 @@ mod chip {
             },
             i2c::Wiring {
                 i2c: p.I2C1,
-                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
-                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
+                scl: b.p8.into_alternate_open_drain::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
                 stream: Some(dma2.s0),
@@ -1121,7 +1126,7 @@ mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, UART4, USART2},
         dma::Stream,
-        gpio::{Alternate, Input, Output, Pin, Pull, Speed},
+        gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{
             AhbPrescaler, ApbPrescaler, Config, Hse, HseMode, Pll, PllP, PllSource, Rcc, Supply,
@@ -1149,7 +1154,11 @@ mod chip {
     >;
 
     /// I2C1 on PB8 and PB9, the bus the Foxeer's barometer sits on.
-    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+    pub type I2cWiring = i2c::Wiring<
+        I2C1,
+        Pin<'B', 8, Alternate<4, OpenDrain>>,
+        Pin<'B', 9, Alternate<4, OpenDrain>>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: Some(Hse {
@@ -1209,7 +1218,7 @@ mod chip {
         let input = b.p1.into_input(&mut b.ctrl);
         let rx4 = a.p1.into_alternate::<8>(&mut a.ctrl);
         let analog = b.p2.into_analog(&mut b.ctrl);
-        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG);
@@ -1234,9 +1243,11 @@ mod chip {
         );
         super::exercise_usb(
             &mut rcc,
-            p.USB_OTG_FS,
-            a.p11.into_alternate::<10>(&mut a.ctrl),
-            a.p12.into_alternate::<10>(&mut a.ctrl),
+            ferrohal_stm32::usb::Wiring {
+                usb: p.USB_OTG_FS,
+                dm: a.p11.into_alternate(&mut a.ctrl),
+                dp: a.p12.into_alternate(&mut a.ctrl),
+            },
         );
         super::exercise_blocking(
             &mut rcc,
@@ -1293,8 +1304,8 @@ mod chip {
             },
             i2c::Wiring {
                 i2c: p.I2C1,
-                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
-                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
+                scl: b.p8.into_alternate_open_drain::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
                 stream: Some(dma2.s0),
@@ -1310,7 +1321,7 @@ mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI1, USART2, USART3},
         dma::Stream,
-        gpio::{Alternate, Input, Output, Pin, Pull, Speed},
+        gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{
             AhbPrescaler, ApbPrescaler, Config, Pll, PllSource, Rcc, Supply, Sysclk, VoltageScale,
@@ -1336,7 +1347,11 @@ mod chip {
     >;
 
     /// I2C1 on PB8 and PB9, the pins the Nucleo-H753ZI's bench carries.
-    pub type I2cWiring = i2c::Wiring<I2C1, Pin<'B', 8, Alternate<4>>, Pin<'B', 9, Alternate<4>>>;
+    pub type I2cWiring = i2c::Wiring<
+        I2C1,
+        Pin<'B', 8, Alternate<4, OpenDrain>>,
+        Pin<'B', 9, Alternate<4, OpenDrain>>,
+    >;
 
     const CLOCKS: Config = Config {
         hse: None,
@@ -1398,7 +1413,7 @@ mod chip {
         let input = b.p1.into_input(&mut b.ctrl);
         let rx3 = b.p11.into_alternate::<7>(&mut b.ctrl);
         let analog = b.p2.into_analog(&mut b.ctrl);
-        let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+        let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
         super::exercise_exti::<'B', 2>(&mut exti.ctrl, exti.l2);
         super::exercise_timers(&mut rcc, p.TIM6, p.TIM2);
         super::exercise_watchdog(&mut rcc, p.IWDG1);
@@ -1438,9 +1453,11 @@ mod chip {
         );
         super::exercise_usb(
             &mut rcc,
-            p.USB_OTG_FS,
-            a.p11.into_alternate::<10>(&mut a.ctrl),
-            a.p12.into_alternate::<10>(&mut a.ctrl),
+            ferrohal_stm32::usb::Wiring {
+                usb: p.USB_OTG_FS,
+                dm: a.p11.into_alternate(&mut a.ctrl),
+                dp: a.p12.into_alternate(&mut a.ctrl),
+            },
         );
         super::exercise_blocking(
             &mut rcc,
@@ -1497,8 +1514,8 @@ mod chip {
             },
             i2c::Wiring {
                 i2c: p.I2C1,
-                scl: b.p8.into_alternate::<4>(&mut b.ctrl),
-                sda: b.p9.into_alternate::<4>(&mut b.ctrl),
+                scl: b.p8.into_alternate_open_drain::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
                 stream: Some(dma2.s3),
@@ -1538,13 +1555,14 @@ pub fn exercise_adc<A, P, S>(
 ) where
     A: ferrohal_stm32::adc::Instance,
     P: ferrohal_stm32::adc::AdcPin<A>,
-    S: ferrohal_stm32::adc::AdcDma<A>,
+    S: ferrohal_stm32::adc::Dma<A>,
 {
-    use ferrohal_stm32::adc::{Adc, AdcWiring, Config};
+    use ferrohal_stm32::adc::{Adc, Config, Wiring};
 
     // The wiring as a board states it, taken apart again.
-    let wiring = AdcWiring::<A, P, S>::new(pin, stream);
+    let wiring = Wiring::<A, P, S>::new(pin, stream);
     let (pin, stream) = (wiring.pin, wiring.stream);
+    keep(Config::new(black_box(480)));
     let mut adc = match Adc::new(rcc, token, &Config::slow_source()) {
         Ok(adc) => adc,
         Err(refused) => {
@@ -1679,14 +1697,18 @@ pub fn exercise_sdmmc<U, Ck, Cmd, D0, D1, D2, D3>(
     wiring: ferrohal_stm32::sdmmc::Wiring<U, Ck, Cmd, D0, D1, D2, D3>,
 ) where
     U: ferrohal_stm32::sdmmc::Instance,
-    Ck: ferrohal_stm32::sdmmc::CkPin<U>,
-    Cmd: ferrohal_stm32::sdmmc::CmdPin<U>,
-    D0: ferrohal_stm32::sdmmc::D0Pin<U>,
-    D1: ferrohal_stm32::sdmmc::D1Pin<U>,
-    D2: ferrohal_stm32::sdmmc::D2Pin<U>,
-    D3: ferrohal_stm32::sdmmc::D3Pin<U>,
+    Ck: ferrohal_stm32::sdmmc::CkPin<U> + ferrohal_stm32::gpio::AltPin,
+    Cmd: ferrohal_stm32::sdmmc::CmdPin<U> + ferrohal_stm32::gpio::AltPin,
+    D0: ferrohal_stm32::sdmmc::D0Pin<U> + ferrohal_stm32::gpio::AltPin,
+    D1: ferrohal_stm32::sdmmc::D1Pin<U> + ferrohal_stm32::gpio::AltPin,
+    D2: ferrohal_stm32::sdmmc::D2Pin<U> + ferrohal_stm32::gpio::AltPin,
+    D3: ferrohal_stm32::sdmmc::D3Pin<U> + ferrohal_stm32::gpio::AltPin,
 {
     use ferrohal_stm32::sdmmc::{BLOCK_SIZE, Config, Sdmmc};
+
+    black_box(&ferrohal_stm32::sdmmc::Wiring::<U, Ck, Cmd, D0, D1, D2, D3>::RESOURCES)
+        .iter()
+        .for_each(keep);
 
     let mut sd = match Sdmmc::new(rcc, wiring, &Config::new(black_box(Hertz::mhz(25)))) {
         Ok(sd) => sd,

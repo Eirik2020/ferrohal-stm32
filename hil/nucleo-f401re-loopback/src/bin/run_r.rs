@@ -111,7 +111,7 @@ mod app {
         cpu: Hertz,
     ) {
         let period = pwm3.period();
-        let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.frequency().0)) as u32;
+        let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
         let count = (per_bit16 as usize * (BITS + 8)) / 16;
         let result = (|| -> Result<(), Fail> {
             lane3
@@ -187,7 +187,7 @@ mod app {
             result,
         );
         if !finished_ok {
-            sampler.stop();
+            sampler.abort();
             return;
         }
         report.check(
@@ -243,7 +243,7 @@ mod app {
         ) else {
             defmt::panic!("the TIM1 sampler")
         };
-        if let Err(error) = sampler.set_rate(Hertz(pwm3.frequency().0 * 12)) {
+        if let Err(error) = sampler.set_rate(Hertz(pwm3.rate().0 * 12)) {
             report.check(
                 "run R",
                 "the sampler at 12 times the bit rate [PWM-003]",
@@ -252,7 +252,7 @@ mod app {
         } else {
             defmt::info!(
                 "run R: four lanes at {}, sampled at {}",
-                pwm3.frequency(),
+                pwm3.rate(),
                 sampler.rate()
             );
             // Independent first: TIM2 still starts in software, so both start

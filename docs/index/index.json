@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 72,
+  "documents": 74,
   "agent": 52,
-  "bytes": 323990
+  "bytes": 372328
  },
  "documents": [
   {
@@ -11,14 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 5484
+   "bytes": 5533
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5436
+   "bytes": 5536
   },
   {
    "path": "THIRD-PARTY.md",
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 14605
+   "bytes": 9634
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -47,6 +47,13 @@
    "title": "FerroHAL: resolved debt, by chip and feature",
    "purpose": "The chip and feature sections of RESOLVED.mdR",
    "bytes": 8495
+  },
+  {
+   "path": "docs/RESOLVED-crate-wide-2026-11-10-to-16.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
+   "purpose": "The crate-wide entries of RESOLVED.mdRESOLVED",
+   "bytes": 21943
   },
   {
    "path": "docs/RESOLVED-crate-wide-to-2026-11-09.md",
@@ -60,7 +67,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 21583
+   "bytes": 21002
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -171,7 +178,7 @@
    "class": "agent",
    "title": "Public API surface",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2009
+   "bytes": 3199
   },
   {
    "path": "docs/design/clocks.md",
@@ -227,7 +234,7 @@
    "class": "agent",
    "title": "ES0392 review: cache, system, flash ECC",
    "purpose": "W11 of the debt sweep. Read against ES0392 Re",
-   "bytes": 1272
+   "bytes": 1409
   },
   {
    "path": "docs/design/layering.md",
@@ -248,14 +255,14 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 4100
+   "bytes": 6817
   },
   {
    "path": "docs/design/ownership.md",
    "class": "agent",
    "title": "Ownership and shared registers",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2029
+   "bytes": 2601
   },
   {
    "path": "docs/design/requirements-ids.md",
@@ -283,7 +290,7 @@
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 3623
+   "bytes": 3746
   },
   {
    "path": "docs/design/structure.md",
@@ -311,21 +318,21 @@
    "class": "human",
    "title": "ES0182: errata of die 0x413 (F405, F407)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 11011
+   "bytes": 14622
   },
   {
    "path": "docs/errata/ES0299.md",
    "class": "human",
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 7952
+   "bytes": 10768
   },
   {
    "path": "docs/errata/ES0392.md",
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 19416
+   "bytes": 23559
   },
   {
    "path": "docs/housekeeping/README.md",
@@ -451,7 +458,7 @@
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 2137
+   "bytes": 2195
   },
   {
    "path": "docs/policies/safety.md",
@@ -465,21 +472,28 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9070
+   "bytes": 9356
   },
   {
    "path": "hil/COVERAGE.md",
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6390
+   "bytes": 6452
+  },
+  {
+   "path": "hil/RIG-IMPROVEMENTS.md",
+   "class": "human",
+   "title": "Rig improvements: what each upgrade would unblock",
+   "purpose": "The options for growing the rig, each tied to",
+   "bytes": 15459
   },
   {
    "path": "hil/RIG.md",
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 4238
+   "bytes": 4508
   },
   {
    "path": "hil/WIRING.md",
@@ -500,7 +514,7 @@
    "class": "human",
    "title": "Bench Procedures: the host analyses",
    "purpose": "The checks of benches.mdbenches.md that run o",
-   "bytes": 1661
+   "bytes": 1776
   },
   {
    "path": "requirements/benches-faults.md",
@@ -521,7 +535,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 19128
+   "bytes": 19367
   },
   {
    "path": "requirements/goals.md",

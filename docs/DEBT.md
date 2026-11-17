@@ -42,15 +42,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
 
 ## 1. Library code
 
-- `code` `api` **Low: the ADC's `Unit::new` is public.** `adc_v2` and `adc_v4` build a
-  unit from raw registers for the chip glue, where I2C's and SPI's are `pub(crate)`.
-  `checks/no-panic/uncalled.txt` lists both until they match. *Spawned:* the no-panic
-  coverage check (2026-11-16).
-- `code` `api` **Medium: an I2C wiring accepts a push-pull pin.** Both `into_alternate`
-  forms return one type ([gpio_v2](../src/gpio_v2/mod.rs)), and push-pull NACKs every
-  transfer. Fix: an open-drain type state. *Spawned:* GPIO's single alternate type
-  (`af65cad`, 2026-10-31); found when run S's pins were push-pull (`cb5e339`,
-  2026-11-08), recorded `f20ccc8`.
 - `code` `api` **Medium: the feature hierarchy departs from `docs/design/structure.md`.**
   Chip features turn on their family marker, and two chips at once are caught only by a
   `compile_error!` listing every pair (10 at five chips, 15 at six). Same as review S6.
@@ -60,23 +51,9 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
   `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it and metapac lacks the register. Both H7s
   here are rev V, so no bench can show it (`docs/design/h7-errata.md`). *Spawned:* the
   W11 errata review (`3702336`, 2026-11-09).
-- `code` `api` **Low: EXTI owns the whole SYSCFG token.** It needs EXTICR only; the H7's
-  I/O compensation cell and the F4's memory remap sit in SYSCFG too. *Spawned:*
-  `b55c640` 2026-10-31, EXTI written as SYSCFG's only user.
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
-- `code` **Low: DMA double buffering and FIFO threshold mode have no caller and no
-  test.** Fix: remove them, or give them an internal user and a run. *Spawned:* shipped
-  in the DMA layer by `af65cad`; unreachable from outside since W6b2 (`a99d32f`,
-  2026-11-09).
-- `code` `errata` **Low: most errata entries are unreviewed.** ADR-010 transcribed every row
-  of the three sheets: ES0182 86 of 91, ES0299 62 of 66 and ES0392 117 of 155 have no
-  verdict yet (`Unreviewed` in `docs/errata/`). ES0392 2.2.13 (USB PHY drive), 2.5.4
-  (DMAMUX), 2.9.8 (ADC) and 2.20.4 (USART), which the old H7 review named as handled
-  "where they act", are among them: no source file cites them. Fix: review sheet by
-  sheet, IP versions FerroHAL drives first. *Spawned:* ADR-010's transcription
-  (2026-11-15), which made the unreviewed visible.
 - `code` `bench` **Medium: above 1 Mbaud, `usart_v2` places a lone parity error late or
   loses it.** F401 run B, 8N2 into 8O1 (one bad byte, then a good frame), both
   directions, measured 2026-11-15: at 115200 and 1 Mbaud the error is seen once and
@@ -96,49 +73,21 @@ order. Re-measure before fixing. Every row is `code`, so each changed file's evi
 reruns. The spawn pattern: each driver landed in its own commit between 2026-10-31 and
 2026-11-06 with no shared template, and later drivers reused the first ones' types.
 
+D12, D13, N7, N9, N10, N12, S3, U3 and U10 go with the UART single-owner redesign and the
+serve trait, which rewrite the code they name (owner, 2026-11-17).
+
 | id | tags | sev | finding | spawned |
 |---|---|---|---|---|
-| D3 | `code` `api` | L | Board code now uses only the neutral modules, but the versioned ones (`usart_v2`, `spi_v4`, ...) are still public beside them. | each driver's own re-exports, as above |
-| D8 | `code` `api` | L | Refusals carry three error families. | `af65cad` `ClockError`, `1e1bbdf` IWDG, `a8a3a05` ADC, `4237048` SDMMC |
-| D9 | `code` | L | `usb.rs` hard-codes PA11/PA12 AF10 outside the glue. | `9bd9d1e` 2026-11-02 |
-| D10 | `code` | L | USB and SDMMC wirings have no `RESOURCES`. | `9bd9d1e`, `4237048` did not follow `2e7f7fe`'s descriptors |
-| D11 | `code` `bench` | M | Two wait mechanisms: `wait::Deadline` and raw spins in nine files. | `af65cad` `STOP_SPINS` spins before `Deadline` |
 | D12 | `code` `api` | L | Interrupt service is not uniform. | per driver; `1ca19a9` added a third shape |
 | D13 | `code` `api` | L | Vectors come in four shapes; `verify()` on five of nine. | `2e7f7fe` UART, `b55c640` EXTI, `4070cd8` timers |
-| N1 | `code` `api` | M | Refusal aliases follow four naming patterns. | `c6c5d23`, `ee05895` 2026-11-06 |
-| N2 | `code` `api` | L | Module-prefix stutter is mixed; 17 clippy hits. | per driver from `af65cad` |
-| N3 | `code` `api` | M | One quantity, four names: speed, frequency, rate, baudrate. | `ea7a9f8`, `99e6404`, `cdfe190` |
-| N4 | `code` `api` | M | `dma::Channel` is an erased stream. | `14f7492` 2026-11-04 `claim_channel` |
-| N5 | `docs` `owner` | L | "Handle" has no fixed shape. | `b55c640` `ExtiHandle`, `1e1bbdf` `Watchdog::handle` |
-| N6 | `code` | L | Used `_` bindings, mixed aliases, `vdda_mv`, an unused `Block`. | `cdfe190` `Block`; others per driver |
 | N7 | `code` | L | Register wrapper `Unit` vs `LineRegs`. | `99e6404` `Unit`; `4bb8398` ADR-004 named `LineRegs` |
-| N8 | `code` `api` | L | Routing traits and wirings named outside N2; USB has no wiring. | `ea7a9f8`, `9bd9d1e` |
 | N9 | `code` `api` | L | Vector-name constants differ by driver. | `2e7f7fe`, `4070cd8` |
 | N10 | `code` `api` | L | DMA fault variant `DmaTransfer`/`DmaOverrun` vs `Dma`. | `42cbcaf` UART, then `99e6404` |
 | N12 | `code` `api` | L | Health counters differ in plurality, type and overflow. | `42cbcaf`, `99e6404`, `cdfe190` |
-| N13 | `code` `api` | L | RCC error variants differ F4/H7. | `af65cad`, two RCC modules |
-| N14 | `code` `api` | L | `free` vs `release` (`Exti`). | `b55c640` `release`; `free` from ADR-002 |
-| N15 | `code` `api` | L | `abort` vs `stop` (`Sampler`). | `ea7a9f8` |
-| N16 | `code` `api` | L | `mask` vs `listen`; `listen` also means capture. | `b55c640`, then `1ca19a9` |
-| N17 | `code` `api` | L | Watchdog's `start` and `WatchdogPeripheral`. | `1e1bbdf` 2026-10-31 |
-| N18 | `code` `api` | L | Accessors present on some drivers only. | per driver |
-| N19 | `code` `api` | L | `Config` builders and `defmt` derives differ. | per driver |
 | S2 | `code` | L | Timer submodules by `#[path]`; twelve lone `mod.rs`. | `ea7a9f8` |
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
-| S4 | `code` | L | `RESOURCES` placement differs. | `2e7f7fe` vs `cdfe190` |
-| S5 | `code` | L | Clock-solver tests in chip files, named by board. | `8ad4510` 2026-11-06 |
-| S7 | `code` | L | `Tick::free` repeats `stop`; F4 RCC matches by hand. | ADR-002 `free` (2026-11-10); `af65cad` |
-| U2 | `code` | M | Six RCC types identical in both RCC modules. | `af65cad`, written separately |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
-| U5 | `code` | L | `Resource::Pin` rows written 13 times. | from `2e7f7fe` |
-| U6 | `code` | L | DMA and polled SPI repeat clock logic; `spi::Info` = `i2c::Info`. | `66afdaa` copied `99e6404`; `cdfe190` |
-| U7 | `code` | L | Three unsafe byte casts exist only for `check_dma_buffer`. | `ea7a9f8`, `a8a3a05` |
-| U8 | `code` | L | Wait constants repeated per file. | `af65cad`, `99e6404` |
-| U9 | `code` | L | `rcc.enable(x); rcc.reset(x)` eleven times. | `af65cad` onward |
 | U10 | `code` | L | `interrupt()` + `verify_vectors` three times. | `4070cd8`, `ea7a9f8` |
-| U11 | `bench` | L | Two smoke benches' `usb_irq.rs` differ in 3 of 101 lines. | `ed48419` copied one into the other |
-| K1 | `docs` | M | The bootloader path breaks two stated absolutes, unrecorded. | `036a7d2` 2026-11-02 |
-| K4 | `docs` | L | Shared-source lists disagree (`naming.md` vs nine). | `af65cad`'s count of five; `naming.md` 2026-11-13 |
 | B1 | `bench` `owner` | L | A run letter means a different test on each bench. | `55025e8` the H753 bench numbered its own runs |
 | B2 | `bench` `tool` | L | H753 runs generated, F401 runs by hand. | `8b0266b` generator for the H753 only |
 
@@ -157,8 +106,7 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 - `bench` **Low: the bench isn't on FerroForge.** Decided 2026-11-02: add a FerroHAL
   backend to the FerroForge CLI and move the runs onto its tasks, proving the pair.
   *Spawned:* `d773b34` recorded the decision and deferred the move.
-- `bench` **Low: a Foxeer smoke image that fails before USB says nothing.** It restarts
-  into DFU. *Spawned:* `926b210` 2026-11-02, a bench that reports over USB only.
+
 
 ## 4. Shipped code without hardware proof: rig work
 
@@ -181,8 +129,9 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   below 8 MHz, so its check allows 0.5 % (`hil/RIG.md`). *Spawned:* `af65cad`; narrowed
   2026-11-15.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
-  SysTick path, WWDG, option bytes, flash ECC, another silicon revision. *Spawned:* the
-  W11 audit (`ff3af8d`, 2026-11-10).
+  SysTick path, WWDG, option bytes, flash ECC, another silicon revision. Every F4 here
+  is past revision A, so ES0182 2.2.2's mapping (`RESOLVED.md`) stands on host tests
+  alone. *Spawned:* the W11 audit (`ff3af8d`, 2026-11-10).
 
 ## 5. CI and merging
 

@@ -13,7 +13,7 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::chip::tests::foxeer_clocks_validate
+            test: ferrohal_stm32::chip::tests::validate_accepts_168_mhz_from_an_8_mhz_crystal
         - level: unit
           environment: host
           method:

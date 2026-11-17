@@ -21,12 +21,13 @@
 //!   where the trait's contract asks for one, and a stop after the last.
 //! - **waits**: every operation is bounded, twice its time on the wire
 //!   plus a margin, in CPU cycles, measured with a [`CycleClock`] when one
-//!   is set, otherwise counted as passes of at least `PASS_CYCLES`. A
+//!   is set, otherwise counted as passes of at least `wait::PASS_CYCLES`. A
 //!   transfer that runs past its bound is stopped, the peripheral is put
 //!   back, and the next transfer can start: [`Error::Timeout`].
-//! - **errors**: a device's NACK, a bus error, lost arbitration and an
-//!   overrun are reported, their flags cleared and the bus recovered, so
-//!   the next transfer can start.
+//! - **errors**: a device's NACK, lost arbitration and an overrun are
+//!   reported, their flags cleared and the bus recovered, so the next
+//!   transfer can start. A bus error is counted in [`Health`] and the
+//!   transfer goes on, as the errata sheets ask.
 //! - **scope**: master only, 7-bit addresses, no SMBus, no clock
 //!   stretching on our side (a slow device may stretch SCL; the bound
 //!   covers only a device that answers within it). No DMA: an I2C
@@ -45,15 +46,6 @@ use crate::{
 
 use crate::i2c_ip::Unit;
 
-/// The fewest CPU cycles one pass of a completion wait can take, used when
-/// no [`CycleClock`] is set. SPI's measured floor, halved (H753 with caches
-/// on: 233 cycles a pass); the same loop shape runs here, so the same floor
-/// counts. Without a clock, waits run up to about 3 times the time asked
-/// on the F401 and 6 on the uncached H753.
-const PASS_CYCLES: u32 = 112;
-/// Added to every blocking bound, in CPU cycles: the start-up and flag
-/// handling an operation can see before its first SCL edge.
-const MARGIN_CYCLES: u32 = 20_000;
 /// Bits of wire time an operation of `len` bytes occupies: nine per byte,
 /// plus a start, an address and an acknowledge, rounded up for the stop.
 const fn wire_bits(len: usize) -> u32 {
@@ -62,22 +54,10 @@ const fn wire_bits(len: usize) -> u32 {
 
 /// Per-instance facts. Chip facts: the glue layer holds one static `Info`
 /// per I2C.
-pub struct Info {
-    unit: Unit,
-}
+pub type Info = crate::resource::Info<Unit>;
 
-// SAFETY: `unit` is an address.
+// SAFETY: a `Unit` is an address.
 unsafe impl Sync for Info {}
-
-impl Info {
-    pub(crate) const fn new(unit: Unit) -> Self {
-        Self { unit }
-    }
-
-    pub(crate) fn unit(&self) -> Unit {
-        self.unit
-    }
-}
 
 /// An I2C instance this chip has. Chip facts: the glue layer implements it.
 pub trait Instance: crate::Sealed + 'static {
@@ -107,6 +87,10 @@ pub struct Wiring<U, Scl, Sda> {
     pub sda: Sda,
 }
 
+/// What [`I2c::new`] hands back when it refuses: the reason, and the wiring
+/// it took.
+pub type I2cRefused<U, Scl, Sda> = Refused<ConfigError, Wiring<U, Scl, Sda>>;
+
 impl<U, Scl, Sda> Wiring<U, Scl, Sda>
 where
     U: Instance,
@@ -117,63 +101,57 @@ where
     /// with their alternate functions.
     pub const RESOURCES: [Resource; 3] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin {
-            signal: Signal::Scl,
-            port: Scl::PORT,
-            pin: Scl::PIN,
-            af: Scl::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Sda,
-            port: Sda::PORT,
-            pin: Sda::PIN,
-            af: Sda::AF,
-        },
+        Resource::pin::<Scl>(Signal::Scl),
+        Resource::pin::<Sda>(Signal::Sda),
     ];
 }
 
 /// The bus settings: the SCL frequency asked for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Config {
     /// The fastest SCL allowed. The driver computes its timing registers
     /// for it and reports the rate in use through [`I2c::frequency`].
     /// 1 kHz to 400 kHz on an F4, 1 kHz to 1 MHz on an H7.
-    pub speed: Hertz,
+    pub frequency: Hertz,
 }
 
 impl Config {
-    pub const fn new(speed: Hertz) -> Self {
-        Self { speed }
+    pub const fn new(frequency: Hertz) -> Self {
+        Self { frequency }
     }
 
-    /// Whether this speed can run from this kernel clock, and why not if
-    /// it can't. A `const fn`, so a board can check its buses while
+    /// The SCL this frequency gives from this kernel clock, or why it
+    /// can't run. A `const fn`, so a board can check its buses while
     /// compiling.
-    pub const fn check(&self, kernel_clock: Hertz) -> Result<(), ConfigError> {
-        if self.speed.0 == 0 {
-            return Err(ConfigError::Speed);
+    pub const fn check(&self, kernel_clock: Hertz) -> Result<Hertz, ConfigError> {
+        if self.frequency.0 == 0 {
+            return Err(ConfigError::Frequency);
         }
-        match Unit::timing(kernel_clock, self.speed) {
-            Ok(_) => Ok(()),
+        match Unit::timing(kernel_clock, self.frequency) {
+            Ok(timing) => Ok(timing.frequency()),
             Err(error) => Err(error),
         }
     }
 }
 
-#[cfg(feature = "defmt")]
-impl defmt::Format for Config {
-    fn format(&self, f: defmt::Formatter) {
-        defmt::write!(f, "Config {{ speed: {} Hz }}", self.speed.0)
-    }
+/// The SCL `config` would give on instance `U` under `clocks`, as
+/// [`spi::check`](crate::spi::check) does for SCK. A `const fn`, so a board
+/// can assert its buses while compiling.
+pub const fn check<U: Instance>(
+    clocks: &crate::rcc::Clocks,
+    config: &Config,
+) -> Result<Hertz, ConfigError> {
+    config.check(U::KERNEL.clock(clocks))
 }
 
 /// Why `I2c::new` refused a configuration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigError {
-    /// The speed asked for is outside what the IP version carries, or the
+    /// The frequency asked for is outside what the IP version carries, or the
     /// kernel clock cannot divide down to it.
-    Speed,
+    Frequency,
     /// The kernel clock is not a frequency the IP version can time from:
     /// an F4 needs a whole number of MHz between 2 and 62.
     KernelClock,
@@ -193,7 +171,10 @@ pub enum Error {
     /// bus recovered; the next one can start.
     Timeout,
     /// A bus error: a misplaced START or STOP, or a line that didn't
-    /// behave. The flag was cleared and the bus recovered.
+    /// behave. Neither IP version raises it: in controller mode the errata
+    /// sheets (ES0392 2.19.4, ES0299 2.9.1, ES0182 2.10.1) say BERR can
+    /// rise spuriously and leaves the transfer running, so the driver
+    /// clears it, counts it in [`Health::bus_errors`] and carries on.
     Bus,
     /// Another master kept the bus (arbitration lost). The flag was
     /// cleared and the bus recovered.
@@ -226,7 +207,7 @@ pub struct Health {
     pub nacks: u32,
     /// Transfers that ran past their bound.
     pub timeouts: u32,
-    /// Bus errors (BERR).
+    /// Bus errors (BERR), cleared and counted while the transfer went on.
     pub bus_errors: u32,
     /// Arbitrations lost to another master (ARLO).
     pub arbitration_lost: u32,
@@ -251,12 +232,12 @@ impl Health {
 
 /// What an I2C was opened from: the instance its handle names. Implemented
 /// by [`Wiring`] only, so a handle's type names the board's whole route.
-pub trait I2cParts: crate::Sealed {
+pub trait Parts: crate::Sealed {
     type Instance: Instance;
 }
 
 impl<U, Scl, Sda> crate::Sealed for Wiring<U, Scl, Sda> {}
-impl<U: Instance, Scl, Sda> I2cParts for Wiring<U, Scl, Sda> {
+impl<U: Instance, Scl, Sda> Parts for Wiring<U, Scl, Sda> {
     type Instance = U;
 }
 
@@ -264,10 +245,10 @@ impl<U: Instance, Scl, Sda> I2cParts for Wiring<U, Scl, Sda> {
 /// the device drivers take. It keeps the board's wiring, the instance and
 /// both pins, and [`free`](I2c::free) hands it back, so the same parts open
 /// again.
-pub struct I2c<W: I2cParts> {
+pub struct I2c<W: Parts> {
     info: &'static Info,
     kernel_clock: Hertz,
-    speed: Hertz,
+    frequency: Hertz,
     /// CPU cycles per SCL bit, rounded up.
     bit_cycles: u32,
     clock: Option<&'static dyn CycleClock>,
@@ -296,27 +277,26 @@ where
         rcc: &mut Rcc,
         wiring: Wiring<U, Scl, Sda>,
         config: &Config,
-    ) -> Result<Self, Refused<ConfigError, Wiring<U, Scl, Sda>>> {
+    ) -> Result<Self, I2cRefused<U, Scl, Sda>> {
         let info = U::info();
         let clocks = rcc.clocks();
         let kernel_clock = U::KERNEL.clock(&clocks);
         let timing = match config.check(kernel_clock) {
-            Ok(()) => Unit::timing(kernel_clock, config.speed),
+            Ok(_) => Unit::timing(kernel_clock, config.frequency),
             Err(error) => Err(error),
         };
         let timing = match timing {
             Ok(timing) => timing,
             Err(error) => return Err(Refused::new(error, wiring)),
         };
-        let speed = timing.speed();
-        rcc.enable(U::ENABLE);
-        rcc.reset(U::ENABLE);
+        let frequency = timing.frequency();
+        rcc.open(U::ENABLE);
         info.unit().apply(&timing);
         Ok(Self {
             info,
             kernel_clock,
-            speed,
-            bit_cycles: clocks.cpu.0.div_ceil(speed.0.max(1)),
+            frequency,
+            bit_cycles: clocks.cpu.0.div_ceil(frequency.0.max(1)),
             clock: None,
             name: U::NAME,
             health: Health::default(),
@@ -335,10 +315,10 @@ where
     }
 }
 
-impl<W: I2cParts> I2c<W> {
+impl<W: Parts> I2c<W> {
     /// The SCL in use.
     pub fn frequency(&self) -> Hertz {
-        self.speed
+        self.frequency
     }
 
     /// The kernel clock the timing was computed from.
@@ -352,7 +332,7 @@ impl<W: I2cParts> I2c<W> {
     }
 
     /// Sets the clock the bounds are measured with. Without one, waits
-    /// count passes of at least `PASS_CYCLES`, so they run long, never
+    /// count passes of at least `wait::PASS_CYCLES`, so they run long, never
     /// short.
     pub fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
         self.clock = clock;
@@ -363,15 +343,21 @@ impl<W: I2cParts> I2c<W> {
         self.health
     }
 
-    /// One bounded wait: ready, an error flag, or the bound.
+    /// One bounded wait: ready, an error flag, or the bound. A bus error
+    /// is counted and cleared, and the wait goes on: in controller mode it
+    /// can rise spuriously while the transfer carries on (ES0392 2.19.4,
+    /// ES0299 2.9.1, ES0182 2.10.1).
     fn wait_ready(
-        &self,
+        &mut self,
         unit: Unit,
         deadline: &mut Deadline,
         ready: impl FnMut() -> bool,
     ) -> Result<(), Error> {
         let mut ready = ready;
         loop {
+            if unit.take_bus_error() {
+                self.health.bus_errors = self.health.bus_errors.wrapping_add(1);
+            }
             if let Some(error) = unit.error() {
                 return Err(error);
             }
@@ -421,8 +407,8 @@ impl<W: I2cParts> I2c<W> {
         }
         let mut deadline = Deadline::new(
             self.clock,
-            2 * total_bits.saturating_mul(self.bit_cycles) + MARGIN_CYCLES,
-            PASS_CYCLES,
+            2 * total_bits.saturating_mul(self.bit_cycles) + crate::wait::MARGIN_CYCLES,
+            crate::wait::PASS_CYCLES,
         );
         let mut result = Ok(());
         // The walk: `left` counts the bytes the current segment still
@@ -534,11 +520,11 @@ impl<W: I2cParts> I2c<W> {
     }
 }
 
-impl<W: I2cParts> embedded_hal::i2c::ErrorType for I2c<W> {
+impl<W: Parts> embedded_hal::i2c::ErrorType for I2c<W> {
     type Error = Error;
 }
 
-impl<W: I2cParts> embedded_hal::i2c::I2c for I2c<W> {
+impl<W: Parts> embedded_hal::i2c::I2c for I2c<W> {
     fn transaction(
         &mut self,
         address: embedded_hal::i2c::SevenBitAddress,
@@ -559,10 +545,10 @@ mod tests {
     }
 
     #[test]
-    fn a_zero_speed_is_refused_by_the_check() {
+    fn a_zero_frequency_is_refused_by_the_check() {
         assert_eq!(
             Config::new(Hertz(0)).check(Hertz::mhz(42)),
-            Err(ConfigError::Speed)
+            Err(ConfigError::Frequency)
         );
     }
 }

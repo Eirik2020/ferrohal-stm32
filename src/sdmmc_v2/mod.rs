@@ -19,14 +19,16 @@
 //!
 //! Requirements: SDMMC-001, SDMMC-002, SDMMC-003, SDMMC-004, API-002
 
+use crate::wait::{Deadline, poll, spin};
 use stm32_metapac::sdmmc::{
     Sdmmc as Regs,
     regs::{Clkcr, Icr},
 };
 
 use crate::{
+    gpio::AltPin,
     rcc::{Rcc, RccBit},
-    resource::Refused,
+    resource::{Refused, Resource, Signal},
     time::Hertz,
 };
 
@@ -79,6 +81,16 @@ const OCR_POWERED_UP: u32 = 1 << 31;
 const OCR_HIGH_CAPACITY: u32 = 1 << 30;
 const STATE_TRANSFER: u32 = 4;
 const R1_ERRORS: u32 = 0xFDF9_8008;
+
+/// Why `Sdmmc::new` refused (API review D8: a refusal carries its module's
+/// `ConfigError`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ConfigError {
+    /// The kernel clock isn't running, or can't divide down to the bus
+    /// frequency asked for.
+    Clock,
+}
 
 /// Why an operation failed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -179,6 +191,29 @@ pub struct Wiring<U, Ck, Cmd, D0, D1, D2, D3> {
     pub d3: D3,
 }
 
+impl<U, Ck, Cmd, D0, D1, D2, D3> Wiring<U, Ck, Cmd, D0, D1, D2, D3>
+where
+    U: Instance,
+    Ck: CkPin<U> + AltPin,
+    Cmd: CmdPin<U> + AltPin,
+    D0: D0Pin<U> + AltPin,
+    D1: D1Pin<U> + AltPin,
+    D2: D2Pin<U> + AltPin,
+    D3: D3Pin<U> + AltPin,
+{
+    /// Everything this wiring uses, as data: the instance and its six pins
+    /// with their alternate functions.
+    pub const RESOURCES: [Resource; 7] = [
+        Resource::Peripheral(U::NAME),
+        Resource::pin::<Ck>(Signal::Ck),
+        Resource::pin::<Cmd>(Signal::Cmd),
+        Resource::pin::<D0>(Signal::Data(0)),
+        Resource::pin::<D1>(Signal::Data(1)),
+        Resource::pin::<D2>(Signal::Data(2)),
+        Resource::pin::<D3>(Signal::Data(3)),
+    ];
+}
+
 /// What `init_card` found.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -244,8 +279,8 @@ pub struct Sdmmc<W> {
 
 /// What [`Sdmmc::new`](Sdmmc::new) hands back when it refuses: the reason,
 /// and the wiring it took.
-pub type SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3> =
-    Refused<Error, Wiring<U, Ck, Cmd, D0, D1, D2, D3>>;
+pub type SdmmcRefused<U, Ck, Cmd, D0, D1, D2, D3> =
+    Refused<ConfigError, Wiring<U, Ck, Cmd, D0, D1, D2, D3>>;
 
 impl<U, Ck, Cmd, D0, D1, D2, D3> Sdmmc<Wiring<U, Ck, Cmd, D0, D1, D2, D3>>
 where
@@ -268,20 +303,19 @@ where
         rcc: &mut Rcc,
         wiring: Wiring<U, Ck, Cmd, D0, D1, D2, D3>,
         config: &Config,
-    ) -> Result<Self, SdmmcNewRefused<U, Ck, Cmd, D0, D1, D2, D3>> {
+    ) -> Result<Self, SdmmcRefused<U, Ck, Cmd, D0, D1, D2, D3>> {
         let clocks = rcc.clocks();
         let kernel = match U::KERNEL.frequency(&clocks) {
             Some(kernel) => kernel,
-            None => return Err(Refused::new(Error::Clock, wiring)),
+            None => return Err(Refused::new(ConfigError::Clock, wiring)),
         };
         if config.frequency.0 > MAX_DEFAULT_SPEED_HZ
             || divider(kernel.0, IDENTIFICATION_HZ).is_none()
             || divider(kernel.0, config.frequency.0).is_none()
         {
-            return Err(Refused::new(Error::Clock, wiring));
+            return Err(Refused::new(ConfigError::Clock, wiring));
         }
-        rcc.enable(U::ENABLE);
-        rcc.reset(U::ENABLE);
+        rcc.open(U::ENABLE);
         Ok(Self {
             wiring,
             regs: U::info().regs(),
@@ -319,13 +353,11 @@ impl<W> Sdmmc<W> {
     }
 
     fn wait_idle(&self) -> Result<(), Error> {
-        for _ in 0..COMMAND_SPINS {
+        let idle = spin(COMMAND_SPINS, || {
             let star = self.regs.star().read();
-            if !star.cpsmact() && !star.dpsmact() {
-                return Ok(());
-            }
-        }
-        Err(Error::Stuck)
+            !star.cpsmact() && !star.dpsmact()
+        });
+        if idle { Ok(()) } else { Err(Error::Stuck) }
     }
 
     fn clear_flags(&self) {
@@ -336,11 +368,7 @@ impl<W> Sdmmc<W> {
 
     fn command(&self, index: u8, argument: u32, response: Response) -> Result<(), Error> {
         self.clear_flags();
-        for _ in 0..COMMAND_SPINS {
-            if !self.regs.star().read().cpsmact() {
-                break;
-            }
-        }
+        let _ = spin(COMMAND_SPINS, || !self.regs.star().read().cpsmact());
         self.regs.argr().write(|w| w.set_cmdarg(argument));
         self.regs.cmdr().write(|w| {
             w.set_cmdindex(index);
@@ -352,27 +380,23 @@ impl<W> Sdmmc<W> {
             });
             w.set_cpsmen(true);
         });
-        for _ in 0..COMMAND_SPINS {
+        poll(Deadline::passes(COMMAND_SPINS), || {
             let star = self.regs.star().read();
             if star.ctimeout() {
-                return Err(Error::CommandTimeout);
-            }
-            if star.ccrcfail() {
-                return if response == Response::ShortNoCrc {
+                Some(Err(Error::CommandTimeout))
+            } else if star.ccrcfail() {
+                Some(if response == Response::ShortNoCrc {
                     Ok(())
                 } else {
                     Err(Error::CommandCrc)
-                };
+                })
+            } else if response == Response::None {
+                star.cmdsent().then_some(Ok(()))
+            } else {
+                star.cmdrend().then_some(Ok(()))
             }
-            if response == Response::None {
-                if star.cmdsent() {
-                    return Ok(());
-                }
-            } else if star.cmdrend() {
-                return Ok(());
-            }
-        }
-        Err(Error::Stuck)
+        })
+        .unwrap_or(Err(Error::Stuck))
     }
 
     fn short(&self) -> u32 {
@@ -511,15 +535,13 @@ impl<W> Sdmmc<W> {
     /// Waits for the end of the data: a CRC error on the last block shows up
     /// only after its last byte is in.
     fn wait_data_end(&self) -> Result<(), Error> {
-        for _ in 0..DATA_SPINS {
+        poll(Deadline::passes(DATA_SPINS), || {
             if let Some(error) = self.data_error() {
-                return Err(error);
+                return Some(Err(error));
             }
-            if self.regs.star().read().dataend() {
-                return Ok(());
-            }
-        }
-        Err(Error::Stuck)
+            self.regs.star().read().dataend().then_some(Ok(()))
+        })
+        .unwrap_or(Err(Error::Stuck))
     }
 
     /// Waits for `ready` on the status register, or a data error.
@@ -527,15 +549,13 @@ impl<W> Sdmmc<W> {
         &self,
         ready: impl Fn(stm32_metapac::sdmmc::regs::Star) -> bool,
     ) -> Result<(), Error> {
-        for _ in 0..DATA_SPINS {
+        poll(Deadline::passes(DATA_SPINS), || {
             if let Some(error) = self.data_error() {
-                return Err(error);
+                return Some(Err(error));
             }
-            if ready(self.regs.star().read()) {
-                return Ok(());
-            }
-        }
-        Err(Error::Stuck)
+            ready(self.regs.star().read()).then_some(Ok(()))
+        })
+        .unwrap_or(Err(Error::Stuck))
     }
 
     fn receive(&self, blocks: &mut [[u8; BLOCK_SIZE]]) -> Result<(), Error> {

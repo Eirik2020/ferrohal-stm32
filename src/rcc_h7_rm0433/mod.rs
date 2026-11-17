@@ -21,6 +21,7 @@
 //!
 //! Requirements: RCC-001, RCC-002, RCC-003, RESET-001
 
+use crate::wait::spin;
 use stm32_metapac::{
     FLASH, PWR, RCC as RCC_REGS,
     pwr::vals::Vos,
@@ -31,6 +32,9 @@ use stm32_metapac::{
 };
 
 pub use crate::rcc_kernel::Kernel;
+pub use crate::rcc_shared::{
+    AhbPrescaler, ApbPrescaler, ClockError, Hse, HseMode, PllSource, RccBit,
+};
 use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency, undivided.
@@ -84,9 +88,9 @@ pub struct Rcc {
 }
 
 /// RCC_RSR's reset flags. A single read: no `Rcc` needed.
-pub(crate) fn read_reset_cause() -> crate::reset::ResetCause {
+pub(crate) fn read_reset_cause() -> crate::reset::Cause {
     let rsr = RCC_REGS.rsr().read();
-    crate::reset::ResetCause {
+    crate::reset::Cause {
         power_on: rsr.porrstf(),
         pin: rsr.pinrstf(),
         brownout: rsr.borrstf(),
@@ -118,12 +122,12 @@ impl Rcc {
     /// USB start-of-frame doesn't work on revision Y (ES0392 2.2.3).
     pub fn usb_clock(&mut self) -> Result<(), ClockError> {
         RCC_REGS.cr().modify(|w| w.set_hsi48on(true));
-        if !wait(HSI48_SPINS, || RCC_REGS.cr().read().hsi48rdy()) {
+        if !spin(HSI48_SPINS, || RCC_REGS.cr().read().hsi48rdy()) {
             return Err(ClockError::UsbTimeout);
         }
         RCC_REGS.d2ccip2r().modify(|w| w.set_usbsel(Usbsel::HSI48));
         PWR.cr3().modify(|w| w.set_usb33den(true));
-        if !wait(HSI48_SPINS, || PWR.cr3().read().usb33rdy()) {
+        if !spin(HSI48_SPINS, || PWR.cr3().read().usb33rdy()) {
             return Err(ClockError::UsbTimeout);
         }
         Ok(())
@@ -131,41 +135,11 @@ impl Rcc {
 
     /// Why the chip last reset, read from RCC_RSR, whose flags are then
     /// cleared (RMVF) so the next reset reports only itself.
-    pub fn reset_cause(&mut self) -> crate::reset::ResetCause {
+    pub fn reset_cause(&mut self) -> crate::reset::Cause {
         let cause = read_reset_cause();
         clear_reset_flags();
         cause
     }
-}
-
-macro_rules! bus_registers {
-    ($($bus:ident => $enr:ident, $rstr:ident;)+) => {
-        impl Rcc {
-            /// Turns a peripheral's clock on, then reads the register back so
-            /// the write has landed before the peripheral is touched.
-            pub(crate) fn enable(&mut self, bit: RccBit) {
-                let mask = 1 << bit.bit;
-                match bit.bus {
-                    $(Bus::$bus => {
-                        RCC_REGS.$enr().modify(|w| w.0 |= mask);
-                        let _ = RCC_REGS.$enr().read();
-                    })+
-                }
-            }
-
-            /// Pulses a peripheral's reset, returning its registers to reset
-            /// values.
-            pub(crate) fn reset(&mut self, bit: RccBit) {
-                let mask = 1 << bit.bit;
-                match bit.bus {
-                    $(Bus::$bus => {
-                        RCC_REGS.$rstr().modify(|w| w.0 |= mask);
-                        RCC_REGS.$rstr().modify(|w| w.0 &= !mask);
-                    })+
-                }
-            }
-        }
-    };
 }
 
 bus_registers!(
@@ -201,20 +175,6 @@ pub enum Bus {
     Apb2,
     Apb3,
     Apb4,
-}
-
-/// A peripheral's bit in its bus's enable and reset registers (the same
-/// position in both). Chip facts: the glue layer supplies them.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct RccBit {
-    pub(crate) bus: Bus,
-    pub(crate) bit: u8,
-}
-
-impl RccBit {
-    pub(crate) const fn new(bus: Bus, bit: u8) -> Self {
-        Self { bus, bit }
-    }
 }
 
 /// The frequencies a configuration produces. Drivers compute their
@@ -294,21 +254,6 @@ pub struct Config {
     pub voltage_scale: VoltageScale,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Hse {
-    pub freq: Hertz,
-    pub mode: HseMode,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum HseMode {
-    Oscillator,
-    /// An external clock on OSC_IN, such as an ST-LINK's MCO.
-    Bypass,
-}
-
 /// PLL1: `source / prediv * mul`, then `/ divp` to SYSCLK, `/ divq` and
 /// `/ divr` to kernel clocks. The fractional divider stays off.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -329,48 +274,13 @@ pub struct Pll {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum PllSource {
-    Hsi,
-    Hse,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Sysclk {
     Hsi,
     Hse,
     Pll1P,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum AhbPrescaler {
-    Div1,
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-    Div64,
-    Div128,
-    Div256,
-    Div512,
-}
-
 impl AhbPrescaler {
-    const fn divisor(self) -> u32 {
-        match self {
-            Self::Div1 => 1,
-            Self::Div2 => 2,
-            Self::Div4 => 4,
-            Self::Div8 => 8,
-            Self::Div16 => 16,
-            Self::Div64 => 64,
-            Self::Div128 => 128,
-            Self::Div256 => 256,
-            Self::Div512 => 512,
-        }
-    }
-
     const fn bits(self) -> Hpre {
         match self {
             Self::Div1 => Hpre::DIV1,
@@ -386,27 +296,7 @@ impl AhbPrescaler {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum ApbPrescaler {
-    Div1,
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-}
-
 impl ApbPrescaler {
-    const fn divisor(self) -> u32 {
-        match self {
-            Self::Div1 => 1,
-            Self::Div2 => 2,
-            Self::Div4 => 4,
-            Self::Div8 => 8,
-            Self::Div16 => 16,
-        }
-    }
-
     const fn bits(self) -> Ppre {
         match self {
             Self::Div1 => Ppre::DIV1,
@@ -446,36 +336,6 @@ impl VoltageScale {
             Self::Scale3 => Vos::SCALE3,
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum ClockError {
-    /// HSI48 or the USB supply didn't report ready within its bound.
-    UsbTimeout,
-    HseFrequency,
-    HseNotConfigured,
-    PllNotConfigured,
-    /// DIVM, DIVN or an output divider is outside its range, or DIVP is odd.
-    PllDivider,
-    /// The PLL input after DIVM is outside 1 to 16 MHz.
-    PllInput,
-    /// The VCO frequency fits neither VCO range for this input.
-    PllVco,
-    /// SYSCLK or the core clock is above the voltage scale's limit.
-    Cpu,
-    Hclk,
-    Pclk,
-    /// PWR did not report the supply or voltage scale ready.
-    SupplyTimeout,
-    /// HSE did not report ready within its bound. The system is on HSI.
-    HseTimeout,
-    /// The PLL did not lock within its bound. The system is on HSI.
-    PllTimeout,
-    /// A clock switch or the flash latency did not take within its bound.
-    SwitchTimeout,
-    /// No combination of the dividers meets the request.
-    Unsatisfiable,
 }
 
 /// A chip's clock limits. Supplied by the glue layer.
@@ -645,7 +505,7 @@ impl Config {
             },
         };
         if sysclk.0 > cpu_max.0 {
-            return Err(ClockError::Cpu);
+            return Err(ClockError::Sysclk);
         }
         let cpu = Hertz(sysclk.0 / self.cpu_pre.divisor());
         let hclk = Hertz(cpu.0 / self.ahb_pre.divisor());
@@ -656,12 +516,17 @@ impl Config {
         let pclk2 = Hertz(hclk.0 / self.apb2_pre.divisor());
         let pclk3 = Hertz(hclk.0 / self.apb3_pre.divisor());
         let pclk4 = Hertz(hclk.0 / self.apb4_pre.divisor());
-        if pclk1.0 > pclk_max.0
-            || pclk2.0 > pclk_max.0
-            || pclk3.0 > pclk_max.0
-            || pclk4.0 > pclk_max.0
-        {
-            return Err(ClockError::Pclk);
+        if pclk1.0 > pclk_max.0 {
+            return Err(ClockError::Pclk1);
+        }
+        if pclk2.0 > pclk_max.0 {
+            return Err(ClockError::Pclk2);
+        }
+        if pclk3.0 > pclk_max.0 {
+            return Err(ClockError::Pclk3);
+        }
+        if pclk4.0 > pclk_max.0 {
+            return Err(ClockError::Pclk4);
         }
         let Some((flash_latency, flash_wrhighfreq)) = flash_setup(hclk.0, self.voltage_scale)
         else {
@@ -781,11 +646,11 @@ impl Config {
     /// as ever.
     pub const fn solve(request: Request) -> Result<Self, ClockError> {
         if request.sysclk.0 == 0 {
-            return Err(ClockError::Cpu);
+            return Err(ClockError::Sysclk);
         }
         let limits = &CLOCK_LIMITS;
         if request.sysclk.0 > limits.scale1.0.0 {
-            return Err(ClockError::Cpu);
+            return Err(ClockError::Sysclk);
         }
         // The scales, lowest voltage first: the first that supports the
         // request wins.
@@ -989,21 +854,12 @@ const fn prediv_value(reference: u32, request: Request) -> u32 {
 }
 
 /// Spins until `done` or `spins` run out.
-fn wait(spins: u32, mut done: impl FnMut() -> bool) -> bool {
-    for _ in 0..spins {
-        if done() {
-            return true;
-        }
-    }
-    done()
-}
-
 fn set_flash(latency: u8, wrhighfreq: u8) -> Result<(), ClockError> {
     FLASH.acr().modify(|w| {
         w.set_latency(latency);
         w.set_wrhighfreq(wrhighfreq);
     });
-    if wait(SWITCH_SPINS, || FLASH.acr().read().latency() == latency) {
+    if spin(SWITCH_SPINS, || FLASH.acr().read().latency() == latency) {
         Ok(())
     } else {
         Err(ClockError::SwitchTimeout)
@@ -1022,12 +878,12 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
             w.set_bypass(false);
         }),
     }
-    if !wait(SUPPLY_SPINS, || PWR.csr1().read().actvosrdy()) {
+    if !spin(SUPPLY_SPINS, || PWR.csr1().read().actvosrdy()) {
         return Err(ClockError::SupplyTimeout);
     }
     PWR.d3cr()
         .modify(|w| w.set_vos(config.voltage_scale.bits()));
-    if !wait(SUPPLY_SPINS, || PWR.d3cr().read().vosrdy()) {
+    if !spin(SUPPLY_SPINS, || PWR.d3cr().read().vosrdy()) {
         return Err(ClockError::SupplyTimeout);
     }
 
@@ -1036,11 +892,11 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         w.set_hsidiv(Hsidiv::DIV1);
         w.set_hsion(true);
     });
-    if !wait(SWITCH_SPINS, || RCC_REGS.cr().read().hsirdy()) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cr().read().hsirdy()) {
         return Err(ClockError::SwitchTimeout);
     }
     RCC_REGS.cfgr().modify(|w| w.set_sw(Sw::HSI));
-    if !wait(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == Sw::HSI) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == Sw::HSI) {
         return Err(ClockError::SwitchTimeout);
     }
 
@@ -1048,14 +904,14 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         Some(hse) => {
             // HSEBYP may only change while HSE is off.
             RCC_REGS.cr().modify(|w| w.set_hseon(false));
-            if !wait(HSE_SPINS, || !RCC_REGS.cr().read().hserdy()) {
+            if !spin(HSE_SPINS, || !RCC_REGS.cr().read().hserdy()) {
                 return Err(ClockError::HseTimeout);
             }
             RCC_REGS
                 .cr()
                 .modify(|w| w.set_hsebyp(hse.mode == HseMode::Bypass));
             RCC_REGS.cr().modify(|w| w.set_hseon(true));
-            if !wait(HSE_SPINS, || RCC_REGS.cr().read().hserdy()) {
+            if !spin(HSE_SPINS, || RCC_REGS.cr().read().hserdy()) {
                 return Err(ClockError::HseTimeout);
             }
         }
@@ -1063,7 +919,7 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
     }
 
     RCC_REGS.cr().modify(|w| w.set_pllon(0, false));
-    if !wait(PLL_SPINS, || !RCC_REGS.cr().read().pllrdy(0)) {
+    if !spin(PLL_SPINS, || !RCC_REGS.cr().read().pllrdy(0)) {
         return Err(ClockError::PllTimeout);
     }
     if let Some(pll) = config.pll1 {
@@ -1097,7 +953,7 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
             w.set_pllr(Plldiv::from_bits(pll.divr.unwrap_or(2) - 1));
         });
         RCC_REGS.cr().modify(|w| w.set_pllon(0, true));
-        if !wait(PLL_SPINS, || RCC_REGS.cr().read().pllrdy(0)) {
+        if !spin(PLL_SPINS, || RCC_REGS.cr().read().pllrdy(0)) {
             return Err(ClockError::PllTimeout);
         }
     }
@@ -1130,7 +986,7 @@ fn apply(config: &Config, clocks: &Clocks) -> Result<(), ClockError> {
         Sysclk::Pll1P => Sw::PLL1_P,
     };
     RCC_REGS.cfgr().modify(|w| w.set_sw(sw));
-    if !wait(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == sw) {
+    if !spin(SWITCH_SPINS, || RCC_REGS.cfgr().read().sws() == sw) {
         return Err(ClockError::SwitchTimeout);
     }
     set_flash(clocks.setup.flash_latency, clocks.setup.flash_wrhighfreq)?;

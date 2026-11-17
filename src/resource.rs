@@ -30,6 +30,37 @@ pub enum Resource {
     Interrupt(&'static str),
 }
 
+/// An instance's static facts: its register wrapper, held by the glue in one
+/// `static` per instance. One shape for every driver that keeps one
+/// (API review U6: SPI's and I2C's were the same type written twice); each
+/// driver module states it is `Sync` for its own `Unit`.
+pub struct Info<U> {
+    unit: U,
+}
+
+impl<U: Copy> Info<U> {
+    pub(crate) const fn new(unit: U) -> Self {
+        Self { unit }
+    }
+
+    pub(crate) fn unit(&self) -> U {
+        self.unit
+    }
+}
+
+impl Resource {
+    /// A pin row from the pin's type: its port, number and alternate
+    /// function, carrying `signal` (API review U5).
+    pub(crate) const fn pin<P: crate::gpio::AltPin>(signal: Signal) -> Self {
+        Self::Pin {
+            signal,
+            port: P::PORT,
+            pin: P::PIN,
+            af: P::AF,
+        }
+    }
+}
+
 /// Which of a peripheral's signals a pin or DMA stream carries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -47,6 +78,16 @@ pub enum Signal {
     Complementary(u8),
     /// An ADC input, by its channel number.
     Adc(u8),
+    /// USB's D- line.
+    Dm,
+    /// USB's D+ line.
+    Dp,
+    /// A card bus's clock.
+    Ck,
+    /// A card bus's command line.
+    Cmd,
+    /// A card bus's data line, by its number.
+    Data(u8),
 }
 
 /// What a vector check found wrong.

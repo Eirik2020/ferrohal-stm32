@@ -8,7 +8,7 @@
 
 use core::{mem::MaybeUninit, ptr::addr_of_mut};
 
-use ferrohal_stm32::reset::{self, ResetCause};
+use ferrohal_stm32::reset::{self, Cause};
 
 use crate::tests::{Fail, Report};
 
@@ -76,7 +76,7 @@ fn expect(report: &mut Report, name: &str, what: &str, ok: bool) {
 
 /// One step per boot. Returns only on the last boot, having reported.
 /// `enable_cache` turns the data cache on, where the chip has one.
-pub fn suite(report: &mut Report, name: &str, cause: ResetCause, enable_cache: impl FnOnce()) {
+pub fn suite(report: &mut Report, name: &str, cause: Cause, enable_cache: impl FnOnce()) {
     // Before anything else writes RAM: this is what a real boot would do.
     let requested = reset::bootloader_requested();
     let again = reset::bootloader_requested();

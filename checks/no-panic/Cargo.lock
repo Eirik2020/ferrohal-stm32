@@ -261,8 +261,7 @@ dependencies = [
 [[package]]
 name = "synopsys-usb-otg"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e948d523b316939545d8b21a48c27aef150ce25321b9f95ff7978647a806a6fe"
+source = "git+https://github.com/Eirik2020/synopsys-usb-otg?rev=902ebe9494899ef13d1a9e7b757fb86b6f308727#902ebe9494899ef13d1a9e7b757fb86b6f308727"
 dependencies = [
  "cortex-m",
  "embedded-hal 0.2.7",

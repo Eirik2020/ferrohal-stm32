@@ -146,11 +146,11 @@ fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartPar
 ) {
     let frames = cross
         .from
-        .set_config(&Config::new(baud).with_stop_bits(StopBits::Two))
+        .set_config(&Config::new(ferrohal_stm32::time::Hertz(baud)).with_stop_bits(StopBits::Two))
         .and_then(|()| {
             cross
                 .to
-                .set_config(&Config::new(baud).with_parity(Parity::Odd))
+                .set_config(&Config::new(ferrohal_stm32::time::Hertz(baud)).with_parity(Parity::Odd))
         });
     if let Err(error) = frames {
         report.check_for(
@@ -294,7 +294,7 @@ fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartPar
         name,
         "back to 8N1 after the PE clear check",
         cross
-            .set_config(&Config::new(115_200))
+            .set_config(&Config::new(ferrohal_stm32::time::Hertz(115_200)))
             .map_err(Fail::from)
             .and_then(|()| {
                 tests::drain(cross);
@@ -430,7 +430,7 @@ mod app {
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run B, clocks: {}", board::CLOCKS);
 
-        let config = Config::new(115_200);
+        let config = Config::new(ferrohal_stm32::time::Hertz(115_200));
         let local = cx.local;
         let (usart1, irq1) = Uart::new(
             &mut run.rcc,

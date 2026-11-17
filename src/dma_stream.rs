@@ -9,13 +9,14 @@
 //!   which RM0433 requires for U(S)ART transfers.
 //!
 //! Each controller has eight streams. A stream serves one request at a
-//! time; it has a FIFO with a direct mode, double buffering, and five
-//! flags: transfer complete, half transfer, transfer error, direct-mode
-//! error and FIFO error. All of them are here, readable and clearable by
-//! the caller.
+//! time; it has a FIFO, which every transfer here bypasses in direct
+//! mode, and five flags: transfer complete, half transfer, transfer error,
+//! direct-mode error and FIFO error. All of them are here, readable and
+//! clearable by the caller. The engine's double buffering and FIFO
+//! thresholds are not: no driver used them, and nothing proved them.
 //!
 //! A controller token splits into eight stream tokens. Drivers erase a
-//! stream token into a [`Channel`], one type for every stream. Starting a
+//! stream token into an [`AnyStream`], one type for every stream. Starting a
 //! transfer is `unsafe`: the caller vouches for the memory. Drivers above
 //! build safe APIs on it from memory they own.
 //!
@@ -34,8 +35,14 @@
 
 use core::sync::atomic::{Ordering, fence};
 
+/// Polls allowed for a stream to report itself stopped, every driver's
+/// bound: a stopping stream finishes at most its current beat, so this is
+/// generous. The ADC gave 100 000 before 2026-11-17 (API review U8), for no
+/// recorded reason.
+pub(crate) const STOP_SPINS: u32 = 10_000;
+
 /// Bench fault injection (feature `fault-injection`): a stream marked stuck
-/// ignores [`Channel::request_stop`], so a running stream keeps EN set and
+/// ignores [`AnyStream::request_stop`], so a running stream keeps EN set and
 /// every bounded stop on it times out, as a stream that will not stop
 /// would. A stream that has stopped on its own still reads stopped. Marks
 /// are global, by controller and stream number, and survive a driver's
@@ -68,7 +75,7 @@ pub mod fault {
 
 use stm32_metapac::dma::{
     Dma as Regs,
-    vals::{Dir, Dmdis, Fth, Pl, Size},
+    vals::{Dir, Dmdis, Pl, Size},
 };
 
 #[cfg(feature = "dma_v1")]
@@ -164,7 +171,7 @@ pub trait StreamInterrupt {
     const NAME: &'static str;
 }
 
-/// A stream token, erasable into a [`Channel`].
+/// A stream token, erasable into an [`AnyStream`].
 ///
 /// Outside FerroHAL a token's stream is reached only by giving the token
 /// up. The drivers' constructors reach it while the caller keeps the
@@ -173,8 +180,8 @@ pub trait StreamInterrupt {
 /// bound:
 ///
 /// ```
-/// fn one_owner<S: ferrohal_stm32::dma::StreamInstance>(token: S) -> ferrohal_stm32::dma::Channel {
-///     token.into_channel()
+/// fn one_owner<S: ferrohal_stm32::dma::StreamInstance>(token: S) -> ferrohal_stm32::dma::AnyStream {
+///     token.into_any()
 /// }
 /// ```
 ///
@@ -195,7 +202,7 @@ pub trait StreamInterrupt {
 /// }
 /// ```
 pub trait StreamInstance: crate::Sealed + claim::Claim {
-    fn into_channel(self) -> Channel;
+    fn into_any(self) -> AnyStream;
 }
 
 mod claim {
@@ -207,19 +214,19 @@ mod claim {
     /// code can see this method through a `StreamInstance` bound, so it
     /// takes a [`Key`].
     pub trait Claim {
-        fn claim(&self, key: Key) -> super::Channel;
+        fn claim(&self, key: Key) -> super::AnyStream;
     }
 
-    /// The stream's [`Channel`](super::Channel), a second owner beside the
+    /// The stream's [`AnyStream`](super::AnyStream), a second owner beside the
     /// token. The constructor that calls this keeps the pair to one: on
     /// success it drops the token and keeps the channel, on a refusal it
     /// drops the channel and returns the token.
-    pub(crate) fn channel<S: Claim>(token: &S) -> super::Channel {
+    pub(crate) fn channel<S: Claim>(token: &S) -> super::AnyStream {
         token.claim(Key(()))
     }
 }
 
-pub(crate) use claim::channel as claim_channel;
+pub(crate) use claim::channel as claim;
 
 impl<const D: u8, const N: u8> crate::Sealed for Stream<D, N> {}
 
@@ -227,7 +234,7 @@ impl<const D: u8, const N: u8> StreamInstance for Stream<D, N>
 where
     Dma<D>: DmaInstance,
 {
-    fn into_channel(self) -> Channel {
+    fn into_any(self) -> AnyStream {
         claim::channel(&self)
     }
 }
@@ -236,9 +243,9 @@ impl<const D: u8, const N: u8> claim::Claim for Stream<D, N>
 where
     Dma<D>: DmaInstance,
 {
-    fn claim(&self, _key: claim::Key) -> Channel {
+    fn claim(&self, _key: claim::Key) -> AnyStream {
         const { assert!(N < 8, "a controller has streams 0 to 7") };
-        Channel {
+        AnyStream {
             regs: <Dma<D> as DmaRegisters>::regs(),
             index: N,
             #[cfg(feature = "fault-injection")]
@@ -251,8 +258,8 @@ where
     }
 }
 
-/// One stream, whichever it is. Owned: one `Channel` per stream.
-pub struct Channel {
+/// One stream, whichever it is. Owned: one `AnyStream` per stream.
+pub struct AnyStream {
     regs: Regs,
     index: u8,
     #[cfg(feature = "fault-injection")]
@@ -263,10 +270,10 @@ pub struct Channel {
     mux_channel: u8,
 }
 
-// SAFETY: a `Channel` is the only owner of its stream's registers, and of
+// SAFETY: an `AnyStream` is the only owner of its stream's registers, and of
 // its bits in the shared flag registers, so moving it to another context
 // moves that ownership with it.
-unsafe impl Send for Channel {}
+unsafe impl Send for AnyStream {}
 
 /// Why a buffer cannot serve a DMA transfer: what `chip::check_dma_buffer`
 /// returns, and what every driver's refusal wraps as its `Buffer` reason
@@ -354,25 +361,6 @@ impl WordSize {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum FifoMode {
-    /// Each word goes straight through. Peripheral and memory word sizes
-    /// must match.
-    Direct,
-    /// Buffered, flushed to memory at this fill level.
-    Threshold(FifoThreshold),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum FifoThreshold {
-    Quarter,
-    Half,
-    ThreeQuarters,
-    Full,
-}
-
 /// Which stream interrupts to raise. Their flags are set either way.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -400,16 +388,12 @@ pub struct Transfer {
     pub peripheral: u32,
     /// The memory buffer's address (M0AR).
     pub memory: u32,
-    /// The second buffer (M1AR), for double-buffer mode. The stream switches
-    /// buffers each time it completes one, which implies circular mode.
-    pub double_buffer: Option<u32>,
     /// Words to move, 1 to 65 535.
     pub len: u16,
     pub size: WordSize,
     pub memory_increment: bool,
     pub circular: bool,
     pub priority: Priority,
-    pub fifo: FifoMode,
     pub interrupts: Interrupts,
 }
 
@@ -427,17 +411,9 @@ pub enum StartError {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct StopTimeout;
 
-/// Which buffer a double-buffered stream is filling or draining.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Target {
-    Memory0,
-    Memory1,
-}
-
-impl Channel {
+impl AnyStream {
     /// A handle for reading and clearing this stream's flags from an
-    /// interrupt handler while the `Channel` itself lives elsewhere.
+    /// interrupt handler while the `AnyStream` itself lives elsewhere.
     pub fn flag_handle(&self) -> FlagHandle {
         FlagHandle {
             regs: self.regs,
@@ -463,17 +439,6 @@ impl Channel {
         self.regs.st(stream_index(self.index)).cr().read().en()
     }
 
-    /// In double-buffer mode, the buffer the stream is using now.
-    pub fn current_target(&self) -> Target {
-        if self.regs.st(stream_index(self.index)).cr().read().ct()
-            == stm32_metapac::dma::vals::Ct::MEMORY1
-        {
-            Target::Memory1
-        } else {
-            Target::Memory0
-        }
-    }
-
     /// Turns the stream's interrupts on or off. Allowed while it runs: the
     /// reference manuals protect most of CR while EN is set, but not the
     /// interrupt enables, nor FCR's FEIE.
@@ -495,8 +460,8 @@ impl Channel {
     ///
     /// The two handles must never use the stream at the same time; the
     /// driver's own protocol has to guarantee it.
-    pub(crate) unsafe fn alias(&self) -> Channel {
-        Channel {
+    pub(crate) unsafe fn alias(&self) -> AnyStream {
+        AnyStream {
             regs: self.regs,
             index: self.index,
             #[cfg(feature = "fault-injection")]
@@ -526,26 +491,19 @@ impl Channel {
     /// that is left for the caller to clear.
     pub fn stop(&mut self, spins: u32) -> Result<(), StopTimeout> {
         self.request_stop();
-        for _ in 0..spins {
-            if !self.is_running() {
-                // Nothing the stream wrote may be read before this.
-                fence(Ordering::SeqCst);
-                return Ok(());
-            }
+        if !crate::wait::spin(spins, || !self.is_running()) {
+            return Err(StopTimeout);
         }
-        if self.is_running() {
-            Err(StopTimeout)
-        } else {
-            fence(Ordering::SeqCst);
-            Ok(())
-        }
+        // Nothing the stream wrote may be read before this.
+        fence(Ordering::SeqCst);
+        Ok(())
     }
 
     /// Configures and starts a transfer.
     ///
     /// # Safety
     ///
-    /// `memory` (and `double_buffer`) must point to `len` words of memory
+    /// `memory` must point to `len` words of memory
     /// that stay valid until the stream has stopped, and that nothing but
     /// this stream writes in the meantime (or reads, for a
     /// peripheral-to-memory transfer). `peripheral` must be the data
@@ -573,25 +531,12 @@ impl Channel {
 
         st.par().write_value(transfer.peripheral);
         st.m0ar().write_value(transfer.memory);
-        if let Some(second) = transfer.double_buffer {
-            st.m1ar().write_value(second);
-        }
         st.ndtr().write(|w| w.set_ndt(transfer.len));
-        st.fcr().write(|w| match transfer.fifo {
-            FifoMode::Direct => {
-                w.set_dmdis(Dmdis::ENABLED);
-                w.set_feie(transfer.interrupts.fifo_error);
-            }
-            FifoMode::Threshold(threshold) => {
-                w.set_dmdis(Dmdis::DISABLED);
-                w.set_fth(match threshold {
-                    FifoThreshold::Quarter => Fth::QUARTER,
-                    FifoThreshold::Half => Fth::HALF,
-                    FifoThreshold::ThreeQuarters => Fth::THREE_QUARTERS,
-                    FifoThreshold::Full => Fth::FULL,
-                });
-                w.set_feie(transfer.interrupts.fifo_error);
-            }
+        // Direct mode: each word goes straight through, so peripheral and
+        // memory word sizes match (one `size` sets both).
+        st.fcr().write(|w| {
+            w.set_dmdis(Dmdis::ENABLED);
+            w.set_feie(transfer.interrupts.fifo_error);
         });
         st.cr().write(|w| {
             #[cfg(feature = "dma_v2")]
@@ -605,8 +550,7 @@ impl Channel {
             w.set_psize(transfer.size.bits());
             w.set_msize(transfer.size.bits());
             w.set_minc(transfer.memory_increment);
-            w.set_circ(transfer.circular || transfer.double_buffer.is_some());
-            w.set_dbm(transfer.double_buffer.is_some());
+            w.set_circ(transfer.circular);
             w.set_pl(match transfer.priority {
                 Priority::Low => Pl::LOW,
                 Priority::Medium => Pl::MEDIUM,
@@ -636,7 +580,7 @@ fn stream_index(index: u8) -> usize {
 /// Read and clear access to one stream's flags, and its count.
 ///
 /// Every operation is a register read or a write-one-to-clear of this
-/// stream's own bits, so a handle and its `Channel` can be used from
+/// stream's own bits, so a handle and its `AnyStream` can be used from
 /// different priorities without a lock. Which of them clears which flag is
 /// the driver's protocol to keep.
 pub struct FlagHandle {

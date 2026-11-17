@@ -6,6 +6,7 @@
 //!
 //! Requirements: ADC-001, API-002
 
+use crate::wait::{Deadline, poll};
 use stm32_metapac::{
     adc::{
         Adc,
@@ -28,7 +29,7 @@ const MAX_ADC_CLOCK_HZ: u32 = 36_000_000;
 const CONVERSION_SPINS: u32 = 100_000;
 
 /// Nothing to start: the ADC runs from its bus.
-pub(crate) fn start_clock(_rcc: &mut Rcc) -> Result<(), Error> {
+pub(crate) fn start_clock(_rcc: &mut Rcc) -> Result<(), crate::adc::ConfigError> {
     Ok(())
 }
 
@@ -53,7 +54,7 @@ pub struct Unit {
 }
 
 impl Unit {
-    pub const fn new(regs: Adc, common: AdcCommon) -> Self {
+    pub(crate) const fn new(regs: Adc, common: AdcCommon) -> Self {
         Self { regs, common }
     }
 
@@ -63,7 +64,7 @@ impl Unit {
         bus: crate::rcc::Kernel,
         internal: bool,
         sample_cycles: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<(), crate::adc::ConfigError> {
         let pclk = bus.clock(clocks).0;
         let divider = if pclk / 2 <= MAX_ADC_CLOCK_HZ {
             Adcpre::DIV2
@@ -108,17 +109,18 @@ impl Unit {
         self.set_sequence(&[channel]);
         self.regs.sr().write_value(Sr(0));
         self.regs.cr2().modify(|w| w.set_swstart(true));
-        for _ in 0..CONVERSION_SPINS {
+        let ended = poll(Deadline::passes(CONVERSION_SPINS), || {
             let sr = self.regs.sr().read();
-            if sr.ovr() {
+            (sr.ovr() || sr.eoc()).then_some(sr.ovr())
+        });
+        match ended {
+            Some(true) => {
                 self.regs.sr().write_value(Sr(0));
-                return Err(Error::Overrun);
+                Err(Error::Overrun)
             }
-            if sr.eoc() {
-                return Ok(self.regs.dr().read().data());
-            }
+            Some(false) => Ok(self.regs.dr().read().data()),
+            None => Err(Error::Timeout),
         }
-        Err(Error::Timeout)
     }
 
     /// Sets the sequence's channels, in order. At most 16: the caller checks.

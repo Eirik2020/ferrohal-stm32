@@ -137,7 +137,7 @@ mod app {
     macro_rules! route {
         ($report:expr, $slot:expr, $rcc:expr, $name:expr, $wiring:expr, $buffers:expr) => {{
             let name: &'static str = $name;
-            let (mut uart, irq) = match Uart::new($rcc, $wiring, &Config::new(115_200), $buffers) {
+            let (mut uart, irq) = match Uart::new($rcc, $wiring, &Config::new(ferrohal_stm32::time::Hertz(115_200)), $buffers) {
                 Ok(opened) => opened,
                 Err(_) => defmt::panic!("{=str}: refused", name),
             };

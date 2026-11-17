@@ -1,0 +1,67 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --no-catch-reset --chip STM32F401RE target/thumbv7em-none-eabihf/release/run-v`
+     [38;5;10m[1mFinished[0m in 2.66s
+[INFO ] run V, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(56000000)), flash_wait_states: 2 } (run_v src/bin/run_v.rs:115)
+[INFO ] PASS run V: a config naming PllP with no PLL refuses [API-001] (run_v ../common/tests.rs:381)
+[INFO ] USB pins over J2: high true, low false (run_v src/bin/run_v.rs:248)
+[INFO ] PASS USB OTG_FS PA11/PA12: no 48 MHz source refuses; the pins come back over J2 [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS USART1 PA9->PA10: an unreachable baud refuses [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS USART1 PA9->PA10: the handed-back wiring echoes a frame [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS USART1 PA9->PA10: free leaves the USART off and both streams stopped [API-002] (run_v ../common/tests.rs:381)
+[INFO ] PASS SPI3 PC10/PC11/PC12: a 0 Hz config refuses; the wiring transfers over S5 [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS SPI3 PC10/PC11/PC12: free leaves the SPI off and both streams stopped [API-002] (run_v ../common/tests.rs:381)
+[INFO ] PASS SPI2 PB13/PB14/PB15 (polled): a 0 Hz config refuses; the wiring writes over S3 [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS SPI2 PB13/PB14/PB15 (polled): free leaves the SPI off [API-002] (run_v ../common/tests.rs:381)
+[ERROR] FAIL I2C3 PA8/PC9: an out-of-range speed refuses; the bus NACKs a vacant address [API-001]: I2c(Busy) (run_v ../common/tests.rs:384)
+[INFO ] PASS I2C3 PA8/PC9: free leaves the I2C off [API-002] (run_v ../common/tests.rs:381)
+[INFO ] PASS ADC1 scan: an empty sequence refuses; the parts scan the internals [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS TIM3 PWM: a 0 rate refuses; the timer comes back at 600 kHz [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS TIM3 CH3: a CCM buffer refuses; the channel and stream come back [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS TIM1 sampler: a 0 rate refuses; the timer, stream and buffer come back [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS TIM3 CH3 PB0: the handed-back lane and sampler play and decode [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS TIM4 CH1 PB6: mismatched periods refuse; the parts play after re-rating [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS TIM4 + TIM2, software start: AWG: every lane on both timers finishes [AWG-005] (run_v ../common/tests.rs:381)
+[INFO ] PASS TIM9 tick: an inexact rate refuses; the timer comes back and pauses [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS TIM5 timebase: an inexact rate refuses; the timer comes back and counts [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS IWDG: a 1 us timeout refuses; the peripheral comes back and starts [API-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS IWDG 50 ms: a fresh start isn't a watchdog reset [RESET-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS IWDG 50 ms: start froze the watchdog for the debugger [IWDG-004] (run_v ../common/tests.rs:381)
+[INFO ] IWDG 50 ms: debug freeze before start true, after true (run_v ../common/watchdog.rs:176)
+[33m WARN[0m [2mprobe_rs::util::rtt::client[0m[2m:[0m RTT read pointer changed, re-attaching
+[INFO ] run V, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(56000000)), flash_wait_states: 2 } (run_v src/bin/run_v.rs:115)
+[ERROR] FAIL IWDG 50 ms: the starvation boot passed its checks: Count { expected: 0, got: 1 } (run_v ../common/tests.rs:384)
+[INFO ] PASS IWDG 50 ms: fed every 10 ms for 300 ms: no reset [IWDG-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS IWDG 50 ms: starved: the reset cause is the watchdog [RESET-001] (run_v ../common/tests.rs:381)
+[INFO ] PASS IWDG 50 ms: starved: reset within the LSI's spread of 50 ms [IWDG-002] (run_v ../common/tests.rs:381)
+[INFO ] PASS IWDG 50 ms: starved: at the board's LSI, within 5% of 50 ms [IWDG-006] (run_v ../common/tests.rs:381)
+[INFO ] IWDG 50 ms: reset 49996 us after the last feed (run_v ../common/watchdog.rs:141)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (run_v ../common/tests.rs:1478)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (run_v ../common/tests.rs:1454)
+[ERROR] 1 checks failed (run_v ../common/tests.rs:1489)
+Firmware exited with: Unknown runtime error
+Core 0
+    Frame 0: [38;5;14m[1msyscall1[0m @ [38;5;11m0x8000b48[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/lib.rs:201:13[0m
+    Frame 1: [38;5;14m[1mreport_exception[0m @ [38;5;11m0x8000b42[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/macros.rs:28:9[0m
+    Frame 2: [38;5;14m[1mexit[0m @ [38;5;11m0x8000b42[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/debug.rs:74:25[0m
+    Frame 3: [38;5;14m[1mfinish<run_v::app::checks::{async_fn#0}::{closure_env#0}>[0m @ [38;5;11m0x8000b42[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/../../../common/tests.rs:0[0m
+    Frame 4: [38;5;14m[1m{async_fn#0}[0m @ [38;5;11m0x800376a[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/run_v.rs:181:13[0m
+    Frame 5: [38;5;14m[1mAsyncTaskExecutor<run_v::app::checks::{async_fn_env#0}>::poll[0m @ [38;5;11m0x80005ce[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rtic-2.4.0/src/export/executor.rs:284:26[0m
+    Frame 6: [38;5;14m[1m{closure#0}[0m @ [38;5;11m0x80005a6[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/run_v.rs:74:1[0m
+    Frame 7: [38;5;14m[1mrun<run_v::app::SDIO::{closure_env#0}>[0m @ [38;5;11m0x80005a6[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rtic-2.4.0/src/export/cortex_basepri.rs:18:9[0m
+    Frame 8: [38;5;14m[1mSDIO[0m @ [38;5;11m0x80005a6[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/run_v.rs:74:1[0m
+    Frame 9: [38;5;14m[1mExternal interrupt #49[0m @ [38;5;11m0x8000fd3[39m
+    Frame 10: [38;5;14m[1m__rtic_init_resources<run_v::app::main::{closure_env#0}>[0m @ [38;5;11m0x8000fd3[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/run_v.rs:74:88[0m
+    Frame 11: [38;5;14m[1mmain[0m @ [38;5;11m0x800587a[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/run_v.rs:74:1[0m
+    Frame 12: [38;5;14m[1mReset[0m @ [38;5;11m0x8000540[39m
+Error: Unknown runtime error

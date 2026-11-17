@@ -85,10 +85,15 @@ macro_rules! peripherals {
     };
 }
 
-/// Pin routing rows: (port, pin, alternate function).
+/// Pin routing rows: (port, pin, alternate function). The pins are
+/// push-pull unless an output type follows the instance: `SclPin<I2C1>,
+/// OpenDrain: ...` implements the trait for the open-drain form only.
 macro_rules! pins {
     ($trait:ident<$usart:ident>: $(($port:literal, $pin:literal, $af:literal)),+ $(,)?) => {
         $(impl $trait<$usart> for Pin<$port, $pin, Alternate<$af>> {})+
+    };
+    ($trait:ident<$usart:ident>, $ot:ident: $(($port:literal, $pin:literal, $af:literal)),+ $(,)?) => {
+        $(impl $trait<$usart> for Pin<$port, $pin, Alternate<$af, crate::gpio::$ot>> {})+
     };
 }
 
@@ -298,12 +303,21 @@ macro_rules! gpio_dma {
     };
 }
 
-/// The full-speed USB port's row: `TOKEN => bus, enable bit, vector;`, on
-/// PA11 and PA12 in alternate function 10. Its core's kind, FIFO depth and
+/// The full-speed USB port's row: `TOKEN => bus, enable bit, vector; dm
+/// (port, pin, af), dp (port, pin, af)`, the data pins' one route each as
+/// metapac gives it (PA11 and PA12 in AF10 on every chip here). Its core's kind, FIFO depth and
 /// endpoint count are hand facts the chip module states: `USB_FS_HS_CORE`,
 /// `USB_FS_FIFO_WORDS` and `USB_FS_ENDPOINTS`.
 macro_rules! usb_fs {
-    ($name:ident => $bus:ident, $bit:literal, $vector:ident;) => {
+    ($name:ident => $bus:ident, $bit:literal, $vector:ident;
+     dm ($dmp:literal, $dmn:literal, $dmaf:literal), dp ($dpp:literal, $dpn:literal, $dpaf:literal)) => {
+        /// The full-speed port's DM pin, in its alternate function.
+        #[cfg(feature = "usb")]
+        pub type UsbDm = Pin<$dmp, $dmn, Alternate<$dmaf>>;
+        /// The full-speed port's DP pin, in its alternate function.
+        #[cfg(feature = "usb")]
+        pub type UsbDp = Pin<$dpp, $dpn, Alternate<$dpaf>>;
+
         #[cfg(feature = "usb")]
         pub(crate) struct UsbFsFacts {
             pub registers: *const (),
@@ -337,9 +351,9 @@ macro_rules! stream_interrupts {
 }
 
 /// Whether all of `buffer` lies in one of `regions`, each (base, length).
-pub(crate) fn within(buffer: &[u8], regions: &[(usize, usize)]) -> bool {
+pub(crate) fn within<T>(buffer: &[T], regions: &[(usize, usize)]) -> bool {
     let start = buffer.as_ptr() as usize;
-    let end = start.saturating_add(buffer.len());
+    let end = start.saturating_add(core::mem::size_of_val(buffer));
     regions
         .iter()
         .any(|&(base, len)| start >= base && end <= base.saturating_add(len))
@@ -392,7 +406,7 @@ macro_rules! adc_dma {
         $(
             // SAFETY: the DMA request table's route for this ADC, from
             // stm32-metapac's metadata.
-            unsafe impl crate::adc::AdcDma<$name> for Stream<$dma, $stream> {
+            unsafe impl crate::adc::Dma<$name> for Stream<$dma, $stream> {
                 const REQUEST: u8 = $request;
             }
         )+
@@ -405,7 +419,7 @@ macro_rules! adc_dma_mux {
     ($name:ident: mux $request:literal) => {
         // SAFETY: the DMAMUX1 request ID for this ADC, from stm32-metapac's
         // metadata (RM0433 table 121).
-        unsafe impl<const D: u8, const N: u8> crate::adc::AdcDma<$name> for Stream<D, N>
+        unsafe impl<const D: u8, const N: u8> crate::adc::Dma<$name> for Stream<D, N>
         where
             Dma<D>: DmaInstance,
             Stream<D, N>: crate::dma::StreamInterrupt,

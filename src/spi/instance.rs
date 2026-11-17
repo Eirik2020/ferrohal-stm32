@@ -16,22 +16,10 @@ use crate::{
 
 /// Per-instance facts. Chip facts: the glue layer holds one static `Info`
 /// per SPI.
-pub struct Info {
-    unit: Unit,
-}
+pub type Info = crate::resource::Info<Unit>;
 
-// SAFETY: `unit` is an address.
+// SAFETY: a `Unit` is an address.
 unsafe impl Sync for Info {}
-
-impl Info {
-    pub(crate) const fn new(unit: Unit) -> Self {
-        Self { unit }
-    }
-
-    pub(crate) fn unit(&self) -> Unit {
-        self.unit
-    }
-}
 
 /// An SPI instance this chip has. Chip facts: the glue layer implements it.
 pub trait Instance: crate::Sealed + 'static {
@@ -73,18 +61,81 @@ pub unsafe trait SpiRxDma<U: Instance>: StreamInstance + StreamInterrupt {
 /// What an SPI was opened from: the instance its handle names, for its name
 /// and kernel clock. Implemented by [`Wiring`] and [`BlockingWiring`] only,
 /// so a handle's type names the board's whole route.
-pub trait SpiParts: crate::Sealed {
+pub trait Parts: crate::Sealed {
     type Instance: Instance;
 }
 
 impl<U, Sck, Miso, Mosi, TxD, RxD> crate::Sealed for Wiring<U, Sck, Miso, Mosi, TxD, RxD> {}
-impl<U: Instance, Sck, Miso, Mosi, TxD, RxD> SpiParts for Wiring<U, Sck, Miso, Mosi, TxD, RxD> {
+impl<U: Instance, Sck, Miso, Mosi, TxD, RxD> Parts for Wiring<U, Sck, Miso, Mosi, TxD, RxD> {
     type Instance = U;
 }
 
 impl<U, Sck, Miso, Mosi> crate::Sealed for BlockingWiring<U, Sck, Miso, Mosi> {}
-impl<U: Instance, Sck, Miso, Mosi> SpiParts for BlockingWiring<U, Sck, Miso, Mosi> {
+impl<U: Instance, Sck, Miso, Mosi> Parts for BlockingWiring<U, Sck, Miso, Mosi> {
     type Instance = U;
+}
+
+/// The SCK side both SPI engines keep (API review U6): the kernel clock it is
+/// divided from, the SCK in use, and the CPU cycles one SCK period takes.
+#[derive(Clone, Copy)]
+pub(crate) struct SckClock {
+    kernel_clock: Hertz,
+    cpu: Hertz,
+    frequency: Hertz,
+    /// CPU cycles per SCK period, rounded up.
+    cycles: u32,
+}
+
+impl SckClock {
+    /// Configures `unit` for `config` from `kernel_clock`, or refuses.
+    pub(crate) fn configure(
+        unit: Unit,
+        kernel_clock: Hertz,
+        cpu: Hertz,
+        config: &Config,
+    ) -> Result<Self, ConfigError> {
+        let code = config.divider(kernel_clock)?;
+        unit.configure(code, config);
+        let frequency = Hertz(kernel_clock.0 >> (code + 1));
+        Ok(Self {
+            kernel_clock,
+            cpu,
+            frequency,
+            cycles: cpu.0.div_ceil(frequency.0.max(1)),
+        })
+    }
+
+    /// The same kernel clock, reconfigured for `config`.
+    pub(crate) fn reconfigure(
+        &mut self,
+        unit: Unit,
+        config: &Config,
+    ) -> Result<Hertz, ConfigError> {
+        *self = Self::configure(unit, self.kernel_clock, self.cpu, config)?;
+        Ok(self.frequency)
+    }
+
+    pub(crate) fn frequency(&self) -> Hertz {
+        self.frequency
+    }
+
+    pub(crate) fn kernel_clock(&self) -> Hertz {
+        self.kernel_clock
+    }
+
+    /// CPU cycles per SCK period, rounded up.
+    pub(crate) fn cycles(&self) -> u32 {
+        self.cycles
+    }
+
+    /// ES0392 2.22.6: disabling right after EOT can cut the last SCK pulse
+    /// short at a slow SCK, so an IP version that needs it holds one SCK
+    /// period first.
+    pub(crate) fn hold_after_end(&self) {
+        if Unit::HOLD_AFTER_END {
+            cortex_m::asm::delay(self.cycles);
+        }
+    }
 }
 
 /// The SCK `config` would give on instance `U` under `clocks`. A

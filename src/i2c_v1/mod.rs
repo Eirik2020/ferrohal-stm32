@@ -21,9 +21,9 @@
 //!   byte is fully out. A write segment's stop is armed at BTF.
 //!
 //! A NACK during the address or a byte sets SR1's AF; the bus errors set
-//! BERR, ARLO or OVR. All four clear by writing zero, and PE off then on
-//! resets the state machines and releases the lines while the timing
-//! registers keep their values (RM0368 §27.6.2).
+//! BERR, ARLO or OVR. All four clear by writing zero. Recovery is a
+//! software reset (SWRST) with the timing registers written back, which
+//! also frees a Start a misplaced Stop blocked (ES0299 2.9.3).
 //!
 //! Requirements: I2C-005, I2C-V1-001, I2C-002, I2C-004, I2C-006
 
@@ -35,9 +35,6 @@ use crate::time::Hertz;
 /// Register reads a recovery waits for the stop it armed to reach the
 /// wire, bounded.
 const SPINS: u32 = 10_000;
-
-/// The register block.
-pub type Block = Regs;
 
 /// One I2C's registers, as the driver uses them.
 #[derive(Clone, Copy)]
@@ -58,7 +55,7 @@ pub struct Timing {
     /// TRISE[5:0]: the maximum rise time, TPCLK1 counts.
     trise: u8,
     /// The SCL these values run.
-    speed: Hertz,
+    frequency: Hertz,
 }
 
 impl Timing {
@@ -66,8 +63,8 @@ impl Timing {
     /// mode holds each half CCR counts; fast mode with DUTY low holds
     /// SCL low two CCR counts and high one; DUTY high holds low sixteen
     /// and high nine.
-    pub const fn speed(&self) -> Hertz {
-        self.speed
+    pub const fn frequency(&self) -> Hertz {
+        self.frequency
     }
 }
 
@@ -76,42 +73,42 @@ impl Unit {
         Self(regs)
     }
 
-    /// The timing for `speed` from a PCLK1 of `kernel_clock`, or why the
+    /// The timing for `frequency` from a PCLK1 of `kernel_clock`, or why the
     /// pair cannot run. Fm mode is anything above 100 kHz; the divider
-    /// lands at or under the speed asked for, DUTY low first, with CCR's
+    /// lands at or under the frequency asked for, DUTY low first, with CCR's
     /// minimum of 4 (1 in DUTY-high fast mode) and maximum 0x0FFF
     /// (RM0368 §27.6.11); TRISE carries the I2C specification's maximum
     /// rise time, 1000 ns in standard mode and 300 ns in fast, as whole
     /// PCLK1 counts plus one (RM0368 §27.6.13). PCLK1 must be a whole
     /// number of MHz, 2 to 50 (the CR2 FREQ field, RM0368 §27.4).
-    pub const fn timing(kernel_clock: Hertz, speed: Hertz) -> Result<Timing, ConfigError> {
+    pub const fn timing(kernel_clock: Hertz, frequency: Hertz) -> Result<Timing, ConfigError> {
         if kernel_clock.0 < 2_000_000 || kernel_clock.0 > 50_000_000 {
             return Err(ConfigError::KernelClock);
         }
         if !kernel_clock.0.is_multiple_of(1_000_000) {
             return Err(ConfigError::KernelClock);
         }
-        if speed.0 < 1_000 || speed.0 > 400_000 {
-            return Err(ConfigError::Speed);
+        if frequency.0 < 1_000 || frequency.0 > 400_000 {
+            return Err(ConfigError::Frequency);
         }
         let freq = (kernel_clock.0 / 1_000_000) as u8;
-        let fast = speed.0 > 100_000;
+        let fast = frequency.0 > 100_000;
         // The divider: whole TPCLK1 counts, CCR's minimum and maximum
         // observed (RM0368 §27.6.11).
         let (duty, ccr) = if !fast {
-            let ccr = kernel_clock.0 / (2 * speed.0);
+            let ccr = kernel_clock.0 / (2 * frequency.0);
             if ccr < 4 || ccr > 0x0FFF {
-                return Err(ConfigError::Speed);
+                return Err(ConfigError::Frequency);
             }
             (false, ccr)
         } else {
-            let duty0 = kernel_clock.0 / (3 * speed.0);
+            let duty0 = kernel_clock.0 / (3 * frequency.0);
             if duty0 >= 4 && duty0 <= 0x0FFF {
                 (false, duty0)
             } else {
-                let duty1 = kernel_clock.0 / (25 * speed.0);
+                let duty1 = kernel_clock.0 / (25 * frequency.0);
                 if duty1 < 1 || duty1 > 0x0FFF {
-                    return Err(ConfigError::Speed);
+                    return Err(ConfigError::Frequency);
                 }
                 (true, duty1)
             }
@@ -125,7 +122,7 @@ impl Unit {
         }
         // The SCL on the wire, from the same counts: one TPCLK1 is
         // 1000/freq ns, so the period is counts x 1000/freq ns and the
-        // speed 1e6 x freq / counts kHz.
+        // frequency 1e6 x freq / counts kHz.
         let counts = if !fast {
             2 * ccr
         } else if !duty {
@@ -133,14 +130,14 @@ impl Unit {
         } else {
             25 * ccr
         };
-        let speed_out = Hertz(1_000_000 * freq as u32 / counts);
+        let frequency_out = Hertz(1_000_000 * freq as u32 / counts);
         Ok(Timing {
             freq,
             fast,
             duty,
             ccr: ccr as u16,
             trise: trise as u8,
-            speed: speed_out,
+            frequency: frequency_out,
         })
     }
 
@@ -300,18 +297,27 @@ impl Unit {
     /// Nothing to clear: BUSY drops by itself.
     pub(crate) fn stop_clear(self) {}
 
-    /// AF, BERR, ARLO and OVR, each cleared as it is taken, by writing
-    /// zero (RM0368 §27.6.7).
+    /// BERR, cleared by writing zero if set. ES0299 2.9.1, ES0182 2.10.1:
+    /// in controller mode it can rise spuriously and has no effect on the
+    /// transfer, which carries on; the driver counts it and does not fail
+    /// the transfer.
+    pub(crate) fn take_bus_error(self) -> bool {
+        let regs = self.0;
+        let berr = regs.sr1().read().berr();
+        if berr {
+            regs.sr1().modify(|w| w.set_berr(false));
+        }
+        berr
+    }
+
+    /// AF, ARLO and OVR, each cleared as it is taken, by writing zero
+    /// (RM0368 §27.6.7). BERR is [`take_bus_error`](Self::take_bus_error)'s.
     pub(crate) fn error(self) -> Option<Error> {
         let regs = self.0;
         let sr1 = regs.sr1().read();
         if sr1.af() {
             regs.sr1().modify(|w| w.set_af(false));
             return Some(Error::Nack);
-        }
-        if sr1.berr() {
-            regs.sr1().modify(|w| w.set_berr(false));
-            return Some(Error::Bus);
         }
         if sr1.arlo() {
             regs.sr1().modify(|w| w.set_arlo(false));
@@ -327,8 +333,17 @@ impl Unit {
     /// Puts the bus back: the stop the refused transfer never got, then
     /// the flags cleared by writing zero (RM0368 §27.6.7), the bus waited
     /// back to idle within a bound (BUSY clears only after a stop, RM0368
-    /// §27.6.8), and PE cycled, which releases the lines while the
-    /// timing registers keep their values (RM0368 §27.6.2).
+    /// §27.6.8), then a reset of the peripheral.
+    ///
+    /// ES0299 2.9.3, ES0182 2.10.3: after a misplaced Stop on the bus, the
+    /// peripheral cannot generate a Start until SWRST, which cycling PE does
+    /// not replace. SWRST returns every register to its reset value, so the
+    /// timing (CR2's FREQ, CCR, TRISE) is read first and written back before
+    /// PE (RM0368 §27.6.1). It runs only once the bus is idle, which is where
+    /// that erratum leaves it: a SWRST while a slave still held a line (a
+    /// stretch past the bound) left the F401 bench's bus with SDA held low
+    /// for good (measured 2026-11-17, F401 run S), where cycling PE, as
+    /// before, recovers it. A bus still busy after the bound gets PE cycled.
     pub(crate) fn recover(self) {
         let regs = self.0;
         regs.cr1().modify(|w| {
@@ -343,13 +358,18 @@ impl Unit {
             w.set_arlo(false);
             w.set_ovr(false);
         });
-        for _ in 0..SPINS {
-            if !regs.sr2().read().busy() {
-                break;
-            }
+        if crate::wait::spin(SPINS, || !regs.sr2().read().busy()) {
+            let (cr2, ccr, trise) = (regs.cr2().read(), regs.ccr().read(), regs.trise().read());
+            regs.cr1().write(|w| w.set_swrst(true));
+            regs.cr1().write(|w| w.set_swrst(false));
+            regs.cr2().write_value(cr2);
+            regs.ccr().write_value(ccr);
+            regs.trise().write_value(trise);
+            regs.cr1().write(|w| w.set_pe(true));
+        } else {
+            regs.cr1().modify(|w| w.set_pe(false));
+            regs.cr1().modify(|w| w.set_pe(true));
         }
-        regs.cr1().modify(|w| w.set_pe(false));
-        regs.cr1().modify(|w| w.set_pe(true));
     }
 }
 
@@ -366,7 +386,7 @@ mod tests {
         assert!(!timing.fast);
         assert_eq!(timing.ccr, 0x28);
         assert_eq!(timing.trise, 9);
-        assert_eq!(timing.speed(), Hertz::khz(100));
+        assert_eq!(timing.frequency(), Hertz::khz(100));
     }
 
     /// The boards' PCLK1: the F401 and F405 benches and flight images run
@@ -379,23 +399,23 @@ mod tests {
         // 42 MHz / (3 x 400 kHz) = 35; TRISE 300 ns + 1.
         assert_eq!(timing.ccr, 35);
         assert_eq!(timing.trise, 13);
-        assert_eq!(timing.speed(), Hertz::khz(400));
+        assert_eq!(timing.frequency(), Hertz::khz(400));
         let timing = Unit::timing(Hertz::mhz(42), Hertz::khz(100)).expect("42 MHz to 100 kHz runs");
         assert!(!timing.fast);
         assert_eq!(timing.ccr, 210);
         assert_eq!(timing.trise, 43);
-        assert_eq!(timing.speed(), Hertz::khz(100));
+        assert_eq!(timing.frequency(), Hertz::khz(100));
     }
 
     #[test]
     fn out_of_range_is_refused() {
         assert_eq!(
             Unit::timing(Hertz::mhz(42), Hertz(401_000)),
-            Err(ConfigError::Speed)
+            Err(ConfigError::Frequency)
         );
         assert_eq!(
             Unit::timing(Hertz::mhz(42), Hertz(900)),
-            Err(ConfigError::Speed)
+            Err(ConfigError::Frequency)
         );
         assert_eq!(
             Unit::timing(Hertz(42_500_000), Hertz::khz(100)),

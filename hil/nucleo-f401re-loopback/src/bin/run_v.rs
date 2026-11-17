@@ -80,7 +80,7 @@ mod app {
             Buffers as UartBuffers, Config as UartConfig, ConfigError as UartConfigError, Uart,
             UartIrq,
         },
-        usb::UsbFs,
+        usb::{self, UsbFs},
     };
 
     use crate::{
@@ -156,7 +156,7 @@ mod app {
         use embedded_hal::i2c::I2c as _;
         use embedded_hal::spi::SpiBus as _;
         use ferrohal_stm32::{
-            adc::{Adc, Config as AdcConfig, Error as AdcError},
+            adc::{Adc, Config as AdcConfig, ConfigError as AdcConfigError},
             i2c::{Config as I2cConfig, ConfigError as I2cConfigError, Error as I2cError, I2c},
             iwdg::Watchdog,
             spi::{
@@ -220,17 +220,17 @@ mod app {
 
         // USB: without a 48 MHz source the constructor refuses, and its pins
         // come back as GPIO that still carries a level over J2.
-        let (token, dm, dp) = run.usb;
+        let (usb, dm, dp) = run.usb;
         report.check(
             "USB OTG_FS PA11/PA12",
             "no 48 MHz source refuses; the pins come back over J2 [API-001]",
-            match UsbFs::new(&mut run.rcc, token, dm, dp) {
+            match UsbFs::new(&mut run.rcc, usb::Wiring { usb, dm, dp }) {
                 Ok(_) => Err(Fail::Count {
                     expected: 1,
                     got: 0,
                 }),
                 Err(refused) => {
-                    let (error, (_token, dm, dp)) = refused.into_inner();
+                    let (error, usb::Wiring { dm, dp, .. }) = refused.into_inner();
                     if error != ClockError::Usb {
                         Err(Fail::Count {
                             expected: ClockError::Usb as u32,
@@ -272,14 +272,14 @@ mod app {
         let (usart1, uart_refusal) = match Uart::new(
             &mut run.rcc,
             run.usart1,
-            &UartConfig::new(1),
+            &UartConfig::new(Hertz(1)),
             UartBuffers { tx, rx },
         ) {
             Ok(_) => defmt::panic!("a 1-baud UART config was accepted"),
             Err(refused) => {
                 let error = refused.error();
                 let (wiring, buffers) = refused.into_parts();
-                match Uart::new(&mut run.rcc, wiring, &UartConfig::new(115_200), buffers) {
+                match Uart::new(&mut run.rcc, wiring, &UartConfig::new(Hertz(115_200)), buffers) {
                     Ok((uart, irq)) => {
                         cx.shared.irq1.lock(|handle| *handle = Some(irq));
                         (uart, Some(error))
@@ -406,9 +406,9 @@ mod app {
             "I2C3 PA8/PC9",
             "an out-of-range speed refuses; the bus NACKs a vacant address [API-001]",
             match I2c::new(&mut run.rcc, run.i2c3, &I2cConfig::new(Hertz::mhz(5))) {
-                Ok(_) => Err(Fail::I2cConfig(I2cConfigError::Speed)),
+                Ok(_) => Err(Fail::I2cConfig(I2cConfigError::Frequency)),
                 Err(refused) => {
-                    if refused.error() != I2cConfigError::Speed {
+                    if refused.error() != I2cConfigError::Frequency {
                         Err(Fail::I2cConfig(refused.error()))
                     } else {
                         let wiring = refused.into_parts();
@@ -447,10 +447,10 @@ mod app {
             "ADC1 scan",
             "an empty sequence refuses; the parts scan the internals [API-001]",
             match adc.into_scan(run.scan_stream, &[], scan) {
-                Ok(_) => Err(Fail::Adc(AdcError::Sequence)),
+                Ok(_) => Err(Fail::AdcConfig(AdcConfigError::Sequence)),
                 Err(refused) => {
-                    if refused.error() != AdcError::Sequence {
-                        Err(Fail::Adc(refused.error()))
+                    if refused.error() != AdcConfigError::Sequence {
+                        Err(Fail::AdcConfig(refused.error()))
                     } else {
                         let (adc, stream, buffer) = refused.into_parts();
                         let Ok(mut scan) = adc.into_scan(stream, &channels, buffer) else {
@@ -509,10 +509,10 @@ mod app {
             "TIM3 PWM",
             "a 0 rate refuses; the timer comes back at 600 kHz [API-001]",
             match pwm3_refusal {
-                Some(TimerConfigError::Inexact) if pwm3.frequency() == Hertz::khz(600) => Ok(()),
+                Some(TimerConfigError::Inexact) if pwm3.rate() == Hertz::khz(600) => Ok(()),
                 Some(TimerConfigError::Inexact) => Err(Fail::Count {
                     expected: 600_000,
-                    got: pwm3.frequency().0,
+                    got: pwm3.rate().0,
                 }),
                 Some(other) => Err(Fail::Timer(other)),
                 None => Err(Fail::Timer(TimerConfigError::Inexact)),
@@ -583,10 +583,10 @@ mod app {
         let budget = cpu.0 / 100;
         let lane_use = (|| {
             sampler
-                .set_rate(Hertz(pwm3.frequency().0 * 12))
+                .set_rate(Hertz(pwm3.rate().0 * 12))
                 .map_err(Fail::Timer)?;
             let per_bit16 =
-                (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.frequency().0)) as u32;
+                (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
             let count = (per_bit16 as usize * (16 + 8)) / 16;
             lane3
                 .arm(&pwm3, &pwm::duties(pattern, pwm3.period()))
@@ -641,7 +641,7 @@ mod app {
                     Err(refused) => {
                         let error = refused.error();
                         let (pwm4, mut pwm2, lane4, lane2) = refused.into_parts();
-                        if pwm2.set_frequency(Hertz::khz(600)).is_err() {
+                        if pwm2.set_rate(Hertz::khz(600)).is_err() {
                             defmt::panic!("re-rating TIM2");
                         }
                         match Awg::independent(pwm4, pwm2, lane4, lane2) {
@@ -777,9 +777,9 @@ mod app {
             "IWDG",
             "a 1 us timeout refuses; the peripheral comes back and starts [API-001]",
             match watchdog_refusal {
-                Some(ferrohal_stm32::iwdg::Error::Timeout) => Ok(()),
+                Some(ferrohal_stm32::iwdg::ConfigError::Timeout) => Ok(()),
                 Some(other) => Err(Fail::Count {
-                    expected: ferrohal_stm32::iwdg::Error::Timeout as u32,
+                    expected: ferrohal_stm32::iwdg::ConfigError::Timeout as u32,
                     got: other as u32,
                 }),
                 None => Err(Fail::Count {

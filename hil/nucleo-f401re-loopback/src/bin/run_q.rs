@@ -55,7 +55,7 @@ fn main() -> ! {
                 link,
                 "I2C-002",
                 "an out-of-range speed is refused",
-                if refused.error() == ConfigError::Speed {
+                if refused.error() == ConfigError::Frequency {
                     Ok(())
                 } else {
                     Err(Fail::I2cConfig(refused.error()))
@@ -108,7 +108,7 @@ fn main() -> ! {
                             got: u32::from(trise.trise()),
                         })
                     } else if speed.0 > SPEED.0 {
-                        Err(Fail::I2cConfig(ConfigError::Speed))
+                        Err(Fail::I2cConfig(ConfigError::Frequency))
                     } else {
                         Ok(())
                     }
@@ -118,7 +118,7 @@ fn main() -> ! {
             i2c::suite(&mut report, link, &mut bus, cpu);
         }
         Err(_) => report.check(link, "the handed-back wiring opens the bus", {
-            Err(Fail::I2cConfig(ConfigError::Speed))
+            Err(Fail::I2cConfig(ConfigError::Frequency))
         }),
     }
     let led = &mut run.led;

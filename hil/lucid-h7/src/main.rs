@@ -297,7 +297,7 @@ fn main() -> ! {
     let cause = usb_bench::cause_text(rcc.reset_cause());
     let (watchdog_refused, iwdg) = match Watchdog::start(p.IWDG1, 1) {
         Err(refused) => {
-            let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
+            let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::ConfigError::Timeout);
             (refused_timeout, refused.into_parts())
         }
         Ok(_) => reboot_to_dfu(),
@@ -360,12 +360,12 @@ fn main() -> ! {
         reboot_to_dfu()
     };
 
-    let mut exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let mut ready_pin = b.p2.into_input(&mut b.ctrl);
     ready_pin.set_pull(&mut b.ctrl, Pull::Down);
     let mut imu_ready = exti.l2.route::<'B'>(&mut exti.ctrl, Edge::Rising);
     // In EXTI only, so the flag latches: its NVIC vector stays off.
-    imu_ready.listen(&mut exti.ctrl);
+    imu_ready.unmask(&mut exti.ctrl);
 
     // The motor pads get their timers with duty 0 and the counters stopped,
     // and lose them again before anything counts: no frame reaches one. The
@@ -456,7 +456,7 @@ fn main() -> ! {
                     ferrohal_stm32::timer::ConfigError::PeriodMismatch
                 );
                 let (tim3, mut tim5, first, second) = refused.into_parts();
-                let re_rated = tim5.set_frequency(Hertz::khz(600)).is_ok();
+                let re_rated = tim5.set_rate(Hertz::khz(600)).is_ok();
                 (refused_mismatch && re_rated, tim3, tim5, first, second)
             }
             Ok(_) => reboot_to_dfu(),
@@ -482,7 +482,7 @@ fn main() -> ! {
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
     let (scan_refused, adc1, scan_stream, samples) = match adc1.into_scan(dma2.s5, &[], samples) {
         Err(refused) => {
-            let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::Error::Sequence);
+            let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::ConfigError::Sequence);
             let (adc1, stream, samples) = refused.into_parts();
             (refused_empty, adc1, stream, samples)
         }
@@ -522,7 +522,7 @@ fn main() -> ! {
     let (sd_refused, sd_wiring) =
         match Sdmmc::new(&mut rcc, sd_wiring, &sdmmc::Config::new(Hertz::mhz(50))) {
             Err(refused) => {
-                let refused_clock = matches!(refused.error(), sdmmc::Error::Clock);
+                let refused_clock = matches!(refused.error(), sdmmc::ConfigError::Clock);
                 (refused_clock, refused.into_parts())
             }
             Ok(_) => reboot_to_dfu(),
@@ -543,10 +543,17 @@ fn main() -> ! {
     dm.set_speed(&mut a.ctrl, Speed::VeryHigh);
     let mut dp = a.p12.into_alternate::<10>(&mut a.ctrl);
     dp.set_speed(&mut a.ctrl, Speed::VeryHigh);
-    let Ok(usb) = UsbFs::new(&mut rcc, p.USB_OTG_FS, dm, dp) else {
+    let Ok(usb) = UsbFs::new(
+        &mut rcc,
+        ferrohal_stm32::usb::Wiring {
+            usb: p.USB_OTG_FS,
+            dm,
+            dp,
+        },
+    ) else {
         reboot_to_dfu()
     };
-    let mut link = Link::new(usb, "lucid-h7", watchdog, clock.reader());
+    let mut link = Link::new(usb, "lucid-h7", watchdog, clock.handle());
     let mut imu = Imu {
         spi: &mut imu_spi,
         cs: &mut imu_cs,

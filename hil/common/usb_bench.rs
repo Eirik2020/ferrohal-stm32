@@ -5,12 +5,20 @@
 //! and reports `PASS` and `FAIL` lines, ending `DONE`; `BENCHECH` echoes until
 //! `BENCHEND`; `BENCHDFU` restarts into the ROM DFU bootloader. The line
 //! `FERRO-ID?` gets the image's identity line (`hil/RIG.md`, Identity).
+//! `BENCHSTP` leaves a probe stop record and restarts into the bootloader;
+//! `STOPREC?` answers with the record the last run left (`STOP none`, or
+//! `STOP why=<n> line=<l>` and what it means), for the host to show that a
+//! record lives through the ROM DFU and a flash (`hil/flash-dfu.sh`).
 //!
 //! The board has no other way back but its BOOT button, so a run that goes
 //! wrong restarts into the bootloader too: a panic, a fault, a watchdog reset
 //! (3 s without the main loop), clocks that don't start, or no host
-//! configuring the device within 30 s. That the board comes up in DFU rather
-//! than as a serial port is the report, for those.
+//! configuring the device within 30 s. Each of those first leaves a stop
+//! record where the board keeps one ([`crate::ident::STOP_RECORD`]): why, and
+//! the source line. The next run that reaches USB reports it as a `FAIL`
+//! before its checks and clears it. The F4's ROM DFU cannot read SRAM (alt 0
+//! maps internal flash only, measured on the Foxeer 2026-11-17), so the record
+//! is read only by the next image, never over DFU.
 
 // Each board compiles this file and uses what it needs.
 #![allow(dead_code)]
@@ -25,9 +33,9 @@ use cortex_m::peripheral::DWT;
 use cortex_m_rt::{ExceptionFrame, exception};
 use ferrohal_stm32::{
     iwdg::Watchdog,
-    reset::{self, ResetCause},
+    reset::{self, Cause},
     signature,
-    timer::TimebaseReader,
+    timer::TimebaseHandle,
     usb::{
         UsbBus, UsbFs,
         usb_device::{
@@ -52,6 +60,8 @@ const ECHO: &[u8; 8] = b"BENCHECH";
 const END: &[u8; 8] = b"BENCHEND";
 const DFU: &[u8; 8] = b"BENCHDFU";
 const QUERY: &[u8; 10] = b"FERRO-ID?\n";
+const PROBE: &[u8; 8] = b"BENCHSTP";
+const STOP_QUERY: &[u8; 8] = b"STOPREC?";
 
 pub const WATCHDOG_US: u32 = 3_000_000;
 pub const CONFIGURED_PATIENCE_US: u32 = 30_000_000;
@@ -67,30 +77,97 @@ pub fn enter_bootloader_if_requested() {
     if reset::peek_cause().independent_watchdog {
         // A watchdog reset goes to the bootloader too: ask for it and reset
         // once more, which the next boot's check above acts on.
+        record_stop(Stop::Watchdog, 0);
         reset::reboot_to_bootloader()
     }
 }
 
+/// Why a run stopped, in a stop record.
+#[derive(Clone, Copy)]
+pub enum Stop {
+    /// A step the run could not go on from, at the line given.
+    Step = 1,
+    Panic = 2,
+    HardFault = 3,
+    Watchdog = 4,
+    /// No host configured the device within `CONFIGURED_PATIENCE_US`.
+    NoHost = 5,
+    /// The host's `BENCHSTP`: not a failure, the round trip's marker.
+    Probe = 6,
+}
+
+/// The probe record's line field: "PROB".
+pub const PROBE_LINE: u32 = 0x5052_4F42;
+
+/// A stop record's first word: "STOP".
+const STOP_MAGIC: u32 = 0x5354_4F50;
+
+/// Leaves a stop record, on a board that keeps one: [magic, why, line,
+/// magic ^ why ^ line], written whole. RAM the ROM bootloader does not use
+/// keeps it across the reset into DFU (`memory.x`).
+pub fn record_stop(why: Stop, line: u32) {
+    if let Some(address) = crate::ident::STOP_RECORD {
+        let words = [STOP_MAGIC, why as u32, line, STOP_MAGIC ^ why as u32 ^ line];
+        for (i, word) in words.iter().enumerate() {
+            // SAFETY: four words memory.x keeps out of every section.
+            unsafe { (address as *mut u32).add(i).write_volatile(*word) };
+        }
+    }
+}
+
+/// The stop record the last run left, cleared: (why, line).
+pub fn take_stop() -> Option<(u32, u32)> {
+    let address = crate::ident::STOP_RECORD?;
+    // SAFETY: as in `record_stop`.
+    let words: [u32; 4] =
+        core::array::from_fn(|i| unsafe { (address as *const u32).add(i).read_volatile() });
+    // SAFETY: as above.
+    unsafe { (address as *mut u32).write_volatile(0) };
+    (words[0] == STOP_MAGIC && words[3] == words[0] ^ words[1] ^ words[2])
+        .then_some((words[1], words[2]))
+}
+
+/// What a stop record's `why` means, for the report.
+pub fn stop_text(why: u32) -> &'static str {
+    match why {
+        1 => "a step it could not go on from",
+        2 => "a panic",
+        3 => "a hard fault",
+        4 => "a watchdog reset",
+        5 => "no host configuring the device",
+        6 => "the host's round-trip probe",
+        _ => "an unknown stop",
+    }
+}
+
+/// Stops the run at `line`: a record, then the bootloader.
+pub fn stop(line: u32) -> ! {
+    record_stop(Stop::Step, line);
+    reboot_to_dfu()
+}
+
 #[panic_handler]
-fn panic(_: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    record_stop(Stop::Panic, info.location().map_or(0, |at| at.line()));
     reboot_to_dfu()
 }
 
 #[exception]
 unsafe fn HardFault(_: &ExceptionFrame) -> ! {
+    record_stop(Stop::HardFault, 0);
     reboot_to_dfu()
 }
 
 /// The USB port and what has to keep running while anything else waits.
 ///
-/// The clock is a [`TimebaseReader`]: the link only reads it, and the run
+/// The clock is a [`TimebaseHandle`]: the link only reads it, and the run
 /// keeps the `Timebase` itself — keep it alive, for a freed timebase stops
 /// and the reader reports the frozen count.
 pub struct Link {
     device: UsbDevice<'static, UsbBus>,
     serial: SerialPort<'static, UsbBus>,
     watchdog: Watchdog,
-    clock: TimebaseReader,
+    clock: TimebaseHandle,
 }
 
 impl Link {
@@ -100,7 +177,7 @@ impl Link {
         usb: UsbFs,
         serial_number: &'static str,
         watchdog: Watchdog,
-        clock: TimebaseReader,
+        clock: TimebaseHandle,
     ) -> Self {
         // SAFETY: called once, and these are the only references.
         let bus: &'static UsbBusAllocator<UsbBus> = unsafe {
@@ -114,7 +191,7 @@ impl Link {
                 .product("FerroHAL bench")
                 .serial_number(serial_number),
         ]) else {
-            reboot_to_dfu()
+            stop(line!())
         };
         let device = builder.device_class(usbd_serial::USB_CLASS_CDC).build();
         Self {
@@ -244,7 +321,7 @@ pub fn close(got: u32, want: u32, hundredths: u32) -> bool {
 }
 
 /// The most specific name for what `cause` holds.
-pub fn cause_text(cause: ResetCause) -> &'static str {
+pub fn cause_text(cause: Cause) -> &'static str {
     if cause.power_on {
         "power on"
     } else if cause.software {
@@ -352,6 +429,7 @@ fn identify(link: &mut Link) {
 /// Waits for and answers commands, calling `run` for `BENCHRUN`.
 pub fn serve(link: &mut Link, cause: &str, mut run: impl FnMut(&mut Report, &mut Link)) -> ! {
     let boot = link.now();
+    let mut stopped = take_stop();
     let mut configured = false;
     let mut echoing = false;
     let mut tail = [0u8; 8];
@@ -364,6 +442,7 @@ pub fn serve(link: &mut Link, cause: &str, mut run: impl FnMut(&mut Report, &mut
             if link.device.state() == UsbDeviceState::Configured {
                 configured = true;
             } else if link.now().wrapping_sub(boot) > CONFIGURED_PATIENCE_US {
+                record_stop(Stop::NoHost, line!());
                 reboot_to_dfu();
             }
         }
@@ -403,9 +482,32 @@ pub fn serve(link: &mut Link, cause: &str, mut run: impl FnMut(&mut Report, &mut
             if tail == *ECHO {
                 echoing = true;
             }
+            if tail == *PROBE {
+                record_stop(Stop::Probe, PROBE_LINE);
+                link.settle(100_000);
+                reboot_to_dfu();
+            }
+            if tail == *STOP_QUERY {
+                match stopped.take() {
+                    None => link.line(format_args!("STOP none")),
+                    Some((why, line)) => link.line(format_args!(
+                        "STOP why={why} line={line} ({})",
+                        stop_text(why)
+                    )),
+                }
+            }
             if tail == *RUN {
                 let mut report = Report::default();
                 link.line(format_args!("INFO reset cause: {cause}"));
+                if let Some((why, line)) = stopped.take()
+                    && why != Stop::Probe as u32
+                {
+                    report.check(
+                        link,
+                        false,
+                        format_args!("the last run stopped on {} at line {line}", stop_text(why)),
+                    );
+                }
                 run(&mut report, link);
                 link.line(format_args!(
                     "DONE {} passed, {} failed",

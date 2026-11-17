@@ -15,6 +15,10 @@
 # what protects that pair. Reaches the bootloader by itself from the bench's
 # firmware. From anything else, it asks: hold BOOT while plugging in the USB
 # cable. Log goes to hil/logs/<board>.log.
+#
+# STOP_RECORD_PROBE (run-foxeer.sh sets it) adds the stop record's round
+# trip after the report: BENCHSTP, a flash over the ROM DFU, then STOPREC?
+# (hil/common/usb_bench.rs).
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -92,4 +96,17 @@ python3 -I "$here/usb_cdc_host.py" 30 "$board" 2>&1 | tee "$here/logs/$board-usb
 flash "$board" || exit 1
 python3 -I "$here/usb_cdc_host.py" 30 "$board" report 2>&1 | tee "$here/logs/$board.log"
 [ "${PIPESTATUS[0]}" -eq 0 ] || status=1
+
+# The stop record's round trip, on a board that keeps one: the image leaves a
+# probe record and restarts into the ROM DFU, the same image is flashed over
+# it, and the new boot must still hold the probe.
+if [ -n "${STOP_RECORD_PROBE:-}" ]; then
+    for port in /dev/serial/by-id/*FerroHAL*"$board"*; do
+        [ -e "$port" ] && printf BENCHSTP > "$port"
+    done
+    sleep 1
+    flash "$board" || exit 1
+    python3 -I "$here/usb_cdc_host.py" 30 "$board" stop-record 2>&1 | tee "$here/logs/$board-stop-record.log"
+    [ "${PIPESTATUS[0]}" -eq 0 ] || status=1
+fi
 exit "$status"

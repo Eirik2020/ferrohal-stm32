@@ -5,7 +5,7 @@
 //! - [`Tick`]: the update interrupt at an exact rate, for a scheduler or a
 //!   watchdog. The handler calls [`Tick::on_interrupt`].
 //! - [`Timebase`]: a 32-bit timer counting freely at an exact frequency,
-//!   read from anywhere through a `Copy` [`TimebaseReader`].
+//!   read from anywhere through a `Copy` [`TimebaseHandle`].
 //!
 //! Both handles carry their timer token and hand it back with
 //! [`free`](Tick::free)/[`free`](Timebase::free): a second handle for the
@@ -189,19 +189,17 @@ impl<T, const C: u8, Pin, Stream> ComplementaryLaneWiring<T, C, Pin, Stream> {
 
 /// What a lane's assembly hands back when it refuses: the reason, the wiring,
 /// and the buffers it took, in a tuple with the wiring first.
-pub type LaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
+pub type LaneRefused<T, const C: u8, Pin, Stream, Buffers> =
     crate::resource::Refused<ConfigError, (LaneWiring<T, C, Pin, Stream>, Buffers)>;
 
-/// As [`LaneRefusal`], for a complementary lane's assembly.
-pub type ComplementaryLaneRefusal<T, const C: u8, Pin, Stream, Buffers> =
+/// As [`LaneRefused`], for a complementary lane's assembly.
+pub type ComplementaryLaneRefused<T, const C: u8, Pin, Stream, Buffers> =
     crate::resource::Refused<ConfigError, (ComplementaryLaneWiring<T, C, Pin, Stream>, Buffers)>;
 
-/// What a two-way lane's assembly returns: the lane, or the refusal with
-/// everything it took.
-pub type TwoWayLaneAssembly<T, const C: u8, Pin, Stream> = Result<
-    CompareLane<T, C, LaneWiring<T, C, Pin, Stream>>,
-    LaneRefusal<T, C, Pin, Stream, (&'static mut [u32], &'static mut [u16])>,
->;
+/// What a two-way lane's assembly hands back when it refuses: the reason,
+/// the wiring, and both buffers it took.
+pub type TwoWayLaneRefused<T, const C: u8, Pin, Stream> =
+    LaneRefused<T, C, Pin, Stream, (&'static mut [u32], &'static mut [u16])>;
 
 impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
     LaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
@@ -214,12 +212,7 @@ where
     /// alternate function, and the stream with its request.
     pub const RESOURCES: [crate::resource::Resource; 3] = [
         crate::resource::Resource::Peripheral(T::NAME),
-        crate::resource::Resource::Pin {
-            signal: crate::resource::Signal::Channel(C),
-            port: Pin::PORT,
-            pin: Pin::PIN,
-            af: Pin::AF,
-        },
+        crate::resource::Resource::pin::<Pin>(crate::resource::Signal::Channel(C)),
         crate::resource::Resource::Dma {
             signal: crate::resource::Signal::Channel(C),
             controller: CD,
@@ -240,12 +233,7 @@ where
     /// alternate function, and the stream with its request.
     pub const RESOURCES: [crate::resource::Resource; 3] = [
         crate::resource::Resource::Peripheral(T::NAME),
-        crate::resource::Resource::Pin {
-            signal: crate::resource::Signal::Complementary(C),
-            port: Pin::PORT,
-            pin: Pin::PIN,
-            af: Pin::AF,
-        },
+        crate::resource::Resource::pin::<Pin>(crate::resource::Signal::Complementary(C)),
         crate::resource::Resource::Dma {
             signal: crate::resource::Signal::Complementary(C),
             controller: CD,
@@ -332,7 +320,7 @@ pub struct Tick<T: Instance> {
     core: TimCore,
     rate: Hertz,
     vector: Interrupt,
-    _timer: T,
+    timer: T,
 }
 
 impl<T: Instance> Tick<T> {
@@ -344,8 +332,7 @@ impl<T: Instance> Tick<T> {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, timer)),
         };
-        rcc.enable(T::ENABLE);
-        rcc.reset(T::ENABLE);
+        rcc.open(T::ENABLE);
         let core = T::info().core();
         load(core, prescaler, reload);
         core.dier().write(|w| w.set_uie(true));
@@ -357,7 +344,7 @@ impl<T: Instance> Tick<T> {
             core,
             rate,
             vector: T::UPDATE,
-            _timer: timer,
+            timer,
         })
     }
 
@@ -415,17 +402,9 @@ impl<T: Instance> Tick<T> {
     /// Hands the timer token back, stopping the counter and its update
     /// interrupt: what a `Drop` would do, made explicit so the token can
     /// move out.
-    pub fn free(self) -> T {
-        let Self {
-            core,
-            rate: _,
-            vector: _,
-            _timer,
-        } = self;
-        core.cr1().modify(|w| w.set_cen(false));
-        core.dier().write_value(DierCore(0));
-        clear_update(core);
-        _timer
+    pub fn free(mut self) -> T {
+        self.stop();
+        self.timer
     }
 }
 
@@ -433,24 +412,24 @@ impl<T: Instance> Tick<T> {
 /// [`new`](Self::new), wrapping at 2^32. The handle carries the timer token.
 pub struct Timebase<T: Instance32> {
     core: TimCore,
-    reader: TimebaseReader,
-    _timer: T,
+    handle: TimebaseHandle,
+    timer: T,
 }
 
 /// Reads a [`Timebase`]: one register read, so `Copy` and usable from any
-/// context. A reader keeps reading the counter after the timebase is freed —
-/// a freed timebase stops, and the reader reports the frozen count.
+/// context. A handle keeps reading the counter after the timebase is freed —
+/// a freed timebase stops, and the handle reports the frozen count.
 #[derive(Clone, Copy)]
-pub struct TimebaseReader {
+pub struct TimebaseHandle {
     counter: TimGp32,
     frequency: Hertz,
 }
 
-// SAFETY: a reader only reads CNT, which nothing else writes once the
+// SAFETY: a handle only reads CNT, which nothing else writes once the
 // timebase runs.
-unsafe impl Send for TimebaseReader {}
+unsafe impl Send for TimebaseHandle {}
 // SAFETY: as above.
-unsafe impl Sync for TimebaseReader {}
+unsafe impl Sync for TimebaseHandle {}
 
 impl<T: Instance32> Timebase<T> {
     /// Enables and resets the timer and starts it counting at `frequency`
@@ -462,18 +441,17 @@ impl<T: Instance32> Timebase<T> {
             Ok(prescaler) => prescaler,
             Err(error) => return Err(Refused::new(error, timer)),
         };
-        rcc.enable(T::ENABLE);
-        rcc.reset(T::ENABLE);
+        rcc.open(T::ENABLE);
         let core = T::info().core();
         load(core, prescaler, 1 << 32);
         core.cr1().modify(|w| w.set_cen(true));
         Ok(Self {
             core,
-            reader: TimebaseReader {
+            handle: TimebaseHandle {
                 counter: T::gp32(),
                 frequency,
             },
-            _timer: timer,
+            timer,
         })
     }
 
@@ -498,22 +476,22 @@ impl<T: Instance32> Timebase<T> {
     }
 
     pub fn now(&self) -> u32 {
-        self.reader.now()
+        self.handle.now()
     }
 
-    pub fn reader(&self) -> TimebaseReader {
-        self.reader
+    pub fn handle(&self) -> TimebaseHandle {
+        self.handle
     }
 
     /// Hands the timer token back, stopping the counter: what a `Drop`
     /// would do, made explicit so the token can move out.
     pub fn free(self) -> T {
         self.core.cr1().modify(|w| w.set_cen(false));
-        self._timer
+        self.timer
     }
 }
 
-impl TimebaseReader {
+impl TimebaseHandle {
     /// The count now.
     pub fn now(&self) -> u32 {
         self.counter.cnt().read()

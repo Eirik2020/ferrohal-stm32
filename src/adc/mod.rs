@@ -27,8 +27,8 @@ use crate::{
     adc_ip::{MAX_SAMPLE, Unit},
     chip::{Interrupt, TS_CAL1, TS_CAL2, VREFIN_CAL},
     dma::{
-        Channel as DmaChannel, Direction, FifoMode, Flags, Interrupts, Priority, StopTimeout,
-        StreamInstance, StreamInterrupt, Transfer, WordSize,
+        AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, StreamInstance,
+        StreamInterrupt, Transfer, WordSize,
     },
     rcc::{Rcc, RccBit},
     resource::Refused,
@@ -36,10 +36,8 @@ use crate::{
 
 /// What [`Adc::into_scan`](Adc::into_scan) hands back when it refuses: the
 /// reason, and the ADC, the stream and the buffer it took.
-pub type ScanRefused<A, S> = crate::resource::Refused<Error, (Adc<A>, S, &'static mut [u16])>;
+pub type ScanRefused<A, S> = crate::resource::Refused<ConfigError, (Adc<A>, S, &'static mut [u16])>;
 
-/// How many register polls to give a stream to stop.
-const STOP_SPINS: u32 = 100_000;
 /// The calibration values' supply, and the temperatures they were taken at.
 const CAL_VDDA_MV: u32 = 3300;
 const TS_CAL1_C: i32 = 30;
@@ -55,6 +53,12 @@ pub struct Config {
 }
 
 impl Config {
+    /// `sample_cycles` ADC clock cycles a sample, rounded up to one the chip
+    /// has.
+    pub const fn new(sample_cycles: u16) -> Self {
+        Self { sample_cycles }
+    }
+
     /// Long enough for a divider on a battery input and the internal channels
     /// (480 cycles at 21 MHz on the F4, 64.5 at 4 MHz on the H7).
     pub const fn slow_source() -> Self {
@@ -68,9 +72,7 @@ impl Config {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
-    /// The kernel clock isn't running (the H7's per_ck, from HSI).
-    KernelClock,
-    /// The converter didn't come up, calibrate or finish within its bound.
+    /// A conversion didn't finish within its bound.
     Timeout,
     /// A conversion overwrote one nobody had read.
     Overrun,
@@ -78,12 +80,25 @@ pub enum Error {
     Dma,
     /// A sequence is running.
     Busy,
-    /// No channels, or more than 16, or more than the buffer holds.
-    Sequence,
-    /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
-    Buffer(crate::dma::BufferError),
     /// The calibration values or the reading can't give an answer.
     Calibration,
+}
+
+/// Why `Adc::new` or `Adc::into_scan` refused (API review D8: a refusal
+/// carries its module's `ConfigError`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ConfigError {
+    /// The kernel clock isn't running (the H7's per_ck, from HSI).
+    KernelClock,
+    /// The converter didn't come up or calibrate within its bound.
+    Timeout,
+    /// No channels, or more than 16, or more than the buffer holds.
+    Sequence,
+    /// The stream was left running by an earlier owner and did not stop.
+    DmaBusy,
+    /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
+    Buffer(crate::dma::BufferError),
 }
 
 /// An ADC instance.
@@ -134,7 +149,7 @@ pub trait AdcPin<A: Instance>: crate::Sealed {
 /// # Safety
 ///
 /// `REQUEST` must route `A`'s request to this stream.
-pub unsafe trait AdcDma<A: Instance>: StreamInstance + StreamInterrupt {
+pub unsafe trait Dma<A: Instance>: StreamInstance + StreamInterrupt {
     const REQUEST: u8;
 }
 
@@ -151,7 +166,7 @@ pub struct Channel<A> {
 /// channel its pin measures. The scan itself is assembled at runtime from
 /// the wirings' channels (`Adc::into_scan`), whose refusal hands the ADC,
 /// the stream and the buffer back.
-pub struct AdcWiring<A, Pin, Stream> {
+pub struct Wiring<A, Pin, Stream> {
     /// The pin, in analog mode.
     pub pin: Pin,
     /// The DMA stream serving `A`.
@@ -159,7 +174,7 @@ pub struct AdcWiring<A, Pin, Stream> {
     _adc: PhantomData<fn() -> A>,
 }
 
-impl<A, Pin, Stream> AdcWiring<A, Pin, Stream> {
+impl<A, Pin, Stream> Wiring<A, Pin, Stream> {
     /// A wiring for one of `A`'s inputs, from its pin and stream.
     pub const fn new(pin: Pin, stream: Stream) -> Self {
         Self {
@@ -170,11 +185,11 @@ impl<A, Pin, Stream> AdcWiring<A, Pin, Stream> {
     }
 }
 
-impl<A, Pin, const CD: u8, const SN: u8> AdcWiring<A, Pin, crate::dma::Stream<CD, SN>>
+impl<A, Pin, const CD: u8, const SN: u8> Wiring<A, Pin, crate::dma::Stream<CD, SN>>
 where
     A: Instance,
     Pin: AdcPin<A> + crate::gpio::AltPin,
-    crate::dma::Stream<CD, SN>: AdcDma<A>,
+    crate::dma::Stream<CD, SN>: Dma<A>,
 {
     /// Everything this wiring uses, as data: the instance, the analog pin,
     /// and the stream with its request.
@@ -189,7 +204,7 @@ where
             signal: crate::resource::Signal::Adc(Pin::CHANNEL),
             controller: CD,
             stream: SN,
-            request: <crate::dma::Stream<CD, SN> as AdcDma<A>>::REQUEST,
+            request: <crate::dma::Stream<CD, SN> as Dma<A>>::REQUEST,
         },
     ];
 
@@ -232,12 +247,11 @@ impl<A: Instance> Adc<A> {
     /// calibrates it, which takes a few milliseconds. Refuses with the ADC
     /// token handed back; on a power-up refusal the ADC is already enabled
     /// and reset.
-    pub fn new(rcc: &mut Rcc, token: A, config: &Config) -> Result<Self, Refused<Error, A>> {
+    pub fn new(rcc: &mut Rcc, token: A, config: &Config) -> Result<Self, Refused<ConfigError, A>> {
         if let Err(error) = crate::adc_ip::start_clock(rcc) {
             return Err(Refused::new(error, token));
         }
-        rcc.enable(A::ENABLE);
-        rcc.reset(A::ENABLE);
+        rcc.open(A::ENABLE);
         let unit = A::info().unit();
         if let Err(error) =
             unit.power_up(&rcc.clocks(), A::KERNEL, A::INTERNAL, config.sample_cycles)
@@ -271,9 +285,9 @@ impl<A: Instance> Adc<A> {
         MAX_SAMPLE
     }
 
-    /// What a sample means with `vdda_mv` on the reference.
-    pub const fn to_millivolts(&self, sample: u16, vdda_mv: u32) -> u32 {
-        sample as u32 * vdda_mv / MAX_SAMPLE as u32
+    /// What a sample means with `vdda_millivolts` on the reference.
+    pub const fn to_millivolts(&self, sample: u16, vdda_millivolts: u32) -> u32 {
+        sample as u32 * vdda_millivolts / MAX_SAMPLE as u32
     }
 
     /// Hands the ADC to a [`AdcScan`] converting `channels` in order over
@@ -288,21 +302,24 @@ impl<A: Instance> Adc<A> {
         buffer: &'static mut [u16],
     ) -> Result<AdcScan<A, S>, ScanRefused<A, S>>
     where
-        S: AdcDma<A>,
+        S: Dma<A>,
     {
         if channels.is_empty() || channels.len() > 16 || channels.len() > buffer.len() {
-            return Err(Refused::new(Error::Sequence, (self, stream, buffer)));
+            return Err(Refused::new(ConfigError::Sequence, (self, stream, buffer)));
         }
-        if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
-            return Err(Refused::new(Error::Buffer(error), (self, stream, buffer)));
+        if let Err(error) = crate::chip::check_dma_buffer(buffer) {
+            return Err(Refused::new(
+                ConfigError::Buffer(error),
+                (self, stream, buffer),
+            ));
         }
         let mut numbers = [0u8; 16];
         for (number, channel) in numbers.iter_mut().zip(channels) {
             *number = channel.number;
         }
-        let mut dma = crate::dma::claim_channel(&stream);
-        if dma.stop(STOP_SPINS).is_err() {
-            return Err(Refused::new(Error::Dma, (self, stream, buffer)));
+        let mut dma = crate::dma::claim(&stream);
+        if dma.stop(crate::dma::STOP_SPINS).is_err() {
+            return Err(Refused::new(ConfigError::DmaBusy, (self, stream, buffer)));
         }
         dma.clear_flags(Flags::ALL);
         self.unit
@@ -355,20 +372,15 @@ pub fn vdda_from_vrefint(sample: u16) -> Result<u32, Error> {
 
 /// The die's temperature in tenths of a degree, from a sensor sample and the
 /// VDDA it was taken with.
-pub fn temperature_from_samples(sample: u16, vdda_mv: u32) -> Result<i32, Error> {
+pub fn temperature_from_samples(sample: u16, vdda_millivolts: u32) -> Result<i32, Error> {
     // SAFETY: the chip's factory-programmed values, read-only halfwords.
     let (low, high) = unsafe { (TS_CAL1.read_volatile(), TS_CAL2.read_volatile()) };
     if high <= low {
         return Err(Error::Calibration);
     }
-    let at_cal_vdda = (u32::from(sample) * vdda_mv / CAL_VDDA_MV) as i32;
+    let at_cal_vdda = (u32::from(sample) * vdda_millivolts / CAL_VDDA_MV) as i32;
     let span = i32::from(high) - i32::from(low);
     Ok(TS_CAL1_C * 10 + (at_cal_vdda - i32::from(low)) * (TS_CAL2_C - TS_CAL1_C) * 10 / span)
-}
-
-fn as_bytes(buffer: &[u16]) -> &[u8] {
-    // SAFETY: the same memory, every byte of a u16 initialized, u8 aligned.
-    unsafe { core::slice::from_raw_parts(buffer.as_ptr().cast(), core::mem::size_of_val(buffer)) }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -383,7 +395,7 @@ enum ScanState {
 pub struct AdcScan<A, S> {
     adc: Adc<A>,
     stream: S,
-    dma: DmaChannel,
+    dma: AnyStream,
     request: u8,
     vector: Interrupt,
     buffer: &'static mut [u16],
@@ -404,20 +416,20 @@ impl<A: Instance, S> AdcScan<A, S> {
             direction: Direction::PeripheralToMemory,
             peripheral: self.adc.unit.data_address(),
             memory: self.buffer.as_mut_ptr() as u32,
-            double_buffer: None,
             len: self.len,
             size: WordSize::HalfWord,
             memory_increment: true,
             circular: false,
             priority: Priority::Medium,
-            fifo: FifoMode::Direct,
             interrupts: Interrupts {
                 complete: true,
                 error: true,
                 ..Interrupts::default()
             },
         };
-        self.dma.stop(STOP_SPINS).map_err(|_| Error::Dma)?;
+        self.dma
+            .stop(crate::dma::STOP_SPINS)
+            .map_err(|_| Error::Dma)?;
         self.dma.clear_flags(Flags::ALL);
         // SAFETY: the buffer is this scan's own and holds `len` samples; the
         // address is this ADC's data register, whose request paces the stream.
@@ -474,7 +486,7 @@ impl<A: Instance, S> AdcScan<A, S> {
     }
 
     fn halt(&mut self) -> Result<(), StopTimeout> {
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         self.adc.unit.finish_sequence();
         self.state = ScanState::Idle;
@@ -513,8 +525,8 @@ impl<A: Instance, S> AdcScan<A, S> {
         MAX_SAMPLE
     }
 
-    /// What a sample means with `vdda_mv` on the reference.
-    pub const fn to_millivolts(&self, sample: u16, vdda_mv: u32) -> u32 {
-        self.adc.to_millivolts(sample, vdda_mv)
+    /// What a sample means with `vdda_millivolts` on the reference.
+    pub const fn to_millivolts(&self, sample: u16, vdda_millivolts: u32) -> u32 {
+        self.adc.to_millivolts(sample, vdda_millivolts)
     }
 }

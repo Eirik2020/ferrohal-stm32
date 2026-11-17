@@ -7,6 +7,7 @@
 //!
 //! Requirements: ADC-001, API-002
 
+use crate::wait::spin;
 use stm32_metapac::{
     adc::{
         Adc,
@@ -36,11 +37,11 @@ const STOP_SPINS: u32 = 100_000;
 const CALIBRATION_MS: u32 = 1000;
 
 /// Selects per_ck for the ADC's kernel clock.
-pub(crate) fn start_clock(rcc: &mut Rcc) -> Result<(), Error> {
+pub(crate) fn start_clock(rcc: &mut Rcc) -> Result<(), crate::adc::ConfigError> {
     if rcc.adc_clock() {
         Ok(())
     } else {
-        Err(Error::KernelClock)
+        Err(crate::adc::ConfigError::KernelClock)
     }
 }
 
@@ -65,7 +66,7 @@ pub struct Unit {
 }
 
 impl Unit {
-    pub const fn new(regs: Adc, common: AdcCommon) -> Self {
+    pub(crate) const fn new(regs: Adc, common: AdcCommon) -> Self {
         Self { regs, common }
     }
 
@@ -75,7 +76,7 @@ impl Unit {
         _bus: crate::rcc::Kernel,
         internal: bool,
         sample_cycles: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<(), crate::adc::ConfigError> {
         let cycles_per_us = clocks.cpu.0 / 1_000_000;
         self.common.ccr().modify(|w| {
             w.set_ckmode(Ckmode::ASYNCHRONOUS);
@@ -109,7 +110,7 @@ impl Unit {
             cortex_m::asm::delay(cycles_per_us * 1000);
         }
         if !calibrated {
-            return Err(Error::Timeout);
+            return Err(crate::adc::ConfigError::Timeout);
         }
 
         self.regs.isr().write_value({
@@ -118,15 +119,8 @@ impl Unit {
             isr
         });
         self.regs.cr().modify(|w| w.set_aden(true));
-        let mut ready = false;
-        for _ in 0..READY_SPINS {
-            if self.regs.isr().read().adrdy() {
-                ready = true;
-                break;
-            }
-        }
-        if !ready {
-            return Err(Error::Timeout);
+        if !spin(READY_SPINS, || self.regs.isr().read().adrdy()) {
+            return Err(crate::adc::ConfigError::Timeout);
         }
 
         let smp = sample_time(sample_cycles);
@@ -152,10 +146,8 @@ impl Unit {
         self.regs.cfgr().modify(|w| w.set_dmngt(Dmngt::DR));
         self.clear_flags();
         self.regs.cr().modify(|w| w.set_adstart(true));
-        for _ in 0..CONVERSION_SPINS {
-            if self.regs.isr().read().eoc() {
-                return Ok(self.regs.dr().read().rdata());
-            }
+        if spin(CONVERSION_SPINS, || self.regs.isr().read().eoc()) {
+            return Ok(self.regs.dr().read().rdata());
         }
         self.stop();
         Err(Error::Timeout)
@@ -196,11 +188,7 @@ impl Unit {
     fn stop(&self) {
         if self.regs.cr().read().adstart() {
             self.regs.cr().modify(|w| w.set_adstp(Adstp::STOP));
-            for _ in 0..STOP_SPINS {
-                if !self.regs.cr().read().adstart() {
-                    break;
-                }
-            }
+            let _ = spin(STOP_SPINS, || !self.regs.cr().read().adstart());
         }
     }
 
@@ -235,11 +223,7 @@ impl Unit {
         self.regs.cfgr().modify(|w| w.set_dmngt(Dmngt::DR));
         if self.regs.cr().read().aden() {
             self.regs.cr().modify(|w| w.set_addis(true));
-            for _ in 0..STOP_SPINS {
-                if !self.regs.cr().read().aden() {
-                    break;
-                }
-            }
+            let _ = spin(STOP_SPINS, || !self.regs.cr().read().aden());
         }
         self.regs.cr().modify(|w| w.set_advregen(false));
         self.regs.cr().modify(|w| w.set_deeppwd(true));

@@ -39,7 +39,7 @@ pub use stream_dma::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Config {
-    pub baudrate: u32,
+    pub baudrate: crate::time::Hertz,
     pub parity: Parity,
     pub stop_bits: StopBits,
     /// The RX line idles low and its levels are swapped, as SBUS sends
@@ -52,7 +52,7 @@ pub struct Config {
 
 impl Config {
     /// `baudrate`, 8N1, not inverted.
-    pub const fn new(baudrate: u32) -> Self {
+    pub const fn new(baudrate: crate::time::Hertz) -> Self {
         Self {
             baudrate,
             parity: Parity::None,
@@ -100,17 +100,17 @@ impl Config {
         kernel_clock: crate::time::Hertz,
         fractional_stop: bool,
     ) -> Result<u16, ConfigError> {
-        if (self.invert_rx || self.invert_tx) && !crate::usart::INVERSION {
+        if (self.invert_rx || self.invert_tx) && !crate::usart_ip::INVERSION {
             return Err(ConfigError::Unsupported);
         }
         if !fractional_stop && matches!(self.stop_bits, StopBits::Half | StopBits::OneAndHalf) {
             return Err(ConfigError::Unsupported);
         }
-        if self.baudrate == 0 {
+        if self.baudrate.0 == 0 {
             return Err(ConfigError::BaudRate);
         }
         let clock = kernel_clock.0 as u64;
-        let baud = self.baudrate as u64;
+        let baud = self.baudrate.0 as u64;
         let brr = (clock + baud / 2) / baud;
         if brr < 16 || brr > 0xffff {
             return Err(ConfigError::BaudRate);

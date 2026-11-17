@@ -97,7 +97,7 @@ mod app {
         let mut ctrl = run.exti.ctrl;
         let mut sck3 = run.exti.l3.route::<'B'>(&mut ctrl, Edge::Rising);
         // Masked until a check counts them.
-        sck3.unlisten(&mut ctrl);
+        sck3.mask(&mut ctrl);
         checks::spawn().ok();
         (
             Shared {
@@ -156,7 +156,7 @@ mod app {
             l.ctrl,
         );
         // Line 3 moves from PB3 to PD3.
-        let mut sck2 = sck3.release(l.ctrl).route::<'D'>(l.ctrl, Edge::Rising);
+        let mut sck2 = sck3.free(l.ctrl).route::<'D'>(l.ctrl, Edge::Rising);
         bus2.lock(|b| b.spi = l.spi2.take());
         spi_exti::spi_suite(
             &mut report,

@@ -17,7 +17,7 @@
 use core::{mem::MaybeUninit, ptr::addr_of_mut};
 
 use cortex_m::peripheral::DWT;
-use ferrohal_stm32::{iwdg::Watchdog, reset::ResetCause, time::Hertz};
+use ferrohal_stm32::{iwdg::Watchdog, reset::Cause, time::Hertz};
 
 use crate::tests::{Fail, Report};
 
@@ -55,7 +55,7 @@ fn spin_us(cpu: Hertz, us: u32) {
 pub fn after_reset(
     report: &mut Report,
     name: &str,
-    cause: ResetCause,
+    cause: Cause,
     lsi_spread: (u32, u32),
     tight_us: (u32, u32),
 ) -> bool {
@@ -146,7 +146,7 @@ pub fn after_reset(
 pub fn feed_then_starve(
     report: &mut Report,
     name: &str,
-    cause: ResetCause,
+    cause: Cause,
     dog: Watchdog,
     cpu: Hertz,
     frozen_before_start: bool,

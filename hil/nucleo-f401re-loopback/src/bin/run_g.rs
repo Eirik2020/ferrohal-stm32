@@ -80,7 +80,7 @@ mod app {
         let mut ctrl = run.exti.ctrl;
         let mut sck3 = run.exti.l3.route::<'B'>(&mut ctrl, Edge::Rising);
         // Masked until a check counts them.
-        sck3.unlisten(&mut ctrl);
+        sck3.mask(&mut ctrl);
         checks::spawn().ok();
         (
             Shared { bus: Bus::new() },

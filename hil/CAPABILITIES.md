@@ -100,13 +100,15 @@ Grouped by why; each is a candidate for the queue below.
 
 ## The improvement queue
 
-In order; each names what it unlocks. The owner holds rig upgrades for now
-(2026-11-13): items 1 and 2 wait on hardware. The first three each give a requirement
-with no method today its proof, one chip per IP version (the car rule,
-`docs/design/requirements-system.md`); the rest are cheap ones first, then the
-ones that unblock a claim.
+In order; each names what it unlocks. The wider list of options, each tied to the
+DEBT items it would close, is [RIG-IMPROVEMENTS.md](RIG-IMPROVEMENTS.md). The owner holds rig upgrades for now
+(2026-11-13): item 2 waits on hardware. The first three each gave a requirement
+without a method its proof, one chip per IP version (the car rule,
+`docs/design/requirements-system.md`); every requirement has a method now. The rest
+are cheap ones first, then the ones that unblock a claim.
 
-1. **An F4 USB bench.** The F4's OTG_FS core then has a bench: USB-F4-001, and
+1. ~~**An F4 USB bench.**~~ Done with #48 (2026-11-16): the STM32F4 Discovery's CN5
+   runs USB-F4-001 (Discovery run B) and RESET-004 on the F4 (run C). As planned: The F4's OTG_FS core then has a bench: USB-F4-001, and
    RESET-004 on the F4 through the ROM's USB DFU. Either a USB breakout on the
    F401's PA11/PA12 (morpho CN10, with VBUS and ground), or the STM32F407
    Discovery the owner has, whose USB connector serves the same F4 IP versions.

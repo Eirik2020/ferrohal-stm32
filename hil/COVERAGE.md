@@ -64,15 +64,15 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | `iwdg_v2` | H743, H753 | H753: K (window, freeze, LSI) | – | – |
 | `exti_v1` | F401, F405 | F401: E, F, G | Foxeer: IMU data ready | – |
 | `exti_h7` | H743, H753 | H753: F, G, H | Lucid: IMU data ready | – |
-| `dma_v2` | F401, F405 | F401: UART and SPI runs, all 9 USART and 10 SPI routes; I, O, P | – | double buffering, FIFO threshold |
-| `dma_v1` + DMAMUX1 | H743, H753 | H753: all 16 DMA1/DMA2 streams; J, Q | – | double buffering, FIFO threshold |
+| `dma_v2` | F401, F405 | F401: UART and SPI runs, all 9 USART and 10 SPI routes; I, O, P | – | – (double buffering and FIFO thresholds removed) |
+| `dma_v1` + DMAMUX1 | H743, H753 | H753: all 16 DMA1/DMA2 streams; J, Q | – | – (double buffering and FIFO thresholds removed) |
 | `gpio_v2` | all four | every Nucleo run | – | – |
 | `adc_v2` | F401, F405 | F401: M | Foxeer: battery inputs | – |
 | `adc_v4` | H743, H753 | H753: O | Lucid: battery inputs | – |
 | `rcc_f4` | F401, F405 | F401: every run, HSE bypass | Foxeer: HSE crystal to 168 MHz | HSE crystal |
 | `rcc_h7_rm0433` | H743, H753 | H753: every run, HSE bypass; I (voltage scale) | Lucid: HSE crystal to 400 MHz | HSE crystal |
 | `sdmmc_v2` | H743, H753 | – | Lucid: a card (SDMMC-004), the empty slot (SDMMC-003) | error paths |
-| USB, F4 OTG_FS core | F401, F405 | – | Foxeer: CDC echo | USB-F4-001 |
+| USB, F4 OTG_FS core | F401, F405, F407 | Discovery: B (CDC echo on CN5) | Foxeer: CDC echo | – |
 | USB, H7 OTG core at FS | H743, H753 | H753: M (CN13) | Lucid: CDC echo | – |
 
 ## Shared engines and system

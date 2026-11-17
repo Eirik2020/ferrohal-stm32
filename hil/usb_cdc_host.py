@@ -1,11 +1,14 @@
 """The host side of the USB CDC bench: finds the board's serial port, sends
 blocks of every interesting size, and checks each byte that comes back.
 
-    python3 -I usb_cdc_host.py [seconds to wait for the port] [board serial] [report]
+    python3 -I usb_cdc_host.py [seconds to wait for the port] [board serial] [report | stop-record]
 
 A board serial picks that board's port when several are connected. With
 `report` (a board with no probe, reporting over this port), asks the board to
-run its checks and prints its report first, then asks it to echo.
+run its checks and prints its report first, then asks it to echo. With
+`stop-record`, asks for the stop record the last run left (`STOPREC?`) and
+passes only on the probe record `BENCHSTP` left (flash-dfu.sh's round trip);
+nothing else runs.
 
 `--fresh` puts the wait before the flash: a port a previous image left has to go
 before the host opens anything, so a rerun cannot talk to the image it is about
@@ -33,7 +36,8 @@ args = [argument for argument in sys.argv[1:] if argument != "--fresh"]
 fresh = len(args) != len(sys.argv) - 1
 wait = float(args[0]) if args else 30.0
 board = args[1] if len(args) > 1 else ""
-reports = len(args) > 2
+mode = args[2] if len(args) > 2 else ""
+reports = mode == "report"
 
 
 def signature(path):
@@ -129,6 +133,25 @@ def report(timeout=60.0):
     print(f"FAIL host: no DONE within {timeout:.0f} s", flush=True)
     return failures + 1
 
+
+PROBE_RECORD = f"STOP why=6 line={0x50524F42}"
+if mode == "stop-record":
+    os.write(fd, b"STOPREC?")
+    text = bytearray()
+    deadline = time.monotonic() + 10.0
+    answer = None
+    while answer is None and time.monotonic() < deadline:
+        if select.select([fd], [], [], 0.2)[0]:
+            text += os.read(fd, 4096)
+        for line in text.decode(errors="replace").split("\n")[:-1]:
+            if line.startswith("STOP"):
+                answer = line
+    os.close(fd)
+    if answer is not None and answer.startswith(PROBE_RECORD):
+        print("PASS stop record: the probe lived through the ROM DFU and a flash", flush=True)
+        sys.exit(0)
+    print(f"FAIL stop record: the board answered {answer!r}, not the probe", flush=True)
+    sys.exit(1)
 
 failed = 0
 if reports:

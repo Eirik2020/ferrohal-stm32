@@ -241,6 +241,24 @@ requirements:
           method:
             procedure: requirements/benches.md#Complementary outputs on the STM32F4 Discovery
 
+  - id: PWM-009
+    title: A lane refuses a duty step the timer would miss
+    statement: >-
+      A lane shall refuse a waveform with a duty within its timer's top
+      margin of the period's end followed by 0, or ending within it.
+    rationale: >-
+      The three sheets' consecutive-compare erratum makes the compare match at
+      0 after one near the period's end go missing. A lane writes each next
+      duty on its compare request, so its stream would fall a period behind;
+      the H753 bench measured that slip below the margin.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
   - id: AWG-001
     title: Each lane plays its own samples
     statement: >-

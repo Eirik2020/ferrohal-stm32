@@ -1,0 +1,49 @@
+   Compiling nucleo-f401re-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback)
+   Compiling ferrohal-stm32 v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.94s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/run-s`
+     [38;5;10m[1mFinished[0m in 1.73s
+[INFO ] run S, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2 } (run_s src/bin/run_s.rs:52)
+[INFO ] PASS I2C3 PA8/PC9 (Pico simulator): an out-of-range speed is refused [I2C-002] (run_s ../common/tests.rs:393)
+[INFO ] PASS I2C3 PA8/PC9 (Pico simulator): the timing registers make the reported rate [I2C-001,I2C-005] (run_s ../common/tests.rs:393)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a vacant write nacks within its bound [I2C-003,I2C-004]: I2cNotNack(Some(Busy)) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a vacant read nacks within its bound [I2C-003,I2C-004]: I2cNotNack(Some(Busy)) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a vacant write-read nacks within its bound [I2C-004,I2C-006]: I2cNotNack(Some(Busy)) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a vacant transaction nacks at its first segment [I2C-006]: I2cNotNack(Some(Busy)) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): the bus answers after every recovery [I2C-003,I2C-004]: I2cNotNack(Some(Busy)) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): the health counts the nacks [I2C-004]: I2cHealth { field: "nacks", expected: 5, got: 0 } (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): the counted bound ends without a clock [I2C-003]: I2cNotNack(Some(Busy)) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): the simulator answers with its identity [I2C-003,I2C-006]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a one-byte read returns the byte [I2C-003,I2C-006]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a two-byte read returns both bytes [I2C-003,I2C-006]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a 32-byte read returns the whole stream [I2C-003,I2C-006]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a write lands and reads back [I2C-006]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): the simulator saw the repeated start [I2C-006]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a stretch within the bound still answers [I2C-003]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a stretch past the bound times out [I2C-003]: I2c(Busy) (run_s ../common/tests.rs:396)
+[INFO ] PASS I2C3 PA8/PC9 (Pico simulator): the stuck bus reports Busy within its bound [I2C-003] (run_s ../common/tests.rs:393)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): the bus answers once the slave lets go [I2C-003]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a refused data byte nacks and leaves nothing [I2C-004]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): the simulator counted the same transactions [I2C-004]: I2c(Busy) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): the health counts the live traffic [I2C-004]: I2cHealth { field: "timeouts", expected: 1, got: 0 } (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): a vacant write still nacks after the live traffic [I2C-003,I2C-004]: I2cNotNack(Some(Busy)) (run_s ../common/tests.rs:396)
+[ERROR] FAIL I2C3 PA8/PC9 (Pico simulator): every transfer above walked this version's register sequence [I2C-V1-001]: Count { expected: 0, got: 20 } (run_s ../common/tests.rs:396)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (run_s ../common/tests.rs:1478)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (run_s ../common/tests.rs:1454)
+[ERROR] 21 checks failed (run_s ../common/tests.rs:1489)
+Firmware exited with: Unknown runtime error
+Core 0
+    Frame 0: [38;5;14m[1msyscall1[0m @ [38;5;11m0x8000d38[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/lib.rs:201:13[0m
+    Frame 1: [38;5;14m[1mreport_exception[0m @ [38;5;11m0x8000d32[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/macros.rs:28:9[0m
+    Frame 2: [38;5;14m[1mexit[0m @ [38;5;11m0x8000d32[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/debug.rs:74:25[0m
+    Frame 3: [38;5;14m[1mfinish<run_s::__cortex_m_rt_main::{closure_env#2}>[0m @ [38;5;11m0x8000d32[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/../../../common/tests.rs:0[0m
+    Frame 4: [38;5;14m[1m__cortex_m_rt_main[0m @ [38;5;11m0x800200a[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/run_s.rs:153:5[0m
+    Frame 5: [38;5;14m[1m__cortex_m_rt_main_trampoline[0m @ [38;5;11m0x8002976[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-f401re-loopback/src/bin/run_s.rs:41:1[0m
+    Frame 6: [38;5;14m[1mReset[0m @ [38;5;11m0x8000540[39m
+Error: Unknown runtime error

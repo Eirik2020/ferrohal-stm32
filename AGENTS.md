@@ -76,9 +76,9 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 Debt sweep W1-W13 done (#29); refusal runs (#31) and fault injection (#33) landed. The
 `free()` redesign and the requirements cleanup under the car rule merged (#37, #38), W14
 naming (#39, `docs/design/naming.md`). Debt sweep 2026-11-13: one tagged ledger with
-recorded origins; limits and roadmap to `docs/CHIPS.md`, coverage to `hil/COVERAGE.md`. Rig
-upgrades held by the owner; the five requirements with no method wait on them
-(`hil/CAPABILITIES.md`).
+recorded origins; limits and roadmap to `docs/CHIPS.md`, coverage to `hil/COVERAGE.md`. Every
+requirement names a method since #48 (USB-F4-001 and F4 RESET-004 on the Discovery); rig
+upgrades held by the owner are in `hil/RIG-IMPROVEMENTS.md`.
 
 ## Style
 

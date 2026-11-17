@@ -63,8 +63,8 @@ fn main() -> ! {
     // SAFETY: `main` runs once, and these are the only references.
     let [one, two] = unsafe { &mut *addr_of_mut!(LANES) };
     let rated = master
-        .set_frequency(Hertz::khz(150))
-        .and_then(|_| slave.set_frequency(Hertz::khz(150)));
+        .set_rate(Hertz::khz(150))
+        .and_then(|_| slave.set_rate(Hertz::khz(150)));
     let lane1 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(pe9, dma1.s0).assemble(&master, &mut one[..]);
     let lane8 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(pc6, dma1.s1).assemble(&slave, &mut two[..]);
     match (rated, lane1, lane8) {

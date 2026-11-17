@@ -77,7 +77,7 @@ use ferrohal_stm32::{
     },
     dma::Stream,
     exti,
-    gpio::{Alternate, Ctrl, Output, Pin, Port, PortInstance, Pull, Speed},
+    gpio::{Alternate, Ctrl, OpenDrain, Output, Pin, Port, PortInstance, Pull, Speed},
     i2c,
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllSource, Rcc,
@@ -150,12 +150,12 @@ type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;
 /// The Lucid's frames, checked against its UARTs while compiling: CRSF to
 /// the receiver, SBUS (inverted, receive-only) from the DJI connector, MSP
 /// to the DisplayPort.
-pub const CRSF: uart::Config = uart::Config::new(420_000);
-pub const SBUS: uart::Config = uart::Config::new(100_000)
+pub const CRSF: uart::Config = uart::Config::new(Hertz(420_000));
+pub const SBUS: uart::Config = uart::Config::new(Hertz(100_000))
     .with_parity(Parity::Even)
     .with_stop_bits(StopBits::Two)
     .with_inverted_rx(true);
-pub const MSP: uart::Config = uart::Config::new(115_200);
+pub const MSP: uart::Config = uart::Config::new(Hertz(115_200));
 const _: () = assert!(ferrohal_stm32::uart::check::<USART6>(&CLOCKS, &CRSF).is_ok());
 const _: () = assert!(ferrohal_stm32::uart::check::<USART1>(&CLOCKS, &SBUS).is_ok());
 const _: () = assert!(ferrohal_stm32::uart::check::<USART3>(&CLOCKS, &MSP).is_ok());
@@ -343,7 +343,7 @@ pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
     let mut f = p.GPIOF.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
-    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     let mut feed = d.p5.into_push_pull_output(&mut d.ctrl);
     feed.set_low();
@@ -399,7 +399,7 @@ pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
     let mut b = p.GPIOB.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
-    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunG {
         led,
@@ -434,7 +434,7 @@ pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
     let mut d = p.GPIOD.split(&mut rcc);
     let dma1 = p.DMA1.split(&mut rcc);
     let dma2 = p.DMA2.split(&mut rcc);
-    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunH {
         led,
@@ -609,7 +609,8 @@ pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
 // fitted. No links: these pins carry no other run's wiring, so the
 // bench runs as one script.
 
-pub type I2c3Bus = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4>>, Pin<'C', 9, Alternate<4>>>;
+pub type I2c3Bus =
+    i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4, OpenDrain>>, Pin<'C', 9, Alternate<4, OpenDrain>>>;
 
 pub struct RunR {
     pub rcc: Rcc,
@@ -627,9 +628,9 @@ pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     // SCL and SDA pulled up: with no slave fitted the lines idle high,
     // so a vacant address is answered by the bus itself with a NACK.
-    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
+    let mut scl: Pin<'A', 8, Alternate<4, OpenDrain>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
     scl.set_pull(&mut a.ctrl, Pull::Up);
-    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
+    let mut sda: Pin<'C', 9, Alternate<4, OpenDrain>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
     sda.set_pull(&mut c.ctrl, Pull::Up);
     Ok(RunR {
         rcc,
@@ -682,7 +683,7 @@ pub fn run_l(p: Peripherals) -> Result<RunL, ClockError> {
     let mut b = p.GPIOB.split(&mut rcc);
     let mut c = p.GPIOC.split(&mut rcc);
     let mut e = p.GPIOE.split(&mut rcc);
-    let exti = p.EXTI.split(p.SYSCFG, &mut rcc);
+    let exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
     let led = b.p0.into_push_pull_output(&mut b.ctrl);
     Ok(RunL {
         led,
@@ -1241,7 +1242,8 @@ pub fn dma_buffers() -> [DmaBuffers; UARTS] {
 // path, which the run checks against the tree. The simulator answers
 // at 0x2A with bus tag 2.
 
-pub type I2c4Bus = i2c::Wiring<I2C4, Pin<'D', 12, Alternate<4>>, Pin<'D', 13, Alternate<4>>>;
+pub type I2c4Bus =
+    i2c::Wiring<I2C4, Pin<'D', 12, Alternate<4, OpenDrain>>, Pin<'D', 13, Alternate<4, OpenDrain>>>;
 
 pub struct RunS {
     pub rcc: Rcc,
@@ -1259,9 +1261,11 @@ pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     // SCL and SDA pulled up here and at the Pico's end: the lines idle
     // high at 50 kHz with no resistor fitted.
-    let mut scl: Pin<'D', 12, Alternate<4>> = d.p12.into_alternate_open_drain(&mut d.ctrl);
+    let mut scl: Pin<'D', 12, Alternate<4, OpenDrain>> =
+        d.p12.into_alternate_open_drain(&mut d.ctrl);
     scl.set_pull(&mut d.ctrl, Pull::Up);
-    let mut sda: Pin<'D', 13, Alternate<4>> = d.p13.into_alternate_open_drain(&mut d.ctrl);
+    let mut sda: Pin<'D', 13, Alternate<4, OpenDrain>> =
+        d.p13.into_alternate_open_drain(&mut d.ctrl);
     sda.set_pull(&mut d.ctrl, Pull::Up);
     Ok(RunS {
         rcc,
@@ -1357,9 +1361,9 @@ pub fn run_u(p: Peripherals) -> Result<(RunU, ClockError), ClockError> {
     let dma2 = p.DMA2.split(&mut rcc);
     let analog1 = a.p1.into_analog(&mut a.ctrl);
     let (tx6, rx6) = pins(c.p6, c.p7, &mut c.ctrl);
-    let mut scl: Pin<'A', 8, Alternate<4>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
+    let mut scl: Pin<'A', 8, Alternate<4, OpenDrain>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
     scl.set_pull(&mut a.ctrl, Pull::Up);
-    let mut sda: Pin<'C', 9, Alternate<4>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
+    let mut sda: Pin<'C', 9, Alternate<4, OpenDrain>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
     sda.set_pull(&mut c.ctrl, Pull::Up);
     Ok((
         RunU {

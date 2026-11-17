@@ -51,11 +51,11 @@ mod app {
     /// The Lucid's frames: CRSF to the receiver, SBUS from the DJI
     /// connector (without the inversion FerroHAL cannot set yet), MSP to
     /// the DisplayPort.
-    const CRSF: Config = Config::new(420_000);
-    const SBUS: Config = Config::new(100_000)
+    const CRSF: Config = Config::new(ferrohal_stm32::time::Hertz(420_000));
+    const SBUS: Config = Config::new(ferrohal_stm32::time::Hertz(100_000))
         .with_parity(Parity::Even)
         .with_stop_bits(StopBits::Two);
-    const MSP: Config = Config::new(115_200);
+    const MSP: Config = Config::new(ferrohal_stm32::time::Hertz(115_200));
 
     #[shared]
     struct Shared {
@@ -418,7 +418,7 @@ mod app {
                     uart: &mut *usart6,
                 },
                 board::CLOCKS.cpu.0,
-                CRSF.baudrate,
+                CRSF.baudrate.0,
             ),
         );
         report.check_for(
@@ -431,7 +431,7 @@ mod app {
                     uart: &mut *usart1,
                 },
                 board::CLOCKS.cpu.0,
-                SBUS.baudrate,
+                SBUS.baudrate.0,
             ),
         );
         report.check_for(
@@ -444,7 +444,7 @@ mod app {
                     uart: &mut *usart3,
                 },
                 board::CLOCKS.cpu.0,
-                MSP.baudrate,
+                MSP.baudrate.0,
             ),
         );
         report.check_for(
@@ -457,7 +457,7 @@ mod app {
                     uart: &mut *usart2,
                 },
                 board::CLOCKS.cpu.0,
-                MSP.baudrate,
+                MSP.baudrate.0,
             ),
         );
 

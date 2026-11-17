@@ -154,7 +154,7 @@ pub fn lane_pair_check<
 ) {
     let period = pwm.period();
     // Samples per bit, in sixteenths.
-    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm.frequency().0)) as u32;
+    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm.rate().0)) as u32;
     // Eight spare bits around the frame.
     let count = (per_bit16 as usize * (BITS + 8)) / 16;
     let result = (|| {
@@ -208,7 +208,7 @@ pub fn lane_pair_check<
             "both lanes and the sampler finish [PWM-003]",
             Err(fail),
         );
-        sampler.stop();
+        sampler.abort();
         return;
     }
     report.check(name, "both lanes and the sampler finish [PWM-003]", Ok(()));
@@ -221,6 +221,130 @@ pub fn lane_pair_check<
         name,
         "second lane: its 16 bits, one period apart [PWM-002]",
         decode(sampler.samples(), pins.1, patterns.1, per_bit16, false),
+    );
+}
+
+/// ES0392 2.16.2 (ES0299 2.6.3, ES0182 2.7.3): a compare match at CNT = CCR =
+/// ARR followed by one at CNT = CCR = 0 misses the second compare event, and
+/// a lane, which writes each next duty on its compare request, would fall a
+/// period behind (measured on the H753, 2026-11-17, before the refusal). The
+/// first lane must refuse `[P/2, P-1, 0, P/2]` (P the period, so P-1 is ARR)
+/// with `TopToZero`; the same waveform just clear of `Pwm::top_margin` must play
+/// with every pulse starting with the second lane's steady P/2 reference
+/// pulse of its own period [PWM-009].
+#[allow(clippy::too_many_arguments)]
+pub fn top_to_zero_check<
+    T: ChannelTimer,
+    U: ferrohal_stm32::timer::Instance,
+    const A: u8,
+    const B: u8,
+    SU,
+    WA,
+    WB,
+>(
+    report: &mut Report,
+    name: &str,
+    pwm: &mut Pwm<T>,
+    lanes: (&mut CompareLane<T, A, WA>, &mut CompareLane<T, B, WB>),
+    pins: (u8, u8),
+    sampler: &mut Sampler<U, SU>,
+    cpu: Hertz,
+) {
+    let period = pwm.period();
+    let wave = |high: u32| -> [u32; BITS] {
+        core::array::from_fn(|i| match i % 4 {
+            1 => high,
+            2 => 0,
+            _ => period / 2,
+        })
+    };
+    let refused = lanes.0.arm(pwm, &wave(period - 1));
+    report.check(
+        name,
+        "a duty at the top followed by 0 is refused [PWM-009]",
+        match refused {
+            Err(ferrohal_stm32::timer::Error::TopToZero) => Ok(()),
+            _ => Err(Fail::Count {
+                expected: 1,
+                got: 0,
+            }),
+        },
+    );
+    if refused.is_ok() {
+        lanes.0.abort(pwm);
+    }
+    // Just clear of the margin: the step the refusal leaves allowed.
+    let step = wave(period - pwm.top_margin() - 1);
+    let reference = [period / 2; BITS];
+    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm.rate().0)) as u32;
+    let count = (per_bit16 as usize * (BITS + 8)) / 16;
+    let finished = (|| {
+        lanes.0.arm(pwm, &step).ok()?;
+        lanes.1.arm(pwm, &reference).ok()?;
+        pwm.stage((1 << (A - 1)) | (1 << (B - 1)));
+        sampler.start(count).ok()?;
+        pwm.start();
+        let budget = cpu.0 / 100;
+        let first = wait(budget, || lanes.0.poll());
+        let second = wait(budget, || lanes.1.poll());
+        let sampled = wait(budget, || sampler.poll());
+        pwm.stop();
+        pwm.close_requests();
+        match (first, second, sampled) {
+            (Some(Ok(())), Some(Ok(())), Some(Ok(_))) => Some(()),
+            _ => None,
+        }
+    })();
+    if finished.is_none() {
+        lanes.0.abort(pwm);
+        lanes.1.abort(pwm);
+        sampler.abort();
+        report.check(
+            name,
+            "clear of the top margin, both lanes and the sampler finish [PWM-003]",
+            Err(Fail::Count {
+                expected: 3,
+                got: 0,
+            }),
+        );
+        return;
+    }
+    let mut steps = [(0, 0); 32];
+    let mut periods = [(0, 0); 32];
+    let stepped = pulses(sampler.samples(), pins.0, false, &mut steps);
+    let referenced = pulses(sampler.samples(), pins.1, false, &mut periods);
+    // The periods with a non-zero duty, in order: 12 of the 16.
+    let expected = (0..BITS).filter(|i| i % 4 != 2);
+    let slack = (per_bit16 / 16 / 4).max(1) as usize;
+    let result = if referenced != BITS || stepped != 12 {
+        defmt::info!("step lane: {} pulses, reference: {}", stepped, referenced);
+        Err(Fail::Count {
+            expected: 12,
+            got: stepped as u32,
+        })
+    } else {
+        expected.zip(steps.iter()).try_for_each(|(index, &(start, _))| {
+            let at = periods[index].0;
+            if start.abs_diff(at) <= slack {
+                Ok(())
+            } else {
+                defmt::info!(
+                    "step lane: duty {} starts at sample {}, its period at {}",
+                    index,
+                    start,
+                    at
+                );
+                Err(Fail::Count {
+                    expected: at as u32,
+                    got: start as u32,
+                })
+            }
+        })
+    };
+    report.check(
+        name,
+        "clear of the top margin, a step to 0 keeps every later duty in its period [PWM-009]",
+        result,
     );
 }
 
@@ -262,14 +386,14 @@ pub fn awg_check<
             got: 0,
         })?;
         if awg.play().is_err() {
-            sampler.stop();
+            sampler.abort();
             awg.abort();
             return Err(unfinished);
         }
         for lane in 0..2 {
             if lanes & (1 << lane) != 0 && !matches!(wait(budget, || awg.poll(lane)), Some(Ok(())))
             {
-                sampler.stop();
+                sampler.abort();
                 awg.abort();
                 return Err(unfinished);
             }
@@ -495,7 +619,7 @@ pub fn awg_free_check<
             got: 0,
         })?;
         if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: 1000,
                 got: 0,
@@ -651,7 +775,7 @@ pub fn awg_wire_out_check<
         })?;
         play_one(awg, &sent, budget)?;
         if !matches!(wait(budget, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: CAPTURES as u32,
                 got: 0,
@@ -683,7 +807,7 @@ pub fn awg_wire_out_check<
         })?;
         play_one(awg, &sent, budget)?;
         if !matches!(wait(budget, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: CAPTURES as u32,
                 got: 0,
@@ -918,7 +1042,7 @@ fn measure_duty<T: ferrohal_stm32::timer::Instance, ST>(
             got: 0,
         })?;
         if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: 1000,
                 got: 0,
@@ -948,7 +1072,7 @@ pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, SU>(
     sampler: &mut Sampler<U, SU>,
     cpu: Hertz,
 ) {
-    let per_period = (u64::from(sampler.rate().0) / u64::from(pwm.frequency().0)).max(1) as usize;
+    let per_period = (u64::from(sampler.rate().0) / u64::from(pwm.rate().0)).max(1) as usize;
     let count = per_period * 3;
     let result = (|| {
         pwm.stage(0);
@@ -958,7 +1082,7 @@ pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, SU>(
         })?;
         pwm.start_one_pulse();
         if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: count as u32,
                 got: 0,

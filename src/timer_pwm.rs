@@ -21,7 +21,7 @@
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
 //!
-//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, API-002, API-003
+//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, PWM-009, API-002, API-003
 
 use core::{
     marker::PhantomData,
@@ -47,8 +47,8 @@ use super::{
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, Flags, Interrupts, Priority, StopTimeout, StreamInterrupt,
-        Transfer, WordSize,
+        AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, StreamInterrupt, Transfer,
+        WordSize,
     },
     gpio::{Port, PortInstance, PortRegisters},
     rcc::Rcc,
@@ -56,12 +56,9 @@ use crate::{
     time::Hertz,
 };
 
-/// Spins allowed for a DMA stream to report itself stopped.
-const STOP_SPINS: u32 = 10_000;
-
 /// What [`Sampler::new`](Sampler::new) hands back: the reason, and the
 /// timer, stream and buffer it took.
-pub type SamplerNewRefused<T, S> =
+pub type SamplerRefused<T, S> =
     crate::resource::Refused<super::ConfigError, (T, S, &'static mut [u16])>;
 
 /// Why a lane or sampler refused or failed.
@@ -80,6 +77,14 @@ pub enum Error {
     NoInput,
     /// The timer can't reach the asked rate.
     Rate,
+    /// A duty within [`Pwm::top_margin`] of the period's end followed by 0,
+    /// or ending the waveform (a lane ends on 0). ES0392 2.16.2,
+    /// ES0299 2.6.3 and ES0182 2.7.3 name the compare match at CNT = CCR = 0 after
+    /// one at CNT = CCR = ARR; on the H753 the duty after such a step started
+    /// a period late for any duty up to 8 counts below the top, and kept
+    /// time from 12 counts below (DShot600, 200 MHz counter, 2026-11-17).
+    /// Step through a lower duty first.
+    TopToZero,
 }
 
 /// The prescaler and reload nearest `rate` from `clock`: (PSC + 1,
@@ -123,24 +128,23 @@ pub struct Pwm<T> {
     gp: TimGp16,
     clock: Hertz,
     period: u32,
-    frequency: Hertz,
-    _timer: T,
+    rate: Hertz,
+    timer: T,
 }
 
 impl<T: ChannelTimer> Pwm<T> {
     /// Enables and resets the timer and sets it to count at `rate`, as near
-    /// as the clock allows ([`frequency`](Self::frequency) says what it
+    /// as the clock allows ([`rate`](Self::rate) says what it
     /// got), with every channel off. Stopped until [`start`](Self::start).
     /// Refuses with the timer token handed back: the rate is checked before
     /// the timer is touched.
     pub fn new(rcc: &mut Rcc, timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
         let clock = T::KERNEL.clock(&rcc.clocks());
-        let (prescaler, reload, frequency) = match nearest(clock, rate, T::BITS) {
+        let (prescaler, reload, rate) = match nearest(clock, rate, T::BITS) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, timer)),
         };
-        rcc.enable(T::ENABLE);
-        rcc.reset(T::ENABLE);
+        rcc.open(T::ENABLE);
         let gp = Self::gp();
         let core = T::info().core();
         super::load(core, prescaler, reload);
@@ -156,8 +160,8 @@ impl<T: ChannelTimer> Pwm<T> {
             gp,
             clock,
             period: reload as u32,
-            frequency,
-            _timer: timer,
+            rate,
+            timer,
         })
     }
 
@@ -170,8 +174,8 @@ impl<T: ChannelTimer> Pwm<T> {
             gp,
             clock: _,
             period: _,
-            frequency: _,
-            _timer,
+            rate: _,
+            timer,
         } = self;
         gp.cr1().modify(|w| w.set_cen(false));
         gp.dier().modify(|w| {
@@ -187,7 +191,7 @@ impl<T: ChannelTimer> Pwm<T> {
         // load them: without one, each output would hold the level it
         // stopped at, high mid-pulse. See `latch`.
         latch(gp);
-        _timer
+        timer
     }
 
     /// Loads the preloaded duties now, the counter left at 0: what the next
@@ -201,13 +205,13 @@ impl<T: ChannelTimer> Pwm<T> {
     /// Stops the timer and sets it to count at `rate`, as near as the
     /// clock allows. Channels keep their modes, outputs and duties; scale
     /// the duties to the new [`period`](Self::period).
-    pub fn set_frequency(&mut self, rate: Hertz) -> Result<Hertz, ConfigError> {
-        let (prescaler, reload, frequency) = nearest(self.clock, rate, T::BITS)?;
+    pub fn set_rate(&mut self, rate: Hertz) -> Result<Hertz, ConfigError> {
+        let (prescaler, reload, rate) = nearest(self.clock, rate, T::BITS)?;
         self.stop();
         reload_counter(self.gp, prescaler, reload);
         self.period = reload as u32;
-        self.frequency = frequency;
-        Ok(frequency)
+        self.rate = rate;
+        Ok(rate)
     }
 
     /// The rate `T` would run at for `rate` under `clocks`.
@@ -236,9 +240,19 @@ impl<T: ChannelTimer> Pwm<T> {
         self.period
     }
 
-    /// The rate the timer runs at.
-    pub fn frequency(&self) -> Hertz {
-        self.frequency
+    /// The counts below the period's end that a lane's duty must keep clear
+    /// of before a 0 ([`Error::TopToZero`]): 100 ns of the counter clock, at
+    /// least one. Measured on the H753, a step to 0 kept time from 60 ns
+    /// below the end and slipped a period at 40 ns; 100 ns is that with a
+    /// margin for DMA latency under load, which was not measured.
+    pub fn top_margin(&self) -> u32 {
+        let counts = u64::from(self.rate.0) * u64::from(self.period) / 10_000_000;
+        (counts as u32).max(1)
+    }
+
+    /// The rate the timer runs at: periods a second.
+    pub fn rate(&self) -> Hertz {
+        self.rate
     }
 
     /// Channel `C` in PWM mode 1 with its compare preloaded, at duty 0,
@@ -533,10 +547,10 @@ where
     S: CompareDma<T, C>,
 {
     let samples_ok = match &input {
-        Some((_, samples)) => crate::chip::check_dma_buffer(u16_bytes(samples)),
+        Some((_, samples)) => crate::chip::check_dma_buffer(samples),
         None => Ok(()),
     };
-    if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)).and(samples_ok) {
+    if let Err(error) = crate::chip::check_dma_buffer(buffer).and(samples_ok) {
         return Err((
             error.into(),
             wiring,
@@ -544,8 +558,8 @@ where
             input.map(|(_, samples)| samples),
         ));
     }
-    let mut dma = crate::dma::claim_channel(stream(&wiring));
-    if dma.stop(STOP_SPINS).is_err() {
+    let mut dma = crate::dma::claim(stream(&wiring));
+    if dma.stop(crate::dma::STOP_SPINS).is_err() {
         return Err((
             ConfigError::DmaBusy,
             wiring,
@@ -592,7 +606,7 @@ where
         buffer: &'static mut [u32],
     ) -> Result<
         CompareLane<T, C, Self>,
-        super::LaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
+        super::LaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
     > {
         assemble_lane(pwm, self, |w| &w.stream, false, buffer, None)
             .map_err(|(error, wiring, buffer, _)| Refused::new(error, (wiring, buffer)))
@@ -606,7 +620,10 @@ where
         pwm: &Pwm<T>,
         buffer: &'static mut [u32],
         samples: &'static mut [u16],
-    ) -> super::TwoWayLaneAssembly<T, C, Pin, crate::dma::Stream<CD, SN>>
+    ) -> Result<
+        CompareLane<T, C, Self>,
+        super::TwoWayLaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>>,
+    >
     where
         crate::dma::Stream<CD, SN>: GpioDma,
         Port<PORT>: PortInstance,
@@ -642,7 +659,7 @@ where
         buffer: &'static mut [u32],
     ) -> Result<
         CompareLane<T, C, Self>,
-        super::ComplementaryLaneRefusal<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
+        super::ComplementaryLaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>, &'static mut [u32]>,
     > {
         assemble_lane(pwm, self, |w| &w.stream, true, buffer, None)
             .map_err(|(error, wiring, buffer, _)| Refused::new(error, (wiring, buffer)))
@@ -658,7 +675,7 @@ where
         samples: &'static mut [u16],
     ) -> Result<
         CompareLane<T, C, Self>,
-        super::ComplementaryLaneRefusal<
+        super::ComplementaryLaneRefused<
             T,
             C,
             Pin,
@@ -708,11 +725,6 @@ fn reload_counter(gp: TimGp16, prescaler: u32, reload: u64) {
     gp.cnt().write(|w| w.set_cnt(0));
 }
 
-fn as_bytes(words: &[u32]) -> &[u8] {
-    // SAFETY: the same memory, viewed as bytes, for the address check.
-    unsafe { core::slice::from_raw_parts(words.as_ptr().cast(), core::mem::size_of_val(words)) }
-}
-
 /// A channel whose compare register a DMA stream feeds, one duty per
 /// period, paced by the channel's own compare request. The lane holds no
 /// borrow of the timer: its compare writes take a `&Pwm` per call, so it
@@ -724,7 +736,7 @@ fn as_bytes(words: &[u32]) -> &[u8] {
 /// from, so its type names timer and channel twice: a const generic cannot
 /// be read off `W` on stable Rust.
 pub struct CompareLane<T, const C: u8, W> {
-    dma: Channel,
+    dma: AnyStream,
     request: u8,
     vector: Interrupt,
     buffer: &'static mut [u32],
@@ -773,6 +785,13 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
             return Err(Error::Busy);
         }
         let (first, rest) = duties.split_first().ok_or(Error::Empty)?;
+        let near_top = |duty: u32| duty.saturating_add(pwm.top_margin()) >= pwm.period();
+        let top_to_zero = duties
+            .windows(2)
+            .any(|pair| near_top(pair[0]) && pair[1] == 0);
+        if top_to_zero || duties.last().is_some_and(|&last| near_top(last)) {
+            return Err(Error::TopToZero);
+        }
         let len = rest.len() + 1;
         let staged = self.buffer.get_mut(..len).ok_or(Error::TooLarge)?;
         let len = u16::try_from(len).map_err(|_| Error::TooLarge)?;
@@ -788,13 +807,11 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
             direction: Direction::MemoryToPeripheral,
             peripheral: pwm.gp.ccr(usize::from((C - 1) & 3)).as_ptr() as u32,
             memory: self.buffer.as_ptr() as u32,
-            double_buffer: None,
             len,
             size: WordSize::Word,
             memory_increment: true,
             circular: false,
             priority: Priority::VeryHigh,
-            fifo: FifoMode::Direct,
             interrupts: Interrupts {
                 complete: true,
                 error: true,
@@ -833,13 +850,11 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
             direction: Direction::PeripheralToMemory,
             peripheral: input.port,
             memory: input.samples.as_mut_ptr() as u32,
-            double_buffer: None,
             len,
             size: WordSize::HalfWord,
             memory_increment: true,
             circular: false,
             priority: Priority::VeryHigh,
-            fifo: FifoMode::Direct,
             interrupts: Interrupts {
                 complete: true,
                 error: true,
@@ -911,7 +926,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
     /// stream's error path does, where no timer handle is at hand. Park the
     /// channel through [`abort`](Self::abort) or [`Pwm::set_duty`].
     fn stop_stream(&mut self) -> Result<(), StopTimeout> {
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
         self.running = false;
@@ -953,7 +968,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
 pub struct Sampler<T, S> {
     timer: TimGp16,
     clock: Hertz,
-    dma: Channel,
+    dma: AnyStream,
     request: u8,
     vector: Interrupt,
     input: u32,
@@ -983,7 +998,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
         stream: S,
         rate: Hertz,
         buffer: &'static mut [u16],
-    ) -> Result<Self, SamplerNewRefused<T, S>>
+    ) -> Result<Self, SamplerRefused<T, S>>
     where
         Port<P>: PortInstance,
     {
@@ -994,14 +1009,13 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
                 return Err(Refused::new(error, (timer, stream, buffer)));
             }
         };
-        if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(buffer)) {
+        if let Err(error) = crate::chip::check_dma_buffer(buffer) {
             return Err(Refused::new(error.into(), (timer, stream, buffer)));
         }
-        rcc.enable(T::ENABLE);
-        rcc.reset(T::ENABLE);
+        rcc.open(T::ENABLE);
         super::load(T::info().core(), prescaler, reload);
-        let mut dma = crate::dma::claim_channel(&stream);
-        if dma.stop(STOP_SPINS).is_err() {
+        let mut dma = crate::dma::claim(&stream);
+        if dma.stop(crate::dma::STOP_SPINS).is_err() {
             return Err(Refused::new(
                 super::ConfigError::DmaBusy,
                 (timer, stream, buffer),
@@ -1051,7 +1065,7 @@ impl<T: Instance, S> Sampler<T, S> {
     /// the clock allows.
     pub fn set_rate(&mut self, rate: Hertz) -> Result<Hertz, ConfigError> {
         let (prescaler, reload, rate) = nearest(self.clock, rate, T::BITS)?;
-        self.stop();
+        self.abort();
         reload_counter(self.timer, prescaler, reload);
         self.rate = rate;
         Ok(rate)
@@ -1076,13 +1090,11 @@ impl<T: Instance, S> Sampler<T, S> {
             direction: Direction::PeripheralToMemory,
             peripheral: self.input,
             memory: self.buffer.as_mut_ptr() as u32,
-            double_buffer: None,
             len,
             size: WordSize::HalfWord,
             memory_increment: true,
             circular: false,
             priority: Priority::VeryHigh,
-            fifo: FifoMode::Direct,
             interrupts: Interrupts {
                 complete: true,
                 error: true,
@@ -1113,13 +1125,13 @@ impl<T: Instance, S> Sampler<T, S> {
         };
         let flags = self.dma.flags();
         if flags.transfer_error || flags.direct_mode_error {
-            self.stop();
+            self.abort();
             return Some(Err(Error::Dma));
         }
         if !flags.complete {
             return None;
         }
-        self.stop();
+        self.abort();
         self.state = SampleState::Done(len);
         Some(Ok(usize::from(len)))
     }
@@ -1136,8 +1148,8 @@ impl<T: Instance, S> Sampler<T, S> {
         }
     }
 
-    /// Stops the timer and the stream.
-    pub fn stop(&mut self) {
+    /// Abandons a run: stops the timer and the stream.
+    pub fn abort(&mut self) {
         // A stream that will not stop is caught by the next `start`
         // (`Error::Dma`) or by `free`.
         let _ = self.halt();
@@ -1146,7 +1158,7 @@ impl<T: Instance, S> Sampler<T, S> {
     fn halt(&mut self) -> Result<(), StopTimeout> {
         self.timer.cr1().modify(|w| w.set_cen(false));
         self.timer.dier().modify(|w| w.set_ude(false));
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
         self.state = SampleState::Idle;
@@ -1160,11 +1172,6 @@ impl<T: Instance, S> Sampler<T, S> {
     pub fn verify(&self) -> Result<(), IrqError> {
         crate::resource::verify_vectors([self.vector].into_iter())
     }
-}
-
-fn u16_bytes(words: &[u16]) -> &[u8] {
-    // SAFETY: the same memory, viewed as bytes, for the address check.
-    unsafe { core::slice::from_raw_parts(words.as_ptr().cast(), core::mem::size_of_val(words)) }
 }
 
 // SAFETY: a sampler owns its timer and stream; the buffer is its own.

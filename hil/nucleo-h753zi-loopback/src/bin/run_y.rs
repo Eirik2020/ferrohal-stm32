@@ -37,7 +37,7 @@ mod app {
         tests::{self, Cross, Report},
     };
 
-    const PLAIN: Config = Config::new(115_200);
+    const PLAIN: Config = Config::new(ferrohal_stm32::time::Hertz(115_200));
     const NAME: &str = "USART3 PC10 -> UART4 PC11";
 
     #[shared]

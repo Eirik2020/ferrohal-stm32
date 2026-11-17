@@ -57,7 +57,7 @@ use core::{
 use crate::{
     chip::Interrupt,
     dma::{
-        Channel, Direction, FifoMode, FlagHandle, Flags, Interrupts, Priority, StopTimeout, Stream,
+        AnyStream, Direction, FlagHandle, Flags, Interrupts, Priority, StopTimeout, Stream,
         StreamInstance, StreamInterrupt, Transfer, WordSize,
     },
     gpio::AltPin,
@@ -69,15 +69,12 @@ use crate::{
         ring::{self, Mark, MarkKind, MarkQueue, Take},
         tx_ring::{self, FRAMES, Frame, FrameQueue},
     },
-    usart::LineRegs,
+    usart_ip::LineRegs,
     wait::{Deadline, wait},
 };
 
 use crate::time::CycleClock;
 
-/// Spins allowed for a DMA stream to report itself stopped. A stopping
-/// stream finishes at most one word, so this is generous.
-const STOP_SPINS: u32 = 10_000;
 /// Bits per frame at most: start, 8 data, parity, 2 stop.
 const MAX_FRAME_BITS: u32 = 12;
 /// The fewest CPU cycles one pass of a wait loop takes, used when no
@@ -466,7 +463,7 @@ impl<W: UartParts> RxLine<W> {
 /// rides with the line.
 pub struct UartTx<W: UartParts> {
     info: &'static Info,
-    dma: Channel,
+    dma: AnyStream,
     request: u8,
     buf: *mut u8,
     cap: u16,
@@ -483,7 +480,7 @@ pub struct UartTx<W: UartParts> {
 /// instance token rides with the line.
 pub struct UartRx<W: UartParts> {
     info: &'static Info,
-    dma: Channel,
+    dma: AnyStream,
     request: u8,
     ring: *mut u8,
     len: u16,
@@ -521,7 +518,7 @@ pub struct UartIrq {
 /// The transmit stream, shared with [`UartTx`] under `service_tx`'s
 /// protocol, and what starting a frame needs.
 struct TxIrq {
-    dma: Channel,
+    dma: AnyStream,
     buf: *mut u8,
     request: u8,
 }
@@ -649,7 +646,7 @@ where
             .store(checked.frame_cycles, Ordering::Relaxed);
         let mut tx = UartTx {
             info,
-            dma: crate::dma::claim_channel(&tx_dma),
+            dma: crate::dma::claim(&tx_dma),
             request: TxD::REQUEST,
             buf: buffers.tx.as_mut_ptr(),
             cap: checked.tx_len,
@@ -659,12 +656,12 @@ where
             pin: tx_pin,
             stream: tx_dma,
         };
-        let rx_channel = crate::dma::claim_channel(&rx_dma);
+        let rx_channel = crate::dma::claim(&rx_dma);
         let rx = UartRx::assemble(info, rx_channel, RxD::REQUEST, buffers.rx, rx_pin, rx_dma);
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
-        if tx.dma.stop(STOP_SPINS).is_err() {
+        if tx.dma.stop(crate::dma::STOP_SPINS).is_err() {
             return Err((ConfigError::DmaBusy, Self::rejoin(uart, tx, rx)));
         }
         tx.dma.clear_flags(Flags::ALL);
@@ -986,7 +983,7 @@ impl<W: UartParts> UartTx<W> {
         tx.servicing.store(true, Ordering::SeqCst);
         tx.halted.store(true, Ordering::Release);
         self.dma.set_interrupts(Interrupts::default());
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         tx.frames.clear();
         tx.running.store(false, Ordering::Release);
@@ -1000,7 +997,7 @@ impl<W: UartParts> UartTx<W> {
         let tx = &self.info.state.tx;
         tx.servicing.store(true, Ordering::SeqCst);
         self.dma.set_interrupts(Interrupts::default());
-        let stopped = self.dma.stop(STOP_SPINS).is_ok();
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS).is_ok();
         self.dma.clear_flags(Flags::ALL);
         tx.frames.clear();
         tx.running.store(false, Ordering::Release);
@@ -1033,12 +1030,12 @@ const TX_INTERRUPTS: Interrupts = Interrupts {
 /// (only while `servicing` is clear), never both at once: the interrupt
 /// does nothing but mask the stream while `servicing` is set, and is never
 /// preempted by the task.
-fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
+fn service_tx(info: &Info, dma: &mut AnyStream, buf: *mut u8, request: u8) {
     let tx = &info.state.tx;
     if tx.running.load(Ordering::Acquire) {
         let flags = dma.flags();
         if flags.transfer_error || flags.direct_mode_error {
-            if dma.stop(STOP_SPINS).is_err() {
+            if dma.stop(crate::dma::STOP_SPINS).is_err() {
                 tx.halted.store(true, Ordering::Release);
             }
             dma.clear_flags(Flags::ALL);
@@ -1075,19 +1072,19 @@ fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
     info.regs.clear_tc();
     let transfer = Transfer {
         request,
+        // ES0392 2.20.4: TRBUFF (DMA_SxCR bit 20) keeps a U(S)ART stream
+        // from locking when another transfer runs beside it.
         #[cfg(feature = "dma_v1")]
         bufferable: true,
         direction: Direction::MemoryToPeripheral,
         peripheral: info.regs.tx_address(),
         // SAFETY (of the address): the frame lies inside the buffer.
         memory: buf.wrapping_add(usize::from(frame.offset)) as u32,
-        double_buffer: None,
         len: frame.len,
         size: WordSize::Byte,
         memory_increment: true,
         circular: false,
         priority: Priority::Medium,
-        fifo: FifoMode::Direct,
         interrupts: TX_INTERRUPTS,
     };
     // SAFETY: the frame's bytes are in the transmit buffer, written before
@@ -1164,7 +1161,7 @@ where
         info.state
             .frame_cycles
             .store(checked.frame_cycles, Ordering::Relaxed);
-        let channel = crate::dma::claim_channel(&rx_dma);
+        let channel = crate::dma::claim(&rx_dma);
         let half = Self::assemble(info, channel, RxD::REQUEST, ring, rx, rx_dma);
         let vectors = UartInterrupts {
             line: U::INTERRUPT,
@@ -1244,7 +1241,7 @@ impl<W: UartParts> UartRx<W> {
     /// only user.
     fn assemble(
         info: &'static Info,
-        dma: Channel,
+        dma: AnyStream,
         request: u8,
         ring: &mut [u8],
         pin: W::RxPin,
@@ -1303,7 +1300,7 @@ impl<W: UartParts> UartRx<W> {
         // (measured on the F407, 2026-11-14), and a freed stream's vector may
         // serve another UART by then.
         self.dma.set_interrupts(Interrupts::default());
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         if stopped.is_err() {
             self.halted = true;
@@ -1582,7 +1579,7 @@ impl<W: UartParts> UartRx<W> {
     /// (epoch) advances after the base is set, so the interrupt never tags
     /// a mark of the new run with a position from the old one.
     fn start_ring(&mut self) -> Result<(), Error> {
-        if self.dma.stop(STOP_SPINS).is_err() {
+        if self.dma.stop(crate::dma::STOP_SPINS).is_err() {
             self.halted = true;
             return Err(Error::Halted);
         }
@@ -1598,18 +1595,17 @@ impl<W: UartParts> UartRx<W> {
         self.restarts = self.restarts.wrapping_add(1);
         let transfer = Transfer {
             request: self.request,
+            // ES0392 2.20.4, as for transmitting.
             #[cfg(feature = "dma_v1")]
             bufferable: true,
             direction: Direction::PeripheralToMemory,
             peripheral: self.info.regs.rx_address(),
             memory: self.ring as u32,
-            double_buffer: None,
             len: self.len,
             size: WordSize::Byte,
             memory_increment: true,
             circular: true,
             priority: Priority::High,
-            fifo: FifoMode::Direct,
             interrupts: Interrupts {
                 complete: true,
                 half: true,
@@ -1825,8 +1821,7 @@ fn check_open(
 
 /// Turns the USART's clock on, resets it, and resets its shared state.
 fn reset(rcc: &mut Rcc, enable: RccBit, info: &Info, rx_len: u16) {
-    rcc.enable(enable);
-    rcc.reset(enable);
+    rcc.open(enable);
     let state = &info.state;
     state.halves.store(0, Ordering::Relaxed);
     state.base.store(0, Ordering::Relaxed);
@@ -1838,8 +1833,8 @@ fn reset(rcc: &mut Rcc, enable: RccBit, info: &Info, rx_len: u16) {
 }
 
 /// CPU cycles per frame, the unit of every counted wait.
-fn frame_cycles(cpu: Hertz, baudrate: u32) -> u32 {
-    (cpu.0 / baudrate.max(1))
+fn frame_cycles(cpu: Hertz, baudrate: Hertz) -> u32 {
+    (cpu.0 / baudrate.0.max(1))
         .saturating_mul(MAX_FRAME_BITS)
         .max(1)
 }
@@ -1858,18 +1853,8 @@ where
     /// three vectors to bind (line, receive, transmit).
     pub const RESOURCES: [Resource; 8] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin {
-            signal: Signal::Tx,
-            port: TxP::PORT,
-            pin: TxP::PIN,
-            af: TxP::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Rx,
-            port: RxP::PORT,
-            pin: RxP::PIN,
-            af: RxP::AF,
-        },
+        Resource::pin::<TxP>(Signal::Tx),
+        Resource::pin::<RxP>(Signal::Rx),
         Resource::Dma {
             signal: Signal::Tx,
             controller: TD,
@@ -1897,12 +1882,7 @@ where
     /// Everything this receive-only wiring uses, as data.
     pub const RESOURCES: [Resource; 5] = [
         Resource::Peripheral(U::NAME),
-        Resource::Pin {
-            signal: Signal::Rx,
-            port: RxP::PORT,
-            pin: RxP::PIN,
-            af: RxP::AF,
-        },
+        Resource::pin::<RxP>(Signal::Rx),
         Resource::Dma {
             signal: Signal::Rx,
             controller: RD,

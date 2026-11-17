@@ -6,7 +6,7 @@
 #![allow(dead_code)]
 
 use ferrohal_stm32::{
-    adc::{self, Adc, AdcDma, AdcScan, Channel, Config, Error, InternalChannels},
+    adc::{self, Adc, AdcScan, Channel, Config, Error, InternalChannels},
     rcc::Rcc,
 };
 
@@ -234,7 +234,7 @@ fn once<A: adc::Instance, S>(scan: &mut AdcScan<A, S>, bound_cycles: u32) -> boo
 /// Frees `scan` back to the ADC, its stream and its buffer, runs a sequence
 /// from those parts, then frees the ADC and reopens it from its token.
 /// `powered` reads the ADC's own enable bit, so the check sees it off.
-pub fn freed<A: InternalChannels, S: AdcDma<A>>(
+pub fn freed<A: InternalChannels, S: adc::Dma<A>>(
     report: &mut Report,
     name: &str,
     rcc: &mut Rcc,

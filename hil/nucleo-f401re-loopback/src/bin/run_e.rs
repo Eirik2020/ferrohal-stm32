@@ -128,10 +128,10 @@ mod app {
         let mut sck2 = run.exti.l13.route::<'B'>(&mut ctrl, Edge::Rising);
         let mut sense = run.exti.l12.route::<'A'>(&mut ctrl, Edge::Rising);
         // Masked until a check counts them.
-        sck1.unlisten(&mut ctrl);
-        sck3.unlisten(&mut ctrl);
-        sck2.unlisten(&mut ctrl);
-        sense.unlisten(&mut ctrl);
+        sck1.mask(&mut ctrl);
+        sck3.mask(&mut ctrl);
+        sck2.mask(&mut ctrl);
+        sense.mask(&mut ctrl);
         checks::spawn().ok();
         (
             Shared {

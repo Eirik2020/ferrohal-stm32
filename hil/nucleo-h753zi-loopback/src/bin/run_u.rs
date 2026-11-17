@@ -157,7 +157,7 @@ mod app {
         use embedded_hal::i2c::I2c as _;
         use embedded_hal::spi::SpiBus as _;
         use ferrohal_stm32::{
-            adc::{Adc, Config as AdcConfig, Error as AdcError},
+            adc::{Adc, Config as AdcConfig, ConfigError as AdcConfigError},
             i2c::{Config as I2cConfig, ConfigError as I2cConfigError, Error as I2cError, I2c},
             iwdg::Watchdog,
             spi::{
@@ -236,14 +236,14 @@ mod app {
         let (usart6, uart_refusal) = match Uart::new(
             &mut run.rcc,
             run.usart6,
-            &UartConfig::new(1),
+            &UartConfig::new(Hertz(1)),
             UartBuffers { tx, rx },
         ) {
             Ok(_) => defmt::panic!("a 1-baud UART config was accepted"),
             Err(refused) => {
                 let error = refused.error();
                 let (wiring, buffers) = refused.into_parts();
-                match Uart::new(&mut run.rcc, wiring, &UartConfig::new(115_200), buffers) {
+                match Uart::new(&mut run.rcc, wiring, &UartConfig::new(Hertz(115_200)), buffers) {
                     Ok((uart, irq)) => {
                         cx.shared.irq6.lock(|handle| *handle = Some(irq));
                         (uart, Some(error))
@@ -370,9 +370,9 @@ mod app {
             "I2C3 PA8/PC9",
             "an out-of-range speed refuses; the bus NACKs a vacant address [API-001]",
             match I2c::new(&mut run.rcc, run.i2c3, &I2cConfig::new(Hertz::mhz(5))) {
-                Ok(_) => Err(Fail::I2cConfig(I2cConfigError::Speed)),
+                Ok(_) => Err(Fail::I2cConfig(I2cConfigError::Frequency)),
                 Err(refused) => {
-                    if refused.error() != I2cConfigError::Speed {
+                    if refused.error() != I2cConfigError::Frequency {
                         Err(Fail::I2cConfig(refused.error()))
                     } else {
                         let wiring = refused.into_parts();
@@ -411,10 +411,10 @@ mod app {
             "ADC1 scan",
             "an empty sequence refuses; the parts scan the pin twice [API-001]",
             match adc.into_scan(run.scan_stream, &[], scan) {
-                Ok(_) => Err(Fail::Adc(AdcError::Sequence)),
+                Ok(_) => Err(Fail::AdcConfig(AdcConfigError::Sequence)),
                 Err(refused) => {
-                    if refused.error() != AdcError::Sequence {
-                        Err(Fail::Adc(refused.error()))
+                    if refused.error() != AdcConfigError::Sequence {
+                        Err(Fail::AdcConfig(refused.error()))
                     } else {
                         let (adc, stream, buffer) = refused.into_parts();
                         let Ok(mut scan) = adc.into_scan(stream, &[pin, pin], buffer) else {
@@ -468,10 +468,10 @@ mod app {
             "TIM3 PWM",
             "a 0 rate refuses; the timer comes back at 500 kHz [API-001]",
             match pwm3_refusal {
-                Some(TimerConfigError::Inexact) if pwm3.frequency() == Hertz::khz(500) => Ok(()),
+                Some(TimerConfigError::Inexact) if pwm3.rate() == Hertz::khz(500) => Ok(()),
                 Some(TimerConfigError::Inexact) => Err(Fail::Count {
                     expected: 500_000,
-                    got: pwm3.frequency().0,
+                    got: pwm3.rate().0,
                 }),
                 Some(other) => Err(Fail::Timer(other)),
                 None => Err(Fail::Timer(TimerConfigError::Inexact)),
@@ -542,10 +542,10 @@ mod app {
         let budget = cpu.0 / 100;
         let lane_use = (|| {
             sampler
-                .set_rate(Hertz(pwm3.frequency().0 * 12))
+                .set_rate(Hertz(pwm3.rate().0 * 12))
                 .map_err(Fail::Timer)?;
             let per_bit16 =
-                (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.frequency().0)) as u32;
+                (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
             let count = (per_bit16 as usize * (16 + 8)) / 16;
             lane3
                 .arm(&pwm3, &pwm::duties(pattern, pwm3.period()))
@@ -593,7 +593,7 @@ mod app {
             Err(refused) => {
                 let error = refused.error();
                 let (pwm3, mut pwm5, lane3, lane5) = refused.into_parts();
-                if pwm5.set_frequency(Hertz::khz(500)).is_err() {
+                if pwm5.set_rate(Hertz::khz(500)).is_err() {
                     defmt::panic!("re-rating TIM5");
                 }
                 match Awg::independent(pwm3, pwm5, lane3, lane5) {
@@ -722,9 +722,9 @@ mod app {
                     name,
                     "a window longer than the timeout refuses [API-001]",
                     match refused.error() {
-                        ferrohal_stm32::iwdg::Error::Window => Ok(()),
+                        ferrohal_stm32::iwdg::ConfigError::Window => Ok(()),
                         other => Err(Fail::Count {
-                            expected: ferrohal_stm32::iwdg::Error::Window as u32,
+                            expected: ferrohal_stm32::iwdg::ConfigError::Window as u32,
                             got: other as u32,
                         }),
                     },
@@ -736,9 +736,9 @@ mod app {
                             name,
                             "a 1 us timeout refuses [API-001]",
                             match refused.error() {
-                                ferrohal_stm32::iwdg::Error::Timeout => Ok(()),
+                                ferrohal_stm32::iwdg::ConfigError::Timeout => Ok(()),
                                 other => Err(Fail::Count {
-                                    expected: ferrohal_stm32::iwdg::Error::Timeout as u32,
+                                    expected: ferrohal_stm32::iwdg::ConfigError::Timeout as u32,
                                     got: other as u32,
                                 }),
                             },

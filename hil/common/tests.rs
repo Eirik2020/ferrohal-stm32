@@ -145,8 +145,10 @@ pub enum Fail {
     Time { cycles: u32, min: u32, max: u32 },
     /// A timer refused a rate the check needs.
     Timer(ferrohal_stm32::timer::ConfigError),
-    /// The ADC refused or failed otherwise than the check expected.
+    /// The ADC failed otherwise than the check expected.
     Adc(ferrohal_stm32::adc::Error),
+    /// The ADC refused otherwise than the check expected.
+    AdcConfig(ferrohal_stm32::adc::ConfigError),
     /// The I2C driver reported an error the check did not expect.
     I2c(ferrohal_stm32::i2c::Error),
     /// The I2C refused a configuration the check needs.
@@ -990,8 +992,12 @@ pub fn reconfigured(link: &mut dyn Configurable, config: &Config) -> Result<(), 
 pub fn framing_mismatch<U: UartParts, V: UartParts>(
     cross: &mut Cross<'_, U, V>,
 ) -> Result<(), Fail> {
-    cross.from.set_config(&Config::new(57_600))?;
-    cross.to.set_config(&Config::new(115_200))?;
+    cross
+        .from
+        .set_config(&Config::new(ferrohal_stm32::time::Hertz(57_600)))?;
+    cross
+        .to
+        .set_config(&Config::new(ferrohal_stm32::time::Hertz(115_200)))?;
     drain(cross);
     cross.tx().write_all(&[0; 16])?;
     cross.tx().flush()?;
@@ -1006,7 +1012,7 @@ pub fn framing_mismatch<U: UartParts, V: UartParts>(
 pub fn parity_mismatch<U: UartParts, V: UartParts>(
     cross: &mut Cross<'_, U, V>,
 ) -> Result<(), Fail> {
-    let with = |parity| Config::new(115_200).with_parity(parity);
+    let with = |parity| Config::new(ferrohal_stm32::time::Hertz(115_200)).with_parity(parity);
     cross.from.set_config(&with(Parity::Even))?;
     cross.to.set_config(&with(Parity::Odd))?;
     drain(cross);
@@ -1019,7 +1025,7 @@ pub fn parity_mismatch<U: UartParts, V: UartParts>(
 
 /// Both ends back to 115200 8N1, and a line through to prove it.
 fn restore<U: UartParts, V: UartParts>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
-    cross.set_config(&Config::new(115_200))?;
+    cross.set_config(&Config::new(ferrohal_stm32::time::Hertz(115_200)))?;
     drain(cross);
     echo(cross, b"restored")
 }
@@ -1079,7 +1085,7 @@ pub fn full_suite(
         wait_bounds(
             link,
             CYCLES_PER_MS.load(Ordering::Relaxed) * 1000,
-            config.baudrate,
+            config.baudrate.0,
         ),
     );
     report.check_for(
@@ -1301,7 +1307,7 @@ pub fn wait_bounds(link: &mut dyn Link, cpu_hz: u32, baudrate: u32) -> Result<()
 /// line's idle level.
 pub fn bitbang<P: embedded_hal::digital::OutputPin>(pin: &mut P, bytes: &[u8], config: &Config) {
     use cortex_m::peripheral::DWT;
-    let bit = CYCLES_PER_MS.load(Ordering::Relaxed) * 1000 / config.baudrate;
+    let bit = CYCLES_PER_MS.load(Ordering::Relaxed) * 1000 / config.baudrate.0;
     let stop_bits = match config.stop_bits {
         StopBits::Two => 2,
         _ => 1,
@@ -1437,8 +1443,14 @@ pub fn nvic_mask_all<I: cortex_m::interrupt::InterruptNumber, const N: usize>(
 fn errata(rev: u16) {
     use ferrohal_stm32::errata::Handling;
     let sheet = &ferrohal_stm32::chip::ERRATA_SHEET;
-    let matching = || ferrohal_stm32::chip::ERRATA.iter().filter(|e| e.affects(rev));
-    let unreviewed = matching().filter(|e| e.handling == Handling::Unreviewed).count();
+    let matching = || {
+        ferrohal_stm32::chip::ERRATA
+            .iter()
+            .filter(|e| e.affects(rev))
+    };
+    let unreviewed = matching()
+        .filter(|e| e.handling == Handling::Unreviewed)
+        .count();
     defmt::info!(
         "errata: {=str} Rev {=u8}, {=usize} affect rev 0x{=u16:x}, {=usize} unreviewed",
         sheet.name,
@@ -1490,8 +1502,8 @@ pub fn finish(report: &Report, pass: impl FnOnce()) -> ! {
     }
 }
 
-pub const ONE_MBAUD: Config = Config::new(1_000_000);
-pub const EVEN_PARITY_TWO_STOP: Config = Config::new(57_600)
+pub const ONE_MBAUD: Config = Config::new(ferrohal_stm32::time::Hertz(1_000_000));
+pub const EVEN_PARITY_TWO_STOP: Config = Config::new(ferrohal_stm32::time::Hertz(57_600))
     .with_parity(Parity::Even)
     .with_stop_bits(StopBits::Two);
 
@@ -1531,7 +1543,12 @@ pub fn clock_against_host_frames(
         }
     }
     let measured = cycles.unwrap_or(0);
-    defmt::info!("{=u32} CPU cycles per {=u32} host frames, want {=u32}", measured, FRAMES, cpu_hz);
+    defmt::info!(
+        "{=u32} CPU cycles per {=u32} host frames, want {=u32}",
+        measured,
+        FRAMES,
+        cpu_hz
+    );
     let off = u64::from(measured.abs_diff(cpu_hz)) * 1_000_000;
     if off <= u64::from(cpu_hz) * u64::from(ppm) {
         Ok(())
@@ -1542,4 +1559,3 @@ pub fn clock_against_host_frames(
         })
     }
 }
-

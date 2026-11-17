@@ -93,7 +93,7 @@ pub trait AltPin {
     const AF: u8;
 }
 
-impl<const P: char, const N: u8, const AF: u8> AltPin for Pin<P, N, Alternate<AF>> {
+impl<const P: char, const N: u8, const AF: u8, OT> AltPin for Pin<P, N, Alternate<AF, OT>> {
     const PORT: char = P;
     const PIN: u8 = N;
     const AF: u8 = AF;
@@ -109,8 +109,16 @@ impl<const P: char, const N: u8> AltPin for Pin<P, N, Analog> {
 pub struct Input;
 /// Push-pull output.
 pub struct Output;
-/// Driven by a peripheral, through alternate function `AF`.
-pub struct Alternate<const AF: u8>;
+/// Driven by a peripheral, through alternate function `AF`, with output
+/// type `OT`: [`PushPull`] unless made with
+/// [`into_alternate_open_drain`](Pin::into_alternate_open_drain).
+pub struct Alternate<const AF: u8, OT = PushPull> {
+    _otype: PhantomData<OT>,
+}
+/// Output type: the pin drives the line both high and low.
+pub struct PushPull;
+/// Output type: the pin only pulls the line low and lets it float high.
+pub struct OpenDrain;
 pub struct Analog;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -176,7 +184,7 @@ where
     pub fn into_alternate_open_drain<const AF: u8>(
         self,
         _ctrl: &mut Ctrl<P>,
-    ) -> Pin<P, N, Alternate<AF>> {
+    ) -> Pin<P, N, Alternate<AF, OpenDrain>> {
         const { assert!(AF < 16, "alternate functions are 0 to 15") };
         let regs = Self::regs();
         regs.otyper()

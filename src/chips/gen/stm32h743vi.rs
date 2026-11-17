@@ -302,14 +302,14 @@ i2cs!(
     I2C4 => I2C4_INFO, Apb4, 7;
 );
 
-pins!(SclPin<I2C1>: ('B', 6, 4), ('B', 8, 4));
-pins!(SdaPin<I2C1>: ('B', 7, 4), ('B', 9, 4));
-pins!(SclPin<I2C2>: ('B', 10, 4));
-pins!(SdaPin<I2C2>: ('B', 11, 4));
-pins!(SclPin<I2C3>: ('A', 8, 4));
-pins!(SdaPin<I2C3>: ('C', 9, 4));
-pins!(SclPin<I2C4>: ('B', 6, 6), ('B', 8, 6), ('D', 12, 4));
-pins!(SdaPin<I2C4>: ('B', 7, 6), ('B', 9, 6), ('D', 13, 4));
+pins!(SclPin<I2C1>, OpenDrain: ('B', 6, 4), ('B', 8, 4));
+pins!(SdaPin<I2C1>, OpenDrain: ('B', 7, 4), ('B', 9, 4));
+pins!(SclPin<I2C2>, OpenDrain: ('B', 10, 4));
+pins!(SdaPin<I2C2>, OpenDrain: ('B', 11, 4));
+pins!(SclPin<I2C3>, OpenDrain: ('A', 8, 4));
+pins!(SdaPin<I2C3>, OpenDrain: ('C', 9, 4));
+pins!(SclPin<I2C4>, OpenDrain: ('B', 6, 6), ('B', 8, 6), ('D', 12, 4));
+pins!(SdaPin<I2C4>, OpenDrain: ('B', 7, 6), ('B', 9, 6), ('D', 13, 4));
 
 timers!(
     TIM1 => Apb2, 0, TIM1_UP, 16;
@@ -432,7 +432,7 @@ adc_dma_mux!(ADC1: mux 9);
 adc_pins!(ADC3: ('C', 0, 10), ('C', 1, 11));
 adc_dma_mux!(ADC3: mux 115);
 
-usb_fs!(USB_OTG_FS => Ahb1, 27, OTG_FS;);
+usb_fs!(USB_OTG_FS => Ahb1, 27, OTG_FS; dm ('A', 11, 10), dp ('A', 12, 10));
 
 sdmmcs!(
     SDMMC1 => Ahb3, 16;

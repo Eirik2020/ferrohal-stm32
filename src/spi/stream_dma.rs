@@ -20,7 +20,7 @@
 //! The blocking forms (`transfer`, `SpiBus`) wait for completion within a
 //! bound: twice the transfer's time on the wire, plus a fixed margin, in
 //! CPU cycles, measured with a [`CycleClock`] when one is set, otherwise
-//! counted as passes of at least `PASS_CYCLES`. A transfer that runs past
+//! counted as passes of at least `wait::PASS_CYCLES`. A transfer that runs past
 //! it is aborted and reported as [`Error::Timeout`].
 //!
 //! # Memory
@@ -35,35 +35,16 @@ use core::sync::atomic::{Ordering, fence};
 
 use crate::{
     chip::Interrupt,
-    dma::{
-        Channel, Direction, FifoMode, Flags, Interrupts, Priority, StopTimeout, Stream,
-        StreamInterrupt, Transfer, WordSize,
-    },
-    gpio::AltPin,
+    dma::{AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, Transfer, WordSize},
     rcc::Rcc,
-    resource::{Refused, Resource, Signal},
+    resource::Refused,
     spi::{
-        Buffers, Config, ConfigError, Error, Health, Info, Instance, MisoPin, MosiPin, SckPin,
-        SpiInterrupts, SpiParts, SpiRxDma, SpiTxDma, Wiring,
+        Buffers, Config, ConfigError, Error, Health, Info, Instance, MisoPin, MosiPin, Parts,
+        SckPin, SpiInterrupts, SpiRxDma, SpiTxDma, Wiring, instance::SckClock,
     },
-    spi_ip::Unit,
     time::{CycleClock, Hertz},
     wait::Deadline,
 };
-
-/// Spins allowed for a DMA stream to report itself stopped.
-const STOP_SPINS: u32 = 10_000;
-/// The fewest CPU cycles one pass of the completion wait can take, used
-/// when no [`CycleClock`] is set: the fastest pass measured with the DWT
-/// (`hil` "a polling pass takes no less than the driver's floor"), halved.
-/// H753 at 400 MHz with caches on, 233 cycles; the F401 at 84 MHz takes
-/// 324 and the H753 with caches off about 690, so their counted waits run
-/// up to about 3 and 6 times the time asked. A `CycleClock` makes every
-/// wait exact.
-const PASS_CYCLES: u32 = 112;
-/// Added to every blocking bound, in CPU cycles: the start-up and the
-/// interrupt latency a transfer can see before its first SCK edge.
-const MARGIN_CYCLES: u32 = 20_000;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -76,10 +57,10 @@ enum State {
 /// whole wiring, the instance, its three pins and both stream tokens, and
 /// [`free`](Spi::free) hands it back with the buffers, so the same parts
 /// open again.
-pub struct Spi<W: SpiParts> {
+pub struct Spi<W: Parts> {
     info: &'static Info,
-    tx: Channel,
-    rx: Channel,
+    tx: AnyStream,
+    rx: AnyStream,
     tx_request: u8,
     rx_request: u8,
     tx_buf: &'static mut [u8],
@@ -87,11 +68,7 @@ pub struct Spi<W: SpiParts> {
     /// The longest transfer: the shorter buffer.
     cap: u16,
     state: State,
-    kernel_clock: Hertz,
-    cpu: Hertz,
-    frequency: Hertz,
-    /// CPU cycles per SCK period, rounded up.
-    sck_cycles: u32,
+    sck: SckClock,
     clock: Option<&'static dyn CycleClock>,
     vector: Interrupt,
     health: Health,
@@ -124,13 +101,12 @@ where
     ///
     /// On success the handle keeps the wiring; [`free`](Self::free) returns
     /// it with the buffers.
-    #[allow(clippy::type_complexity)]
     pub fn new(
         rcc: &mut Rcc,
         wiring: Wiring<U, Sck, Miso, Mosi, TxD, RxD>,
         config: &Config,
         mut buffers: Buffers,
-    ) -> Result<Self, Refused<ConfigError, (Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers)>> {
+    ) -> Result<Self, super::SpiRefused<U, Sck, Miso, Mosi, TxD, RxD>> {
         // On success `open` has taken the buffers; a refusal hands both back.
         match Self::open(rcc, wiring, config, &mut buffers) {
             Ok(handle) => Ok(handle),
@@ -146,13 +122,13 @@ where
         buffers: &mut Buffers,
     ) -> Result<Self, (ConfigError, Wiring<U, Sck, Miso, Mosi, TxD, RxD>)> {
         // One bundled check phase, so the wiring comes back on any refusal.
-        let (info, clocks, kernel_clock, code, tx_len, rx_len) = match (|| {
+        let (info, clocks, kernel_clock, tx_len, rx_len) = match (|| {
             let info = U::info();
             let clocks = rcc.clocks();
             let kernel_clock = U::KERNEL
                 .frequency(&clocks)
                 .ok_or(ConfigError::KernelClock)?;
-            let code = config.divider(kernel_clock)?;
+            config.divider(kernel_clock)?;
             let tx_len = u16::try_from(buffers.tx.len())
                 .ok()
                 .filter(|&len| len > 0)
@@ -163,29 +139,30 @@ where
                 .ok_or(ConfigError::RxBuffer)?;
             crate::chip::check_dma_buffer(buffers.tx)?;
             crate::chip::check_dma_buffer(buffers.rx)?;
-            Ok((info, clocks, kernel_clock, code, tx_len, rx_len))
+            Ok((info, clocks, kernel_clock, tx_len, rx_len))
         })() {
             Ok(checked) => checked,
             Err(error) => return Err((error, wiring)),
         };
 
-        rcc.enable(U::ENABLE);
-        rcc.reset(U::ENABLE);
-        let mut tx = crate::dma::claim_channel(&wiring.tx_dma);
-        let mut rx = crate::dma::claim_channel(&wiring.rx_dma);
+        rcc.open(U::ENABLE);
+        let mut tx = crate::dma::claim(&wiring.tx_dma);
+        let mut rx = crate::dma::claim(&wiring.rx_dma);
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
-        if tx.stop(STOP_SPINS).is_err() {
+        if tx.stop(crate::dma::STOP_SPINS).is_err() {
             return Err((ConfigError::DmaBusy, wiring));
         }
-        if rx.stop(STOP_SPINS).is_err() {
+        if rx.stop(crate::dma::STOP_SPINS).is_err() {
             return Err((ConfigError::DmaBusy, wiring));
         }
         tx.clear_flags(Flags::ALL);
         rx.clear_flags(Flags::ALL);
-        info.unit().configure(code, config);
-
-        let frequency = Hertz(kernel_clock.0 >> (code + 1));
+        // The divider was checked above, so this cannot refuse.
+        let sck = match SckClock::configure(info.unit(), kernel_clock, clocks.cpu, config) {
+            Ok(sck) => sck,
+            Err(error) => return Err((error, wiring)),
+        };
         Ok(Self {
             info,
             tx,
@@ -197,10 +174,7 @@ where
             rx_buf: core::mem::take(&mut buffers.rx),
             cap: tx_len.min(rx_len),
             state: State::Idle,
-            kernel_clock,
-            cpu: clocks.cpu,
-            frequency,
-            sck_cycles: clocks.cpu.0.div_ceil(frequency.0.max(1)),
+            sck,
             clock: None,
             vector: RxD::INTERRUPT,
             health: Health::default(),
@@ -225,8 +199,8 @@ where
     pub fn free(
         mut self,
     ) -> Result<(Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers), Refused<StopTimeout, Self>> {
-        let tx = self.tx.stop(STOP_SPINS);
-        let rx = self.rx.stop(STOP_SPINS);
+        let tx = self.tx.stop(crate::dma::STOP_SPINS);
+        let rx = self.rx.stop(crate::dma::STOP_SPINS);
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         self.info.unit().disable();
@@ -241,22 +215,28 @@ where
     }
 }
 
-impl<W: SpiParts> Spi<W> {
+impl<W: Parts> Spi<W> {
     /// Changes the bus settings between transfers. Returns the new SCK.
     pub fn set_config(&mut self, config: &Config) -> Result<Hertz, ConfigError> {
         if matches!(self.state, State::Running(_)) {
             return Err(ConfigError::Busy);
         }
-        let code = config.divider(self.kernel_clock)?;
-        self.info.unit().configure(code, config);
-        self.frequency = Hertz(self.kernel_clock.0 >> (code + 1));
-        self.sck_cycles = self.cpu.0.div_ceil(self.frequency.0.max(1));
-        Ok(self.frequency)
+        self.sck.reconfigure(self.info.unit(), config)
     }
 
     /// The SCK in use.
     pub fn frequency(&self) -> Hertz {
-        self.frequency
+        self.sck.frequency()
+    }
+
+    /// The kernel clock SCK is divided from.
+    pub fn kernel_clock(&self) -> Hertz {
+        self.sck.kernel_clock()
+    }
+
+    /// The instance's name in the reference manual.
+    pub fn name(&self) -> &'static str {
+        <W::Instance as Instance>::NAME
     }
 
     /// The longest transfer: the shorter of the two buffers.
@@ -315,13 +295,11 @@ impl<W: SpiParts> Spi<W> {
             direction: Direction::PeripheralToMemory,
             peripheral: unit.rx_address(),
             memory: self.rx_buf.as_mut_ptr() as u32,
-            double_buffer: None,
             len,
             size: WordSize::Byte,
             memory_increment: true,
             circular: false,
             priority: Priority::VeryHigh,
-            fifo: FifoMode::Direct,
             interrupts: Interrupts {
                 complete: true,
                 error: true,
@@ -374,7 +352,7 @@ impl<W: SpiParts> Spi<W> {
         let unit = self.info.unit();
         // The last byte is in; the SPI finishes its frame within an SCK or
         // two. Counted: a register read per pass, at least a cycle each.
-        let mut deadline = Deadline::new(None, self.sck_cycles.saturating_mul(32), 1);
+        let mut deadline = Deadline::new(None, self.sck.cycles().saturating_mul(32), 1);
         while !unit.done() {
             if deadline.expired() {
                 self.fail();
@@ -382,11 +360,7 @@ impl<W: SpiParts> Spi<W> {
                 return Some(Err(Error::Timeout));
             }
         }
-        if Unit::HOLD_AFTER_END {
-            // ES0392 2.22.6: disabling right after EOT can cut the last SCK
-            // pulse short at a slow SCK. Hold one SCK period first.
-            cortex_m::asm::delay(self.sck_cycles);
-        }
+        self.sck.hold_after_end();
         let (overrun, mode_fault) = unit.take_errors();
         unit.end();
         self.rx.clear_flags(Flags::ALL);
@@ -444,10 +418,10 @@ impl<W: SpiParts> Spi<W> {
     fn wait_done(&mut self, len: usize) -> Result<(), Error> {
         let bits = u32::try_from(len).unwrap_or(u32::MAX).saturating_mul(8);
         let cycles = bits
-            .saturating_mul(self.sck_cycles)
+            .saturating_mul(self.sck.cycles())
             .saturating_mul(2)
-            .saturating_add(MARGIN_CYCLES);
-        let mut deadline = Deadline::new(self.clock, cycles, PASS_CYCLES);
+            .saturating_add(crate::wait::MARGIN_CYCLES);
+        let mut deadline = Deadline::new(self.clock, cycles, crate::wait::PASS_CYCLES);
         loop {
             if let Some(result) = self.on_interrupt() {
                 return result.map(|_| ());
@@ -473,13 +447,13 @@ impl<W: SpiParts> Spi<W> {
     fn reset_bus(&mut self) {
         // A stream that won't stop leaves nothing better to do than carry
         // on: the next start reports it as `Error::Dma`.
-        let _ = self.tx.stop(STOP_SPINS);
-        let _ = self.rx.stop(STOP_SPINS);
+        let _ = self.tx.stop(crate::dma::STOP_SPINS);
+        let _ = self.rx.stop(crate::dma::STOP_SPINS);
         // Two frames in flight at most; a register read per spin, at least
         // a cycle each, so this bound covers them twice over.
         self.info
             .unit()
-            .reset_state(self.sck_cycles.saturating_mul(32));
+            .reset_state(self.sck.cycles().saturating_mul(32));
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
@@ -523,14 +497,14 @@ fn copy(dst: &mut [u8], src: &[u8]) {
     }
 }
 
-impl<W: SpiParts> embedded_hal::spi::ErrorType for Spi<W> {
+impl<W: Parts> embedded_hal::spi::ErrorType for Spi<W> {
     type Error = Error;
 }
 
 /// Bounded: every operation is split into transfers of at most
 /// [`capacity`](Spi::capacity) bytes, each waited for within its bound.
 /// The bytes sent while reading are 0x00.
-impl<W: SpiParts> embedded_hal::spi::SpiBus<u8> for Spi<W> {
+impl<W: Parts> embedded_hal::spi::SpiBus<u8> for Spi<W> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Error> {
         let chunk = self.chunk();
         for part in words.chunks_mut(chunk) {
@@ -583,53 +557,4 @@ impl<W: SpiParts> embedded_hal::spi::SpiBus<u8> for Spi<W> {
             Ok(())
         }
     }
-}
-
-impl<U, Sck, Miso, Mosi, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
-    Wiring<U, Sck, Miso, Mosi, Stream<TD, TN>, Stream<RD, RN>>
-where
-    U: Instance,
-    Sck: SckPin<U> + AltPin,
-    Miso: MisoPin<U> + AltPin,
-    Mosi: MosiPin<U> + AltPin,
-    Stream<TD, TN>: SpiTxDma<U>,
-    Stream<RD, RN>: SpiRxDma<U>,
-{
-    /// Everything this wiring uses, as data: the instance, its three pins
-    /// with their alternate functions, both streams with their requests,
-    /// and the receive stream's vector.
-    pub const RESOURCES: [Resource; 7] = [
-        Resource::Peripheral(U::NAME),
-        Resource::Pin {
-            signal: Signal::Sck,
-            port: Sck::PORT,
-            pin: Sck::PIN,
-            af: Sck::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Miso,
-            port: Miso::PORT,
-            pin: Miso::PIN,
-            af: Miso::AF,
-        },
-        Resource::Pin {
-            signal: Signal::Mosi,
-            port: Mosi::PORT,
-            pin: Mosi::PIN,
-            af: Mosi::AF,
-        },
-        Resource::Dma {
-            signal: Signal::Tx,
-            controller: TD,
-            stream: TN,
-            request: <Stream<TD, TN> as SpiTxDma<U>>::REQUEST,
-        },
-        Resource::Dma {
-            signal: Signal::Rx,
-            controller: RD,
-            stream: RN,
-            request: <Stream<RD, RN> as SpiRxDma<U>>::REQUEST,
-        },
-        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::NAME),
-    ];
 }

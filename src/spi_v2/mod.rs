@@ -147,11 +147,7 @@ impl Unit {
     pub(crate) fn reset_state(self, spins: u32) {
         let regs = self.0;
         self.end();
-        for _ in 0..spins {
-            if self.done() {
-                break;
-            }
-        }
+        let _ = crate::wait::spin(spins, || self.done());
         let _ = regs.dr().read();
         let sr = regs.sr().read();
         if sr.modf() {

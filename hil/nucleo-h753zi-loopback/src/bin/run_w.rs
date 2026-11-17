@@ -305,7 +305,7 @@ mod app {
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run W, clocks: {}", board::CLOCKS);
 
-        let config = Config::new(115_200);
+        let config = Config::new(ferrohal_stm32::time::Hertz(115_200));
         let local = cx.local;
         let (usart6, irq6) = Uart::new(
             &mut run.rcc,

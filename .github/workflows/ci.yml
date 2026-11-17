@@ -13,10 +13,11 @@ env:
   FIRMWARE_TARGET: thumbv7em-none-eabihf
   # The toolchain the benches and checks have been running on.
   RUST_TOOLCHAIN: 1.98.1
-  # reqtool's main on 2026-11-15: board evidence follows files (#4, #5), and host
-  # evidence covers every cfg alternative (#6), as do imports and `super` (#8).
-  # Bump it on purpose.
-  REQTOOL_REV: 8537d12b878fcc52ae1bce92d9e15eb1624800ae
+  # reqtool after #9 (2026-11-17): board evidence follows files (#4, #5), host
+  # evidence covers every cfg alternative (#6), as do imports and `super` (#8),
+  # board tiers (#7), and a configuration no longer records which binary cargo
+  # built last (#9). Bump it on purpose.
+  REQTOOL_REV: e68d347b7861ff7f95fe76fa966543f54e5ad7aa
 
 jobs:
   glue:

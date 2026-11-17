@@ -31,7 +31,7 @@ mod polled;
 pub(crate) mod stream_dma;
 
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
-pub use instance::{Info, Instance, MisoPin, MosiPin, SckPin, SpiParts, SpiRxDma, SpiTxDma, check};
+pub use instance::{Info, Instance, MisoPin, MosiPin, Parts, SckPin, SpiRxDma, SpiTxDma, check};
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
 pub use polled::BlockingSpi;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
@@ -62,6 +62,7 @@ pub struct Config {
     pub bit_order: BitOrder,
 }
 
+// Written out: embedded-hal's `Mode` has no `defmt::Format`.
 #[cfg(feature = "defmt")]
 impl defmt::Format for Config {
     fn format(&self, f: defmt::Formatter) {
@@ -150,6 +151,72 @@ pub struct Buffers {
     /// The bytes clocked in land here; `received` lends them out.
     pub rx: &'static mut [u8],
 }
+
+#[cfg(all(
+    any(feature = "spi_v2", feature = "spi_v4"),
+    any(feature = "dma_v1", feature = "dma_v2")
+))]
+impl<U, Sck, Miso, Mosi, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
+    Wiring<U, Sck, Miso, Mosi, crate::dma::Stream<TD, TN>, crate::dma::Stream<RD, RN>>
+where
+    U: Instance,
+    Sck: SckPin<U> + crate::gpio::AltPin,
+    Miso: MisoPin<U> + crate::gpio::AltPin,
+    Mosi: MosiPin<U> + crate::gpio::AltPin,
+    crate::dma::Stream<TD, TN>: SpiTxDma<U>,
+    crate::dma::Stream<RD, RN>: SpiRxDma<U>,
+{
+    /// Everything this wiring uses, as data: the instance, its three pins
+    /// with their alternate functions, both streams with their requests,
+    /// and the receive stream's vector.
+    pub const RESOURCES: [Resource; 7] = [
+        Resource::Peripheral(U::NAME),
+        Resource::pin::<Sck>(Signal::Sck),
+        Resource::pin::<Miso>(Signal::Miso),
+        Resource::pin::<Mosi>(Signal::Mosi),
+        Resource::Dma {
+            signal: Signal::Tx,
+            controller: TD,
+            stream: TN,
+            request: <crate::dma::Stream<TD, TN> as SpiTxDma<U>>::REQUEST,
+        },
+        Resource::Dma {
+            signal: Signal::Rx,
+            controller: RD,
+            stream: RN,
+            request: <crate::dma::Stream<RD, RN> as SpiRxDma<U>>::REQUEST,
+        },
+        Resource::Interrupt(<crate::dma::Stream<RD, RN> as crate::dma::StreamInterrupt>::NAME),
+    ];
+}
+
+#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+impl<U, Sck, Miso, Mosi> BlockingWiring<U, Sck, Miso, Mosi>
+where
+    U: Instance,
+    Sck: SckPin<U> + crate::gpio::AltPin,
+    Miso: MisoPin<U> + crate::gpio::AltPin,
+    Mosi: MosiPin<U> + crate::gpio::AltPin,
+{
+    /// Everything this wiring uses, as data: the instance and its three pins
+    /// with their alternate functions. No streams, no vectors.
+    pub const RESOURCES: [Resource; 4] = [
+        Resource::Peripheral(U::NAME),
+        Resource::pin::<Sck>(Signal::Sck),
+        Resource::pin::<Miso>(Signal::Miso),
+        Resource::pin::<Mosi>(Signal::Mosi),
+    ];
+}
+
+/// What [`Spi::new`](crate::spi::Spi::new) hands back when it refuses: the
+/// reason, and the wiring and buffers it took.
+pub type SpiRefused<U, Sck, Miso, Mosi, TxDma, RxDma> =
+    crate::resource::Refused<ConfigError, (Wiring<U, Sck, Miso, Mosi, TxDma, RxDma>, Buffers)>;
+
+/// What [`BlockingSpi::new`](crate::spi::BlockingSpi::new) hands back when it
+/// refuses: the reason, and the wiring it took.
+pub type BlockingSpiRefused<U, Sck, Miso, Mosi> =
+    crate::resource::Refused<ConfigError, BlockingWiring<U, Sck, Miso, Mosi>>;
 
 /// The interrupt vector an SPI needs bound, from `Spi::interrupts`: its
 /// receive stream's, whose handler calls `Spi::on_interrupt`.
