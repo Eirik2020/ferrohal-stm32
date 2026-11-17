@@ -53,6 +53,27 @@ pub const PARTS: &[Part] = &[
         package: "LQFP100",
     },
     Part {
+        feature: "stm32f410tb",
+        series: "F4",
+        die: 0x458,
+        device: "STM32F410",
+        package: "WLCSP36",
+    },
+    Part {
+        feature: "stm32f410cb",
+        series: "F4",
+        die: 0x458,
+        device: "STM32F410",
+        package: "UFQFPN48",
+    },
+    Part {
+        feature: "stm32f410rb",
+        series: "F4",
+        die: 0x458,
+        device: "STM32F410",
+        package: "LQFP64",
+    },
+    Part {
         feature: "stm32f411ce",
         series: "F4",
         die: 0x431,
@@ -517,6 +538,9 @@ pub const VARIANTS: &[(&str, &str)] = &[
     ("stm32f413rg", "stm32f413rh"),
     ("stm32f413vg", "stm32f413vh"),
     ("stm32f413zg", "stm32f413zh"),
+    ("stm32f410t8", "stm32f410tb"),
+    ("stm32f410c8", "stm32f410cb"),
+    ("stm32f410r8", "stm32f410rb"),
 ];
 
 /// The benches evidence is recorded on (`hil/<crate>`), each with the part
@@ -587,6 +611,11 @@ pub const DIES: &[Die] = &[
         id: 0x452,
         lines: &["STM32F722", "STM32F723", "STM32F732", "STM32F733"],
         manual: "RM0431",
+    },
+    Die {
+        id: 0x458,
+        lines: &["STM32F410"],
+        manual: "RM0401",
     },
     Die {
         id: 0x463,
@@ -726,7 +755,7 @@ mod tests {
             features("die 0x433"),
             ["stm32f401ce", "stm32f401re", "stm32f401ve"]
         );
-        assert_eq!(features("series F4").len(), 36);
+        assert_eq!(features("series F4").len(), 39);
         assert_eq!(features("series f7").len(), 12);
         assert_eq!(features("series h7").len(), 12);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);

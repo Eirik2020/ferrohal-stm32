@@ -151,6 +151,7 @@ impl Rcc {
 
 bus_registers!(
     Ahb1 => ahb1enr, ahb1rstr;
+    #[cfg(not(feature = "_line-stm32f410"))]
     Ahb2 => ahb2enr, ahb2rstr;
     Apb1 => apb1enr, apb1rstr;
     Apb2 => apb2enr, apb2rstr;

@@ -48,6 +48,12 @@ const CHIP_FEATURES: usize = cfg!(feature = "stm32f401ce") as usize
     + cfg!(feature = "stm32f401rd") as usize
     + cfg!(feature = "stm32f401ve") as usize
     + cfg!(feature = "stm32f401vd") as usize
+    + cfg!(feature = "stm32f410tb") as usize
+    + cfg!(feature = "stm32f410t8") as usize
+    + cfg!(feature = "stm32f410cb") as usize
+    + cfg!(feature = "stm32f410c8") as usize
+    + cfg!(feature = "stm32f410rb") as usize
+    + cfg!(feature = "stm32f410r8") as usize
     + cfg!(feature = "stm32f411ce") as usize
     + cfg!(feature = "stm32f411cc") as usize
     + cfg!(feature = "stm32f411re") as usize
@@ -179,6 +185,9 @@ pub mod time;
 pub mod uart;
 #[cfg(feature = "usb")]
 pub mod usb;
+// The STM32F410 has no USB port (RM0401 has no OTG chapter).
+#[cfg(all(feature = "usb", feature = "_line-stm32f410"))]
+compile_error!("the STM32F410 has no USB port: drop the `usb` feature");
 mod wait;
 
 // EXTI: one source, two IP versions (see the module).
@@ -283,6 +292,9 @@ use usart_v4 as usart_ip;
 
 #[cfg(feature = "_line-stm32f401")]
 #[path = "chips/stm32f401re.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f410")]
+#[path = "chips/stm32f410rb.rs"]
 pub mod chip;
 #[cfg(feature = "_line-stm32f411")]
 #[path = "chips/stm32f411ce.rs"]

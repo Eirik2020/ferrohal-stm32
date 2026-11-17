@@ -112,6 +112,25 @@ stm32f401re = ["stm32-metapac/stm32f401re", "_line-stm32f401"]
 stm32f401rd = ["stm32-metapac/stm32f401rd", "_line-stm32f401"]
 stm32f401ve = ["stm32-metapac/stm32f401ve", "_line-stm32f401"]
 stm32f401vd = ["stm32-metapac/stm32f401vd", "_line-stm32f401"]
+_line-stm32f410 = [
+    "_family-stm32f4",
+    "usart_v2",
+    "spi_v2",
+    "i2c_v1",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v1",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f4",
+    "adc_v2",
+]
+stm32f410tb = ["stm32-metapac/stm32f410tb", "_line-stm32f410"]
+stm32f410t8 = ["stm32-metapac/stm32f410t8", "_line-stm32f410"]
+stm32f410cb = ["stm32-metapac/stm32f410cb", "_line-stm32f410"]
+stm32f410c8 = ["stm32-metapac/stm32f410c8", "_line-stm32f410"]
+stm32f410rb = ["stm32-metapac/stm32f410rb", "_line-stm32f410"]
+stm32f410r8 = ["stm32-metapac/stm32f410r8", "_line-stm32f410"]
 _line-stm32f411 = [
     "_family-stm32f4",
     "usart_v2",

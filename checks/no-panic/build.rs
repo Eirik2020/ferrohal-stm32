@@ -7,6 +7,9 @@ fn main() {
     let memory = if feature("STM32H753ZI") || feature("STM32H743VI") {
         // AXI SRAM: DMA1 and DMA2 cannot reach the DTCM.
         "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 2048K\n RAM : ORIGIN = 0x24000000, LENGTH = 512K }\n"
+    } else if feature("STM32F410RB") {
+        // RM0401 2.3: 32 KiB of SRAM; the RB's 128 KiB of flash.
+        "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 128K\n RAM : ORIGIN = 0x20000000, LENGTH = 32K }\n"
     } else if feature("STM32F411CE") || feature("STM32F446RE") {
         // RM0383 2.3.1 and RM0390 2.2.2: 128 KiB of SRAM; the CE's and RE's
         // 512 KiB of flash.

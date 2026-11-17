@@ -27,6 +27,8 @@ pub const HSI: Hertz = Hertz(16_000_000);
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Bus {
     Ahb1,
+    /// Absent on the STM32F410, whose RCC has no AHB2 registers (RM0401 6.3).
+    #[cfg(not(feature = "_line-stm32f410"))]
     Ahb2,
     Apb1,
     Apb2,
@@ -58,7 +60,9 @@ impl Clocks {
     /// The clock of peripherals on `bus`.
     pub const fn bus(&self, bus: Bus) -> Hertz {
         match bus {
-            Bus::Ahb1 | Bus::Ahb2 => self.hclk,
+            Bus::Ahb1 => self.hclk,
+            #[cfg(not(feature = "_line-stm32f410"))]
+            Bus::Ahb2 => self.hclk,
             Bus::Apb1 => self.pclk1,
             Bus::Apb2 => self.pclk2,
         }
@@ -70,7 +74,9 @@ impl Clocks {
         match bus {
             Bus::Apb1 => self.timclk1,
             Bus::Apb2 => self.timclk2,
-            Bus::Ahb1 | Bus::Ahb2 => self.hclk,
+            Bus::Ahb1 => self.hclk,
+            #[cfg(not(feature = "_line-stm32f410"))]
+            Bus::Ahb2 => self.hclk,
         }
     }
 }

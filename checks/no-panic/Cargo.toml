@@ -11,7 +11,8 @@ test = false
 bench = false
 
 [dependencies]
-ferrohal-stm32 = { path = "../..", features = ["rt", "fugit", "usb", "rtic"] }
+# `usb` comes with each chip that has a USB port (not the F410).
+ferrohal-stm32 = { path = "../..", features = ["rt", "fugit", "rtic"] }
 fugit = "0.6"
 embedded-io = "0.7.1"
 embedded-hal = "1.0.0"
@@ -19,20 +20,21 @@ cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.6"
 
 [features]
-stm32f401re = ["ferrohal-stm32/stm32f401re"]
-stm32f411ce = ["ferrohal-stm32/stm32f411ce"]
-stm32f405rg = ["ferrohal-stm32/stm32f405rg"]
-stm32f407vg = ["ferrohal-stm32/stm32f407vg"]
-stm32f412zg = ["ferrohal-stm32/stm32f412zg"]
-stm32f413zh = ["ferrohal-stm32/stm32f413zh"]
-stm32f427vi = ["ferrohal-stm32/stm32f427vi"]
-stm32f429zi = ["ferrohal-stm32/stm32f429zi"]
-stm32f446re = ["ferrohal-stm32/stm32f446re"]
-stm32f722re = ["ferrohal-stm32/stm32f722re"]
-stm32f745vg = ["ferrohal-stm32/stm32f745vg"]
-stm32f767zi = ["ferrohal-stm32/stm32f767zi"]
-stm32h743vi = ["ferrohal-stm32/stm32h743vi"]
-stm32h753zi = ["ferrohal-stm32/stm32h753zi"]
+stm32f401re = ["ferrohal-stm32/stm32f401re", "ferrohal-stm32/usb"]
+stm32f410rb = ["ferrohal-stm32/stm32f410rb"]
+stm32f411ce = ["ferrohal-stm32/stm32f411ce", "ferrohal-stm32/usb"]
+stm32f405rg = ["ferrohal-stm32/stm32f405rg", "ferrohal-stm32/usb"]
+stm32f407vg = ["ferrohal-stm32/stm32f407vg", "ferrohal-stm32/usb"]
+stm32f412zg = ["ferrohal-stm32/stm32f412zg", "ferrohal-stm32/usb"]
+stm32f413zh = ["ferrohal-stm32/stm32f413zh", "ferrohal-stm32/usb"]
+stm32f427vi = ["ferrohal-stm32/stm32f427vi", "ferrohal-stm32/usb"]
+stm32f429zi = ["ferrohal-stm32/stm32f429zi", "ferrohal-stm32/usb"]
+stm32f446re = ["ferrohal-stm32/stm32f446re", "ferrohal-stm32/usb"]
+stm32f722re = ["ferrohal-stm32/stm32f722re", "ferrohal-stm32/usb"]
+stm32f745vg = ["ferrohal-stm32/stm32f745vg", "ferrohal-stm32/usb"]
+stm32f767zi = ["ferrohal-stm32/stm32f767zi", "ferrohal-stm32/usb"]
+stm32h743vi = ["ferrohal-stm32/stm32h743vi", "ferrohal-stm32/usb"]
+stm32h753zi = ["ferrohal-stm32/stm32h753zi", "ferrohal-stm32/usb"]
 # Links despite panic paths, to find them in the disassembly.
 locate = []
 

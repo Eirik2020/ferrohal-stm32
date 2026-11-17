@@ -851,6 +851,7 @@ fn exercise_i2c<W: i2c::Parts>(bus: &mut I2c<W>) {
 /// The USB clock check alone.
 #[cfg(any(
     feature = "stm32f401re",
+    feature = "stm32f410rb",
     feature = "stm32f411ce",
     feature = "stm32f412zg",
     feature = "stm32f413zh",
@@ -864,6 +865,7 @@ fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
 /// third-party and sits outside this check.
 #[cfg(not(any(
     feature = "stm32f401re",
+    feature = "stm32f410rb",
     feature = "stm32f411ce",
     feature = "stm32f412zg",
     feature = "stm32f413zh",
@@ -1115,6 +1117,176 @@ mod chip {
         );
         // TIM1 is the F401's only break-unit timer and its only update
         // request on DMA2, so it samples here and the F405 covers CHxN.
+        super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
+        let _ = analog;
+        Some((
+            rcc,
+            Wiring {
+                uart: p.USART1,
+                tx,
+                rx,
+                tx_dma: dma2.s7,
+                rx_dma: dma2.s2,
+            },
+            RxWiring {
+                uart: p.USART6,
+                rx: rx6,
+                rx_dma: dma2.s1,
+            },
+            spi::Wiring {
+                spi: p.SPI2,
+                sck: b.p13.into_alternate::<5>(&mut b.ctrl),
+                miso: b.p14.into_alternate::<5>(&mut b.ctrl),
+                mosi: b.p15.into_alternate::<5>(&mut b.ctrl),
+                tx_dma: dma1.s4,
+                rx_dma: dma1.s3,
+            },
+            i2c::Wiring {
+                i2c: p.I2C1,
+                scl: b.p8.into_alternate_open_drain::<4>(&mut b.ctrl),
+                sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
+            },
+            Spare {
+                stream: Some(dma2.s0),
+            },
+            out,
+            input,
+        ))
+    }
+}
+
+/// The STM32F410RB: no USB port, no TIM2 to TIM4 and no trigger route, so
+/// it takes its own wiring (RM0401; pins and streams from its glue).
+#[cfg(feature = "stm32f410rb")]
+mod chip {
+    use ferrohal_stm32::{
+        chip::{I2C1, Peripherals, SPI2, USART1, USART6},
+        dma::Stream,
+        gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
+        i2c,
+        rcc::{AhbPrescaler, ApbPrescaler, Config, Pll, PllP, PllSource, Rcc, Supply, Sysclk},
+        spi,
+        uart::{RxWiring, Wiring},
+    };
+
+    use super::Spare;
+
+    pub type RxUart = USART6;
+    pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>;
+    pub type SpiUnit = SPI2;
+    pub type I2cUnit = I2C1;
+    pub type SpiWiring = spi::Wiring<
+        SPI2,
+        Pin<'B', 13, Alternate<5>>,
+        Pin<'B', 14, Alternate<5>>,
+        Pin<'B', 15, Alternate<5>>,
+        Stream<1, 4>,
+        Stream<1, 3>,
+    >;
+    pub type I2cWiring = i2c::Wiring<
+        I2C1,
+        Pin<'B', 8, Alternate<4, OpenDrain>>,
+        Pin<'B', 9, Alternate<4, OpenDrain>>,
+    >;
+
+    /// 100 MHz from HSI: a 400 MHz VCO, P 4; APB1 at 50 MHz.
+    const CLOCKS: Config = Config {
+        hse: None,
+        pll: Some(Pll {
+            source: PllSource::Hsi,
+            prediv: 16,
+            mul: 400,
+            divp: PllP::Div4,
+            divq: None,
+        }),
+        sys: Sysclk::PllP,
+        ahb_pre: AhbPrescaler::Div1,
+        apb1_pre: ApbPrescaler::Div2,
+        apb2_pre: ApbPrescaler::Div1,
+        supply: Supply::V2_7To3_6,
+    };
+
+    pub type UartWiring = Wiring<
+        USART1,
+        Pin<'A', 9, Alternate<7>>,
+        Pin<'A', 10, Alternate<7>>,
+        Stream<2, 7>,
+        Stream<2, 2>,
+    >;
+
+    pub fn wire(
+        p: Peripherals,
+    ) -> Option<(
+        Rcc,
+        UartWiring,
+        RxOnlyWiring,
+        SpiWiring,
+        I2cWiring,
+        Spare<Stream<2, 0>>,
+        Pin<'A', 5, Output>,
+        Pin<'C', 13, Input>,
+    )> {
+        let mut rcc = p.RCC.freeze(&core::hint::black_box(CLOCKS)).ok()?;
+        let mut a = p.GPIOA.split(&mut rcc);
+        let mut b = p.GPIOB.split(&mut rcc);
+        let mut c = p.GPIOC.split(&mut rcc);
+        let dma1 = p.DMA1.split(&mut rcc);
+        let dma2 = p.DMA2.split(&mut rcc);
+        // A second set of tokens for the exercises that need a stream the
+        // wiring below does not take. The build never runs, so the aliasing
+        // exists only in the linked code.
+        let spare1 = unsafe { Peripherals::steal() }.DMA1.split(&mut rcc);
+        let spare2 = unsafe { Peripherals::steal() }.DMA2.split(&mut rcc);
+        let mut tx = a.p9.into_alternate::<7>(&mut a.ctrl);
+        tx.set_speed(&mut a.ctrl, core::hint::black_box(Speed::Medium));
+        let mut rx = a.p10.into_alternate::<7>(&mut a.ctrl);
+        rx.set_pull(&mut a.ctrl, core::hint::black_box(Pull::Up));
+        let out = a.p5.into_push_pull_output(&mut a.ctrl);
+        let input = c.p13.into_input(&mut c.ctrl);
+        let rx6 = a.p12.into_alternate::<8>(&mut a.ctrl);
+        let analog = a.p1.into_analog(&mut a.ctrl);
+        let mut exti = p.EXTI.split(p.SYSCFG.split(&mut rcc).exticr);
+        super::exercise_exti::<'A', 1>(&mut exti.ctrl, exti.l1);
+        super::exercise_timers(&mut rcc, p.TIM11, p.TIM5);
+        super::exercise_watchdog(&mut rcc, p.IWDG);
+        super::exercise_adc(
+            &mut rcc,
+            p.ADC1,
+            a.p4.into_analog(&mut a.ctrl),
+            dma2.s4,
+            super::adc_buffer(),
+        );
+        super::exercise_adc_internal(&mut rcc, unsafe { Peripherals::steal() }.ADC1);
+        super::exercise_two_way::<_, _, _, _, 'A'>(
+            &mut rcc,
+            unsafe { Peripherals::steal() }.TIM1,
+            a.p8.into_alternate::<1>(&mut a.ctrl),
+            spare2.s1,
+        );
+        super::keep_usb_clock(&mut rcc);
+        super::exercise_blocking(
+            &mut rcc,
+            spi::BlockingWiring {
+                spi: p.SPI1,
+                sck: b.p3.into_alternate::<5>(&mut b.ctrl),
+                miso: b.p4.into_alternate::<5>(&mut b.ctrl),
+                mosi: b.p5.into_alternate::<5>(&mut b.ctrl),
+            },
+        );
+        // An open-drain alternate, as I2C.s shared lines are wired.
+        super::keep(b.p7.into_alternate_open_drain::<1>(&mut b.ctrl));
+        super::exercise_lane(
+            &mut rcc,
+            unsafe { Peripherals::steal() }.TIM5,
+            b.p12.into_alternate::<2>(&mut b.ctrl),
+            dma1.s2,
+        );
+        super::exercise_lane_free(
+            &mut rcc,
+            unsafe { Peripherals::steal() }.TIM5,
+            a.p0.into_alternate::<2>(&mut a.ctrl),
+            spare1.s2,
+        );
         super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
         let _ = analog;
         Some((

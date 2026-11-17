@@ -40,7 +40,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.1.3", "Store immediate overlapping exception return operation might vector to incorrect interrupt", [0x1001, 0x2000, 0x3000], Workaround, Firmware("a DSB before an ISR returns, or ACTLR.DISDEFWBUF without the MPU; FerroHAL defines no ISR"), []),
     erratum!("2.2.1", "Debugging Stop mode and SysTick timer", [0x1001, 0x2000, 0x3000], Workaround, NotReached("no Stop entry: FerroHAL has no low-power API"), []),
     erratum!("2.2.2", "Debugging Stop mode with WFE entry", [0x1001, 0x2000, 0x3000], Workaround, NotReached("no Stop entry: FerroHAL has no low-power API"), []),
-    erratum!("2.2.3", "Debugging Sleep/Stop mode with WFE/WFI entry", [0x1001, 0x2000, 0x3000], Workaround, Firmware("revision A runs without prefetch (2.2.1), so with DBG_SLEEP or DBG_STOP set put three NOPs after WFI or WFE; FerroHAL enters no Sleep or Stop"), []),
+    erratum!("2.2.3", "Debugging Sleep/Stop mode with WFE/WFI entry", [0x1001, 0x2000, 0x3000], Workaround, Avoided("freeze turns the prefetch queue on, which the erratum needs off; FerroHAL enters no Sleep or Stop"), []),
     erratum!("2.2.4", "Wake-up sequence from Standby mode when using more than one wake-up source", [0x1001, 0x2000, 0x3000], Workaround, NotReached("no Standby entry: FerroHAL has no low-power API"), []),
     erratum!("2.2.5", "Full JTAG configuration without NJTRST pin cannot be used", [0x1001, 0x2000, 0x3000], Workaround, Firmware("debug over SWD: 4-wire JTAG loses the probe when PB4 is a GPIO"), []),
     erratum!("2.2.6", "MPU attribute to RTC and IWDG registers incorrectly managed", [0x1001, 0x2000, 0x3000], Workaround, Firmware("FerroHAL sets no MPU region; with one marking IWDG non-bufferable at APB = AHB, read back after a write"), []),
