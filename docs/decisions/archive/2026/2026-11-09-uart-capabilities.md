@@ -1,8 +1,13 @@
+> Archived 2026-11-17 from `docs/decisions/2026-11-09-uart-capabilities.md`, with the
+> owner's approval. ADR-011 superseded it whole; what still binds (one writer per
+> register, flag registers written as whole write-one-to-clear patterns, v2's SR-then-DR
+> clear cost) was promoted to `docs/design/uart-ownership.md` first.
+
 # Decision: UART control and flag capabilities (2026-11-09)
 
-ADR-004 - Status: promoted
+ADR-004 - Status: superseded
 
-Promoted to: [uart-ownership.md](../design/uart-ownership.md).
+Superseded by [ADR-011](../../2026-11-17-uart-single-owner.md).
 
 ## Context
 

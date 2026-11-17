@@ -3,7 +3,7 @@
  "counts": {
   "documents": 75,
   "agent": 53,
-  "bytes": 387002
+  "bytes": 387416
  },
  "documents": [
   {
@@ -78,15 +78,6 @@
    "status": "promoted"
   },
   {
-   "path": "docs/decisions/2026-11-09-uart-capabilities.md",
-   "class": "agent",
-   "title": "Decision: UART control and flag capabilities (2026-11-09)",
-   "purpose": "ADR-004 - Status: promoted",
-   "bytes": 2125,
-   "adr": "ADR-004",
-   "status": "promoted"
-  },
-  {
    "path": "docs/decisions/2026-11-10-doc-map-dissolution.md",
    "class": "agent",
    "title": "ADR-006: Dissolve the architecture map into topic documents (2026-11-10)",
@@ -136,7 +127,7 @@
    "class": "agent",
    "title": "ADR-011: One owner per UART, and a scheduler-neutral `Service` trait (2026-11-17)",
    "purpose": "ADR-011 - Status: promoted",
-   "bytes": 7870,
+   "bytes": 7883,
    "adr": "ADR-011",
    "status": "promoted"
   },
@@ -148,11 +139,20 @@
    "bytes": 1418
   },
   {
+   "path": "docs/decisions/archive/2026/2026-11-09-uart-capabilities.md",
+   "class": "agent",
+   "title": "Decision: UART control and flag capabilities (2026-11-09)",
+   "purpose": "ADR-004 - Status: superseded",
+   "bytes": 2455,
+   "adr": "ADR-004",
+   "status": "superseded"
+  },
+  {
    "path": "docs/decisions/index/2026.md",
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 1569
+   "bytes": 1604
   },
   {
    "path": "docs/design/api-surface.md",
@@ -292,7 +292,7 @@
    "class": "agent",
    "title": "UART ownership: one owner, served by `on_interrupt` (2026-11-17)",
    "purpose": "Source: ADR-011, ../decisions/2026-11-17-uart",
-   "bytes": 3423
+   "bytes": 3459
   },
   {
    "path": "docs/errata/ES0182.md",

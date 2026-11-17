@@ -4,7 +4,7 @@ ADR-011 - Status: promoted
 
 Promoted to: [uart-ownership.md](../design/uart-ownership.md).
 
-Supersedes [ADR-004](2026-11-09-uart-capabilities.md) whole: its decisions 1 to 5 (the
+Supersedes [ADR-004](archive/2026/2026-11-09-uart-capabilities.md) whole: its decisions 1 to 5 (the
 `Line` handle, the flag-only `UartIrq`, the `UartTx`/`UartRx` data halves, `split` handing
 out the line, and the `LineRegs` name). Its premise, one writer per register and no
 critical section in a driver, is kept and restated below.
