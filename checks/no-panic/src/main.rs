@@ -267,14 +267,7 @@ fn exercise_pure() {
     #[cfg(not(any(feature = "stm32h743vi", feature = "stm32h753zi")))]
     keep(black_box(Config::hsi()).validate());
 
-    #[cfg(not(any(feature = "stm32h743vi", feature = "stm32h753zi")))]
-    use ferrohal_stm32::i2c_v1 as i2c_ip;
-    #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
-    use ferrohal_stm32::i2c_v2 as i2c_ip;
-    if let Ok(timing) = i2c_ip::Unit::timing(black_box(Hertz::mhz(42)), black_box(Hertz::khz(400)))
-    {
-        keep(timing.frequency());
-    }
+    keep(i2c::Config::new(black_box(Hertz::khz(400))).check(black_box(Hertz::mhz(42))));
 
     for erratum in ferrohal_stm32::chip::ERRATA {
         keep(erratum.affects(black_box(0x2003)));

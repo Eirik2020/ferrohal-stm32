@@ -75,7 +75,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 
 | id | tags | sev | finding | spawned |
 |---|---|---|---|---|
-| D3 | `code` `api` | L | Board code now uses only the neutral modules, but the versioned ones (`usart_v2`, `spi_v4`, ...) are still public beside them. | each driver's own re-exports, as above |
 | D12 | `code` `api` | L | Interrupt service is not uniform. | per driver; `1ca19a9` added a third shape |
 | D13 | `code` `api` | L | Vectors come in four shapes; `verify()` on five of nine. | `2e7f7fe` UART, `b55c640` EXTI, `4070cd8` timers |
 | N7 | `code` | L | Register wrapper `Unit` vs `LineRegs`. | `99e6404` `Unit`; `4bb8398` ADR-004 named `LineRegs` |

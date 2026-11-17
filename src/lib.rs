@@ -106,9 +106,9 @@ pub mod timer_v1;
 pub mod timer_v3;
 
 #[cfg(feature = "adc_v2")]
-pub mod adc_v2;
+pub(crate) mod adc_v2;
 #[cfg(feature = "adc_v4")]
-pub mod adc_v4;
+pub(crate) mod adc_v4;
 // The stream DMA: one source, two IP versions (see the module).
 #[cfg(feature = "dma_v1")]
 #[path = "dma_stream.rs"]
@@ -119,9 +119,9 @@ pub mod dma_v2;
 #[cfg(feature = "gpio_v2")]
 pub mod gpio_v2;
 #[cfg(feature = "i2c_v1")]
-pub mod i2c_v1;
+pub(crate) mod i2c_v1;
 #[cfg(feature = "i2c_v2")]
-pub mod i2c_v2;
+pub(crate) mod i2c_v2;
 #[cfg(feature = "rcc_f4")]
 pub mod rcc_f4;
 #[cfg(feature = "rcc_h7_rm0433")]
@@ -129,13 +129,13 @@ pub mod rcc_h7_rm0433;
 #[cfg(feature = "sdmmc_v2")]
 pub mod sdmmc_v2;
 #[cfg(feature = "spi_v2")]
-pub mod spi_v2;
+pub(crate) mod spi_v2;
 #[cfg(feature = "spi_v4")]
-pub mod spi_v4;
+pub(crate) mod spi_v4;
 #[cfg(feature = "usart_v2")]
-pub mod usart_v2;
+pub(crate) mod usart_v2;
 #[cfg(feature = "usart_v4")]
-pub mod usart_v4;
+pub(crate) mod usart_v4;
 
 #[cfg(feature = "adc_v2")]
 use adc_v2 as adc_ip;
