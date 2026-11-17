@@ -4,6 +4,14 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **An F405 revision A matches its own errata** (2026-11-17). ES0182 2.2.2: revision A
+  reads REV_ID 0x2000, which `Erratum::affects` took for a revision newer than the
+  sheet's newest, so revision A's errata read as unaffected and `freeze` set PRFTEN
+  there again (2.2.1). Die 0x413's `revision()` now maps 0x2000 to 0x1000; host tests
+  cover the mapping and that 2.2.1 then applies. No revision-A part is on the rig, so
+  no bench proves it (DEBT §4, another silicon revision). Spawned by the ES0182 row
+  review (2026-11-17).
+
 - **API review S7 and N6: timer leftovers and small naming drift** (2026-11-17).
   `Tick::free` repeated `stop`'s three writes; it calls `stop` now (S7's F4 RCC half
   went with U2). N6: the owned timer tokens were held in `_timer` fields that were then
