@@ -40,7 +40,8 @@ RUNS = {
     "b": (
         ["Run B: UART4, UART5, UART7 and USART3 on their first pin pairs, and",
          "the DMA streams run A leaves free. The full check list on each, then",
-         "all four streaming at once."],
+         "all four streaming at once. USART3 also runs with TX and RX swapped.",
+         "[USART-V4-002]"],
         [
             ("uart4", "UART4 PB9->PB8", "UART4", "DMA1_STREAM5", "DMA1_STREAM7", "PLAIN"),
             ("uart5", "UART5 PC12->PD2", "UART5", "DMA2_STREAM0", "DMA2_STREAM1", "PLAIN"),
@@ -68,6 +69,9 @@ RUNS = {
         ],
     ),
 }
+
+# The loops that also run swapped (USART-V4-002): one is enough for the IP.
+SWAPPED = {("b", "usart3")}
 
 # Each run's UART fields are typed by the wiring the board hands it: the
 # alias its `RunX` struct names for that field (`Uart<board::Usart6Lucid>`).
@@ -138,7 +142,19 @@ for run, (summary, uarts) in RUNS.items():
                 name: "{label}",
                 uart: &mut {f},
             }}),
-        );""" if mask_line and f == "usart1" else "")
+        );""" if mask_line and f == "usart1" else "") + (f"""
+        report.check_for(
+            "{label}",
+            "USART-V4-002",
+            "TX and RX swapped: the loop carries a line and a stream back the other way",
+            tests::swapped(
+                &mut Loop {{
+                    name: "{label}",
+                    uart: &mut {f},
+                }},
+                &{cfg},
+            ),
+        );""" if (run, f) in SWAPPED else "")
         for f, label, line, dma, txdma, cfg in uarts
     )
     together_name = " + ".join(label.split(" ")[0] for _, label, *_ in uarts)

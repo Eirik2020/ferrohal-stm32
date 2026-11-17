@@ -1355,6 +1355,110 @@ pub fn parity_mismatch<T: Full, R: Receiver>(cross: &mut Cross<'_, T, R>) -> Res
     result
 }
 
+/// Passes if `link`'s receiver hears nothing within its patience.
+fn silent(link: &mut dyn Link) -> Result<(), Fail> {
+    let mut buf = [0; 16];
+    let patience = link.patience();
+    match link.rx().read_within(&mut buf, patience) {
+        Ok(0) | Err(Error::Timeout) => Ok(()),
+        Ok(len) => Err(Fail::Count {
+            expected: 0,
+            got: len as u32,
+        }),
+        Err(error) => Err(error.into()),
+    }
+}
+
+/// Half-duplex on a crossed pair [UART-021]: `single`'s TX wired to `far`'s
+/// RX, and `far`'s TX to `single`'s RX pin. In half-duplex `single`'s RX pin
+/// is out of use and its receiver listens on its own TX pin, so a frame it
+/// sends reaches `far` and also comes back into its own ring once; `far`
+/// sends nothing meanwhile, so that copy can only come from the TX pin. A
+/// frame `far` sends reaches only the unused RX pin and must not arrive.
+/// Then `single` goes back to `base`, and a line crosses to prove it.
+pub fn half_duplex<T: Full, R: Full>(
+    single: &mut T,
+    far: &mut R,
+    base: &Config,
+) -> Result<(), Fail> {
+    single.set_config(&base.with_half_duplex(true))?;
+    let result = half_duplex_drill(single, far);
+    single.set_config(base)?;
+    let mut back = Cross {
+        name: "half-duplex restored",
+        from: &mut *single,
+        to: &mut *far,
+    };
+    drain(&mut back);
+    result.and_then(|()| echo(&mut back, b"full duplex again"))
+}
+
+fn half_duplex_drill<T: Full, R: Full>(single: &mut T, far: &mut R) -> Result<(), Fail> {
+    const FRAME: &[u8] = b"half duplex";
+    drain(&mut Loop {
+        name: "half-duplex own ring",
+        uart: &mut *single,
+    });
+    echo(
+        &mut Cross {
+            name: "half-duplex out",
+            from: &mut *single,
+            to: &mut *far,
+        },
+        FRAME,
+    )?;
+    let mut own = [0; FRAME.len()];
+    read_exact(
+        &mut Loop {
+            name: "half-duplex own ring",
+            uart: &mut *single,
+        },
+        &mut own,
+    )?;
+    for (at, (&sent, &got)) in FRAME.iter().zip(own.iter()).enumerate() {
+        if sent != got {
+            return Err(Fail::Mismatch { at, sent, got });
+        }
+    }
+    let mut inward = Cross {
+        name: "half-duplex in",
+        from: &mut *far,
+        to: &mut *single,
+    };
+    drain(&mut inward);
+    inward.tx().write_all(b"to the unused pin")?;
+    inward.tx().flush()?;
+    silent(&mut inward)
+}
+
+/// TX and RX swapped on a looped UART [USART-V4-002]: the TX function moves
+/// to the RX pin and the jumper carries it back the other way, so the loop
+/// still carries a line and a stream. Then `base` again, and a line.
+pub fn swapped(link: &mut dyn Configurable, base: &Config) -> Result<(), Fail> {
+    link.set_config(&base.with_swap(true))?;
+    drain(link);
+    let result = echo(link, b"swapped").and_then(|()| stream(link, 2048));
+    link.set_config(base)?;
+    drain(link);
+    result.and_then(|()| echo(link, b"unswapped"))
+}
+
+/// The other half of the swap [USART-V4-002]: a swapped sender transmits on
+/// its RX pin, which is not the crossed wire, so the receiver must hear
+/// nothing; then both ends go back to 8N1 and a line crosses.
+pub fn swap_moves_tx<T: Full, R: Receiver>(cross: &mut Cross<'_, T, R>) -> Result<(), Fail> {
+    let base = Config::new(ferrohal_stm32::time::Hertz(115_200));
+    cross.from.set_config(&base.with_swap(true))?;
+    drain(cross);
+    let sent = cross
+        .tx()
+        .write_all(b"elsewhere")
+        .and_then(|()| cross.tx().flush());
+    let result = sent.map_err(Fail::from).and_then(|()| silent(cross));
+    restore(cross)?;
+    result
+}
+
 /// Both ends back to 115200 8N1, and a line through to prove it.
 fn restore<T: Full, R: Receiver>(cross: &mut Cross<'_, T, R>) -> Result<(), Fail> {
     cross.set_config(&Config::new(ferrohal_stm32::time::Hertz(115_200)))?;

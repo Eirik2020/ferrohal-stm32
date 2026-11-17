@@ -2,7 +2,8 @@
 
 //! Run B: UART4, UART5, UART7 and USART3 on their first pin pairs, and
 //! the DMA streams run A leaves free. The full check list on each, then
-//! all four streaming at once.
+//! all four streaming at once. USART3 also runs with TX and RX swapped.
+//! [USART-V4-002]
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
 //! streams' own interrupt bits. Each UART is one shared resource, served by
@@ -288,6 +289,18 @@ mod app {
                 Interrupt::DMA2_STREAM7,
             ]),
             true,
+        );
+        report.check_for(
+            "USART3 PC10->PC11",
+            "USART-V4-002",
+            "TX and RX swapped: the loop carries a line and a stream back the other way",
+            tests::swapped(
+                &mut Loop {
+                    name: "USART3 PC10->PC11",
+                    uart: &mut usart3,
+                },
+                &PLAIN,
+            ),
         );
 
         report.check_for(

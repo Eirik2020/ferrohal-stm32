@@ -4,6 +4,9 @@
 //! - USART1 TX (PB6) over J3 to USART6 RX (PC7), and USART6 TX (PC6) over
 //!   J4 to USART1 RX (PB7): echo, stream and break, each way.
 //! - Both directions streaming at once.
+//! - Half-duplex on USART6 [UART-021]: a frame it sends from PC6 reaches
+//!   USART1 and comes back into USART6's own ring, though USART1 sends
+//!   nothing; what USART1 sends into PC7, now unused, does not arrive.
 //! - Deliberate mismatches, each way: half the baud rate must give a
 //!   framing error, even parity into odd a parity error. The receiving
 //!   USART is not transmitting, so ES0299 2.10.2 cannot hide the parity
@@ -540,6 +543,16 @@ mod app {
                 RX_RING as u32,
             );
         }
+        report.check_for(
+            "USART6 PC6 half-duplex, USART1 across",
+            "UART-021",
+            "a frame out reaches USART1 and USART6's own ring; USART1's into the unused PC7 does not",
+            tests::half_duplex(
+                &mut usart6,
+                &mut usart1,
+                &Config::new(ferrohal_stm32::time::Hertz(115_200)),
+            ),
+        );
 
         let usart1 = core::cell::RefCell::new(usart1);
         let usart6 = core::cell::RefCell::new(usart6);

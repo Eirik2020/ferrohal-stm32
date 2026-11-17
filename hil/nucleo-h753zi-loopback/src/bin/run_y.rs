@@ -5,7 +5,8 @@
 //! listens on those. Even parity into odd must reach UART4's reader as a
 //! parity error [UART-014], and half the baud rate as a framing error
 //! [UART-005 UART-017]; then both ends go back to 8N1 and a line must
-//! cross again.
+//! cross again. Swapped, USART3 sends on PB11, so UART4 must hear nothing
+//! [USART-V4-002].
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
 //! streams' own interrupt bits. Each UART is one shared resource, served by
@@ -172,6 +173,12 @@ mod app {
             "UART-005 UART-017",
             "half baud rate reported as framing error",
             tests::framing_mismatch(&mut cross),
+        );
+        report.check_for(
+            NAME,
+            "USART-V4-002",
+            "a swapped USART3 sends on PB11, so UART4 hears nothing",
+            tests::swap_moves_tx(&mut cross),
         );
         let led = cx.local.led;
         tests::finish(&report, || led.set_high());
