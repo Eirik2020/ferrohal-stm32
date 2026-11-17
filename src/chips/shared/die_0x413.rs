@@ -124,7 +124,45 @@ gpio_dma!(
     2: [0, 1, 2, 3, 4, 5, 6, 7];
 );
 
-/// The die revision code, `DBGMCU_IDCODE.REV_ID` (bits 31:16) on RM0090.
+/// The die revision code, `DBGMCU_IDCODE.REV_ID` (bits 31:16) on RM0090, as
+/// the errata sheet numbers it ([`revision_code`]).
 pub(crate) fn revision() -> u16 {
-    pac::DBGMCU.idcode().read().rev_id()
+    revision_code(pac::DBGMCU.idcode().read().rev_id())
+}
+
+/// What revision A reads in `REV_ID`: the F2's code, with the F2's DEV_ID
+/// (ES0182 2.2.2).
+const REVISION_A_READS: u16 = 0x2000;
+/// Revision A's code in ES0182's revision table.
+const REVISION_A: u16 = 0x1000;
+
+/// The sheet's code for a raw `REV_ID`. ES0182 2.2.2: revision A reads 0x2000,
+/// which `Erratum::affects` would take for a revision newer than the sheet's
+/// newest, and so for one free of revision A's errata (2.2.1's missing
+/// prefetch queue among them). No later revision of this die reads 0x2000.
+pub(crate) const fn revision_code(raw: u16) -> u16 {
+    if raw == REVISION_A_READS {
+        REVISION_A
+    } else {
+        raw
+    }
+}
+
+#[cfg(test)]
+mod revision_tests {
+    use super::*;
+
+    #[test]
+    fn revision_a_reads_as_revision_a() {
+        assert_eq!(revision_code(0x2000), 0x1000);
+        assert!(ES0182_2_2_1.affects(revision_code(0x2000)));
+    }
+
+    #[test]
+    fn every_other_code_is_unchanged() {
+        for (code, _) in ERRATA_SHEET.revisions {
+            assert_eq!(revision_code(*code), *code);
+        }
+        assert!(!ES0182_2_2_1.affects(revision_code(0x101F)));
+    }
 }

@@ -54,17 +54,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
-- `code` `errata` **Medium: an F405 revision A reads REV_ID 0x2000, which the errata table takes for a newer revision.**
-  ES0182 2.2.2: on revision A, DBGMCU_IDCODE reads DEV_ID 0x411 (the F2's) and REV_ID
-  0x2000, not 0x1000. `revision()` returns the raw code and `Erratum::affects` treats
-  0x2000 as newer than the sheet's newest (0x101F), so it takes revision 5/6's
-  verdicts: every revision-A-only erratum reads as unaffected, ES0182 2.2.1 among them,
-  and `freeze` sets PRFTEN on the one revision the sheet says has no prefetch queue,
-  the fault ADR-010 fixed. Not High: the sheet says prefetch is "not supported" there,
-  not what it does. Fix: die 0x413's `revision()` maps 0x2000 to 0x1000 (a host test
-  for the mapping); no revision-A part is on the rig. Inferred from the sheet and the
-  source. *Spawned:* the ES0182 row review (2026-11-17), found in ADR-010's matching
-  (2026-11-15).
 - `code` `errata` **Medium: the H7 I2C lacks three ES0392 workarounds.** (2.19.4, every
   revision) `i2c_v2` fails a transfer with `Error::Bus` on BERR, which the sheet says can
   rise spuriously in controller mode while the transfer carries on; fix: clear it and
@@ -203,8 +192,9 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
   below 8 MHz, so its check allows 0.5 % (`hil/RIG.md`). *Spawned:* `af65cad`; narrowed
   2026-11-15.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
-  SysTick path, WWDG, option bytes, flash ECC, another silicon revision. *Spawned:* the
-  W11 audit (`ff3af8d`, 2026-11-10).
+  SysTick path, WWDG, option bytes, flash ECC, another silicon revision. Every F4 here
+  is past revision A, so ES0182 2.2.2's mapping (`RESOLVED.md`) stands on host tests
+  alone. *Spawned:* the W11 audit (`ff3af8d`, 2026-11-10).
 
 ## 5. CI and merging
 

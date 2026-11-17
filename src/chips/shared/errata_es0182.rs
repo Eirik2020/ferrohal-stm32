@@ -44,7 +44,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.1.2", "VDIV or VSQRT instructions might not complete correctly when very short ISRs are used", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, Firmware("with the FPU on, clear FPCCR.LSPEN or give every ISR more than two instructions; FerroHAL defines no ISR"), []),
     erratum!("2.1.3", "Store immediate overlapping exception return operation might vector to incorrect interrupt", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, Firmware("a DSB before an ISR returns, or ACTLR.DISDEFWBUF without the MPU; FerroHAL defines no ISR"), []),
     ES0182_2_2_1,
-    erratum!("2.2.2", "MCU device ID is incorrect", [0x1000], Workaround, Open("an F405 revision A reads REV_ID 0x2000, which the errata table takes for a newer revision"), []),
+    erratum!("2.2.2", "MCU device ID is incorrect", [0x1000], Workaround, Workaround("die 0x413's revision() reads revision A's 0x2000 as 0x1000, so its errata match"), []),
     erratum!("2.2.3", "Debugging Stop mode and SysTick timer", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, NotReached("no Stop entry: FerroHAL has no low-power API"), []),
     erratum!("2.2.4", "Debugging Stop mode with WFE entry", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, NotReached("no Stop entry: FerroHAL has no low-power API"), []),
     erratum!("2.2.5", "Debugging Sleep/Stop mode with WFE/WFI entry", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, Firmware("revision A runs without prefetch (2.2.1), so with DBG_SLEEP or DBG_STOP set put three NOPs after WFI or WFE; FerroHAL enters no Sleep or Stop"), []),

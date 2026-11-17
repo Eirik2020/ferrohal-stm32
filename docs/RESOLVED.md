@@ -4,6 +4,14 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **An F405 revision A matches its own errata** (2026-11-17). ES0182 2.2.2: revision A
+  reads REV_ID 0x2000, which `Erratum::affects` took for a revision newer than the
+  sheet's newest, so revision A's errata read as unaffected and `freeze` set PRFTEN
+  there again (2.2.1). Die 0x413's `revision()` now maps 0x2000 to 0x1000; host tests
+  cover the mapping and that 2.2.1 then applies. No revision-A part is on the rig, so
+  no bench proves it (DEBT §4, another silicon revision). Spawned by the ES0182 row
+  review (2026-11-17).
+
 - **Every errata entry has a verdict** (2026-11-17). ADR-010 transcribed every row of
   ES0182, ES0299 and ES0392 (2026-11-15) with 265 left `Unreviewed`; each now carries
   its handling, read against the sheet and the source, in `docs/errata/`. The rows that
