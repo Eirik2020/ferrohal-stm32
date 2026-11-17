@@ -21,9 +21,9 @@
 //!   byte is fully out. A write segment's stop is armed at BTF.
 //!
 //! A NACK during the address or a byte sets SR1's AF; the bus errors set
-//! BERR, ARLO or OVR. All four clear by writing zero, and PE off then on
-//! resets the state machines and releases the lines while the timing
-//! registers keep their values (RM0368 §27.6.2).
+//! BERR, ARLO or OVR. All four clear by writing zero. Recovery is a
+//! software reset (SWRST) with the timing registers written back, which
+//! also frees a Start a misplaced Stop blocked (ES0299 2.9.3).
 //!
 //! Requirements: I2C-005, I2C-V1-001, I2C-002, I2C-004, I2C-006
 
@@ -336,8 +336,11 @@ impl Unit {
     /// Puts the bus back: the stop the refused transfer never got, then
     /// the flags cleared by writing zero (RM0368 §27.6.7), the bus waited
     /// back to idle within a bound (BUSY clears only after a stop, RM0368
-    /// §27.6.8), and PE cycled, which releases the lines while the
-    /// timing registers keep their values (RM0368 §27.6.2).
+    /// §27.6.8), and a software reset. ES0299 2.9.3, ES0182 2.10.3: after
+    /// a misplaced Stop on the bus, the peripheral cannot generate a Start
+    /// until SWRST, which cycling PE does not replace. SWRST returns every
+    /// register to its reset value, so the timing (CR2's FREQ, CCR, TRISE)
+    /// is read first and written back before PE (RM0368 §27.6.1).
     pub(crate) fn recover(self) {
         let regs = self.0;
         regs.cr1().modify(|w| {
@@ -353,8 +356,13 @@ impl Unit {
             w.set_ovr(false);
         });
         let _ = crate::wait::spin(SPINS, || !regs.sr2().read().busy());
-        regs.cr1().modify(|w| w.set_pe(false));
-        regs.cr1().modify(|w| w.set_pe(true));
+        let (cr2, ccr, trise) = (regs.cr2().read(), regs.ccr().read(), regs.trise().read());
+        regs.cr1().write(|w| w.set_swrst(true));
+        regs.cr1().write(|w| w.set_swrst(false));
+        regs.cr2().write_value(cr2);
+        regs.ccr().write_value(ccr);
+        regs.trise().write_value(trise);
+        regs.cr1().write(|w| w.set_pe(true));
     }
 }
 
