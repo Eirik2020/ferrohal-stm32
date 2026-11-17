@@ -72,6 +72,10 @@ Which IP versions each series carries, as metapac measured them:
   side of a driver.
 - **[Decided]** `set_*` changes a setting in place; `into_*` consumes and converts.
   Units ride in the name: `*_us`, `*_hz`.
+- **[Decided]** One quantity, one word (owner, 2026-11-17, API review N3): *frequency*
+  is a clock's (the I2C bus's SCL, SPI's SCK, the SDMMC card clock, a timebase's count);
+  *rate* is events a second (a PWM's periods, a tick, a sampler's samples); *baudrate*
+  stays the UART's, as a `Hertz`; *speed* is GPIO slew only.
 
 ## Benches and scripts
 

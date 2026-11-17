@@ -121,7 +121,7 @@ pub const HSE_CLOCK_CONFIG: Config = Config {
 /// Run D's frame: SBUS's 100000 8E2. The F401 has no inversion, so the
 /// Foxeer F405 inverts SBUS in hardware; this checks the refusal while
 /// compiling.
-pub const SBUS_PLAIN: uart::Config = uart::Config::new(100_000)
+pub const SBUS_PLAIN: uart::Config = uart::Config::new(Hertz(100_000))
     .with_parity(Parity::Even)
     .with_stop_bits(StopBits::Two);
 const _: () = assert!(ferrohal_stm32::uart::check::<USART6>(&CLOCKS, &SBUS_PLAIN).is_ok());

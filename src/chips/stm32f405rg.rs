@@ -210,7 +210,7 @@ mod tests {
     fn uart4_and_uart5_refuse_fractional_stop_bits() {
         use crate::uart::{self, StopBits, Uart};
         let clocks = crate::rcc_f4::Config::hsi().validate().unwrap();
-        let half = uart::Config::new(115_200).with_stop_bits(StopBits::Half);
+        let half = uart::Config::new(Hertz(115_200)).with_stop_bits(StopBits::Half);
         let one_and_half = half.with_stop_bits(StopBits::OneAndHalf);
         let two = half.with_stop_bits(StopBits::Two);
         assert_eq!(

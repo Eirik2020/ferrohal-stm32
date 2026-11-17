@@ -11,7 +11,10 @@ pub const LEN: usize = 256;
 /// `line`, NUL-padded to [`LEN`]; a line that does not fit fails the build.
 pub const fn block(line: &str) -> [u8; LEN] {
     let bytes = line.as_bytes();
-    assert!(bytes.len() < LEN, "the identity line does not fit its block");
+    assert!(
+        bytes.len() < LEN,
+        "the identity line does not fit its block"
+    );
     let mut out = [0u8; LEN];
     let mut i = 0;
     while i < bytes.len() {

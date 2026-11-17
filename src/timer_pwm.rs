@@ -128,19 +128,19 @@ pub struct Pwm<T> {
     gp: TimGp16,
     clock: Hertz,
     period: u32,
-    frequency: Hertz,
+    rate: Hertz,
     timer: T,
 }
 
 impl<T: ChannelTimer> Pwm<T> {
     /// Enables and resets the timer and sets it to count at `rate`, as near
-    /// as the clock allows ([`frequency`](Self::frequency) says what it
+    /// as the clock allows ([`rate`](Self::rate) says what it
     /// got), with every channel off. Stopped until [`start`](Self::start).
     /// Refuses with the timer token handed back: the rate is checked before
     /// the timer is touched.
     pub fn new(rcc: &mut Rcc, timer: T, rate: Hertz) -> Result<Self, Refused<ConfigError, T>> {
         let clock = T::KERNEL.clock(&rcc.clocks());
-        let (prescaler, reload, frequency) = match nearest(clock, rate, T::BITS) {
+        let (prescaler, reload, rate) = match nearest(clock, rate, T::BITS) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, timer)),
         };
@@ -160,7 +160,7 @@ impl<T: ChannelTimer> Pwm<T> {
             gp,
             clock,
             period: reload as u32,
-            frequency,
+            rate,
             timer,
         })
     }
@@ -174,7 +174,7 @@ impl<T: ChannelTimer> Pwm<T> {
             gp,
             clock: _,
             period: _,
-            frequency: _,
+            rate: _,
             timer,
         } = self;
         gp.cr1().modify(|w| w.set_cen(false));
@@ -205,13 +205,13 @@ impl<T: ChannelTimer> Pwm<T> {
     /// Stops the timer and sets it to count at `rate`, as near as the
     /// clock allows. Channels keep their modes, outputs and duties; scale
     /// the duties to the new [`period`](Self::period).
-    pub fn set_frequency(&mut self, rate: Hertz) -> Result<Hertz, ConfigError> {
-        let (prescaler, reload, frequency) = nearest(self.clock, rate, T::BITS)?;
+    pub fn set_rate(&mut self, rate: Hertz) -> Result<Hertz, ConfigError> {
+        let (prescaler, reload, rate) = nearest(self.clock, rate, T::BITS)?;
         self.stop();
         reload_counter(self.gp, prescaler, reload);
         self.period = reload as u32;
-        self.frequency = frequency;
-        Ok(frequency)
+        self.rate = rate;
+        Ok(rate)
     }
 
     /// The rate `T` would run at for `rate` under `clocks`.
@@ -246,13 +246,13 @@ impl<T: ChannelTimer> Pwm<T> {
     /// below the end and slipped a period at 40 ns; 100 ns is that with a
     /// margin for DMA latency under load, which was not measured.
     pub fn top_margin(&self) -> u32 {
-        let counts = u64::from(self.frequency.0) * u64::from(self.period) / 10_000_000;
+        let counts = u64::from(self.rate.0) * u64::from(self.period) / 10_000_000;
         (counts as u32).max(1)
     }
 
-    /// The rate the timer runs at.
-    pub fn frequency(&self) -> Hertz {
-        self.frequency
+    /// The rate the timer runs at: periods a second.
+    pub fn rate(&self) -> Hertz {
+        self.rate
     }
 
     /// Channel `C` in PWM mode 1 with its compare preloaded, at duty 0,

@@ -154,7 +154,7 @@ pub fn lane_pair_check<
 ) {
     let period = pwm.period();
     // Samples per bit, in sixteenths.
-    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm.frequency().0)) as u32;
+    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm.rate().0)) as u32;
     // Eight spare bits around the frame.
     let count = (per_bit16 as usize * (BITS + 8)) / 16;
     let result = (|| {
@@ -276,7 +276,7 @@ pub fn top_to_zero_check<
     // Just clear of the margin: the step the refusal leaves allowed.
     let step = wave(period - pwm.top_margin() - 1);
     let reference = [period / 2; BITS];
-    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm.frequency().0)) as u32;
+    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm.rate().0)) as u32;
     let count = (per_bit16 as usize * (BITS + 8)) / 16;
     let finished = (|| {
         lanes.0.arm(pwm, &step).ok()?;
@@ -1072,7 +1072,7 @@ pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, SU>(
     sampler: &mut Sampler<U, SU>,
     cpu: Hertz,
 ) {
-    let per_period = (u64::from(sampler.rate().0) / u64::from(pwm.frequency().0)).max(1) as usize;
+    let per_period = (u64::from(sampler.rate().0) / u64::from(pwm.rate().0)).max(1) as usize;
     let count = per_period * 3;
     let result = (|| {
         pwm.stage(0);

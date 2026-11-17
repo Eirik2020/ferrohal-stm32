@@ -217,8 +217,8 @@ fn inject_noise<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::Uar
     let name = cross.name;
     let set = cross
         .from
-        .set_config(&Config::new(FAST).with_stop_bits(StopBits::Two))
-        .and_then(|()| cross.to.set_config(&Config::new(SLOW)));
+        .set_config(&Config::new(ferrohal_stm32::time::Hertz(FAST)).with_stop_bits(StopBits::Two))
+        .and_then(|()| cross.to.set_config(&Config::new(ferrohal_stm32::time::Hertz(SLOW))));
     if let Err(error) = set {
         report.check_for(name, "UART-015", "noise: 8N2 at 121500", Err(error.into()));
         return;
@@ -265,7 +265,7 @@ fn inject_noise<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::Uar
         name,
         "back to 115200 8N1 after the noise check",
         cross
-            .set_config(&Config::new(SLOW))
+            .set_config(&Config::new(ferrohal_stm32::time::Hertz(SLOW)))
             .map_err(Fail::from)
             .and_then(|()| {
                 tests::drain(cross);
@@ -428,7 +428,7 @@ mod app {
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run W, clocks: {}", board::CLOCKS);
 
-        let config = Config::new(115_200);
+        let config = Config::new(ferrohal_stm32::time::Hertz(115_200));
         let local = cx.local;
         let (usart1, irq1) = Uart::new(
             &mut run.rcc,

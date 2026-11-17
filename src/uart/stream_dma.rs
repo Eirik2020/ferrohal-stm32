@@ -1833,8 +1833,8 @@ fn reset(rcc: &mut Rcc, enable: RccBit, info: &Info, rx_len: u16) {
 }
 
 /// CPU cycles per frame, the unit of every counted wait.
-fn frame_cycles(cpu: Hertz, baudrate: u32) -> u32 {
-    (cpu.0 / baudrate.max(1))
+fn frame_cycles(cpu: Hertz, baudrate: Hertz) -> u32 {
+    (cpu.0 / baudrate.0.max(1))
         .saturating_mul(MAX_FRAME_BITS)
         .max(1)
 }

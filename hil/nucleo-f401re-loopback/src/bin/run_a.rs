@@ -90,7 +90,7 @@ mod app {
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run A, clocks: {}", board::CLOCKS);
 
-        let config = Config::new(115_200);
+        let config = Config::new(ferrohal_stm32::time::Hertz(115_200));
         let local = cx.local;
         let (usart1, irq1) = Uart::new(
             &mut run.rcc,
@@ -220,7 +220,7 @@ mod app {
         tests::full_suite(
             &mut report,
             &mut loop1,
-            &Config::new(115_200),
+            &Config::new(ferrohal_stm32::time::Hertz(115_200)),
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM2),
@@ -246,7 +246,7 @@ mod app {
         tests::full_suite(
             &mut report,
             &mut loop6,
-            &Config::new(115_200),
+            &Config::new(ferrohal_stm32::time::Hertz(115_200)),
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),

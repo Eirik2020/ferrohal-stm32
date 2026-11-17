@@ -456,7 +456,7 @@ fn main() -> ! {
                     ferrohal_stm32::timer::ConfigError::PeriodMismatch
                 );
                 let (tim3, mut tim5, first, second) = refused.into_parts();
-                let re_rated = tim5.set_frequency(Hertz::khz(600)).is_ok();
+                let re_rated = tim5.set_rate(Hertz::khz(600)).is_ok();
                 (refused_mismatch && re_rated, tim3, tim5, first, second)
             }
             Ok(_) => reboot_to_dfu(),

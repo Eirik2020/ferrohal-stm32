@@ -77,7 +77,7 @@ use ferrohal_stm32::{
     },
     dma::Stream,
     exti,
-    gpio::{Alternate, OpenDrain, Ctrl, Output, Pin, Port, PortInstance, Pull, Speed},
+    gpio::{Alternate, Ctrl, OpenDrain, Output, Pin, Port, PortInstance, Pull, Speed},
     i2c,
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllSource, Rcc,
@@ -150,12 +150,12 @@ type Af<const P: char, const N: u8, const F: u8> = Pin<P, N, Alternate<F>>;
 /// The Lucid's frames, checked against its UARTs while compiling: CRSF to
 /// the receiver, SBUS (inverted, receive-only) from the DJI connector, MSP
 /// to the DisplayPort.
-pub const CRSF: uart::Config = uart::Config::new(420_000);
-pub const SBUS: uart::Config = uart::Config::new(100_000)
+pub const CRSF: uart::Config = uart::Config::new(Hertz(420_000));
+pub const SBUS: uart::Config = uart::Config::new(Hertz(100_000))
     .with_parity(Parity::Even)
     .with_stop_bits(StopBits::Two)
     .with_inverted_rx(true);
-pub const MSP: uart::Config = uart::Config::new(115_200);
+pub const MSP: uart::Config = uart::Config::new(Hertz(115_200));
 const _: () = assert!(ferrohal_stm32::uart::check::<USART6>(&CLOCKS, &CRSF).is_ok());
 const _: () = assert!(ferrohal_stm32::uart::check::<USART1>(&CLOCKS, &SBUS).is_ok());
 const _: () = assert!(ferrohal_stm32::uart::check::<USART3>(&CLOCKS, &MSP).is_ok());
@@ -609,7 +609,8 @@ pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
 // fitted. No links: these pins carry no other run's wiring, so the
 // bench runs as one script.
 
-pub type I2c3Bus = i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4, OpenDrain>>, Pin<'C', 9, Alternate<4, OpenDrain>>>;
+pub type I2c3Bus =
+    i2c::Wiring<I2C3, Pin<'A', 8, Alternate<4, OpenDrain>>, Pin<'C', 9, Alternate<4, OpenDrain>>>;
 
 pub struct RunR {
     pub rcc: Rcc,
@@ -1241,7 +1242,8 @@ pub fn dma_buffers() -> [DmaBuffers; UARTS] {
 // path, which the run checks against the tree. The simulator answers
 // at 0x2A with bus tag 2.
 
-pub type I2c4Bus = i2c::Wiring<I2C4, Pin<'D', 12, Alternate<4, OpenDrain>>, Pin<'D', 13, Alternate<4, OpenDrain>>>;
+pub type I2c4Bus =
+    i2c::Wiring<I2C4, Pin<'D', 12, Alternate<4, OpenDrain>>, Pin<'D', 13, Alternate<4, OpenDrain>>>;
 
 pub struct RunS {
     pub rcc: Rcc,
@@ -1259,9 +1261,11 @@ pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
     let led = a.p5.into_push_pull_output(&mut a.ctrl);
     // SCL and SDA pulled up here and at the Pico's end: the lines idle
     // high at 50 kHz with no resistor fitted.
-    let mut scl: Pin<'D', 12, Alternate<4, OpenDrain>> = d.p12.into_alternate_open_drain(&mut d.ctrl);
+    let mut scl: Pin<'D', 12, Alternate<4, OpenDrain>> =
+        d.p12.into_alternate_open_drain(&mut d.ctrl);
     scl.set_pull(&mut d.ctrl, Pull::Up);
-    let mut sda: Pin<'D', 13, Alternate<4, OpenDrain>> = d.p13.into_alternate_open_drain(&mut d.ctrl);
+    let mut sda: Pin<'D', 13, Alternate<4, OpenDrain>> =
+        d.p13.into_alternate_open_drain(&mut d.ctrl);
     sda.set_pull(&mut d.ctrl, Pull::Up);
     Ok(RunS {
         rcc,

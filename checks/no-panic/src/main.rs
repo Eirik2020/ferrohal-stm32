@@ -71,15 +71,19 @@ fn main() -> ! {
         tx: black_box(unsafe { &mut *addr_of_mut!(TX) }),
         rx: black_box(unsafe { &mut *addr_of_mut!(RX) }),
     };
-    let config = black_box(uart::Config::new(115_200));
+    let config = black_box(uart::Config::new(Hertz(115_200)));
     // A refusal hands back what `new` took: retry once with it, 8N1.
     let (mut uart, mut irq) = match Uart::new(&mut rcc, wiring, &config, buffers) {
         Ok(opened) => opened,
         Err(refused) => {
             keep(refused.error());
             let (wiring, buffers) = refused.into_parts();
-            let Ok(opened) = Uart::new(&mut rcc, wiring, &uart::Config::new(115_200), buffers)
-            else {
+            let Ok(opened) = Uart::new(
+                &mut rcc,
+                wiring,
+                &uart::Config::new(Hertz(115_200)),
+                buffers,
+            ) else {
                 park()
             };
             opened
@@ -89,7 +93,7 @@ fn main() -> ! {
 
     // A receive-only UART, and the frame check with inversion asked for.
     let sbus = black_box(
-        uart::Config::new(100_000)
+        uart::Config::new(Hertz(100_000))
             .with_parity(Parity::Even)
             .with_stop_bits(StopBits::Two)
             .with_inverted_rx(black_box(true)),
@@ -105,8 +109,12 @@ fn main() -> ! {
         Err(refused) => {
             keep(refused.error());
             let (rx_wiring, ring) = refused.into_parts();
-            let Ok(opened) = UartRx::new(&mut rcc, rx_wiring, &uart::Config::new(100_000), ring)
-            else {
+            let Ok(opened) = UartRx::new(
+                &mut rcc,
+                rx_wiring,
+                &uart::Config::new(Hertz(100_000)),
+                ring,
+            ) else {
                 park()
             };
             opened
@@ -261,7 +269,7 @@ fn exercise_pure() {
     use ferrohal_stm32::i2c_v2 as i2c_ip;
     if let Ok(timing) = i2c_ip::Unit::timing(black_box(Hertz::mhz(42)), black_box(Hertz::khz(400)))
     {
-        keep(timing.speed());
+        keep(timing.frequency());
     }
 
     for erratum in ferrohal_stm32::chip::ERRATA {
@@ -299,7 +307,7 @@ fn exercise_uart<U: ferrohal_stm32::uart::UartParts>(uart: &mut Uart<U>) {
     keep(uart.read_ready());
     keep(uart.write_ready());
     let config = black_box(
-        uart::Config::new(9_600)
+        uart::Config::new(Hertz(9_600))
             .with_parity(Parity::Even)
             .with_stop_bits(StopBits::Two)
             .with_inverted_rx(true)
@@ -501,7 +509,7 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     ));
     let pwm = retried_pwm(rcc, timer, Hertz::khz(600));
     keep(pwm.period());
-    keep(pwm.frequency());
+    keep(pwm.rate());
     pwm.set_output::<1>(black_box(false));
     pwm.set_output::<1>(black_box(true));
     // The wiring's constructor, from the pin and the stream: a refusal hands
@@ -622,7 +630,7 @@ pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
     ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<B, 1>,
 {
     let mut pwm = retried_pwm(rcc, timer, Hertz::khz(1));
-    keep(pwm.set_frequency(black_box(Hertz::khz(2))));
+    keep(pwm.set_rate(black_box(Hertz::khz(2))));
     // The plain complementary channel first, freed back to its pin.
     let channel = pwm.complementary::<1, N>(pin);
     let pin = channel.free();

@@ -195,7 +195,7 @@ pub struct Awg<A: ChannelTimer, B: ChannelTimer, LA, LB> {
 impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
     /// A generator on one timer.
     pub fn single(first: Pwm<A>, lanes: LA) -> Self {
-        let rate = first.frequency();
+        let rate = first.rate();
         Self {
             first,
             second: None,
@@ -230,7 +230,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
         first.lead();
         second.follow(&first);
-        let rate = first.frequency();
+        let rate = first.rate();
         Ok(Self {
             first,
             second: Some(second),
@@ -258,7 +258,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
                 (first, second, first_lanes, second_lanes),
             ));
         }
-        let rate = first.frequency();
+        let rate = first.rate();
         Ok(Self {
             first,
             second: Some(second),
@@ -282,7 +282,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
 
     /// Samples a second.
     pub fn sample_rate(&self) -> Hertz {
-        self.first.frequency()
+        self.first.rate()
     }
 
     /// Turns every lane's output on or off. Off, a pin falls to its inactive
@@ -367,7 +367,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         if self.state.started || self.state.active != 0 || self.state.listening {
             return Err(Error::Busy);
         }
-        self.sample_rate = self.first.frequency();
+        self.sample_rate = self.first.rate();
         self.set_outputs(false);
         self.state.listening = true;
         let got = match self.retime(rate) {
@@ -403,9 +403,9 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     }
 
     fn retime(&mut self, rate: Hertz) -> Result<Hertz, Error> {
-        let got = self.first.set_frequency(rate).map_err(|_| Error::Rate)?;
+        let got = self.first.set_rate(rate).map_err(|_| Error::Rate)?;
         if let Some(second) = self.second.as_mut() {
-            second.set_frequency(rate).map_err(|_| Error::Rate)?;
+            second.set_rate(rate).map_err(|_| Error::Rate)?;
         }
         Ok(got)
     }

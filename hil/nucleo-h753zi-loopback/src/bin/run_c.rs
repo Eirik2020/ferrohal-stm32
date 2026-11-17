@@ -38,7 +38,7 @@ mod app {
         tests::{self, Loop, Report},
     };
 
-    const PLAIN: Config = Config::new(115_200);
+    const PLAIN: Config = Config::new(ferrohal_stm32::time::Hertz(115_200));
 
     #[shared]
     struct Shared {

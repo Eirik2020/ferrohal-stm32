@@ -81,7 +81,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | D13 | `code` `api` | L | Vectors come in four shapes; `verify()` on five of nine. | `2e7f7fe` UART, `b55c640` EXTI, `4070cd8` timers |
 | N1 | `code` `api` | M | Refusal aliases follow four naming patterns. | `c6c5d23`, `ee05895` 2026-11-06 |
 | N2 | `code` `api` | L | Module-prefix stutter is mixed; 17 clippy hits. | per driver from `af65cad` |
-| N3 | `code` `api` | M | One quantity, four names: speed, frequency, rate, baudrate. | `ea7a9f8`, `99e6404`, `cdfe190` |
 | N5 | `docs` `owner` | L | "Handle" has no fixed shape. | `b55c640` `ExtiHandle`, `1e1bbdf` `Watchdog::handle` |
 | N7 | `code` | L | Register wrapper `Unit` vs `LineRegs`. | `99e6404` `Unit`; `4bb8398` ADR-004 named `LineRegs` |
 | N8 | `code` `api` | L | Routing traits and wirings named outside N2; USB has no wiring. | `ea7a9f8`, `9bd9d1e` |

@@ -64,7 +64,7 @@ mod app {
         let (usart6, irq6) = Uart::new(
             &mut run.rcc,
             run.usart6,
-            &Config::new(115_200),
+            &Config::new(ferrohal_stm32::time::Hertz(115_200)),
             Buffers {
                 tx: cx.local.tx6,
                 rx: cx.local.rx6,
@@ -116,7 +116,7 @@ mod app {
                 name: "USART6 PA11->PA12, TX on stream 7",
                 uart: cx.local.usart6,
             },
-            &Config::new(115_200),
+            &Config::new(ferrohal_stm32::time::Hertz(115_200)),
             RX_RING,
             TX_BUFFER,
             &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),

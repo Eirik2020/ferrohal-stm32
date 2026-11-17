@@ -175,7 +175,7 @@ mod app {
 
         // USART6: DMA1 stream 6 transmits, stream 1 receives.
         const UART: &str = "USART6 PC6->PC7";
-        let config = UartConfig::new(115_200);
+        let config = UartConfig::new(Hertz(115_200));
         let open = |rcc: &mut ferrohal_stm32::rcc::Rcc, wiring, buffers| {
             Uart::new(rcc, wiring, &config, buffers)
         };

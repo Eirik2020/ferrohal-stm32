@@ -101,7 +101,7 @@ mod app {
             (600, "TIM3 CH3/CH4 PB0/PB1, DShot600 rate"),
         ] {
             let rates = pwm
-                .set_frequency(Hertz::khz(rate))
+                .set_rate(Hertz::khz(rate))
                 .and_then(|bit| sampler.set_rate(Hertz(bit.0 * 12)));
             if let Err(error) = rates {
                 report.check(
@@ -114,7 +114,7 @@ mod app {
             defmt::info!(
                 "{=str}: bit rate {}, sampling at {}",
                 name,
-                pwm.frequency(),
+                pwm.rate(),
                 sampler.rate()
             );
             pwm::lane_pair_check(

@@ -130,7 +130,7 @@ mod app {
                 _ => "TIM3 CH3/CH4 PB0/PB1 (Lucid), DShot600 rate",
             };
             let rates = tim3
-                .set_frequency(Hertz::khz(rate))
+                .set_rate(Hertz::khz(rate))
                 .and_then(|bit| sampler_b.set_rate(Hertz(bit.0 * 12)));
             match rates {
                 Ok(_) => pwm::lane_pair_check(
@@ -155,7 +155,7 @@ mod app {
                 _ => "TIM5 CH1/CH4 PA0/PA3, DShot600 rate",
             };
             let rates = tim5
-                .set_frequency(Hertz::khz(rate))
+                .set_rate(Hertz::khz(rate))
                 .and_then(|bit| sampler_a.set_rate(Hertz(bit.0 * 12)));
             match rates {
                 Ok(_) => pwm::lane_pair_check(

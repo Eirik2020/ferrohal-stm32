@@ -15,7 +15,7 @@
 | a | docs/design/h7-errata.md | 1409 B | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/maturity.md | 3374 B | Source: ADR-009, ../decisions/2026-11-13-matu |
-| a | docs/design/naming.md | 4766 B | Source: ADR-003, ../decisions/2026-11-08-nami |
+| a | docs/design/naming.md | 5090 B | Source: ADR-003, ../decisions/2026-11-08-nami |
 | a | docs/design/ownership.md | 2601 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-ids.md | 1789 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/requirements-system.md | 4679 B | Source: ADR-006, ../decisions/2026-11-10-doc- |

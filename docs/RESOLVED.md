@@ -4,6 +4,14 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review N3: one quantity, one word** (2026-11-17; owner's pick A). I2C said
+  speed, SPI and SDMMC frequency, the PWM `new(rate)` but `set_frequency`, and the UART
+  a bare `u32` baudrate. Now, as `design/naming.md` records: I2C's `Config.speed`,
+  `Timing::speed` and `ConfigError::Speed` are `frequency`, `frequency()` and
+  `Frequency`; `Pwm::set_frequency` and `frequency` are `set_rate` and `rate`;
+  `uart::Config.baudrate` is a `Hertz`. "Speed" is left to GPIO slew. Spawned by
+  `ea7a9f8`, `99e6404`, `cdfe190`.
+
 - **API review N4: the erased DMA stream is `dma::AnyStream`** (2026-11-17; owner's pick
   A). `dma::Channel` was an erased stream in a module where "channel" also meant the
   F4's CHSEL request, and the timers' compare channels beside it. It is

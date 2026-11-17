@@ -55,7 +55,7 @@ pub struct Timing {
     /// TRISE[5:0]: the maximum rise time, TPCLK1 counts.
     trise: u8,
     /// The SCL these values run.
-    speed: Hertz,
+    frequency: Hertz,
 }
 
 impl Timing {
@@ -63,8 +63,8 @@ impl Timing {
     /// mode holds each half CCR counts; fast mode with DUTY low holds
     /// SCL low two CCR counts and high one; DUTY high holds low sixteen
     /// and high nine.
-    pub const fn speed(&self) -> Hertz {
-        self.speed
+    pub const fn frequency(&self) -> Hertz {
+        self.frequency
     }
 }
 
@@ -73,42 +73,42 @@ impl Unit {
         Self(regs)
     }
 
-    /// The timing for `speed` from a PCLK1 of `kernel_clock`, or why the
+    /// The timing for `frequency` from a PCLK1 of `kernel_clock`, or why the
     /// pair cannot run. Fm mode is anything above 100 kHz; the divider
-    /// lands at or under the speed asked for, DUTY low first, with CCR's
+    /// lands at or under the frequency asked for, DUTY low first, with CCR's
     /// minimum of 4 (1 in DUTY-high fast mode) and maximum 0x0FFF
     /// (RM0368 §27.6.11); TRISE carries the I2C specification's maximum
     /// rise time, 1000 ns in standard mode and 300 ns in fast, as whole
     /// PCLK1 counts plus one (RM0368 §27.6.13). PCLK1 must be a whole
     /// number of MHz, 2 to 50 (the CR2 FREQ field, RM0368 §27.4).
-    pub const fn timing(kernel_clock: Hertz, speed: Hertz) -> Result<Timing, ConfigError> {
+    pub const fn timing(kernel_clock: Hertz, frequency: Hertz) -> Result<Timing, ConfigError> {
         if kernel_clock.0 < 2_000_000 || kernel_clock.0 > 50_000_000 {
             return Err(ConfigError::KernelClock);
         }
         if !kernel_clock.0.is_multiple_of(1_000_000) {
             return Err(ConfigError::KernelClock);
         }
-        if speed.0 < 1_000 || speed.0 > 400_000 {
-            return Err(ConfigError::Speed);
+        if frequency.0 < 1_000 || frequency.0 > 400_000 {
+            return Err(ConfigError::Frequency);
         }
         let freq = (kernel_clock.0 / 1_000_000) as u8;
-        let fast = speed.0 > 100_000;
+        let fast = frequency.0 > 100_000;
         // The divider: whole TPCLK1 counts, CCR's minimum and maximum
         // observed (RM0368 §27.6.11).
         let (duty, ccr) = if !fast {
-            let ccr = kernel_clock.0 / (2 * speed.0);
+            let ccr = kernel_clock.0 / (2 * frequency.0);
             if ccr < 4 || ccr > 0x0FFF {
-                return Err(ConfigError::Speed);
+                return Err(ConfigError::Frequency);
             }
             (false, ccr)
         } else {
-            let duty0 = kernel_clock.0 / (3 * speed.0);
+            let duty0 = kernel_clock.0 / (3 * frequency.0);
             if duty0 >= 4 && duty0 <= 0x0FFF {
                 (false, duty0)
             } else {
-                let duty1 = kernel_clock.0 / (25 * speed.0);
+                let duty1 = kernel_clock.0 / (25 * frequency.0);
                 if duty1 < 1 || duty1 > 0x0FFF {
-                    return Err(ConfigError::Speed);
+                    return Err(ConfigError::Frequency);
                 }
                 (true, duty1)
             }
@@ -122,7 +122,7 @@ impl Unit {
         }
         // The SCL on the wire, from the same counts: one TPCLK1 is
         // 1000/freq ns, so the period is counts x 1000/freq ns and the
-        // speed 1e6 x freq / counts kHz.
+        // frequency 1e6 x freq / counts kHz.
         let counts = if !fast {
             2 * ccr
         } else if !duty {
@@ -130,14 +130,14 @@ impl Unit {
         } else {
             25 * ccr
         };
-        let speed_out = Hertz(1_000_000 * freq as u32 / counts);
+        let frequency_out = Hertz(1_000_000 * freq as u32 / counts);
         Ok(Timing {
             freq,
             fast,
             duty,
             ccr: ccr as u16,
             trise: trise as u8,
-            speed: speed_out,
+            frequency: frequency_out,
         })
     }
 
@@ -376,7 +376,7 @@ mod tests {
         assert!(!timing.fast);
         assert_eq!(timing.ccr, 0x28);
         assert_eq!(timing.trise, 9);
-        assert_eq!(timing.speed(), Hertz::khz(100));
+        assert_eq!(timing.frequency(), Hertz::khz(100));
     }
 
     /// The boards' PCLK1: the F401 and F405 benches and flight images run
@@ -389,23 +389,23 @@ mod tests {
         // 42 MHz / (3 x 400 kHz) = 35; TRISE 300 ns + 1.
         assert_eq!(timing.ccr, 35);
         assert_eq!(timing.trise, 13);
-        assert_eq!(timing.speed(), Hertz::khz(400));
+        assert_eq!(timing.frequency(), Hertz::khz(400));
         let timing = Unit::timing(Hertz::mhz(42), Hertz::khz(100)).expect("42 MHz to 100 kHz runs");
         assert!(!timing.fast);
         assert_eq!(timing.ccr, 210);
         assert_eq!(timing.trise, 43);
-        assert_eq!(timing.speed(), Hertz::khz(100));
+        assert_eq!(timing.frequency(), Hertz::khz(100));
     }
 
     #[test]
     fn out_of_range_is_refused() {
         assert_eq!(
             Unit::timing(Hertz::mhz(42), Hertz(401_000)),
-            Err(ConfigError::Speed)
+            Err(ConfigError::Frequency)
         );
         assert_eq!(
             Unit::timing(Hertz::mhz(42), Hertz(900)),
-            Err(ConfigError::Speed)
+            Err(ConfigError::Frequency)
         );
         assert_eq!(
             Unit::timing(Hertz(42_500_000), Hertz::khz(100)),

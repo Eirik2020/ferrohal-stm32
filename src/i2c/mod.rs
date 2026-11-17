@@ -130,22 +130,22 @@ pub struct Config {
     /// The fastest SCL allowed. The driver computes its timing registers
     /// for it and reports the rate in use through [`I2c::frequency`].
     /// 1 kHz to 400 kHz on an F4, 1 kHz to 1 MHz on an H7.
-    pub speed: Hertz,
+    pub frequency: Hertz,
 }
 
 impl Config {
-    pub const fn new(speed: Hertz) -> Self {
-        Self { speed }
+    pub const fn new(frequency: Hertz) -> Self {
+        Self { frequency }
     }
 
-    /// Whether this speed can run from this kernel clock, and why not if
+    /// Whether this frequency can run from this kernel clock, and why not if
     /// it can't. A `const fn`, so a board can check its buses while
     /// compiling.
     pub const fn check(&self, kernel_clock: Hertz) -> Result<(), ConfigError> {
-        if self.speed.0 == 0 {
-            return Err(ConfigError::Speed);
+        if self.frequency.0 == 0 {
+            return Err(ConfigError::Frequency);
         }
-        match Unit::timing(kernel_clock, self.speed) {
+        match Unit::timing(kernel_clock, self.frequency) {
             Ok(_) => Ok(()),
             Err(error) => Err(error),
         }
@@ -155,7 +155,7 @@ impl Config {
 #[cfg(feature = "defmt")]
 impl defmt::Format for Config {
     fn format(&self, f: defmt::Formatter) {
-        defmt::write!(f, "Config {{ speed: {} Hz }}", self.speed.0)
+        defmt::write!(f, "Config {{ frequency: {} Hz }}", self.frequency.0)
     }
 }
 
@@ -163,9 +163,9 @@ impl defmt::Format for Config {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigError {
-    /// The speed asked for is outside what the IP version carries, or the
+    /// The frequency asked for is outside what the IP version carries, or the
     /// kernel clock cannot divide down to it.
-    Speed,
+    Frequency,
     /// The kernel clock is not a frequency the IP version can time from:
     /// an F4 needs a whole number of MHz between 2 and 62.
     KernelClock,
@@ -262,7 +262,7 @@ impl<U: Instance, Scl, Sda> I2cParts for Wiring<U, Scl, Sda> {
 pub struct I2c<W: I2cParts> {
     info: &'static Info,
     kernel_clock: Hertz,
-    speed: Hertz,
+    frequency: Hertz,
     /// CPU cycles per SCL bit, rounded up.
     bit_cycles: u32,
     clock: Option<&'static dyn CycleClock>,
@@ -296,21 +296,21 @@ where
         let clocks = rcc.clocks();
         let kernel_clock = U::KERNEL.clock(&clocks);
         let timing = match config.check(kernel_clock) {
-            Ok(()) => Unit::timing(kernel_clock, config.speed),
+            Ok(()) => Unit::timing(kernel_clock, config.frequency),
             Err(error) => Err(error),
         };
         let timing = match timing {
             Ok(timing) => timing,
             Err(error) => return Err(Refused::new(error, wiring)),
         };
-        let speed = timing.speed();
+        let frequency = timing.frequency();
         rcc.open(U::ENABLE);
         info.unit().apply(&timing);
         Ok(Self {
             info,
             kernel_clock,
-            speed,
-            bit_cycles: clocks.cpu.0.div_ceil(speed.0.max(1)),
+            frequency,
+            bit_cycles: clocks.cpu.0.div_ceil(frequency.0.max(1)),
             clock: None,
             name: U::NAME,
             health: Health::default(),
@@ -332,7 +332,7 @@ where
 impl<W: I2cParts> I2c<W> {
     /// The SCL in use.
     pub fn frequency(&self) -> Hertz {
-        self.speed
+        self.frequency
     }
 
     /// The kernel clock the timing was computed from.
@@ -559,10 +559,10 @@ mod tests {
     }
 
     #[test]
-    fn a_zero_speed_is_refused_by_the_check() {
+    fn a_zero_frequency_is_refused_by_the_check() {
         assert_eq!(
             Config::new(Hertz(0)).check(Hertz::mhz(42)),
-            Err(ConfigError::Speed)
+            Err(ConfigError::Frequency)
         );
     }
 }

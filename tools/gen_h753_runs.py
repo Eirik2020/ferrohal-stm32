@@ -169,7 +169,7 @@ for run, (summary, uarts) in RUNS.items():
                     uart: &mut *{f},
                 }},
                 board::CLOCKS.cpu.0,
-                {cfg}.baudrate,
+                {cfg}.baudrate.0,
             ),
         );"""
         for f, label, line, dma, txdma, cfg in uarts
@@ -212,11 +212,11 @@ for run, (summary, uarts) in RUNS.items():
     /// The Lucid's frames: CRSF to the receiver, SBUS from the DJI
     /// connector (without the inversion FerroHAL cannot set yet), MSP to
     /// the DisplayPort.
-    const CRSF: Config = Config::new(420_000);
-    const SBUS: Config = Config::new(100_000)
+    const CRSF: Config = Config::new(ferrohal_stm32::time::Hertz(420_000));
+    const SBUS: Config = Config::new(ferrohal_stm32::time::Hertz(100_000))
         .with_parity(Parity::Even)
         .with_stop_bits(StopBits::Two);
-    const MSP: Config = Config::new(115_200);
+    const MSP: Config = Config::new(ferrohal_stm32::time::Hertz(115_200));
 """
     else:
         local_extra = ""
@@ -226,7 +226,7 @@ for run, (summary, uarts) in RUNS.items():
         extra_uses = ""
         extra_uses2 = "        uart::{Config, Uart, UartInterrupts, UartIrq},\n"
         core_uses = ""
-        consts = "\n    const PLAIN: Config = Config::new(115_200);\n"
+        consts = "\n    const PLAIN: Config = Config::new(ferrohal_stm32::time::Hertz(115_200));\n"
     rebind = "\n".join(
         f"""        let {f} = cx.local.{f};
         report.check_for(

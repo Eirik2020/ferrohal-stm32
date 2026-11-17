@@ -33,14 +33,14 @@ pub struct Timing {
     /// The whole TIMINGR value, packed.
     timingr: u32,
     /// The SCL these values run.
-    speed: Hertz,
+    frequency: Hertz,
 }
 
 impl Timing {
     /// The SCL these values run on the wire, from the same counts: the
     /// period is (SCLL + 1 + SCLH + 1) x tPRESC.
-    pub const fn speed(&self) -> Hertz {
-        self.speed
+    pub const fn frequency(&self) -> Hertz {
+        self.frequency
     }
 }
 
@@ -49,7 +49,7 @@ impl Unit {
         Self(regs)
     }
 
-    /// The timing for `speed` from a kernel clock of `kernel_clock`, or
+    /// The timing for `frequency` from a kernel clock of `kernel_clock`, or
     /// why the pair cannot run.
     ///
     /// The recipe is RM0433 §47.4.5's, with the analog filter on and the
@@ -60,10 +60,10 @@ impl Unit {
     /// setup from the rise and Table 388's tSU;DAT; SDADEL sits between
     /// §47.4.5's bounds, the tAF of DS12117 Table 94 (50 to 260 ns) in
     /// them. Every count rounds up, so the SCL produced is at or below
-    /// the speed asked for.
-    pub const fn timing(kernel_clock: Hertz, speed: Hertz) -> Result<Timing, ConfigError> {
-        if speed.0 < 1_000 || speed.0 > 1_000_000 {
-            return Err(ConfigError::Speed);
+    /// the frequency asked for.
+    pub const fn timing(kernel_clock: Hertz, frequency: Hertz) -> Result<Timing, ConfigError> {
+        if frequency.0 < 1_000 || frequency.0 > 1_000_000 {
+            return Err(ConfigError::Frequency);
         }
         if kernel_clock.0 == 0 {
             return Err(ConfigError::KernelClock);
@@ -75,9 +75,9 @@ impl Unit {
         // specification's SCL times): minimum low and high, rise and
         // fall, data setup, and the maximum data hold.
         let (low_min, high_min, rise, fall, setup, hold_max): (u32, u32, u32, u32, u32, u32) =
-            if speed.0 <= 100_000 {
+            if frequency.0 <= 100_000 {
                 (4_700, 4_000, 1_000, 300, 250, 3_450)
-            } else if speed.0 <= 400_000 {
+            } else if frequency.0 <= 400_000 {
                 (1_300, 600, 300, 300, 100, 900)
             } else {
                 (500, 260, 120, 120, 50, 450)
@@ -91,14 +91,14 @@ impl Unit {
         }
         // The period asked for, split around the mode's minimum low,
         // with the rest high but never under the mode's minimum.
-        let period = 1_000_000_000u32.div_ceil(speed.0);
+        let period = 1_000_000_000u32.div_ceil(frequency.0);
         let mut low = low_min;
         if period - low < high_min {
             low = period - high_min;
         }
         let high = period - low;
         if low < low_min {
-            return Err(ConfigError::Speed);
+            return Err(ConfigError::Frequency);
         }
         // The smallest prescaler that fits every field (RM0433 §47.4.5).
         let mut presc = 0;
@@ -143,19 +143,19 @@ impl Unit {
             }
             let sdadel = lower;
             // All fields fit: the period from the same counts, at or
-            // below the speed asked for. The guard keeps the division's
+            // below the frequency asked for. The guard keeps the division's
             // edge out of the link: the period is two counts at the
             // least, so it never fires.
             let achieved = tp * (scll + 1) + tp * (sclh + 1);
             if achieved == 0 {
-                return Err(ConfigError::Speed);
+                return Err(ConfigError::Frequency);
             }
             return Ok(Timing {
                 timingr: (presc << 28) | (scldel << 20) | (sdadel << 16) | (sclh << 8) | scll,
-                speed: Hertz(1_000_000_000 / achieved),
+                frequency: Hertz(1_000_000_000 / achieved),
             });
         }
-        Err(ConfigError::Speed)
+        Err(ConfigError::Frequency)
     }
 
     /// Writes the timing with PE clear, the analog filter on and the
@@ -374,7 +374,7 @@ mod tests {
     use super::*;
 
     /// The H7 bench's PCLK1: 120 MHz, which the Nucleo-H753ZI's tree runs
-    /// on APB1. Every mode produces its timing, at or below the speed
+    /// on APB1. Every mode produces its timing, at or below the frequency
     /// asked for, with every field of TIMINGR in range.
     #[test]
     fn every_mode_from_the_bench_pclk1() {
@@ -386,9 +386,9 @@ mod tests {
             let timing = Unit::timing(Hertz::mhz(120), Hertz(asked))
                 .unwrap_or_else(|_| panic!("{asked} Hz runs from 120 MHz"));
             assert!(
-                timing.speed().0 <= bound,
+                timing.frequency().0 <= bound,
                 "{asked} Hz: {}",
-                timing.speed().0
+                timing.frequency().0
             );
             let presc = timing.timingr >> 28;
             let scldel = (timing.timingr >> 20) & 0xF;
@@ -425,16 +425,16 @@ mod tests {
     /// setup asks, 4, 10 and 20 MHz.
     #[test]
     fn a_kernel_clock_too_slow_to_sample_sda_is_refused() {
-        for (speed, floor) in [
+        for (frequency, floor) in [
             (100_000, 4_000_000),
             (400_000, 10_000_000),
             (1_000_000, 20_000_000),
         ] {
             assert_eq!(
-                Unit::timing(Hertz(floor - 1), Hertz(speed)).err(),
+                Unit::timing(Hertz(floor - 1), Hertz(frequency)).err(),
                 Some(ConfigError::KernelClock)
             );
-            assert!(Unit::timing(Hertz(floor * 2), Hertz(speed)).is_ok());
+            assert!(Unit::timing(Hertz(floor * 2), Hertz(frequency)).is_ok());
         }
     }
 
@@ -460,11 +460,11 @@ mod tests {
     fn out_of_range_is_refused() {
         assert_eq!(
             Unit::timing(Hertz::mhz(120), Hertz(1_000_001)),
-            Err(ConfigError::Speed)
+            Err(ConfigError::Frequency)
         );
         assert_eq!(
             Unit::timing(Hertz::mhz(120), Hertz(900)),
-            Err(ConfigError::Speed)
+            Err(ConfigError::Frequency)
         );
         assert_eq!(
             Unit::timing(Hertz(0), Hertz::khz(100)),
