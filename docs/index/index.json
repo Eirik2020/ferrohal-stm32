@@ -3,7 +3,7 @@
  "counts": {
   "documents": 73,
   "agent": 52,
-  "bytes": 360455
+  "bytes": 361172
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 12177
+   "bytes": 11501
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 32120
+   "bytes": 33163
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -311,21 +311,21 @@
    "class": "human",
    "title": "ES0182: errata of die 0x413 (F405, F407)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 14585
+   "bytes": 14622
   },
   {
    "path": "docs/errata/ES0299.md",
    "class": "human",
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10731
+   "bytes": 10768
   },
   {
    "path": "docs/errata/ES0392.md",
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 23522
+   "bytes": 23559
   },
   {
    "path": "docs/housekeeping/README.md",
@@ -528,7 +528,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 19128
+   "bytes": 19367
   },
   {
    "path": "requirements/goals.md",

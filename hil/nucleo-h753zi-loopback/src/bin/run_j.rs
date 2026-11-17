@@ -176,6 +176,17 @@ mod app {
             }
         }
 
+        // ES0392 2.16.2 at DShot600's rate, the last one set.
+        pwm::top_to_zero_check(
+            &mut report,
+            "TIM3 CH3/CH4 PB0/PB1 (Lucid), duty step from the top to 0",
+            &mut tim3,
+            (&mut ch3, &mut ch4),
+            (0, 1),
+            &mut sampler_b,
+            cpu,
+        );
+
         // TIM1's complementary output at a quarter duty, 100 kHz.
         let name = "TIM1 CH3N PB15, 100 kHz, 1/4 duty";
         // The last rates above are still set: DShot600's, with the samplers at 12 times.

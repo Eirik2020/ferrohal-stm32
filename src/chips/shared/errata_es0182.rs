@@ -76,7 +76,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.6.1", "DMA request not automatically cleared by clearing DMAEN", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, NotReached("no DAC driver"), []),
     erratum!("2.6.2", "DMA underrun flag not set when an internal trigger is detected on the clock cycle of the DMA", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], None, NotReached("no DAC driver"), []),
     erratum!("2.7.1", "PWM re-enabled in automatic output enable mode despite of system break", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Partial, Avoided("no break input: AOE and BKE stay clear"), []),
-    erratum!("2.7.3", "Consecutive compare event missed in specific conditions", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], None, Open("a compare lane may lose a DMA request when its duty steps from the period's top to 0"), []),
+    erratum!("2.7.3", "Consecutive compare event missed in specific conditions", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], None, Workaround("a lane refuses a duty within `Pwm::top_margin` of the period's end followed by 0 (PWM-009; the H753 measured it, 2026-11-17)"), []),
     erratum!("2.7.4", "Output compare clear not working with external counter reset", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Partial, Avoided("no ocref_clr and no reset slave mode"), []),
     erratum!("2.8.1", "RVU flag not reset in Stop", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, Avoided("start returns once PVU and RVU are clear, and FerroHAL never enters Stop"), []),
     erratum!("2.8.2", "PVU flag not reset in Stop", [0x1000, 0x1001, 0x1003, 0x1007, 0x100F, 0x101F], Workaround, Avoided("start returns once PVU and RVU are clear, and FerroHAL never enters Stop"), []),

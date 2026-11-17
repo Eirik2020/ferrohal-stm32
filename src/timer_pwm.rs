@@ -21,7 +21,7 @@
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
 //!
-//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, API-002, API-003
+//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, PWM-009, API-002, API-003
 
 use core::{
     marker::PhantomData,
@@ -77,6 +77,14 @@ pub enum Error {
     NoInput,
     /// The timer can't reach the asked rate.
     Rate,
+    /// A duty within [`Pwm::top_margin`] of the period's end followed by 0,
+    /// or ending the waveform (a lane ends on 0). ES0392 2.16.2,
+    /// ES0299 2.6.3 and ES0182 2.7.3 name the compare match at CNT = CCR = 0 after
+    /// one at CNT = CCR = ARR; on the H753 the duty after such a step started
+    /// a period late for any duty up to 8 counts below the top, and kept
+    /// time from 12 counts below (DShot600, 200 MHz counter, 2026-11-17).
+    /// Step through a lower duty first.
+    TopToZero,
 }
 
 /// The prescaler and reload nearest `rate` from `clock`: (PSC + 1,
@@ -230,6 +238,16 @@ impl<T: ChannelTimer> Pwm<T> {
     /// Counts per period: the duty for an output always active.
     pub fn period(&self) -> u32 {
         self.period
+    }
+
+    /// The counts below the period's end that a lane's duty must keep clear
+    /// of before a 0 ([`Error::TopToZero`]): 100 ns of the counter clock, at
+    /// least one. Measured on the H753, a step to 0 kept time from 60 ns
+    /// below the end and slipped a period at 40 ns; 100 ns is that with a
+    /// margin for DMA latency under load, which was not measured.
+    pub fn top_margin(&self) -> u32 {
+        let counts = u64::from(self.frequency.0) * u64::from(self.period) / 10_000_000;
+        (counts as u32).max(1)
     }
 
     /// The rate the timer runs at.
@@ -764,6 +782,13 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
             return Err(Error::Busy);
         }
         let (first, rest) = duties.split_first().ok_or(Error::Empty)?;
+        let near_top = |duty: u32| duty.saturating_add(pwm.top_margin()) >= pwm.period();
+        let top_to_zero = duties
+            .windows(2)
+            .any(|pair| near_top(pair[0]) && pair[1] == 0);
+        if top_to_zero || duties.last().is_some_and(|&last| near_top(last)) {
+            return Err(Error::TopToZero);
+        }
         let len = rest.len() + 1;
         let staged = self.buffer.get_mut(..len).ok_or(Error::TooLarge)?;
         let len = u16::try_from(len).map_err(|_| Error::TooLarge)?;

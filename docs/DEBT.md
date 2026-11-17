@@ -54,14 +54,6 @@ Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FL
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
   UART's `Info` derived baud from the bus clock.
-- `code` `errata` **Low: a compare lane may lose a DMA request when its duty steps from the period's top to 0.**
-  ES0392 2.16.2, ES0299 2.6.3, ES0182 2.7.3: a compare match at CNT = CCR = ARR followed by one at
-  CNT = CCR = 0 (edge-aligned, the preloaded duty going from period - 1 to 0) misses
-  the second compare event. A lane's next duty is written on its compare request, so the stream
-  would fall a period behind. Inferred: the sheet names toggle outputs and the
-  center-aligned flag, not DMA requests; a bench lane with that step would show it. Fix
-  after measuring: refuse or split the step in `CompareLane::arm`. *Spawned:* the
-  ES0392 row review (2026-11-17).
 - `code` `bench` **Medium: above 1 Mbaud, `usart_v2` places a lone parity error late or
   loses it.** F401 run B, 8N2 into 8O1 (one bad byte, then a good frame), both
   directions, measured 2026-11-15: at 115200 and 1 Mbaud the error is seen once and

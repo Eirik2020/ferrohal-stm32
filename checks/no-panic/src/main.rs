@@ -535,6 +535,7 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     keep(lane.verify());
     lane.set_duty(&pwm, black_box(0));
     lane.abort(&pwm);
+    keep(pwm.top_margin());
     pwm.close_requests();
     pwm.stop();
     // The generator over the same lane.

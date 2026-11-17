@@ -4,6 +4,20 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **A compare lane refuses the duty step the timer misses** (2026-11-17; owner: measure
+  first). ES0392 2.16.2, ES0299 2.6.3 and ES0182 2.7.3 name a compare match at
+  CNT = CCR = 0 after one at CNT = CCR = ARR. Measured on the H753 (run J, TIM3 at
+  DShot600, 200 MHz counter, period 333): after a step to 0 the next duty started one
+  period late for every duty from the top down to 8 counts below it, and kept time from
+  12 counts below; a step from near the top to a quarter duty, and from a quarter duty
+  to 0, kept time. `CompareLane::arm` now refuses a duty within `Pwm::top_margin`
+  (100 ns of counter clock, at least one count; the margin over the 60 ns measured is
+  inferred room for DMA latency) followed by 0, or ending a waveform, with
+  `Error::TopToZero` (new requirement PWM-009). Run J checks the refusal and that the
+  same waveform just clear of the margin keeps time. Measured on `timer_v3` only; the
+  refusal is the shared lane code, so `timer_v1` refuses the same. Spawned by the ES0392
+  row review (2026-11-17).
+
 - **The H7 USB port sends zero-length packets by ES0392 2.25.7** (2026-11-17; owner,
   pin a fork). `synopsys-usb-otg` 0.4.0 set CNAK and EPENA together for an empty IN
   packet, which on the H7's core can put a wrong packet on the bus. FerroHAL now takes
