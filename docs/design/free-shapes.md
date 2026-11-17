@@ -16,6 +16,8 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 - ~~`Tick`/`Timebase` were not generic~~ **done (2026-11-10):** both carry their token
   and hand it back with `free()`. The bench seals a running tick in a per-run enum
   (`hil/common/timers.rs`); `Link` reads the timebase through a `TimebaseReader`.
+- UART: the next two entries are superseded by ADR-011 (2026-11-17): one `Uart<W>`, no
+  halves, and `free` hands back the wiring and buffers ([uart-ownership](uart-ownership.md)).
 - ~~`Uart`/`UartRx` stored `&'static Info`, and the halves needed a rejoin~~
   **done (2026-11-11):** the token rides in `Line<U>`; `split()`/`join()`; `free()` —
   the whole `Uart`, or `UartRx::free(self, line)` — returns it.

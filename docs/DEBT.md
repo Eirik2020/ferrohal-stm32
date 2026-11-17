@@ -36,7 +36,9 @@ Severity: **High** gives wrong behaviour. **Medium** is a gap a user will hit so
 **Low** is cleanup. **Lowest** waits on something outside the repository.
 
 Status 2026-11-16 (PR #48): the merge-gate benches pass on F401, H753 and the STM32F4
-Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FLSH`). No item is High.
+Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FLSH`). Since
+then #52 (ADR-011) and #53 (ADR-012) changed shared files, so the F4 and H7 benches owe a
+rerun (`tools/stale_runs.py` lists it). No item is High.
 
 ---
 
@@ -75,7 +77,7 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 
 D12, D13, N7, N9, N10, N12, S3, U3 and U10 are fixed in code by the UART single-owner
 redesign and the `Service` trait ([ADR-011](decisions/2026-11-17-uart-single-owner.md));
-each leaves for `RESOLVED.md` when the F401 and H753 benches rerun on that code.
+each leaves for [resolved/](resolved/README.md) when the F401 and H753 benches rerun on that code.
 
 | id | tags | sev | finding | spawned |
 |---|---|---|---|---|
