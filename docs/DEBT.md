@@ -94,7 +94,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | U5 | `code` | L | `Resource::Pin` rows written 13 times. | from `2e7f7fe` |
 | U6 | `code` | L | DMA and polled SPI repeat clock logic; `spi::Info` = `i2c::Info`. | `66afdaa` copied `99e6404`; `cdfe190` |
 | U10 | `code` | L | `interrupt()` + `verify_vectors` three times. | `4070cd8`, `ea7a9f8` |
-| U11 | `bench` | L | Two smoke benches' `usb_irq.rs` differ in 3 of 101 lines. | `ed48419` copied one into the other |
 | B1 | `bench` `owner` | L | A run letter means a different test on each bench. | `55025e8` the H753 bench numbered its own runs |
 | B2 | `bench` `tool` | L | H753 runs generated, F401 runs by hand. | `8b0266b` generator for the H753 only |
 

@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review U11: one USB smoke bench** (2026-11-17). The Foxeer's and the Lucid's
+  `usb_irq.rs` were one file copied, by then differing in their endpoint memory, board
+  name, watchdog field and whether they write a stop record. `hil/common/usb_irq.rs`
+  holds the RTIC app once, as `usb_irq_app!(board, iwdg, record)`; each board's
+  `usb_irq.rs` sets `EP_WORDS` and expands it. Spawned by `ed48419`.
+
 - **API review N13: one `ClockError` for both families** (2026-11-17). The F4 named
   `Sysclk`, `Pclk1`, `Pclk2`, `Usb`; the H7 `Cpu`, `Pclk`, `UsbTimeout`. `rcc_shared`
   now holds one enum, re-exported as `crate::rcc::ClockError`: the H7's `Cpu` is
