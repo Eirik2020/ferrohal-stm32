@@ -181,7 +181,7 @@ pub fn spi_suite<U: spi::SpiParts, B: Mutex<T = Bus<U>>, const P: char, const N:
 ) where
     Port<P>: PortInstance,
 {
-    sck.unlisten(ctrl);
+    sck.mask(ctrl);
     let cap = bus.lock(|b| b.spi.as_ref().map_or(0, Spi::capacity));
     report.check(name, "receive-stream vector enabled [RESOURCE-001]", {
         bus.lock(|b| b.spi.as_ref().map(|s| s.interrupts().verify()))
@@ -315,11 +315,11 @@ pub fn spi_suite<U: spi::SpiParts, B: Mutex<T = Bus<U>>, const P: char, const N:
                     b.edges = 0;
                     b.counted = Some(sck.handle());
                 });
-                sck.listen(ctrl);
+                sck.unmask(ctrl);
                 let sent: [u8; 4] = pattern(5);
                 let sent_ok = by_interrupt(bus, cpu, &sent);
                 spin(10_000);
-                sck.unlisten(ctrl);
+                sck.mask(ctrl);
                 let edges = bus.lock(|b| {
                     b.counted = None;
                     b.edges
@@ -491,7 +491,7 @@ pub fn exti_suite<
     const PULSES: u32 = 10;
     // Long enough for the handler to run between edges.
     const SETTLE: u32 = 20_000;
-    exti.listen(ctrl);
+    exti.unmask(ctrl);
     let mut count = |bus: &mut B, out: &mut Pin<OP, ON, Output>, exti: &mut Exti<P, N>, edge| {
         out.set_low();
         spin(SETTLE);
@@ -531,7 +531,7 @@ pub fn exti_suite<
         "masked: edges ignored, then counted again [EXTI-002]",
         (|| {
             exti.set_edge(ctrl, Edge::Rising);
-            exti.unlisten(ctrl);
+            exti.mask(ctrl);
             exti.clear();
             let before = bus.lock(|b| b.edges);
             out.set_high();
@@ -541,7 +541,7 @@ pub fn exti_suite<
             let after = bus.lock(|b| b.edges);
             // A masked line doesn't latch its edges either.
             let pending = exti.is_pending();
-            exti.listen(ctrl);
+            exti.unmask(ctrl);
             out.set_high();
             spin(SETTLE);
             out.set_low();
@@ -606,7 +606,7 @@ pub fn exti_suite<
             }
         })(),
     );
-    exti.unlisten(ctrl);
+    exti.mask(ctrl);
     bus.lock(|b| b.counted = None);
 }
 
@@ -623,7 +623,7 @@ pub fn blocking_suite<U: ferrohal_stm32::spi::SpiParts, const P: char, const N: 
 ) where
     Port<P>: PortInstance,
 {
-    sck.unlisten(ctrl);
+    sck.mask(ctrl);
     report.check(
         name,
         "SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001]",
@@ -773,7 +773,7 @@ pub fn wire_check<U, B, TM, S>(
                             break done.is_ok();
                         }
                         if DWT::cycle_count().wrapping_sub(start) > cpu.0 / 100 {
-                            sampler.stop();
+                            sampler.abort();
                             break false;
                         }
                     };

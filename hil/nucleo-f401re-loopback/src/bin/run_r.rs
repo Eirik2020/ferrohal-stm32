@@ -187,7 +187,7 @@ mod app {
             result,
         );
         if !finished_ok {
-            sampler.stop();
+            sampler.abort();
             return;
         }
         report.check(

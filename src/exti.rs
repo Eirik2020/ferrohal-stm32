@@ -179,14 +179,14 @@ where
     }
 
     /// Unmasks the line's interrupt.
-    pub fn listen(&mut self, _ctrl: &mut Ctrl) {
+    pub fn unmask(&mut self, _ctrl: &mut Ctrl) {
         set_mask(N, true);
     }
 
     /// Masks the line. A masked line ignores its edges altogether: they
     /// neither raise the interrupt nor set it pending (RM0368 10.2.4,
     /// RM0433 20.3.1, confirmed on the F401).
-    pub fn unlisten(&mut self, _ctrl: &mut Ctrl) {
+    pub fn mask(&mut self, _ctrl: &mut Ctrl) {
         set_mask(N, false);
     }
 
@@ -195,7 +195,7 @@ where
     }
 
     /// Masks the line, deselects its edges and gives the line back.
-    pub fn release(self, _ctrl: &mut Ctrl) -> Line<N> {
+    pub fn free(self, _ctrl: &mut Ctrl) -> Line<N> {
         set_mask(N, false);
         EXTI_REGS
             .rtsr(0)

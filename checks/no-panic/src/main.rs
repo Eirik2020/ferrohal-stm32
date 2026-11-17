@@ -342,8 +342,8 @@ pub fn exercise_exti<const P: char, const N: u8>(
     keep(exti.is_high());
     keep(InputPin::is_low(&mut exti));
     exti.set_edge(ctrl, black_box(Edge::Falling));
-    exti.unlisten(ctrl);
-    exti.listen(ctrl);
+    exti.mask(ctrl);
+    exti.unmask(ctrl);
     let handle = exti.handle();
     keep(handle.is_pending());
     handle.clear();
@@ -351,7 +351,7 @@ pub fn exercise_exti<const P: char, const N: u8>(
     keep(handle.interrupt());
     keep(handle.line());
     keep(ferrohal_stm32::exti::vector(black_box(12)));
-    keep(exti.release(ctrl));
+    keep(exti.free(ctrl));
 }
 
 /// Timers: a tick and a timebase through every operation. Each chip's
@@ -692,7 +692,7 @@ where
     keep(sampler.interrupt());
     keep(sampler.verify());
     keep(sampler.set_rate(black_box(Hertz::mhz(2))));
-    sampler.stop();
+    sampler.abort();
     keep(sampler.free());
 }
 

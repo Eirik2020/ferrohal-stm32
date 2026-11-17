@@ -2,3 +2,4 @@
 # accepted (tools/check_no_panic_coverage.py). One per line:
 # <file> <Type::name or name> -- <reason>
 src/dma_stream.rs stick -- feature fault-injection only, a bench hook; this program builds without it
+src/dma_stream.rs release -- feature fault-injection only, stick's undo; was counted before only because Exti had a method of the same name

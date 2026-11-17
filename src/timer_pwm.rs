@@ -1037,7 +1037,7 @@ impl<T: Instance, S> Sampler<T, S> {
     /// the clock allows.
     pub fn set_rate(&mut self, rate: Hertz) -> Result<Hertz, ConfigError> {
         let (prescaler, reload, rate) = nearest(self.clock, rate, T::BITS)?;
-        self.stop();
+        self.abort();
         reload_counter(self.timer, prescaler, reload);
         self.rate = rate;
         Ok(rate)
@@ -1097,13 +1097,13 @@ impl<T: Instance, S> Sampler<T, S> {
         };
         let flags = self.dma.flags();
         if flags.transfer_error || flags.direct_mode_error {
-            self.stop();
+            self.abort();
             return Some(Err(Error::Dma));
         }
         if !flags.complete {
             return None;
         }
-        self.stop();
+        self.abort();
         self.state = SampleState::Done(len);
         Some(Ok(usize::from(len)))
     }
@@ -1120,8 +1120,8 @@ impl<T: Instance, S> Sampler<T, S> {
         }
     }
 
-    /// Stops the timer and the stream.
-    pub fn stop(&mut self) {
+    /// Abandons a run: stops the timer and the stream.
+    pub fn abort(&mut self) {
         // A stream that will not stop is caught by the next `start`
         // (`Error::Dma`) or by `free`.
         let _ = self.halt();

@@ -208,7 +208,7 @@ pub fn lane_pair_check<
             "both lanes and the sampler finish [PWM-003]",
             Err(fail),
         );
-        sampler.stop();
+        sampler.abort();
         return;
     }
     report.check(name, "both lanes and the sampler finish [PWM-003]", Ok(()));
@@ -262,14 +262,14 @@ pub fn awg_check<
             got: 0,
         })?;
         if awg.play().is_err() {
-            sampler.stop();
+            sampler.abort();
             awg.abort();
             return Err(unfinished);
         }
         for lane in 0..2 {
             if lanes & (1 << lane) != 0 && !matches!(wait(budget, || awg.poll(lane)), Some(Ok(())))
             {
-                sampler.stop();
+                sampler.abort();
                 awg.abort();
                 return Err(unfinished);
             }
@@ -495,7 +495,7 @@ pub fn awg_free_check<
             got: 0,
         })?;
         if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: 1000,
                 got: 0,
@@ -651,7 +651,7 @@ pub fn awg_wire_out_check<
         })?;
         play_one(awg, &sent, budget)?;
         if !matches!(wait(budget, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: CAPTURES as u32,
                 got: 0,
@@ -683,7 +683,7 @@ pub fn awg_wire_out_check<
         })?;
         play_one(awg, &sent, budget)?;
         if !matches!(wait(budget, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: CAPTURES as u32,
                 got: 0,
@@ -918,7 +918,7 @@ fn measure_duty<T: ferrohal_stm32::timer::Instance, ST>(
             got: 0,
         })?;
         if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: 1000,
                 got: 0,
@@ -958,7 +958,7 @@ pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, SU>(
         })?;
         pwm.start_one_pulse();
         if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
-            sampler.stop();
+            sampler.abort();
             return Err(Fail::Count {
                 expected: count as u32,
                 got: 0,

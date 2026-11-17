@@ -365,7 +365,7 @@ fn main() -> ! {
     ready_pin.set_pull(&mut b.ctrl, Pull::Down);
     let mut imu_ready = exti.l2.route::<'B'>(&mut exti.ctrl, Edge::Rising);
     // In EXTI only, so the flag latches: its NVIC vector stays off.
-    imu_ready.listen(&mut exti.ctrl);
+    imu_ready.unmask(&mut exti.ctrl);
 
     // The motor pads get their timers with duty 0 and the counters stopped,
     // and lose them again before anything counts: no frame reaches one. The

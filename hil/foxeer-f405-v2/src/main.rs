@@ -578,7 +578,7 @@ fn main() -> ! {
     ready_pin.set_pull(&mut c.ctrl, Pull::Down);
     let mut imu_ready = exti.l4.route::<'C'>(&mut exti.ctrl, Edge::Rising);
     // In EXTI only, so the flag latches: its NVIC vector stays off.
-    imu_ready.listen(&mut exti.ctrl);
+    imu_ready.unmask(&mut exti.ctrl);
 
     // The battery inputs, on ADC1 with the temperature sensor: the sequence
     // and the free stream the flight code uses.

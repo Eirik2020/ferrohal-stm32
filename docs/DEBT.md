@@ -104,9 +104,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | N10 | `code` `api` | L | DMA fault variant `DmaTransfer`/`DmaOverrun` vs `Dma`. | `42cbcaf` UART, then `99e6404` |
 | N12 | `code` `api` | L | Health counters differ in plurality, type and overflow. | `42cbcaf`, `99e6404`, `cdfe190` |
 | N13 | `code` `api` | L | RCC error variants differ F4/H7. | `af65cad`, two RCC modules |
-| N14 | `code` `api` | L | `free` vs `release` (`Exti`). | `b55c640` `release`; `free` from ADR-002 |
-| N15 | `code` `api` | L | `abort` vs `stop` (`Sampler`). | `ea7a9f8` |
-| N16 | `code` `api` | L | `mask` vs `listen`; `listen` also means capture. | `b55c640`, then `1ca19a9` |
 | N17 | `code` `api` | L | Watchdog's `start` and `WatchdogPeripheral`. | `1e1bbdf` 2026-10-31 |
 | N18 | `code` `api` | L | Accessors present on some drivers only. | per driver |
 | N19 | `code` `api` | L | `Config` builders and `defmt` derives differ. | per driver |

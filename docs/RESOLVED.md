@@ -4,6 +4,17 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review N14, N15 and N16 (EXTI half): one verb per act** (2026-11-17). Giving a
+  token back is `free` everywhere: `Exti::release` is `Exti::free`. Abandoning a
+  transfer is `abort` everywhere: `Sampler::stop` is `Sampler::abort` (`Tick::stop` and
+  `Pwm::stop` stop a counter, not a transfer, and stay). Interrupt enables are
+  `mask`/`unmask`: `Exti::listen`/`unlisten` are `unmask`/`mask`, so `listen` means
+  capture only (`CompareLane`, `Awg`). N16's UART half (`Line::mask`) moves with the
+  UART single-owner redesign (owner, 2026-11-17). The rename showed that
+  `dma::fault::release` had counted as called only through `Exti::release`'s name; it
+  is listed in `checks/no-panic/uncalled.txt` beside `stick`. Spawned by `b55c640`,
+  `ea7a9f8`, `1ca19a9`.
+
 - **The F401 bench's SPI SCK speed was never at fault** (2026-11-17). The ES0299 row
   review logged that runs E to G drive SCK at reset speed with APB2 at 84 MHz, outside
   2.11.4's bound. Wrong: the board's `sck()` sets every SCK and MOSI pin to high speed,
