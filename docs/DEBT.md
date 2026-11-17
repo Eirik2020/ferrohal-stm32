@@ -80,13 +80,11 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | D12 | `code` `api` | L | Interrupt service is not uniform. | per driver; `1ca19a9` added a third shape |
 | D13 | `code` `api` | L | Vectors come in four shapes; `verify()` on five of nine. | `2e7f7fe` UART, `b55c640` EXTI, `4070cd8` timers |
 | N7 | `code` | L | Register wrapper `Unit` vs `LineRegs`. | `99e6404` `Unit`; `4bb8398` ADR-004 named `LineRegs` |
-| N8 | `code` `api` | L | Routing traits and wirings named outside N2; USB has no wiring. | `ea7a9f8`, `9bd9d1e` |
 | N9 | `code` `api` | L | Vector-name constants differ by driver. | `2e7f7fe`, `4070cd8` |
 | N10 | `code` `api` | L | DMA fault variant `DmaTransfer`/`DmaOverrun` vs `Dma`. | `42cbcaf` UART, then `99e6404` |
 | N12 | `code` `api` | L | Health counters differ in plurality, type and overflow. | `42cbcaf`, `99e6404`, `cdfe190` |
 | S2 | `code` | L | Timer submodules by `#[path]`; twelve lone `mod.rs`. | `ea7a9f8` |
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
-| S5 | `code` | L | Clock-solver tests in chip files, named by board. | `8ad4510` 2026-11-06 |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
 | U6 | `code` | L | DMA and polled SPI repeat clock logic; `spi::Info` = `i2c::Info`. | `66afdaa` copied `99e6404`; `cdfe190` |
 | U10 | `code` | L | `interrupt()` + `verify_vectors` three times. | `4070cd8`, `ea7a9f8` |

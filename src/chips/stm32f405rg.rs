@@ -226,7 +226,7 @@ mod tests {
     }
 
     #[test]
-    fn foxeer_clocks_validate() {
+    fn validate_accepts_168_mhz_from_an_8_mhz_crystal() {
         use crate::rcc_f4::{
             AhbPrescaler, ApbPrescaler, Config, Hse, HseMode, Pll, PllP, PllSource, Supply, Sysclk,
         };
@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn solve_matches_the_foxeer_tree() {
+    fn solve_gives_168_mhz_and_usb_from_an_8_mhz_crystal() {
         use crate::rcc_f4::{
             AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllP, PllSource,
             Request, Supply, Sysclk,

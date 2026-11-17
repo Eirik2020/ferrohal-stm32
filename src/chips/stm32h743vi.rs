@@ -281,7 +281,7 @@ mod tests {
     }
 
     #[test]
-    fn solve_matches_the_lucid_tree() {
+    fn solve_gives_400_mhz_and_a_100_mhz_q_from_an_8_mhz_crystal() {
         use crate::rcc::{
             AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllSource, Request,
             Supply, Sysclk, VoltageScale,

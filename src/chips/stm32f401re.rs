@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn solve_matches_the_proven_tree() {
+    fn solve_gives_84_mhz_and_usb_from_an_8_mhz_crystal() {
         // 8 MHz crystal, 84 MHz system, 48 MHz USB: the tree the benches
         // freeze from (8 / 8 * 336, P 4, Q 7).
         assert_eq!(

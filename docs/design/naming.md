@@ -94,6 +94,11 @@ Which IP versions each series carries, as metapac measured them:
   (`SpiTxDma` and `SpiRxDma` beside the UART's `TxDma`, `AdcPin` beside `gpio::Pin`).
   The UART's names come with its single-owner redesign.
 
+- **[Decided]** A clock tree's host tests sit in the chip file whose limits they need
+  (`src/chips/<part>.rs`), and are named by the tree they pin, not by a board:
+  `solve_gives_168_mhz_and_usb_from_an_8_mhz_crystal`. A comment may say which bench
+  board freezes that tree (API review S5, 2026-11-17).
+
 ## Benches and scripts
 
 - **[Decided]** `hil/run-<bench>.sh` runs a bench: `run-f401`, `run-h753`, `run-foxeer`,

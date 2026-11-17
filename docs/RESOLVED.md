@@ -4,6 +4,14 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review S5 and N8: test names and routing names** (2026-11-17). S5: the clock
+  solver's tests were named by board (`solve_matches_the_foxeer_tree`,
+  `_the_lucid_tree`, `_the_proven_tree`, `foxeer_clocks_validate`); they are named by
+  the tree they pin, and `design/naming.md` records where such tests live (the chip file
+  whose limits they need) and how they are named. N8: the timer's routing traits and
+  wirings (`CompareDma`, `UpdateDma`, `LaneWiring`) already follow N2's rule, and USB's
+  missing wiring came with D9. Spawned by `8ad4510`; `ea7a9f8`, `9bd9d1e`.
+
 - **API review N18 and N19: one accessor set, one `Config` shape** (2026-11-17). `Spi`
   had no `name` or `kernel_clock`, `BlockingSpi` no `kernel_clock`, I2C no module
   `check::<U>`, `adc::Config` no `new`, and `i2c::Config` hand-wrote its
