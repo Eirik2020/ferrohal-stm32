@@ -222,6 +222,7 @@ fn main() -> ! {
     let mut channel = spare.take_stream();
     keep(channel.flags());
     keep(channel.flags().any_error());
+    keep(channel.flags().failed());
     channel.clear_flags(black_box(Flags::ALL));
     channel.set_interrupts(black_box(ferrohal_stm32::dma::Interrupts {
         complete: true,

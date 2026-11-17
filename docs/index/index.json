@@ -3,7 +3,7 @@
  "counts": {
   "documents": 75,
   "agent": 53,
-  "bytes": 381429
+  "bytes": 381471
  },
  "documents": [
   {
@@ -341,7 +341,7 @@
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 23559
+   "bytes": 23601
   },
   {
    "path": "docs/housekeeping/README.md",

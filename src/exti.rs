@@ -16,7 +16,7 @@
 //! interrupt handler holds needs no owner.
 //!
 //! FerroHAL enables the line's interrupt in EXTI only; the scheduler binds
-//! the vector ([`Exti::interrupt`]) and clears the line in its handler.
+//! the vector (from [`Exti::vectors`]) and clears the line in its handler.
 //!
 //! Requirements: EXTI-001, EXTI-002, EXTI-003, EXTI-004
 

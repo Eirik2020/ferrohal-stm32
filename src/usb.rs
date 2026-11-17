@@ -9,7 +9,7 @@
 //! send a wrong packet on the H7's core, so the fork sets SNAK, waits, enables
 //! the endpoint, waits, and only then clears the NAK.
 //!
-//! The firmware binds [`UsbFs::interrupt`]'s vector, or polls, and calls
+//! The firmware binds the vector in [`UsbFs::vectors`], or polls, and calls
 //! `UsbDevice::poll` from one context; FerroHAL enables nothing in the NVIC.
 //! The data pins are the chip's own (`chip::UsbDm`, `chip::UsbDp`, from the
 //! glue); set both to very high speed and hand them over in a [`Wiring`].
