@@ -814,7 +814,7 @@ pub fn exercise_blocking<U, K, I, O>(
 
 /// The I2C through every operation of the bus trait, and the empty
 /// operation inside a transaction.
-fn exercise_i2c<W: i2c::I2cParts>(bus: &mut I2c<W>) {
+fn exercise_i2c<W: i2c::Parts>(bus: &mut I2c<W>) {
     use embedded_hal::i2c::{I2c as HalI2c, Operation};
 
     let data = black_box(&[0x5au8; 4][..]);
@@ -881,7 +881,7 @@ pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::
     keep(usb);
 }
 
-fn exercise_spi<W: ferrohal_stm32::spi::SpiParts>(bus: &mut Spi<W>) {
+fn exercise_spi<W: ferrohal_stm32::spi::Parts>(bus: &mut Spi<W>) {
     use embedded_hal::spi::SpiBus;
 
     let data = black_box(&[0xa5u8; 40][..]);
@@ -1558,12 +1558,12 @@ pub fn exercise_adc<A, P, S>(
 ) where
     A: ferrohal_stm32::adc::Instance,
     P: ferrohal_stm32::adc::AdcPin<A>,
-    S: ferrohal_stm32::adc::AdcDma<A>,
+    S: ferrohal_stm32::adc::Dma<A>,
 {
-    use ferrohal_stm32::adc::{Adc, AdcWiring, Config};
+    use ferrohal_stm32::adc::{Adc, Config, Wiring};
 
     // The wiring as a board states it, taken apart again.
-    let wiring = AdcWiring::<A, P, S>::new(pin, stream);
+    let wiring = Wiring::<A, P, S>::new(pin, stream);
     let (pin, stream) = (wiring.pin, wiring.stream);
     let mut adc = match Adc::new(rcc, token, &Config::slow_source()) {
         Ok(adc) => adc,

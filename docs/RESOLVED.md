@@ -4,6 +4,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review N2: no module prefix, with recorded exceptions** (2026-11-17; owner's
+  pick A). `spi::SpiParts`, `i2c::I2cParts`, `adc::AdcWiring`, `adc::AdcDma` and
+  `reset::ResetCause` are `spi::Parts`, `i2c::Parts`, `adc::Wiring`, `adc::Dma` and
+  `reset::Cause`. `design/naming.md` records the rule and its exceptions: the main
+  driver types and their refusals, and the routing traits a glue file imports beside a
+  namesake (`SpiTxDma`, `SpiRxDma`, `AdcPin`). The UART's names (`UartIrq`, `UartRx`,
+  `UartTx`, `UartInterrupts`) and `SpiInterrupts` (D13) move with the single-owner
+  redesign. Spawned by `af65cad` onward.
+
 - **API review N1: refusal aliases are `<What>Refused`** (2026-11-17; owner's pick A).
   Four patterns (`<Type>Refused`, `<Type>NewRefused`, `<Type>Refusal`, a `Result`
   alias) become one: `LaneRefusal`, `ComplementaryLaneRefusal`, `SdmmcNewRefused`,

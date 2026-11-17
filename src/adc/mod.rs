@@ -132,7 +132,7 @@ pub trait AdcPin<A: Instance>: crate::Sealed {
 /// # Safety
 ///
 /// `REQUEST` must route `A`'s request to this stream.
-pub unsafe trait AdcDma<A: Instance>: StreamInstance + StreamInterrupt {
+pub unsafe trait Dma<A: Instance>: StreamInstance + StreamInterrupt {
     const REQUEST: u8;
 }
 
@@ -149,7 +149,7 @@ pub struct Channel<A> {
 /// channel its pin measures. The scan itself is assembled at runtime from
 /// the wirings' channels (`Adc::into_scan`), whose refusal hands the ADC,
 /// the stream and the buffer back.
-pub struct AdcWiring<A, Pin, Stream> {
+pub struct Wiring<A, Pin, Stream> {
     /// The pin, in analog mode.
     pub pin: Pin,
     /// The DMA stream serving `A`.
@@ -157,7 +157,7 @@ pub struct AdcWiring<A, Pin, Stream> {
     _adc: PhantomData<fn() -> A>,
 }
 
-impl<A, Pin, Stream> AdcWiring<A, Pin, Stream> {
+impl<A, Pin, Stream> Wiring<A, Pin, Stream> {
     /// A wiring for one of `A`'s inputs, from its pin and stream.
     pub const fn new(pin: Pin, stream: Stream) -> Self {
         Self {
@@ -168,11 +168,11 @@ impl<A, Pin, Stream> AdcWiring<A, Pin, Stream> {
     }
 }
 
-impl<A, Pin, const CD: u8, const SN: u8> AdcWiring<A, Pin, crate::dma::Stream<CD, SN>>
+impl<A, Pin, const CD: u8, const SN: u8> Wiring<A, Pin, crate::dma::Stream<CD, SN>>
 where
     A: Instance,
     Pin: AdcPin<A> + crate::gpio::AltPin,
-    crate::dma::Stream<CD, SN>: AdcDma<A>,
+    crate::dma::Stream<CD, SN>: Dma<A>,
 {
     /// Everything this wiring uses, as data: the instance, the analog pin,
     /// and the stream with its request.
@@ -187,7 +187,7 @@ where
             signal: crate::resource::Signal::Adc(Pin::CHANNEL),
             controller: CD,
             stream: SN,
-            request: <crate::dma::Stream<CD, SN> as AdcDma<A>>::REQUEST,
+            request: <crate::dma::Stream<CD, SN> as Dma<A>>::REQUEST,
         },
     ];
 
@@ -285,7 +285,7 @@ impl<A: Instance> Adc<A> {
         buffer: &'static mut [u16],
     ) -> Result<AdcScan<A, S>, ScanRefused<A, S>>
     where
-        S: AdcDma<A>,
+        S: Dma<A>,
     {
         if channels.is_empty() || channels.len() > 16 || channels.len() > buffer.len() {
             return Err(Refused::new(Error::Sequence, (self, stream, buffer)));

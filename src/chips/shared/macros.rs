@@ -406,7 +406,7 @@ macro_rules! adc_dma {
         $(
             // SAFETY: the DMA request table's route for this ADC, from
             // stm32-metapac's metadata.
-            unsafe impl crate::adc::AdcDma<$name> for Stream<$dma, $stream> {
+            unsafe impl crate::adc::Dma<$name> for Stream<$dma, $stream> {
                 const REQUEST: u8 = $request;
             }
         )+
@@ -419,7 +419,7 @@ macro_rules! adc_dma_mux {
     ($name:ident: mux $request:literal) => {
         // SAFETY: the DMAMUX1 request ID for this ADC, from stm32-metapac's
         // metadata (RM0433 table 121).
-        unsafe impl<const D: u8, const N: u8> crate::adc::AdcDma<$name> for Stream<D, N>
+        unsafe impl<const D: u8, const N: u8> crate::adc::Dma<$name> for Stream<D, N>
         where
             Dma<D>: DmaInstance,
             Stream<D, N>: crate::dma::StreamInterrupt,

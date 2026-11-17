@@ -86,7 +86,7 @@ pub fn bootloader_requested() -> bool {
 
 /// The reset flags, without clearing them and without an `Rcc`: for a
 /// decision made before `freeze`. `Rcc::reset_cause` still reports them later.
-pub fn peek_cause() -> ResetCause {
+pub fn peek_cause() -> Cause {
     crate::rcc::read_reset_cause()
 }
 
@@ -143,7 +143,7 @@ pub(crate) unsafe fn enter_bootloader() -> ! {
 /// power-on reset also sets the pin flag, for one.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct ResetCause {
+pub struct Cause {
     pub power_on: bool,
     pub pin: bool,
     pub brownout: bool,

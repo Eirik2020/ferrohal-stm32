@@ -89,9 +89,9 @@ pub struct Rcc {
 }
 
 /// RCC_CSR's reset flags. A single read: no `Rcc` needed.
-pub(crate) fn read_reset_cause() -> crate::reset::ResetCause {
+pub(crate) fn read_reset_cause() -> crate::reset::Cause {
     let csr = RCC_REGS.csr().read();
-    crate::reset::ResetCause {
+    crate::reset::Cause {
         power_on: csr.porrstf(),
         pin: csr.padrstf(),
         brownout: csr.borrstf(),
@@ -125,7 +125,7 @@ impl Rcc {
 
     /// Why the chip last reset, read from RCC_CSR, whose flags are then
     /// cleared (RMVF) so the next reset reports only itself.
-    pub fn reset_cause(&mut self) -> crate::reset::ResetCause {
+    pub fn reset_cause(&mut self) -> crate::reset::Cause {
         let cause = read_reset_cause();
         clear_reset_flags();
         cause

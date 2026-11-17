@@ -250,12 +250,12 @@ impl Health {
 
 /// What an I2C was opened from: the instance its handle names. Implemented
 /// by [`Wiring`] only, so a handle's type names the board's whole route.
-pub trait I2cParts: crate::Sealed {
+pub trait Parts: crate::Sealed {
     type Instance: Instance;
 }
 
 impl<U, Scl, Sda> crate::Sealed for Wiring<U, Scl, Sda> {}
-impl<U: Instance, Scl, Sda> I2cParts for Wiring<U, Scl, Sda> {
+impl<U: Instance, Scl, Sda> Parts for Wiring<U, Scl, Sda> {
     type Instance = U;
 }
 
@@ -263,7 +263,7 @@ impl<U: Instance, Scl, Sda> I2cParts for Wiring<U, Scl, Sda> {
 /// the device drivers take. It keeps the board's wiring, the instance and
 /// both pins, and [`free`](I2c::free) hands it back, so the same parts open
 /// again.
-pub struct I2c<W: I2cParts> {
+pub struct I2c<W: Parts> {
     info: &'static Info,
     kernel_clock: Hertz,
     frequency: Hertz,
@@ -333,7 +333,7 @@ where
     }
 }
 
-impl<W: I2cParts> I2c<W> {
+impl<W: Parts> I2c<W> {
     /// The SCL in use.
     pub fn frequency(&self) -> Hertz {
         self.frequency
@@ -538,11 +538,11 @@ impl<W: I2cParts> I2c<W> {
     }
 }
 
-impl<W: I2cParts> embedded_hal::i2c::ErrorType for I2c<W> {
+impl<W: Parts> embedded_hal::i2c::ErrorType for I2c<W> {
     type Error = Error;
 }
 
-impl<W: I2cParts> embedded_hal::i2c::I2c for I2c<W> {
+impl<W: Parts> embedded_hal::i2c::I2c for I2c<W> {
     fn transaction(
         &mut self,
         address: embedded_hal::i2c::SevenBitAddress,

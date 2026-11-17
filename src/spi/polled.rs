@@ -15,8 +15,7 @@ use crate::{
     rcc::Rcc,
     resource::{Refused, Resource, Signal},
     spi::{
-        BlockingWiring, Config, ConfigError, Error, Info, Instance, MisoPin, MosiPin, SckPin,
-        SpiParts,
+        BlockingWiring, Config, ConfigError, Error, Info, Instance, MisoPin, MosiPin, Parts, SckPin,
     },
     spi_ip::Unit,
     time::{CycleClock, Hertz},
@@ -29,7 +28,7 @@ const CHUNK: usize = 65_535;
 /// An SPI master moving bytes by polling its data register. It keeps the
 /// board's wiring, the instance and its three pins, and
 /// [`free`](BlockingSpi::free) hands it back, so the same parts open again.
-pub struct BlockingSpi<W: SpiParts> {
+pub struct BlockingSpi<W: Parts> {
     info: &'static Info,
     kernel_clock: Hertz,
     cpu: Hertz,
@@ -94,7 +93,7 @@ where
     }
 }
 
-impl<W: SpiParts> BlockingSpi<W> {
+impl<W: Parts> BlockingSpi<W> {
     /// Changes the bus settings. Returns the new SCK.
     pub fn set_config(&mut self, config: &Config) -> Result<Hertz, ConfigError> {
         let code = config.divider(self.kernel_clock)?;
@@ -183,12 +182,12 @@ impl<W: SpiParts> BlockingSpi<W> {
     }
 }
 
-impl<W: SpiParts> embedded_hal::spi::ErrorType for BlockingSpi<W> {
+impl<W: Parts> embedded_hal::spi::ErrorType for BlockingSpi<W> {
     type Error = Error;
 }
 
 /// Every operation is bounded. The bytes sent while reading are 0x00.
-impl<W: SpiParts> embedded_hal::spi::SpiBus<u8> for BlockingSpi<W> {
+impl<W: Parts> embedded_hal::spi::SpiBus<u8> for BlockingSpi<W> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Error> {
         for part in words.chunks_mut(CHUNK) {
             self.exchange(

@@ -43,8 +43,8 @@ use crate::{
     rcc::Rcc,
     resource::{Refused, Resource, Signal},
     spi::{
-        Buffers, Config, ConfigError, Error, Health, Info, Instance, MisoPin, MosiPin, SckPin,
-        SpiInterrupts, SpiParts, SpiRxDma, SpiTxDma, Wiring,
+        Buffers, Config, ConfigError, Error, Health, Info, Instance, MisoPin, MosiPin, Parts,
+        SckPin, SpiInterrupts, SpiRxDma, SpiTxDma, Wiring,
     },
     spi_ip::Unit,
     time::{CycleClock, Hertz},
@@ -62,7 +62,7 @@ enum State {
 /// whole wiring, the instance, its three pins and both stream tokens, and
 /// [`free`](Spi::free) hands it back with the buffers, so the same parts
 /// open again.
-pub struct Spi<W: SpiParts> {
+pub struct Spi<W: Parts> {
     info: &'static Info,
     tx: AnyStream,
     rx: AnyStream,
@@ -225,7 +225,7 @@ where
     }
 }
 
-impl<W: SpiParts> Spi<W> {
+impl<W: Parts> Spi<W> {
     /// Changes the bus settings between transfers. Returns the new SCK.
     pub fn set_config(&mut self, config: &Config) -> Result<Hertz, ConfigError> {
         if matches!(self.state, State::Running(_)) {
@@ -505,14 +505,14 @@ fn copy(dst: &mut [u8], src: &[u8]) {
     }
 }
 
-impl<W: SpiParts> embedded_hal::spi::ErrorType for Spi<W> {
+impl<W: Parts> embedded_hal::spi::ErrorType for Spi<W> {
     type Error = Error;
 }
 
 /// Bounded: every operation is split into transfers of at most
 /// [`capacity`](Spi::capacity) bytes, each waited for within its bound.
 /// The bytes sent while reading are 0x00.
-impl<W: SpiParts> embedded_hal::spi::SpiBus<u8> for Spi<W> {
+impl<W: Parts> embedded_hal::spi::SpiBus<u8> for Spi<W> {
     fn read(&mut self, words: &mut [u8]) -> Result<(), Error> {
         let chunk = self.chunk();
         for part in words.chunks_mut(chunk) {

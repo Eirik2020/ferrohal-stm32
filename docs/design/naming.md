@@ -80,6 +80,12 @@ Which IP versions each series carries, as metapac measured them:
   after the method (owner, 2026-11-17, API review N1): `SpiRefused`, `I2cRefused`,
   `LaneRefused`, `SamplerRefused`, `ScanRefused`. Names stay put when a method is
   renamed. The UART's comes with its single-owner redesign.
+- **[Decided]** No module prefix on an item, `spi::Parts` not `spi::SpiParts` (owner,
+  2026-11-17, API review N2), except: each module's main driver types (`Spi`, `I2c`,
+  `Adc`, `AdcScan`, `UsbFs`) and the refusals named after them (`SpiRefused`); and the
+  routing traits a chip's glue file imports beside another module's of the same name
+  (`SpiTxDma` and `SpiRxDma` beside the UART's `TxDma`, `AdcPin` beside `gpio::Pin`).
+  The UART's names come with its single-owner redesign.
 
 ## Benches and scripts
 

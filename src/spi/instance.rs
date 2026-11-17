@@ -73,17 +73,17 @@ pub unsafe trait SpiRxDma<U: Instance>: StreamInstance + StreamInterrupt {
 /// What an SPI was opened from: the instance its handle names, for its name
 /// and kernel clock. Implemented by [`Wiring`] and [`BlockingWiring`] only,
 /// so a handle's type names the board's whole route.
-pub trait SpiParts: crate::Sealed {
+pub trait Parts: crate::Sealed {
     type Instance: Instance;
 }
 
 impl<U, Sck, Miso, Mosi, TxD, RxD> crate::Sealed for Wiring<U, Sck, Miso, Mosi, TxD, RxD> {}
-impl<U: Instance, Sck, Miso, Mosi, TxD, RxD> SpiParts for Wiring<U, Sck, Miso, Mosi, TxD, RxD> {
+impl<U: Instance, Sck, Miso, Mosi, TxD, RxD> Parts for Wiring<U, Sck, Miso, Mosi, TxD, RxD> {
     type Instance = U;
 }
 
 impl<U, Sck, Miso, Mosi> crate::Sealed for BlockingWiring<U, Sck, Miso, Mosi> {}
-impl<U: Instance, Sck, Miso, Mosi> SpiParts for BlockingWiring<U, Sck, Miso, Mosi> {
+impl<U: Instance, Sck, Miso, Mosi> Parts for BlockingWiring<U, Sck, Miso, Mosi> {
     type Instance = U;
 }
 

@@ -35,7 +35,7 @@ use core::{mem::MaybeUninit, ptr::addr_of_mut};
 use cortex_m::peripheral::DWT;
 use cortex_m_rt::entry;
 use defmt_rtt as _;
-use ferrohal_stm32::{chip::Peripherals, iwdg::Watchdog, reset::ResetCause};
+use ferrohal_stm32::{chip::Peripherals, iwdg::Watchdog, reset::Cause};
 use panic_probe as _;
 
 use tests::{Fail, Report};
@@ -267,7 +267,7 @@ fn fail_out(report: &Report) -> ! {
 }
 
 /// Boot 3's verdict on where the window phase's reset struck.
-fn report_window(report: &mut Report, window: &str, phase: Phase, cause: ResetCause) {
+fn report_window(report: &mut Report, window: &str, phase: Phase, cause: Cause) {
     match phase {
         Phase::Starting => report.check(
             window,

@@ -28,7 +28,7 @@ use cortex_m::peripheral::DWT;
 use cortex_m_rt::{ExceptionFrame, exception};
 use ferrohal_stm32::{
     iwdg::Watchdog,
-    reset::{self, ResetCause},
+    reset::{self, Cause},
     signature,
     timer::TimebaseReader,
     usb::{
@@ -308,7 +308,7 @@ pub fn close(got: u32, want: u32, hundredths: u32) -> bool {
 }
 
 /// The most specific name for what `cause` holds.
-pub fn cause_text(cause: ResetCause) -> &'static str {
+pub fn cause_text(cause: Cause) -> &'static str {
     if cause.power_on {
         "power on"
     } else if cause.software {

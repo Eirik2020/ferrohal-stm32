@@ -31,7 +31,7 @@ mod polled;
 pub(crate) mod stream_dma;
 
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
-pub use instance::{Info, Instance, MisoPin, MosiPin, SckPin, SpiParts, SpiRxDma, SpiTxDma, check};
+pub use instance::{Info, Instance, MisoPin, MosiPin, Parts, SckPin, SpiRxDma, SpiTxDma, check};
 #[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
 pub use polled::BlockingSpi;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]

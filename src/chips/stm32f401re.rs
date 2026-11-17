@@ -157,7 +157,7 @@ pub(crate) fn revision() -> u16 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::adc::AdcWiring;
+    use crate::adc;
     use crate::gpio_v2::Analog;
     use crate::rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllP, PllSource,
@@ -259,7 +259,7 @@ mod tests {
         );
         // The bench's own ADC input: ADC1 channel 6 on PA6, over stream 0.
         assert_eq!(
-            AdcWiring::<ADC1, Pin<'A', 6, Analog>, Stream<2, 0>>::RESOURCES,
+            adc::Wiring::<ADC1, Pin<'A', 6, Analog>, Stream<2, 0>>::RESOURCES,
             [
                 Resource::Peripheral("ADC1"),
                 Resource::Analog {
