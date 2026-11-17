@@ -97,9 +97,6 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
     vos: pac::pwr::vals::Vos::SCALE2,
 };
 
-/// The independent watchdog's token and registers.
-pub type WatchdogPeripheral = IWDG;
-
 pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
     pac::IWDG
 }

@@ -553,7 +553,7 @@ fn main() -> ! {
     ) else {
         reboot_to_dfu()
     };
-    let mut link = Link::new(usb, "lucid-h7", watchdog, clock.reader());
+    let mut link = Link::new(usb, "lucid-h7", watchdog, clock.handle());
     let mut imu = Imu {
         spi: &mut imu_spi,
         cs: &mut imu_cs,

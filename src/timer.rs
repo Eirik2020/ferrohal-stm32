@@ -5,7 +5,7 @@
 //! - [`Tick`]: the update interrupt at an exact rate, for a scheduler or a
 //!   watchdog. The handler calls [`Tick::on_interrupt`].
 //! - [`Timebase`]: a 32-bit timer counting freely at an exact frequency,
-//!   read from anywhere through a `Copy` [`TimebaseReader`].
+//!   read from anywhere through a `Copy` [`TimebaseHandle`].
 //!
 //! Both handles carry their timer token and hand it back with
 //! [`free`](Tick::free)/[`free`](Timebase::free): a second handle for the
@@ -422,24 +422,24 @@ impl<T: Instance> Tick<T> {
 /// [`new`](Self::new), wrapping at 2^32. The handle carries the timer token.
 pub struct Timebase<T: Instance32> {
     core: TimCore,
-    reader: TimebaseReader,
+    handle: TimebaseHandle,
     timer: T,
 }
 
 /// Reads a [`Timebase`]: one register read, so `Copy` and usable from any
-/// context. A reader keeps reading the counter after the timebase is freed —
-/// a freed timebase stops, and the reader reports the frozen count.
+/// context. A handle keeps reading the counter after the timebase is freed —
+/// a freed timebase stops, and the handle reports the frozen count.
 #[derive(Clone, Copy)]
-pub struct TimebaseReader {
+pub struct TimebaseHandle {
     counter: TimGp32,
     frequency: Hertz,
 }
 
-// SAFETY: a reader only reads CNT, which nothing else writes once the
+// SAFETY: a handle only reads CNT, which nothing else writes once the
 // timebase runs.
-unsafe impl Send for TimebaseReader {}
+unsafe impl Send for TimebaseHandle {}
 // SAFETY: as above.
-unsafe impl Sync for TimebaseReader {}
+unsafe impl Sync for TimebaseHandle {}
 
 impl<T: Instance32> Timebase<T> {
     /// Enables and resets the timer and starts it counting at `frequency`
@@ -457,7 +457,7 @@ impl<T: Instance32> Timebase<T> {
         core.cr1().modify(|w| w.set_cen(true));
         Ok(Self {
             core,
-            reader: TimebaseReader {
+            handle: TimebaseHandle {
                 counter: T::gp32(),
                 frequency,
             },
@@ -486,11 +486,11 @@ impl<T: Instance32> Timebase<T> {
     }
 
     pub fn now(&self) -> u32 {
-        self.reader.now()
+        self.handle.now()
     }
 
-    pub fn reader(&self) -> TimebaseReader {
-        self.reader
+    pub fn handle(&self) -> TimebaseHandle {
+        self.handle
     }
 
     /// Hands the timer token back, stopping the counter: what a `Drop`
@@ -501,7 +501,7 @@ impl<T: Instance32> Timebase<T> {
     }
 }
 
-impl TimebaseReader {
+impl TimebaseHandle {
     /// The count now.
     pub fn now(&self) -> u32 {
         self.counter.cnt().read()

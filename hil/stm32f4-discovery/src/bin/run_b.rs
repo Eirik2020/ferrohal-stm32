@@ -55,7 +55,7 @@ fn main() -> ! {
     let Ok(timebase) = Timebase::new(&mut run.rcc, run.tim2, Hertz::mhz(1)) else {
         defmt::panic!("TIM2 timebase")
     };
-    let clock = timebase.reader();
+    let clock = timebase.handle();
     let usb = match UsbFs::new(
         &mut run.rcc,
         Wiring {

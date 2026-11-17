@@ -74,7 +74,7 @@ mod app {
             usb_bench::stop(line!())
         };
         let idle_dog = watchdog.handle();
-        let link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.reader());
+        let link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.handle());
         (
             Shared { link },
             Local {

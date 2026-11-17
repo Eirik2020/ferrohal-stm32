@@ -27,7 +27,7 @@
 
 use stm32_metapac::iwdg::vals::{Key, Pr};
 
-use crate::{chip::WatchdogPeripheral, resource::Refused, time::Hertz};
+use crate::{chip::IWDG, resource::Refused, time::Hertz};
 
 /// The LSI's typical frequency, which the timeouts are worked out from.
 pub const LSI: Hertz = Hertz::khz(32);
@@ -138,10 +138,7 @@ impl Watchdog {
     /// feed it within the timeout. Refuses with the watchdog token handed
     /// back when the timeout cannot be set; once the watchdog is running
     /// (an `Update` refusal), only a reset stops it.
-    pub fn start(
-        iwdg: WatchdogPeripheral,
-        timeout_us: u32,
-    ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
+    pub fn start(iwdg: IWDG, timeout_us: u32) -> Result<Self, Refused<Error, IWDG>> {
         let (code, reload) = match divider(timeout_us) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, iwdg)),
@@ -154,10 +151,10 @@ impl Watchdog {
     /// varies from chip to chip (17 to 47 kHz on the F4), so a board that
     /// needs the timeout to hold should measure its own and pass it here.
     pub fn start_with_lsi(
-        iwdg: WatchdogPeripheral,
+        iwdg: IWDG,
         timeout_us: u32,
         lsi: Hertz,
-    ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
+    ) -> Result<Self, Refused<Error, IWDG>> {
         let (code, reload) = match divider_with_lsi(timeout_us, lsi) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, iwdg)),
@@ -174,10 +171,10 @@ impl Watchdog {
     /// window may already be in force, so feed only inside it.
     #[cfg(feature = "iwdg_v2")]
     pub fn start_windowed(
-        iwdg: WatchdogPeripheral,
+        iwdg: IWDG,
         timeout_us: u32,
         window_us: u32,
-    ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
+    ) -> Result<Self, Refused<Error, IWDG>> {
         let (code, reload, window) = match window_divider(timeout_us, window_us) {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, iwdg)),
@@ -186,12 +183,12 @@ impl Watchdog {
     }
 
     fn start_with(
-        iwdg: WatchdogPeripheral,
+        iwdg: IWDG,
         timeout_us: u32,
         code: u8,
         reload: u16,
         window: Option<u16>,
-    ) -> Result<Self, Refused<Error, WatchdogPeripheral>> {
+    ) -> Result<Self, Refused<Error, IWDG>> {
         let regs = crate::chip::iwdg_regs();
         // A breakpoint must not become a reset: freeze the counter while a
         // debugger holds the core halted.

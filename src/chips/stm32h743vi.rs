@@ -79,8 +79,9 @@ timer_trigger!(TIM3: TIM1, 0);
 
 adc_internal!(ADC3: 18, 19);
 
-/// The independent watchdog's token and registers.
-pub type WatchdogPeripheral = IWDG1;
+/// The independent watchdog's token: IWDG1, the one CPU1 has, under the
+/// name every chip here gives it (API review N17).
+pub type IWDG = IWDG1;
 
 pub(crate) fn iwdg_regs() -> pac::iwdg::Iwdg {
     pac::IWDG1

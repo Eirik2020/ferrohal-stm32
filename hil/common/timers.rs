@@ -242,7 +242,7 @@ pub fn timebase_check<T: Instance32>(
     base: &Timebase<T>,
     cpu: Hertz,
 ) {
-    let reader = base.reader();
+    let reader = base.handle();
     report.check(
         name,
         "counts at its frequency, to 0.01 % of the DWT [TIMER-003 RCC-002]",

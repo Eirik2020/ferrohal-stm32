@@ -74,7 +74,7 @@ mod app {
             reboot_to_dfu()
         };
         let idle_dog = watchdog.handle();
-        let link = Link::new(usb, "lucid-h7", watchdog, clock.reader());
+        let link = Link::new(usb, "lucid-h7", watchdog, clock.handle());
         (
             Shared { link },
             Local {

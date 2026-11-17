@@ -720,7 +720,7 @@ fn main() -> ! {
     ) else {
         usb_bench::stop(line!())
     };
-    let mut link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.reader());
+    let mut link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.handle());
     let mut imu = Imu {
         spi: &mut imu_spi,
         cs: &mut imu_cs,

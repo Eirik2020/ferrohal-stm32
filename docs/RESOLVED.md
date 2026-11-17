@@ -4,6 +4,15 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review N5 and N17: "handle" has one meaning; the watchdog's names**
+  (2026-11-17; owner's pick A). `design/naming.md` defines a handle as an ownerless,
+  freely copied view a second context holds. `TimebaseReader` is `TimebaseHandle`, made
+  by `Timebase::handle`; `ExtiHandle` and `Watchdog::handle` already fit. N17:
+  `Watchdog::start` stays and is recorded as deliberate (an IWDG cannot be stopped);
+  the token `chip::WatchdogPeripheral` is `chip::IWDG` on every chip (the H7's IWDG1).
+  The DMA's `FlagHandle` and the UART's `UartIrq` follow with the UART's single-owner
+  redesign. Spawned by `b55c640`, `1e1bbdf`.
+
 - **API review N2: no module prefix, with recorded exceptions** (2026-11-17; owner's
   pick A). `spi::SpiParts`, `i2c::I2cParts`, `adc::AdcWiring`, `adc::AdcDma` and
   `reset::ResetCause` are `spi::Parts`, `i2c::Parts`, `adc::Wiring`, `adc::Dma` and

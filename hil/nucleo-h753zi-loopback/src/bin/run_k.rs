@@ -203,7 +203,7 @@ fn main() -> ! {
 fn window_phase(
     report: &mut Report,
     window: &str,
-    iwdg: ferrohal_stm32::chip::WatchdogPeripheral,
+    iwdg: ferrohal_stm32::chip::IWDG,
 ) -> ! {
     write_marker(Phase::Starting, report.failed);
     let dog = match Watchdog::start_windowed(iwdg, WINDOW_US, OPEN_US) {

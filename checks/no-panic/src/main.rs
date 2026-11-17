@@ -413,7 +413,7 @@ pub fn exercise_timers<T: ferrohal_stm32::timer::Instance, U: ferrohal_stm32::ti
         }
     };
     keep(base.now());
-    let reader = base.reader();
+    let reader = base.handle();
     keep(reader.now());
     keep(reader.frequency());
     let tick_token = tick.free();
@@ -708,7 +708,7 @@ where
 /// The watchdog and the reset cause.
 pub fn exercise_watchdog(
     rcc: &mut ferrohal_stm32::rcc::Rcc,
-    iwdg: ferrohal_stm32::chip::WatchdogPeripheral,
+    iwdg: ferrohal_stm32::chip::IWDG,
 ) {
     use ferrohal_stm32::{
         iwdg::{Watchdog, divider, divider_with_lsi, window_divider},

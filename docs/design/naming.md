@@ -68,8 +68,15 @@ Which IP versions each series carries, as metapac measured them:
 ## Vocabulary
 
 - **[Decided]** *channel*: a timer compare output. *lane*: a DMA-fed output. *stream*:
-  a DMA stream. *line*: a UART's control registers. *handle*: an interrupt or health
-  side of a driver.
+  a DMA stream. *line*: a UART's control registers. *handle*: an ownerless view of a
+  running driver that another context, an interrupt handler above all, holds and copies
+  freely, because everything it does is a single read or a write no one else races:
+  `ExtiHandle`, `TimebaseHandle` (from `Timebase::handle`), `Watchdog::handle` (owner,
+  2026-11-17, API review N5). The DMA's `FlagHandle` and the UART's `UartIrq` follow it
+  with the UART's single-owner redesign.
+- **[Decided]** Constructors are `new`; `Watchdog::start` is the deliberate exception,
+  because an independent watchdog cannot be stopped once started and the name says so.
+  Its token is `chip::IWDG` on every chip (the H7's IWDG1) (owner, 2026-11-17, N17).
 - **[Decided]** `set_*` changes a setting in place; `into_*` consumes and converts.
   Units ride in the name: `*_us`, `*_hz`.
 - **[Decided]** One quantity, one word (owner, 2026-11-17, API review N3): *frequency*
