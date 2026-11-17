@@ -20,7 +20,7 @@
 //! The blocking forms (`transfer`, `SpiBus`) wait for completion within a
 //! bound: twice the transfer's time on the wire, plus a fixed margin, in
 //! CPU cycles, measured with a [`CycleClock`] when one is set, otherwise
-//! counted as passes of at least `PASS_CYCLES`. A transfer that runs past
+//! counted as passes of at least `wait::PASS_CYCLES`. A transfer that runs past
 //! it is aborted and reported as [`Error::Timeout`].
 //!
 //! # Memory
@@ -50,21 +50,6 @@ use crate::{
     time::{CycleClock, Hertz},
     wait::Deadline,
 };
-
-/// Spins allowed for a DMA stream to report itself stopped.
-const STOP_SPINS: u32 = 10_000;
-/// The fewest CPU cycles one pass of the completion wait can take, used
-/// when no [`CycleClock`] is set: the fastest pass measured with the DWT
-/// (`hil` "a polling pass takes no less than the driver's floor"), halved.
-/// H753 at 400 MHz with caches on, 228 to 233 cycles over the runs measured
-/// (H753 run H, caches on, 2026-11-15); the F401 at 84 MHz takes
-/// 324 and the H753 with caches off 625 to 690, so their counted waits run
-/// up to about 3 and 6 times the time asked. A `CycleClock` makes every
-/// wait exact.
-const PASS_CYCLES: u32 = 112;
-/// Added to every blocking bound, in CPU cycles: the start-up and the
-/// interrupt latency a transfer can see before its first SCK edge.
-const MARGIN_CYCLES: u32 = 20_000;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -176,10 +161,10 @@ where
         let mut rx = crate::dma::claim_channel(&wiring.rx_dma);
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
-        if tx.stop(STOP_SPINS).is_err() {
+        if tx.stop(crate::dma::STOP_SPINS).is_err() {
             return Err((ConfigError::DmaBusy, wiring));
         }
-        if rx.stop(STOP_SPINS).is_err() {
+        if rx.stop(crate::dma::STOP_SPINS).is_err() {
             return Err((ConfigError::DmaBusy, wiring));
         }
         tx.clear_flags(Flags::ALL);
@@ -226,8 +211,8 @@ where
     pub fn free(
         mut self,
     ) -> Result<(Wiring<U, Sck, Miso, Mosi, TxD, RxD>, Buffers), Refused<StopTimeout, Self>> {
-        let tx = self.tx.stop(STOP_SPINS);
-        let rx = self.rx.stop(STOP_SPINS);
+        let tx = self.tx.stop(crate::dma::STOP_SPINS);
+        let rx = self.rx.stop(crate::dma::STOP_SPINS);
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         self.info.unit().disable();
@@ -445,8 +430,8 @@ impl<W: SpiParts> Spi<W> {
         let cycles = bits
             .saturating_mul(self.sck_cycles)
             .saturating_mul(2)
-            .saturating_add(MARGIN_CYCLES);
-        let mut deadline = Deadline::new(self.clock, cycles, PASS_CYCLES);
+            .saturating_add(crate::wait::MARGIN_CYCLES);
+        let mut deadline = Deadline::new(self.clock, cycles, crate::wait::PASS_CYCLES);
         loop {
             if let Some(result) = self.on_interrupt() {
                 return result.map(|_| ());
@@ -472,8 +457,8 @@ impl<W: SpiParts> Spi<W> {
     fn reset_bus(&mut self) {
         // A stream that won't stop leaves nothing better to do than carry
         // on: the next start reports it as `Error::Dma`.
-        let _ = self.tx.stop(STOP_SPINS);
-        let _ = self.rx.stop(STOP_SPINS);
+        let _ = self.tx.stop(crate::dma::STOP_SPINS);
+        let _ = self.rx.stop(crate::dma::STOP_SPINS);
         // Two frames in flight at most; a register read per spin, at least
         // a cycle each, so this bound covers them twice over.
         self.info

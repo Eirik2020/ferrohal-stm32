@@ -75,9 +75,6 @@ use crate::{
 
 use crate::time::CycleClock;
 
-/// Spins allowed for a DMA stream to report itself stopped. A stopping
-/// stream finishes at most one word, so this is generous.
-const STOP_SPINS: u32 = 10_000;
 /// Bits per frame at most: start, 8 data, parity, 2 stop.
 const MAX_FRAME_BITS: u32 = 12;
 /// The fewest CPU cycles one pass of a wait loop takes, used when no
@@ -664,7 +661,7 @@ where
 
         // Streams left running by an earlier owner must stop before they
         // are pointed at new memory.
-        if tx.dma.stop(STOP_SPINS).is_err() {
+        if tx.dma.stop(crate::dma::STOP_SPINS).is_err() {
             return Err((ConfigError::DmaBusy, Self::rejoin(uart, tx, rx)));
         }
         tx.dma.clear_flags(Flags::ALL);
@@ -986,7 +983,7 @@ impl<W: UartParts> UartTx<W> {
         tx.servicing.store(true, Ordering::SeqCst);
         tx.halted.store(true, Ordering::Release);
         self.dma.set_interrupts(Interrupts::default());
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         tx.frames.clear();
         tx.running.store(false, Ordering::Release);
@@ -1000,7 +997,7 @@ impl<W: UartParts> UartTx<W> {
         let tx = &self.info.state.tx;
         tx.servicing.store(true, Ordering::SeqCst);
         self.dma.set_interrupts(Interrupts::default());
-        let stopped = self.dma.stop(STOP_SPINS).is_ok();
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS).is_ok();
         self.dma.clear_flags(Flags::ALL);
         tx.frames.clear();
         tx.running.store(false, Ordering::Release);
@@ -1038,7 +1035,7 @@ fn service_tx(info: &Info, dma: &mut Channel, buf: *mut u8, request: u8) {
     if tx.running.load(Ordering::Acquire) {
         let flags = dma.flags();
         if flags.transfer_error || flags.direct_mode_error {
-            if dma.stop(STOP_SPINS).is_err() {
+            if dma.stop(crate::dma::STOP_SPINS).is_err() {
                 tx.halted.store(true, Ordering::Release);
             }
             dma.clear_flags(Flags::ALL);
@@ -1301,7 +1298,7 @@ impl<W: UartParts> UartRx<W> {
         // (measured on the F407, 2026-11-14), and a freed stream's vector may
         // serve another UART by then.
         self.dma.set_interrupts(Interrupts::default());
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         if stopped.is_err() {
             self.halted = true;
@@ -1580,7 +1577,7 @@ impl<W: UartParts> UartRx<W> {
     /// (epoch) advances after the base is set, so the interrupt never tags
     /// a mark of the new run with a position from the old one.
     fn start_ring(&mut self) -> Result<(), Error> {
-        if self.dma.stop(STOP_SPINS).is_err() {
+        if self.dma.stop(crate::dma::STOP_SPINS).is_err() {
             self.halted = true;
             return Err(Error::Halted);
         }

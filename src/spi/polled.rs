@@ -25,8 +25,6 @@ use crate::{
 
 /// The most bytes one hardware transfer moves (the H7's TSIZE is 16 bits).
 const CHUNK: usize = 65_535;
-/// Added to every bound, in CPU cycles.
-const MARGIN_CYCLES: u32 = 20_000;
 
 /// An SPI master moving bytes by polling its data register. It keeps the
 /// board's wiring, the instance and its three pins, and
@@ -142,7 +140,7 @@ impl<W: SpiParts> BlockingSpi<W> {
         let cycles = bits
             .saturating_mul(self.sck_cycles)
             .saturating_mul(2)
-            .saturating_add(MARGIN_CYCLES);
+            .saturating_add(crate::wait::MARGIN_CYCLES);
         let mut deadline = Deadline::new(self.clock, cycles, 1);
         unit.start_polled(count);
         for i in 0..len {

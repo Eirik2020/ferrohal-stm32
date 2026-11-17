@@ -21,7 +21,7 @@
 //!   where the trait's contract asks for one, and a stop after the last.
 //! - **waits**: every operation is bounded, twice its time on the wire
 //!   plus a margin, in CPU cycles, measured with a [`CycleClock`] when one
-//!   is set, otherwise counted as passes of at least `PASS_CYCLES`. A
+//!   is set, otherwise counted as passes of at least `wait::PASS_CYCLES`. A
 //!   transfer that runs past its bound is stopped, the peripheral is put
 //!   back, and the next transfer can start: [`Error::Timeout`].
 //! - **errors**: a device's NACK, a bus error, lost arbitration and an
@@ -45,15 +45,6 @@ use crate::{
 
 use crate::i2c_ip::Unit;
 
-/// The fewest CPU cycles one pass of a completion wait can take, used when
-/// no [`CycleClock`] is set. SPI's measured floor, halved (H753 with caches
-/// on: 228 to 233 cycles a pass); the same loop shape runs here, so the same floor
-/// counts. Without a clock, waits run up to about 3 times the time asked
-/// on the F401 and 6 on the uncached H753.
-const PASS_CYCLES: u32 = 112;
-/// Added to every blocking bound, in CPU cycles: the start-up and flag
-/// handling an operation can see before its first SCL edge.
-const MARGIN_CYCLES: u32 = 20_000;
 /// Bits of wire time an operation of `len` bytes occupies: nine per byte,
 /// plus a start, an address and an acknowledge, rounded up for the stop.
 const fn wire_bits(len: usize) -> u32 {
@@ -352,7 +343,7 @@ impl<W: I2cParts> I2c<W> {
     }
 
     /// Sets the clock the bounds are measured with. Without one, waits
-    /// count passes of at least `PASS_CYCLES`, so they run long, never
+    /// count passes of at least `wait::PASS_CYCLES`, so they run long, never
     /// short.
     pub fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
         self.clock = clock;
@@ -421,8 +412,8 @@ impl<W: I2cParts> I2c<W> {
         }
         let mut deadline = Deadline::new(
             self.clock,
-            2 * total_bits.saturating_mul(self.bit_cycles) + MARGIN_CYCLES,
-            PASS_CYCLES,
+            2 * total_bits.saturating_mul(self.bit_cycles) + crate::wait::MARGIN_CYCLES,
+            crate::wait::PASS_CYCLES,
         );
         let mut result = Ok(());
         // The walk: `left` counts the bytes the current segment still

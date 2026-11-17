@@ -4,6 +4,13 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review U8: wait constants have one home** (2026-11-17). `STOP_SPINS` was defined
+  four times (10 000 three times, 100 000 in the ADC), `PASS_CYCLES` twice and
+  `MARGIN_CYCLES` three times. Now `dma::STOP_SPINS` (10 000, the ADC's stream stop
+  included) and `wait::PASS_CYCLES`, `wait::MARGIN_CYCLES`. The H7 ADC's own
+  `STOP_SPINS` bounds its ADSTP/ADDIS, not a stream, and stays. Spawned by `af65cad`,
+  `99e6404`.
+
 - **API review D11: one wait mechanism** (2026-11-17). Besides `wait::Deadline`, 17 raw
   spin loops in nine files (both RCC modules with a private `wait`, both ADCs, SDMMC,
   IWDG, `i2c_v1`, `spi_v2`, DMA) counted their own polls. They now all go through

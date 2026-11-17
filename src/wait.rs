@@ -7,6 +7,21 @@
 
 use crate::time::CycleClock;
 
+/// The fewest CPU cycles one pass of a completion wait can take, used when
+/// no [`CycleClock`] is set: SPI's fastest pass measured with the DWT (`hil`
+/// "a polling pass takes no less than the driver's floor"), halved. H753 at
+/// 400 MHz with caches on, 228 to 233 cycles over the runs measured (H753
+/// run H, caches on, 2026-11-15); the F401 at 84 MHz takes 324 and the H753
+/// with caches off 625 to 690, so their counted waits run up to about 3 and
+/// 6 times the time asked. I2C's completion wait has the same loop shape, so
+/// the same floor counts. A `CycleClock` makes every wait exact.
+pub(crate) const PASS_CYCLES: u32 = 112;
+
+/// Added to every blocking bound of a bus transfer (SPI, I2C), in CPU
+/// cycles: the start-up, flag handling and interrupt latency a transfer can
+/// see before its first clock edge on the wire.
+pub(crate) const MARGIN_CYCLES: u32 = 20_000;
+
 /// A wait's bound: `cycles` of CPU time, measured by the caller's clock if
 /// there is one, otherwise counted as passes of at least `pass_cycles`.
 pub(crate) struct Deadline {

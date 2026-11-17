@@ -38,8 +38,6 @@ use crate::{
 /// reason, and the ADC, the stream and the buffer it took.
 pub type ScanRefused<A, S> = crate::resource::Refused<Error, (Adc<A>, S, &'static mut [u16])>;
 
-/// How many register polls to give a stream to stop.
-const STOP_SPINS: u32 = 100_000;
 /// The calibration values' supply, and the temperatures they were taken at.
 const CAL_VDDA_MV: u32 = 3300;
 const TS_CAL1_C: i32 = 30;
@@ -301,7 +299,7 @@ impl<A: Instance> Adc<A> {
             *number = channel.number;
         }
         let mut dma = crate::dma::claim_channel(&stream);
-        if dma.stop(STOP_SPINS).is_err() {
+        if dma.stop(crate::dma::STOP_SPINS).is_err() {
             return Err(Refused::new(Error::Dma, (self, stream, buffer)));
         }
         dma.clear_flags(Flags::ALL);
@@ -415,7 +413,9 @@ impl<A: Instance, S> AdcScan<A, S> {
                 ..Interrupts::default()
             },
         };
-        self.dma.stop(STOP_SPINS).map_err(|_| Error::Dma)?;
+        self.dma
+            .stop(crate::dma::STOP_SPINS)
+            .map_err(|_| Error::Dma)?;
         self.dma.clear_flags(Flags::ALL);
         // SAFETY: the buffer is this scan's own and holds `len` samples; the
         // address is this ADC's data register, whose request paces the stream.
@@ -472,7 +472,7 @@ impl<A: Instance, S> AdcScan<A, S> {
     }
 
     fn halt(&mut self) -> Result<(), StopTimeout> {
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         self.adc.unit.finish_sequence();
         self.state = ScanState::Idle;

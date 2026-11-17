@@ -56,9 +56,6 @@ use crate::{
     time::Hertz,
 };
 
-/// Spins allowed for a DMA stream to report itself stopped.
-const STOP_SPINS: u32 = 10_000;
-
 /// What [`Sampler::new`](Sampler::new) hands back: the reason, and the
 /// timer, stream and buffer it took.
 pub type SamplerNewRefused<T, S> =
@@ -545,7 +542,7 @@ where
         ));
     }
     let mut dma = crate::dma::claim_channel(stream(&wiring));
-    if dma.stop(STOP_SPINS).is_err() {
+    if dma.stop(crate::dma::STOP_SPINS).is_err() {
         return Err((
             ConfigError::DmaBusy,
             wiring,
@@ -907,7 +904,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
     /// stream's error path does, where no timer handle is at hand. Park the
     /// channel through [`abort`](Self::abort) or [`Pwm::set_duty`].
     fn stop_stream(&mut self) -> Result<(), StopTimeout> {
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
         self.running = false;
@@ -997,7 +994,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
         rcc.reset(T::ENABLE);
         super::load(T::info().core(), prescaler, reload);
         let mut dma = crate::dma::claim_channel(&stream);
-        if dma.stop(STOP_SPINS).is_err() {
+        if dma.stop(crate::dma::STOP_SPINS).is_err() {
             return Err(Refused::new(
                 super::ConfigError::DmaBusy,
                 (timer, stream, buffer),
@@ -1140,7 +1137,7 @@ impl<T: Instance, S> Sampler<T, S> {
     fn halt(&mut self) -> Result<(), StopTimeout> {
         self.timer.cr1().modify(|w| w.set_cen(false));
         self.timer.dier().modify(|w| w.set_ude(false));
-        let stopped = self.dma.stop(STOP_SPINS);
+        let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
         self.state = SampleState::Idle;

@@ -35,6 +35,12 @@
 
 use core::sync::atomic::{Ordering, fence};
 
+/// Polls allowed for a stream to report itself stopped, every driver's
+/// bound: a stopping stream finishes at most its current beat, so this is
+/// generous. The ADC gave 100 000 before 2026-11-17 (API review U8), for no
+/// recorded reason.
+pub(crate) const STOP_SPINS: u32 = 10_000;
+
 /// Bench fault injection (feature `fault-injection`): a stream marked stuck
 /// ignores [`Channel::request_stop`], so a running stream keeps EN set and
 /// every bounded stop on it times out, as a stream that will not stop
