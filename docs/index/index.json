@@ -3,7 +3,7 @@
  "counts": {
   "documents": 72,
   "agent": 52,
-  "bytes": 342376
+  "bytes": 342675
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 13477
+   "bytes": 12986
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
@@ -60,7 +60,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 28907
+   "bytes": 29621
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -325,7 +325,7 @@
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 23504
+   "bytes": 23522
   },
   {
    "path": "docs/housekeeping/README.md",
@@ -451,7 +451,7 @@
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 2137
+   "bytes": 2195
   },
   {
    "path": "docs/policies/safety.md",

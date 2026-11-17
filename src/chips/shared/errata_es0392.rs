@@ -168,7 +168,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.25.4", "Isochronous IN EP disabled when packet fetch is in progress", [0x2001, 0x2003], Workaround, Avoided("no DMA mode: synopsys-usb-otg runs the core in slave mode"), []),
     erratum!("2.25.5", "Incorrect interrupt mask used for hidden battery charger mode status change interrupt", [0x1003, 0x2001, 0x2003], Workaround, Avoided("CIDSCHG stays masked: synopsys-usb-otg unmasks no OTG or ID interrupt"), []),
     erratum!("2.25.6", "False OTG_GINTSTS.CIDSCHG interrupt after reset", [0x1003, 0x2001, 0x2003], Workaround, Avoided("CIDSCHG stays masked: synopsys-usb-otg unmasks no OTG or ID interrupt"), []),
-    erratum!("2.25.7", "Potential unexpected transfer on the USB bus instead of a zero-length packet", [0x1003, 0x2001, 0x2003], Workaround, Open("the H7 USB port sends a zero-length packet without ES0392 2.25.7's sequence"), []),
+    erratum!("2.25.7", "Potential unexpected transfer on the USB bus instead of a zero-length packet", [0x1003, 0x2001, 0x2003], Workaround, Workaround("the pinned synopsys-usb-otg fork sends a zero-length packet with SNAK, EPENA, then CNAK (usb.rs)"), []),
     erratum!("2.25.8", "False detection of chirp-K when a FS device is connected", [0x1003, 0x2001, 0x2003], Workaround, Avoided("device mode only"), []),
     erratum!("2.25.9", "ULPI vendor controller access close to micro-frame boundary delays next SOF transmission", [0x1003, 0x2001, 0x2003], Workaround, Avoided("device mode only, no ULPI"), []),
     erratum!("2.26.1", "Tx DMA engine may halt when a Tx queue flush command is issued in OSP mode", [0x1003], Workaround, NotReached("no Ethernet driver"), []),

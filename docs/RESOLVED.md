@@ -4,6 +4,16 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The H7 USB port sends zero-length packets by ES0392 2.25.7** (2026-11-17; owner,
+  pin a fork). `synopsys-usb-otg` 0.4.0 set CNAK and EPENA together for an empty IN
+  packet, which on the H7's core can put a wrong packet on the bus. FerroHAL now takes
+  0.4.0 from a fork pinned by exact revision (`Eirik2020/synopsys-usb-otg`, branch
+  `ferrohal-es0392-2.25.7`, `902ebe9`, one commit on upstream's v0.4.0): with the `hs`
+  feature, `write` sets SNAK, waits 20 AHB clocks, sets EPENA, waits 15, then sets
+  CNAK. FerroHAL could not wrap it, since the crate builds its bus only inside its own
+  allocator. Proof is the H753's CDC run (run M) on the merge gate. Spawned by the
+  ES0392 row review (2026-11-17).
+
 - **The F401 bench's SPI SCK speed was never at fault** (2026-11-17). The ES0299 row
   review logged that runs E to G drive SCK at reset speed with APB2 at 84 MHz, outside
   2.11.4's bound. Wrong: the board's `sck()` sets every SCK and MOSI pin to high speed,
