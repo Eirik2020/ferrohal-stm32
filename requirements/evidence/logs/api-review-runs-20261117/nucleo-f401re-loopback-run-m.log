@@ -1,0 +1,26 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/adc`
+     [38;5;10m[1mFinished[0m in 1.64s
+[INFO ] run M, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2 } (adc src/bin/adc.rs:39)
+[INFO ] unique ID: [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35] (adc src/bin/adc.rs:43)
+[INFO ] PASS unique ID: isn't blank [UID-001] (adc ../common/tests.rs:381)
+[INFO ] die revision: 0x1001 (adc src/bin/adc.rs:61)
+[INFO ] PASS die revision: the glue reads DBGMCU's REV_ID, a known code [REVISION-001] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 PA6: a driven low reads near 0 [ADC-001 ADC-002] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 PA6: a driven high reads near full scale [ADC-002] (adc ../common/tests.rs:381)
+[INFO ] ADC1 PA6: low 6, high 4086 of 4095 (adc ../common/adc.rs:88)
+[INFO ] PASS ADC1 PA6: it follows the pin back down [ADC-002] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 internal: VDDA from the internal reference is about 3.3 V [ADC-003] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 internal: the reference holds still, within 1 percent of scale [ADC-003] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 internal: the reference reads about 1.2 V [ADC-003] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 internal: the die is between 10 and 70 C [ADC-003] (adc ../common/tests.rs:381)
+[INFO ] ADC1 internal: VDDA 3302 mV, reference 1203 mV, die 258 tenths of a degree (adc ../common/adc.rs:150)
+[INFO ] PASS ADC1 scan: 64 sequences over DMA follow the pin [ADC-004] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 scan: a second start while running is refused [ADC-005] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 freed: a freed scan's ADC, stream and buffer scan again [API-002] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 freed: a freed ADC is powered down [API-002] (adc ../common/tests.rs:381)
+[INFO ] PASS ADC1 freed: its token reopens it, VDDA about 3.3 V [API-002] (adc ../common/tests.rs:381)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (adc ../common/tests.rs:1478)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (adc ../common/tests.rs:1454)
+[INFO ] all checks passed (adc ../common/tests.rs:1487)
+Firmware exited successfully
