@@ -1,8 +1,9 @@
-//! STM32F411CE glue: the chip facts the IP modules leave out.
+//! STM32F411 glue: the chip facts the IP modules leave out, for every package
+//! of the line.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMA
 //! request channels) are generated from stm32-metapac's metadata into
-//! `gen/stm32f411ce.rs` by `tools/glue-gen`; this file holds the facts metapac
+//! `gen/<part>.rs` by `tools/glue-gen`, one file per package; this file holds the facts metapac
 //! does not carry, each citing its manual.
 //!
 //! Requirements: GLUE-001, GLUE-002
@@ -58,8 +59,16 @@ mod errata_table;
 pub use errata_table::*;
 pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
 
-// The routing rows, generated from stm32-metapac's metadata.
+// The routing rows, generated from stm32-metapac's metadata for the
+// part's device and package; a flash-size variant takes its package's.
+#[cfg(any(feature = "stm32f411ce", feature = "stm32f411cc"))]
 #[path = "gen/stm32f411ce.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f411re", feature = "stm32f411rc"))]
+#[path = "gen/stm32f411re.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f411ve", feature = "stm32f411vc"))]
+#[path = "gen/stm32f411ve.rs"]
 mod generated;
 pub use generated::*;
 

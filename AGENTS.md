@@ -1,6 +1,6 @@
 # FerroHAL - agent entry
 
-STM32 HAL on stm32-metapac. Chips: stm32f401re, stm32f411ce, stm32f405rg, stm32f407vg, stm32f722re, stm32f745vg, stm32h743vi, stm32h753zi.
+STM32 HAL on stm32-metapac. Chips: every package of the STM32F401, F411, F405, F407, F722, F745, F767, H743 and H753 lines (`docs/CHIPS.md`); each line's chip module is named after its first part (`src/chips/stm32f401re.rs`).
 Public repo. Bench-verified.
 
 ## Authority

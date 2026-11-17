@@ -43,14 +43,71 @@
 extern crate std;
 
 /// How many chip features are on: exactly one must be.
-const CHIP_FEATURES: usize = cfg!(feature = "stm32f401re") as usize
+const CHIP_FEATURES: usize = cfg!(feature = "stm32f401ce") as usize
+    + cfg!(feature = "stm32f401cd") as usize
+    + cfg!(feature = "stm32f401re") as usize
+    + cfg!(feature = "stm32f401rd") as usize
+    + cfg!(feature = "stm32f401ve") as usize
+    + cfg!(feature = "stm32f401vd") as usize
     + cfg!(feature = "stm32f411ce") as usize
+    + cfg!(feature = "stm32f411cc") as usize
+    + cfg!(feature = "stm32f411re") as usize
+    + cfg!(feature = "stm32f411rc") as usize
+    + cfg!(feature = "stm32f411ve") as usize
+    + cfg!(feature = "stm32f411vc") as usize
+    + cfg!(feature = "stm32f405og") as usize
+    + cfg!(feature = "stm32f405oe") as usize
     + cfg!(feature = "stm32f405rg") as usize
+    + cfg!(feature = "stm32f405vg") as usize
+    + cfg!(feature = "stm32f405zg") as usize
     + cfg!(feature = "stm32f407vg") as usize
+    + cfg!(feature = "stm32f407ve") as usize
+    + cfg!(feature = "stm32f407zg") as usize
+    + cfg!(feature = "stm32f407ze") as usize
+    + cfg!(feature = "stm32f407ig") as usize
+    + cfg!(feature = "stm32f407ie") as usize
     + cfg!(feature = "stm32f722re") as usize
+    + cfg!(feature = "stm32f722rc") as usize
+    + cfg!(feature = "stm32f722ve") as usize
+    + cfg!(feature = "stm32f722vc") as usize
+    + cfg!(feature = "stm32f722ze") as usize
+    + cfg!(feature = "stm32f722zc") as usize
+    + cfg!(feature = "stm32f722ie") as usize
+    + cfg!(feature = "stm32f722ic") as usize
     + cfg!(feature = "stm32f745vg") as usize
+    + cfg!(feature = "stm32f745ve") as usize
+    + cfg!(feature = "stm32f745zg") as usize
+    + cfg!(feature = "stm32f745ze") as usize
+    + cfg!(feature = "stm32f745ig") as usize
+    + cfg!(feature = "stm32f745ie") as usize
+    + cfg!(feature = "stm32f767vi") as usize
+    + cfg!(feature = "stm32f767vg") as usize
+    + cfg!(feature = "stm32f767zi") as usize
+    + cfg!(feature = "stm32f767zg") as usize
+    + cfg!(feature = "stm32f767ii") as usize
+    + cfg!(feature = "stm32f767ig") as usize
+    + cfg!(feature = "stm32f767bi") as usize
+    + cfg!(feature = "stm32f767bg") as usize
+    + cfg!(feature = "stm32f767ni") as usize
+    + cfg!(feature = "stm32f767ng") as usize
     + cfg!(feature = "stm32h743vi") as usize
-    + cfg!(feature = "stm32h753zi") as usize;
+    + cfg!(feature = "stm32h743vg") as usize
+    + cfg!(feature = "stm32h743zi") as usize
+    + cfg!(feature = "stm32h743zg") as usize
+    + cfg!(feature = "stm32h743ii") as usize
+    + cfg!(feature = "stm32h743ig") as usize
+    + cfg!(feature = "stm32h743bi") as usize
+    + cfg!(feature = "stm32h743bg") as usize
+    + cfg!(feature = "stm32h743ai") as usize
+    + cfg!(feature = "stm32h743ag") as usize
+    + cfg!(feature = "stm32h743xi") as usize
+    + cfg!(feature = "stm32h743xg") as usize
+    + cfg!(feature = "stm32h753vi") as usize
+    + cfg!(feature = "stm32h753zi") as usize
+    + cfg!(feature = "stm32h753ii") as usize
+    + cfg!(feature = "stm32h753bi") as usize
+    + cfg!(feature = "stm32h753ai") as usize
+    + cfg!(feature = "stm32h753xi") as usize;
 const _: () = assert!(
     CHIP_FEATURES == 1,
     "enable exactly one chip feature, such as `stm32f401re` or `stm32h753zi`"
@@ -180,28 +237,31 @@ use usart_v2 as usart_ip;
 #[cfg(feature = "usart_v4")]
 use usart_v4 as usart_ip;
 
-#[cfg(feature = "stm32f401re")]
+#[cfg(feature = "_line-stm32f401")]
 #[path = "chips/stm32f401re.rs"]
 pub mod chip;
-#[cfg(feature = "stm32f411ce")]
+#[cfg(feature = "_line-stm32f411")]
 #[path = "chips/stm32f411ce.rs"]
 pub mod chip;
-#[cfg(feature = "stm32f405rg")]
+#[cfg(feature = "_line-stm32f405")]
 #[path = "chips/stm32f405rg.rs"]
 pub mod chip;
-#[cfg(feature = "stm32f407vg")]
+#[cfg(feature = "_line-stm32f407")]
 #[path = "chips/stm32f407vg.rs"]
 pub mod chip;
-#[cfg(feature = "stm32f722re")]
+#[cfg(feature = "_line-stm32f722")]
 #[path = "chips/stm32f722re.rs"]
 pub mod chip;
-#[cfg(feature = "stm32f745vg")]
+#[cfg(feature = "_line-stm32f745")]
 #[path = "chips/stm32f745vg.rs"]
 pub mod chip;
-#[cfg(feature = "stm32h743vi")]
+#[cfg(feature = "_line-stm32f767")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32h743")]
 #[path = "chips/stm32h743vi.rs"]
 pub mod chip;
-#[cfg(feature = "stm32h753zi")]
+#[cfg(feature = "_line-stm32h753")]
 #[path = "chips/stm32h753zi.rs"]
 pub mod chip;
 

@@ -1,9 +1,10 @@
-//! STM32F407VG glue: the chip facts the IP modules leave out.
+//! STM32F407 glue: the chip facts the IP modules leave out, for every package
+//! of the line.
 //!
 //! The F407 is die 0x413, the F405's silicon, with Ethernet, the camera
-//! interface and FSMC enabled (none of which FerroHAL drives) and bonded in
-//! the LQFP100. The routing facts are generated from stm32-metapac's
-//! metadata into `gen/stm32f407vg.rs` by `tools/glue-gen`; the die's hand
+//! interface and FSMC enabled (none of which FerroHAL drives). The routing
+//! facts are generated from stm32-metapac's metadata into `gen/<part>.rs`
+//! by `tools/glue-gen`, one file per package; the die's hand
 //! facts are `shared/die_0x413.rs`, which the F405 shares.
 //!
 //! The STM32F4 Discovery (MB997) carries this chip: die 0x413's debugger
@@ -41,7 +42,15 @@ mod family;
 mod die;
 pub use die::*;
 
-// The routing rows, generated from stm32-metapac's metadata.
+// The routing rows, generated from stm32-metapac's metadata for the
+// part's device and package; a flash-size variant takes its package's.
+#[cfg(any(feature = "stm32f407vg", feature = "stm32f407ve"))]
 #[path = "gen/stm32f407vg.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f407zg", feature = "stm32f407ze"))]
+#[path = "gen/stm32f407zg.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f407ig", feature = "stm32f407ie"))]
+#[path = "gen/stm32f407ig.rs"]
 mod generated;
 pub use generated::*;

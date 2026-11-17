@@ -1,8 +1,9 @@
-//! STM32H753ZI glue: the chip facts the IP modules leave out.
+//! STM32H753 glue: the chip facts the IP modules leave out, for every package
+//! of the line.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMAMUX
 //! request IDs) are generated from stm32-metapac's metadata into
-//! `gen/stm32h753zi.rs` by `tools/glue-gen`. Clock limits and the memory map, shared with the H743,
+//! `gen/<part>.rs` by `tools/glue-gen`, one file per package. Clock limits and the memory map, shared with the H743,
 //! are in `shared/h7.rs`.
 //!
 //! Requirements: GLUE-001, GLUE-002
@@ -51,8 +52,25 @@ pub(crate) const USB_FS_FIFO_WORDS: usize = 1024;
 #[cfg(feature = "usb")]
 pub(crate) const USB_FS_ENDPOINTS: usize = 9;
 
-// The routing rows, generated from stm32-metapac's metadata.
+// The routing rows, generated from stm32-metapac's metadata for the
+// part's device and package; a flash-size variant takes its package's.
+#[cfg(feature = "stm32h753vi")]
+#[path = "gen/stm32h753vi.rs"]
+mod generated;
+#[cfg(feature = "stm32h753zi")]
 #[path = "gen/stm32h753zi.rs"]
+mod generated;
+#[cfg(feature = "stm32h753ii")]
+#[path = "gen/stm32h753ii.rs"]
+mod generated;
+#[cfg(feature = "stm32h753bi")]
+#[path = "gen/stm32h753bi.rs"]
+mod generated;
+#[cfg(feature = "stm32h753ai")]
+#[path = "gen/stm32h753ai.rs"]
+mod generated;
+#[cfg(feature = "stm32h753xi")]
+#[path = "gen/stm32h753xi.rs"]
 mod generated;
 pub use generated::*;
 #[path = "shared/h7.rs"]

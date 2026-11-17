@@ -85,9 +85,11 @@ adc_v2 = []
 adc_v4 = []
 sdmmc_v2 = []
 
-# Chip features are metapac's chip names, passed straight through.
-stm32f401re = [
-    "stm32-metapac/stm32f401re",
+# Chip features are metapac's chip names, passed straight through, each
+# turning on its product line's IP versions (`_line-*`). Every package of a
+# line is a part; a flash-size variant shares its package's glue
+# (`tools/glue-gen/src/registry.rs`).
+_line-stm32f401 = [
     "_family-stm32f4",
     "usart_v2",
     "spi_v2",
@@ -101,8 +103,13 @@ stm32f401re = [
     "rcc_f4",
     "adc_v2",
 ]
-stm32f411ce = [
-    "stm32-metapac/stm32f411ce",
+stm32f401ce = ["stm32-metapac/stm32f401ce", "_line-stm32f401"]
+stm32f401cd = ["stm32-metapac/stm32f401cd", "_line-stm32f401"]
+stm32f401re = ["stm32-metapac/stm32f401re", "_line-stm32f401"]
+stm32f401rd = ["stm32-metapac/stm32f401rd", "_line-stm32f401"]
+stm32f401ve = ["stm32-metapac/stm32f401ve", "_line-stm32f401"]
+stm32f401vd = ["stm32-metapac/stm32f401vd", "_line-stm32f401"]
+_line-stm32f411 = [
     "_family-stm32f4",
     "usart_v2",
     "spi_v2",
@@ -116,8 +123,13 @@ stm32f411ce = [
     "rcc_f4",
     "adc_v2",
 ]
-stm32f405rg = [
-    "stm32-metapac/stm32f405rg",
+stm32f411ce = ["stm32-metapac/stm32f411ce", "_line-stm32f411"]
+stm32f411cc = ["stm32-metapac/stm32f411cc", "_line-stm32f411"]
+stm32f411re = ["stm32-metapac/stm32f411re", "_line-stm32f411"]
+stm32f411rc = ["stm32-metapac/stm32f411rc", "_line-stm32f411"]
+stm32f411ve = ["stm32-metapac/stm32f411ve", "_line-stm32f411"]
+stm32f411vc = ["stm32-metapac/stm32f411vc", "_line-stm32f411"]
+_line-stm32f405 = [
     "_family-stm32f4",
     "usart_v2",
     "spi_v2",
@@ -131,8 +143,12 @@ stm32f405rg = [
     "rcc_f4",
     "adc_v2",
 ]
-stm32f407vg = [
-    "stm32-metapac/stm32f407vg",
+stm32f405og = ["stm32-metapac/stm32f405og", "_line-stm32f405"]
+stm32f405oe = ["stm32-metapac/stm32f405oe", "_line-stm32f405"]
+stm32f405rg = ["stm32-metapac/stm32f405rg", "_line-stm32f405"]
+stm32f405vg = ["stm32-metapac/stm32f405vg", "_line-stm32f405"]
+stm32f405zg = ["stm32-metapac/stm32f405zg", "_line-stm32f405"]
+_line-stm32f407 = [
     "_family-stm32f4",
     "usart_v2",
     "spi_v2",
@@ -146,10 +162,15 @@ stm32f407vg = [
     "rcc_f4",
     "adc_v2",
 ]
+stm32f407vg = ["stm32-metapac/stm32f407vg", "_line-stm32f407"]
+stm32f407ve = ["stm32-metapac/stm32f407ve", "_line-stm32f407"]
+stm32f407zg = ["stm32-metapac/stm32f407zg", "_line-stm32f407"]
+stm32f407ze = ["stm32-metapac/stm32f407ze", "_line-stm32f407"]
+stm32f407ig = ["stm32-metapac/stm32f407ig", "_line-stm32f407"]
+stm32f407ie = ["stm32-metapac/stm32f407ie", "_line-stm32f407"]
 # The F7s carry usart_v3, which the UART redesign serves (ADR-011); until
 # then they have no UART driver.
-stm32f722re = [
-    "stm32-metapac/stm32f722re",
+_line-stm32f722 = [
     "_family-stm32f7",
     "spi_v3",
     "i2c_v2",
@@ -162,8 +183,15 @@ stm32f722re = [
     "rcc_f7",
     "adc_v2",
 ]
-stm32f745vg = [
-    "stm32-metapac/stm32f745vg",
+stm32f722re = ["stm32-metapac/stm32f722re", "_line-stm32f722"]
+stm32f722rc = ["stm32-metapac/stm32f722rc", "_line-stm32f722"]
+stm32f722ve = ["stm32-metapac/stm32f722ve", "_line-stm32f722"]
+stm32f722vc = ["stm32-metapac/stm32f722vc", "_line-stm32f722"]
+stm32f722ze = ["stm32-metapac/stm32f722ze", "_line-stm32f722"]
+stm32f722zc = ["stm32-metapac/stm32f722zc", "_line-stm32f722"]
+stm32f722ie = ["stm32-metapac/stm32f722ie", "_line-stm32f722"]
+stm32f722ic = ["stm32-metapac/stm32f722ic", "_line-stm32f722"]
+_line-stm32f745 = [
     "_family-stm32f7",
     "spi_v3",
     "i2c_v2",
@@ -176,8 +204,36 @@ stm32f745vg = [
     "rcc_f7",
     "adc_v2",
 ]
-stm32h743vi = [
-    "stm32-metapac/stm32h743vi",
+stm32f745vg = ["stm32-metapac/stm32f745vg", "_line-stm32f745"]
+stm32f745ve = ["stm32-metapac/stm32f745ve", "_line-stm32f745"]
+stm32f745zg = ["stm32-metapac/stm32f745zg", "_line-stm32f745"]
+stm32f745ze = ["stm32-metapac/stm32f745ze", "_line-stm32f745"]
+stm32f745ig = ["stm32-metapac/stm32f745ig", "_line-stm32f745"]
+stm32f745ie = ["stm32-metapac/stm32f745ie", "_line-stm32f745"]
+_line-stm32f767 = [
+    "_family-stm32f7",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
+    "adc_v2",
+]
+stm32f767vi = ["stm32-metapac/stm32f767vi", "_line-stm32f767"]
+stm32f767vg = ["stm32-metapac/stm32f767vg", "_line-stm32f767"]
+stm32f767zi = ["stm32-metapac/stm32f767zi", "_line-stm32f767"]
+stm32f767zg = ["stm32-metapac/stm32f767zg", "_line-stm32f767"]
+stm32f767ii = ["stm32-metapac/stm32f767ii", "_line-stm32f767"]
+stm32f767ig = ["stm32-metapac/stm32f767ig", "_line-stm32f767"]
+stm32f767bi = ["stm32-metapac/stm32f767bi", "_line-stm32f767"]
+stm32f767bg = ["stm32-metapac/stm32f767bg", "_line-stm32f767"]
+stm32f767ni = ["stm32-metapac/stm32f767ni", "_line-stm32f767"]
+stm32f767ng = ["stm32-metapac/stm32f767ng", "_line-stm32f767"]
+_line-stm32h743 = [
     "_family-stm32h7",
     "usart_v4",
     "spi_v4",
@@ -192,8 +248,19 @@ stm32h743vi = [
     "adc_v4",
     "sdmmc_v2",
 ]
-stm32h753zi = [
-    "stm32-metapac/stm32h753zi",
+stm32h743vi = ["stm32-metapac/stm32h743vi", "_line-stm32h743"]
+stm32h743vg = ["stm32-metapac/stm32h743vg", "_line-stm32h743"]
+stm32h743zi = ["stm32-metapac/stm32h743zi", "_line-stm32h743"]
+stm32h743zg = ["stm32-metapac/stm32h743zg", "_line-stm32h743"]
+stm32h743ii = ["stm32-metapac/stm32h743ii", "_line-stm32h743"]
+stm32h743ig = ["stm32-metapac/stm32h743ig", "_line-stm32h743"]
+stm32h743bi = ["stm32-metapac/stm32h743bi", "_line-stm32h743"]
+stm32h743bg = ["stm32-metapac/stm32h743bg", "_line-stm32h743"]
+stm32h743ai = ["stm32-metapac/stm32h743ai", "_line-stm32h743"]
+stm32h743ag = ["stm32-metapac/stm32h743ag", "_line-stm32h743"]
+stm32h743xi = ["stm32-metapac/stm32h743xi", "_line-stm32h743"]
+stm32h743xg = ["stm32-metapac/stm32h743xg", "_line-stm32h743"]
+_line-stm32h753 = [
     "_family-stm32h7",
     "usart_v4",
     "spi_v4",
@@ -208,6 +275,12 @@ stm32h753zi = [
     "adc_v4",
     "sdmmc_v2",
 ]
+stm32h753vi = ["stm32-metapac/stm32h753vi", "_line-stm32h753"]
+stm32h753zi = ["stm32-metapac/stm32h753zi", "_line-stm32h753"]
+stm32h753ii = ["stm32-metapac/stm32h753ii", "_line-stm32h753"]
+stm32h753bi = ["stm32-metapac/stm32h753bi", "_line-stm32h753"]
+stm32h753ai = ["stm32-metapac/stm32h753ai", "_line-stm32h753"]
+stm32h753xi = ["stm32-metapac/stm32h753xi", "_line-stm32h753"]
 
 [package.metadata.docs.rs]
 features = ["stm32f401re", "rt"]

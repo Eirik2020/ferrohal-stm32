@@ -16,10 +16,22 @@
 
 set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
-chips=(stm32f401re stm32f411ce stm32f405rg stm32f407vg stm32f722re stm32f745vg stm32h743vi stm32h753zi)
+chips=(stm32f401re stm32f411ce stm32f405rg stm32f407vg stm32f722re stm32f745vg stm32f767zi stm32h743vi stm32h753zi)
+# Every other package of those lines: the same hand facts, its own generated
+# glue, so it gets clippy and the unit tests, not the full set. A flash-size
+# variant mounts its package's glue and is not listed
+# (tools/glue-gen/src/registry.rs).
+packages=(
+    stm32f401ce stm32f401ve stm32f411re stm32f411ve
+    stm32f405og stm32f405vg stm32f405zg stm32f407zg stm32f407ig
+    stm32f722ve stm32f722ze stm32f722ie stm32f745zg stm32f745ig
+    stm32f767vi stm32f767ii stm32f767bi stm32f767ni
+    stm32h743zi stm32h743ii stm32h743bi stm32h743ai stm32h743xi
+    stm32h753vi stm32h753ii stm32h753bi stm32h753ai stm32h753xi
+)
 # The F7 has no UART driver until the UART redesign lands, and the no-panic
 # program is built around one, so the F7 joins it with its UART (the F7 plan).
-no_panic_skip=(stm32f722re stm32f745vg)
+no_panic_skip=(stm32f722re stm32f745vg stm32f767zi)
 status=0
 
 # A passing step prints only its pass line. A failing one prints its FAIL line
@@ -58,6 +70,10 @@ for chip in "${chips[@]}"; do
     step "no reachable panic ($chip)" \
         bash -c 'cd "$1" || exit 1; out=$(cargo build --release --features "$2" 2>&1); if grep -q "warning: linker stderr" <<< "$out"; then printf "%s\n" "$out"; exit 1; fi; cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
 done
+for part in "${packages[@]}"; do
+    step "clippy ($part)" \
+        cargo clippy --manifest-path "$root/Cargo.toml" --features "$part,rt,defmt,fugit,usb" -- -D warnings
+done
 step "no-panic calls every public function" python3 -I "$root/tools/check_no_panic_coverage.py"
 step "firmware crates enable rt" python3 -I "$root/tools/check_firmware_features.py"
 step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
@@ -76,7 +92,7 @@ fi
 step "docs index up to date" python3 -I "$root/tools/docs_index.py" --check
 step "doc size limits" python3 -I "$root/tools/check_docs.py"
 host=$(rustc -vV | sed -n 's/^host: //p')
-for chip in "${chips[@]}"; do
+for chip in "${chips[@]}" "${packages[@]}"; do
     step "host unit tests ($chip)" \
         cargo test --lib --manifest-path "$root/Cargo.toml" --features "$chip" --target "$host"
 done

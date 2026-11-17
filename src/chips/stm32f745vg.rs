@@ -1,9 +1,10 @@
-//! STM32F745VG glue: the chip facts the IP modules leave out.
+//! STM32F745 glue: the chip facts the IP modules leave out, for every package
+//! of the line.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMA
 //! request channels) are generated from stm32-metapac's metadata into
-//! `gen/stm32f745vg.rs` by `tools/glue-gen`, cut to the LQFP100's bonded pins; this
-//! file holds the facts metapac does not carry, each citing its manual. What
+//! `gen/<part>.rs` by `tools/glue-gen`, one file per package, cut to its
+//! bonded pins; this file holds the facts metapac does not carry, each citing its manual. What
 //! the F7 dies share (clock limits, the DMA's view of memory, the bootloader)
 //! is in `shared/f7.rs`.
 //!
@@ -67,8 +68,16 @@ pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
 /// The I2C reload erratum `i2c_v2` checks.
 pub(crate) const I2C_RELOAD_ERRATUM: &crate::errata::Erratum = &ES0290_2_9_4;
 
-// The routing rows, generated from stm32-metapac's metadata.
+// The routing rows, generated from stm32-metapac's metadata for the
+// part's device and package; a flash-size variant takes its package's.
+#[cfg(any(feature = "stm32f745vg", feature = "stm32f745ve"))]
 #[path = "gen/stm32f745vg.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f745zg", feature = "stm32f745ze"))]
+#[path = "gen/stm32f745zg.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f745ig", feature = "stm32f745ie"))]
+#[path = "gen/stm32f745ig.rs"]
 mod generated;
 pub use generated::*;
 
@@ -79,6 +88,9 @@ pub(crate) use f7::{
     set_watchdog_freeze, watchdog_frozen,
 };
 
+/// The DTCM: 64 KiB at the bottom of the SRAM space (RM0385 2.3).
+const DTCM: (usize, usize) = (0x2000_0000, 64 * 1024);
+
 /// SRAM1 and SRAM2, together: 240 KiB of SRAM1 at
 /// 0x2001_0000 and 16 KiB of SRAM2 at 0x2004_C000 (RM0385 2.3).
 const SRAM: (usize, usize) = (0x2001_0000, 256 * 1024);
@@ -87,7 +99,7 @@ const SRAM: (usize, usize) = (0x2001_0000, 256 * 1024);
 /// and SRAM2 and, with the data cache on, non-cacheable (see
 /// `shared/f7.rs`). Every DMA driver checks its buffers with this.
 pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> {
-    f7::check_dma_buffer(buffer, SRAM)
+    f7::check_dma_buffer(buffer, DTCM, SRAM, None)
 }
 
 // Timers another timer's trigger output can start (RM0385 Table 154).

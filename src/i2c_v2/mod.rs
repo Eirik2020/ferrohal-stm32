@@ -82,7 +82,7 @@ impl Unit {
             } else {
                 (500, 260, 120, 120, 50, 450)
             };
-        // ES0392 2.19.3 (ES0360 2.9.1 and ES0290 2.9.1 on the F7): SDA is
+        // ES0392 2.19.3 (ES0360 2.9.1, ES0290 2.9.1 and ES0334 2.13.3 on the F7): SDA is
         // sampled a kernel clock late when the data setup time is shorter
         // than one kernel clock period, so the kernel clock must run at least
         // as fast as the mode's minimum setup time asks: 4, 10 and 20 MHz for
@@ -299,8 +299,8 @@ impl Unit {
         self.0.icr().write(|w| w.set_stopcf(true));
     }
 
-    /// BERR, cleared through ICR if set. ES0392 2.19.4 (ES0360 2.9.2 and
-    /// ES0290 2.9.2 on the F7): in controller mode it can rise spuriously
+    /// BERR, cleared through ICR if set. ES0392 2.19.4 (ES0360 2.9.2,
+    /// ES0290 2.9.2 and ES0334 2.13.4 on the F7): in controller mode it can rise spuriously
     /// and has no effect on the transfer, which carries on; the driver
     /// counts it and does not fail the transfer.
     pub(crate) fn take_bus_error(self) -> bool {
@@ -367,7 +367,8 @@ pub(crate) const fn read_chunk(left: usize, one_byte_reloads: bool) -> (u8, bool
 }
 
 /// Whether this die's revision has the reload erratum: ES0392 2.19.5 on the
-/// H7, ES0360 2.9.4 and ES0290 2.9.4 on the F7 (the same title and fault).
+/// H7, ES0360 2.9.4, ES0290 2.9.4 and ES0334 2.13.5 on the F7 (the same
+/// title and fault).
 fn one_byte_reloads() -> bool {
     crate::chip::I2C_RELOAD_ERRATUM.affects(crate::signature::revision())
 }

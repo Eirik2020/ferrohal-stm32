@@ -1,9 +1,10 @@
-//! STM32F722RE glue: the chip facts the IP modules leave out.
+//! STM32F722 glue: the chip facts the IP modules leave out, for every package
+//! of the line.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMA
 //! request channels) are generated from stm32-metapac's metadata into
-//! `gen/stm32f722re.rs` by `tools/glue-gen`, cut to the LQFP64's bonded pins; this
-//! file holds the facts metapac does not carry, each citing its manual. What
+//! `gen/<part>.rs` by `tools/glue-gen`, one file per package, cut to its
+//! bonded pins; this file holds the facts metapac does not carry, each citing its manual. What
 //! the F7 dies share (clock limits, the DMA's view of memory, the bootloader)
 //! is in `shared/f7.rs`.
 //!
@@ -67,8 +68,19 @@ pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
 /// The I2C reload erratum `i2c_v2` checks.
 pub(crate) const I2C_RELOAD_ERRATUM: &crate::errata::Erratum = &ES0360_2_9_4;
 
-// The routing rows, generated from stm32-metapac's metadata.
+// The routing rows, generated from stm32-metapac's metadata for the
+// part's device and package; a flash-size variant takes its package's.
+#[cfg(any(feature = "stm32f722re", feature = "stm32f722rc"))]
 #[path = "gen/stm32f722re.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f722ve", feature = "stm32f722vc"))]
+#[path = "gen/stm32f722ve.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f722ze", feature = "stm32f722zc"))]
+#[path = "gen/stm32f722ze.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f722ie", feature = "stm32f722ic"))]
+#[path = "gen/stm32f722ie.rs"]
 mod generated;
 pub use generated::*;
 
@@ -79,6 +91,9 @@ pub(crate) use f7::{
     set_watchdog_freeze, watchdog_frozen,
 };
 
+/// The DTCM: 64 KiB at the bottom of the SRAM space (RM0431 1.7).
+const DTCM: (usize, usize) = (0x2000_0000, 64 * 1024);
+
 /// SRAM1 and SRAM2, together: 176 KiB of SRAM1 at
 /// 0x2001_0000 and 16 KiB of SRAM2 at 0x2003_C000 (RM0431 1.7).
 const SRAM: (usize, usize) = (0x2001_0000, 192 * 1024);
@@ -87,7 +102,7 @@ const SRAM: (usize, usize) = (0x2001_0000, 192 * 1024);
 /// and SRAM2 and, with the data cache on, non-cacheable (see
 /// `shared/f7.rs`). Every DMA driver checks its buffers with this.
 pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> {
-    f7::check_dma_buffer(buffer, SRAM)
+    f7::check_dma_buffer(buffer, DTCM, SRAM, None)
 }
 
 // Timers another timer's trigger output can start (RM0431 Table 121).
