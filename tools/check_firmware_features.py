@@ -10,9 +10,9 @@ enumerated after a DFU `leave` until this feature was on. A probe flash resets
 the chip, which hides the fault, so the bench must not depend on how it was
 flashed.
 
-Every `hil/*/Cargo.toml` and `checks/*/Cargo.toml` that names `ferrohal-stm32`
-as a dependency must enable `rt` on it, directly or through `rtic` (the crate's
-`rtic = ["rt"]`). Crates with no such dependency, the RP2040 simulator for one,
+Every `hil/*/Cargo.toml`, `checks/*/Cargo.toml` and `examples/*/Cargo.toml`
+that names `ferrohal-stm32` as a dependency must enable `rt` on it, directly
+or through `rtic` (the crate's `rtic = ["rt"]`). Crates with no such dependency, the RP2040 simulator for one,
 are listed as skipped. Exits 1 naming the crate that lacks it.
 """
 
@@ -26,7 +26,9 @@ enabled: list[str] = []
 skipped: list[str] = []
 
 for manifest in sorted(
-    list(root.glob("hil/*/Cargo.toml")) + list(root.glob("checks/*/Cargo.toml"))
+    list(root.glob("hil/*/Cargo.toml"))
+    + list(root.glob("checks/*/Cargo.toml"))
+    + list(root.glob("examples/*/Cargo.toml"))
 ):
     crate = str(manifest.parent.relative_to(root))
     data = tomllib.loads(manifest.read_text())

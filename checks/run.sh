@@ -12,7 +12,9 @@
 # - the names of docs/design/naming.md (tools/check_names.py);
 # - G5's safe API on the sources (tools/check_safe_api.py), and the
 #   register hatches proven closed (checks/no-metapac compile-fail probes);
-# - the pure logic's unit tests, on the host.
+# - the pure logic's unit tests, on the host;
+# - every crate under examples/ built, linted and formatted, so a rename
+#   that would break a user's starting point fails here.
 #
 # The per-chip steps run as one job per chip, side by side, each in its own
 # target directory (target/checks/<chip>) so cargo's build lock does not
@@ -101,6 +103,15 @@ shared=$(
     else
         echo "skip  requirements valid: no reqtool at $reqtool (set REQTOOL)"
     fi
+    # The examples, each its own workspace: from its directory, so its
+    # .cargo/config.toml picks the target and linker scripts.
+    for example in "$root"/examples/*/; do
+        name=$(basename "$example")
+        step "example clippy ($name)" \
+            bash -c 'cd "$1" && cargo clippy --release --locked --bins -- -D warnings' _ "$example"
+        step "example builds ($name)" bash -c 'cd "$1" && cargo build --release --locked --bins' _ "$example"
+        step "example formatting ($name)" bash -c 'cd "$1" && cargo fmt --check' _ "$example"
+    done
     step "docs index up to date" python3 -I "$root/tools/docs_index.py" --check
     step "doc size limits" python3 -I "$root/tools/check_docs.py"
     exit "$status"
