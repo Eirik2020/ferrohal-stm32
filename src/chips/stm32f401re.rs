@@ -357,4 +357,16 @@ mod tests {
             Err(ClockError::Sysclk)
         );
     }
+
+    #[test]
+    fn channels_are_named_without_a_converter() {
+        use crate::adc::Channel;
+        // The pin's channel as the routing trait states it, and the internal
+        // pair as the chip's ADC carries them.
+        let of: fn(&Pin<'A', 6, Analog>) -> Channel<ADC1> = Channel::of;
+        let _ = of;
+        assert_eq!(<Pin<'A', 6, Analog> as adc::AdcPin<ADC1>>::CHANNEL, 6);
+        assert_eq!(Channel::<ADC1>::temperature().number(), 18);
+        assert_eq!(Channel::<ADC1>::vrefint().number(), 17);
+    }
 }

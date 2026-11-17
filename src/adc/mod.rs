@@ -8,7 +8,9 @@
 //! - **channels**: an analog pin names its [`Channel`] through
 //!   [`Adc::channel`]; the routing trait rejects a pin the instance can't read
 //!   at compile time. [`InternalChannels`] adds the temperature sensor and the
-//!   internal reference, on the instance that has them.
+//!   internal reference, on the instance that has them. [`Channel::of`] and
+//!   its internal pair name the same channels with no converter opened, so a
+//!   sequence can be stated before `init` opens the ADC.
 //! - **one at a time**: [`Adc::read`] blocks for one conversion, some tens of
 //!   microseconds at the sampling times a slow source needs.
 //! - **a sequence**: [`AdcScan`] converts up to 16 channels into a buffer over
@@ -19,7 +21,7 @@
 //!   against the factory calibration; elsewhere a board states its nominal
 //!   supply.
 //!
-//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005, API-002, API-003, RESOURCE-002
+//! Requirements: ADC-001, ADC-002, ADC-003, ADC-004, ADC-005, ADC-006, API-002, API-003, RESOURCE-002
 
 use core::marker::PhantomData;
 
@@ -222,6 +224,27 @@ impl<A> Clone for Channel<A> {
 
 impl<A> Copy for Channel<A> {}
 
+impl<A: Instance> Channel<A> {
+    /// The channel `pin` measures, for a pin in analog mode: what
+    /// [`Adc::channel`] gives, with no converter opened, so a board can state
+    /// a sequence before `init` opens the ADC.
+    pub const fn of<P: AdcPin<A>>(_pin: &P) -> Self {
+        Self::new(P::CHANNEL)
+    }
+}
+
+impl<A: InternalChannels> Channel<A> {
+    /// The temperature sensor's channel, with no converter opened.
+    pub const fn temperature() -> Self {
+        Self::new(A::TEMPERATURE)
+    }
+
+    /// The internal reference's channel, with no converter opened.
+    pub const fn vrefint() -> Self {
+        Self::new(A::VREFINT)
+    }
+}
+
 impl<A> Channel<A> {
     const fn new(number: u8) -> Self {
         Self {
@@ -271,8 +294,8 @@ impl<A: Instance> Adc<A> {
     }
 
     /// The channel of `pin`, which must be in analog mode.
-    pub const fn channel<P: AdcPin<A>>(&self, _pin: &P) -> Channel<A> {
-        Channel::new(P::CHANNEL)
+    pub const fn channel<P: AdcPin<A>>(&self, pin: &P) -> Channel<A> {
+        Channel::of(pin)
     }
 
     /// One conversion. Blocks for it, bounded.
@@ -339,11 +362,11 @@ impl<A: Instance> Adc<A> {
 
 impl<A: InternalChannels> Adc<A> {
     pub const fn temperature_channel(&self) -> Channel<A> {
-        Channel::new(A::TEMPERATURE)
+        Channel::temperature()
     }
 
     pub const fn vrefint_channel(&self) -> Channel<A> {
-        Channel::new(A::VREFINT)
+        Channel::vrefint()
     }
 
     /// The supply on VDDA, from the internal reference and its factory
