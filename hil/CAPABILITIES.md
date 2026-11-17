@@ -100,7 +100,8 @@ Grouped by why; each is a candidate for the queue below.
 
 ## The improvement queue
 
-In order; each names what it unlocks. The owner holds rig upgrades for now
+In order; each names what it unlocks. The wider list of options, each tied to the
+DEBT items it would close, is [RIG-IMPROVEMENTS.md](RIG-IMPROVEMENTS.md). The owner holds rig upgrades for now
 (2026-11-13): items 1 and 2 wait on hardware. The first three each give a requirement
 with no method today its proof, one chip per IP version (the car rule,
 `docs/design/requirements-system.md`); the rest are cheap ones first, then the

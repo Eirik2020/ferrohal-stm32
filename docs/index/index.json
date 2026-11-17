@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 72,
+  "documents": 73,
   "agent": 52,
-  "bytes": 343474
+  "bytes": 359321
  },
  "documents": [
   {
@@ -465,7 +465,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9070
+   "bytes": 9188
   },
   {
    "path": "hil/COVERAGE.md",
@@ -475,11 +475,18 @@
    "bytes": 6426
   },
   {
+   "path": "hil/RIG-IMPROVEMENTS.md",
+   "class": "human",
+   "title": "Rig improvements: what each upgrade would unblock",
+   "purpose": "The options for growing the rig, each tied to",
+   "bytes": 15459
+  },
+  {
    "path": "hil/RIG.md",
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 4238
+   "bytes": 4508
   },
   {
    "path": "hil/WIRING.md",
