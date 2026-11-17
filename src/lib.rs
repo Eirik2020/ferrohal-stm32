@@ -201,3 +201,5 @@ mod sealed {
     pub trait Sealed {}
 }
 pub(crate) use sealed::Sealed;
+
+pub use resource::Service;
