@@ -23,8 +23,8 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 <!-- generated: glue-gen coverage -->
 | axis | tier | benches |
 |---|---|---|
-| IP `adc_v2` | HIL | nucleo-f401re-loopback |
-| IP `adc_v4` | HIL | nucleo-h753zi-loopback |
+| IP `adc_v2` | – |  |
+| IP `adc_v4` | – |  |
 | IP `dma_v1` | – |  |
 | IP `dma_v2` | – |  |
 | IP `exti_h7` | – |  |
