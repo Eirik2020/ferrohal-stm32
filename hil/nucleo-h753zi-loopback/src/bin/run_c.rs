@@ -6,13 +6,14 @@
 //! does not route it to the Zio header.)
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
-//! receive stream's own interrupt bits. Each vector in use, and what serves
-//! it:
+//! streams' own interrupt bits. Each UART is one shared resource, served by
+//! its handlers and used by the `checks` task under RTIC's lock, one call at
+//! a time (`tests::Locked`, ADR-011). Each vector in use, and what serves it:
 //!
-//! | Vector | Owner | Priority |
+//! | Vector | Serves | Priority |
 //! | --- | --- | --- |
-//! | `UART4`, `DMA2_STREAM7`, `DMA2_STREAM0` | UART4 PD1->PD0's `UartIrq` | 2 |
-//! | `UART7`, `DMA1_STREAM5`, `DMA2_STREAM5` | UART7 PE8->PE7's `UartIrq` | 2 |
+//! | `UART4`, `DMA2_STREAM7`, `DMA2_STREAM0` | UART4's `on_interrupt` | 2 |
+//! | `UART7`, `DMA1_STREAM5`, `DMA2_STREAM5` | UART7's `on_interrupt` | 2 |
 //! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
 #![no_std]
@@ -30,32 +31,26 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         chip::Interrupt,
-        uart::{Config, Uart, UartInterrupts, UartIrq},
+        uart::{Config, Uart, Vectors},
     };
 
     use crate::{
         board::{self, RX_RING, TX_BUFFER},
-        tests::{self, Loop, Report},
+        tests::{self, Locked, Loop, Report},
     };
 
     const PLAIN: Config = Config::new(ferrohal_stm32::time::Hertz(115_200));
 
     #[shared]
     struct Shared {
-        // Each handle's two tasks run at one priority, so neither preempts
-        // the other and the handle needs no lock.
-        #[lock_free]
-        irq_uart4: UartIrq,
-        #[lock_free]
-        irq_uart7: UartIrq,
+        uart4: Uart<board::Uart4C>,
+        uart7: Uart<board::Uart7C>,
     }
 
     #[local]
     struct Local {
-        uart4: Uart<board::Uart4C>,
-        vectors_uart4: UartInterrupts,
-        uart7: Uart<board::Uart7C>,
-        vectors_uart7: UartInterrupts,
+        vectors_uart4: Vectors,
+        vectors_uart7: Vectors,
         led: board::Led,
     }
 
@@ -77,14 +72,14 @@ mod app {
         defmt::info!("run C, clocks: {}", board::CLOCKS);
 
         let mut buffers = board::dma_buffers().into_iter();
-        let (uart_uart4, irq_uart4) = board::open(
+        let uart4 = board::open(
             &mut run.rcc,
             "UART4 PD1->PD0",
             run.uart4,
             &PLAIN,
             buffers.next().unwrap(),
         );
-        let (uart_uart7, irq_uart7) = board::open(
+        let uart7 = board::open(
             &mut run.rcc,
             "UART7 PE8->PE7",
             run.uart7,
@@ -92,78 +87,73 @@ mod app {
             buffers.next().unwrap(),
         );
 
-        let vectors_uart4 = irq_uart4.interrupts();
-        let vectors_uart7 = irq_uart7.interrupts();
+        let vectors_uart4 = uart4.vectors();
+        let vectors_uart7 = uart7.vectors();
         checks::spawn().ok();
         (
-            Shared {
-                irq_uart4,
-                irq_uart7,
-            },
+            Shared { uart4, uart7 },
             Local {
-                uart4: uart_uart4,
                 vectors_uart4,
-                uart7: uart_uart7,
                 vectors_uart7,
                 led: run.led,
             },
         )
     }
 
-    #[task(binds = UART4, priority = 2, shared = [irq_uart4])]
-    fn uart4_line(cx: uart4_line::Context) {
-        cx.shared.irq_uart4.on_interrupt();
+    #[task(binds = UART4, priority = 2, shared = [uart4])]
+    fn uart4_line(mut cx: uart4_line::Context) {
+        cx.shared.uart4.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq_uart4])]
-    fn uart4_rx(cx: uart4_rx::Context) {
-        cx.shared.irq_uart4.on_interrupt();
+    #[task(binds = DMA2_STREAM7, priority = 2, shared = [uart4])]
+    fn uart4_rx(mut cx: uart4_rx::Context) {
+        cx.shared.uart4.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM0, priority = 2, shared = [irq_uart4])]
-    fn uart4_tx(cx: uart4_tx::Context) {
-        cx.shared.irq_uart4.on_interrupt();
+    #[task(binds = DMA2_STREAM0, priority = 2, shared = [uart4])]
+    fn uart4_tx(mut cx: uart4_tx::Context) {
+        cx.shared.uart4.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = UART7, priority = 2, shared = [irq_uart7])]
-    fn uart7_line(cx: uart7_line::Context) {
-        cx.shared.irq_uart7.on_interrupt();
+    #[task(binds = UART7, priority = 2, shared = [uart7])]
+    fn uart7_line(mut cx: uart7_line::Context) {
+        cx.shared.uart7.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA1_STREAM5, priority = 2, shared = [irq_uart7])]
-    fn uart7_rx(cx: uart7_rx::Context) {
-        cx.shared.irq_uart7.on_interrupt();
+    #[task(binds = DMA1_STREAM5, priority = 2, shared = [uart7])]
+    fn uart7_rx(mut cx: uart7_rx::Context) {
+        cx.shared.uart7.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM5, priority = 2, shared = [irq_uart7])]
-    fn uart7_tx(cx: uart7_tx::Context) {
-        cx.shared.irq_uart7.on_interrupt();
+    #[task(binds = DMA2_STREAM5, priority = 2, shared = [uart7])]
+    fn uart7_tx(mut cx: uart7_tx::Context) {
+        cx.shared.uart7.lock(|uart| tests::serve(uart));
     }
 
-    #[task(priority = 1, local = [uart4, vectors_uart4, uart7, vectors_uart7, led])]
+    #[task(priority = 1, shared = [uart4, uart7], local = [vectors_uart4, vectors_uart7, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
-        let uart4 = cx.local.uart4;
         report.check_for(
             "UART4 PD1->PD0",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors_uart4),
         );
-        let uart7 = cx.local.uart7;
         report.check_for(
             "UART7 PE8->PE7",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors_uart7),
         );
+        let mut uart4 = Locked(cx.shared.uart4);
+        let mut uart7 = Locked(cx.shared.uart7);
 
         tests::full_suite(
             &mut report,
             &mut Loop {
                 name: "UART4 PD1->PD0",
-                uart: &mut *uart4,
+                uart: &mut uart4,
             },
             &PLAIN,
             RX_RING,
@@ -180,7 +170,7 @@ mod app {
             &mut report,
             &mut Loop {
                 name: "UART7 PE8->PE7",
-                uart: &mut *uart7,
+                uart: &mut uart7,
             },
             &PLAIN,
             RX_RING,
@@ -202,11 +192,11 @@ mod app {
                 &mut [
                     &mut Loop {
                         name: "UART4 PD1->PD0",
-                        uart: &mut *uart4,
+                        uart: &mut uart4,
                     },
                     &mut Loop {
                         name: "UART7 PE8->PE7",
-                        uart: &mut *uart7,
+                        uart: &mut uart7,
                     },
                 ],
                 8 * 1024,
