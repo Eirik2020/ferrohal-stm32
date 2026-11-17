@@ -34,7 +34,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `iwdg_v1` | HIL | nucleo-f401re-loopback |
 | IP `iwdg_v2` | HIL | nucleo-h753zi-loopback |
 | IP `otg_v1` | HIL | nucleo-h753zi-loopback, stm32f4-discovery |
-| IP `sdmmc_v2` | – |  |
+| IP `sdmmc_v2` | – | lucid-h7 |
 | IP `spi_v2_i2s` | HIL | nucleo-f401re-loopback |
 | IP `spi_v4_i2s` | HIL | nucleo-h753zi-loopback |
 | IP `timer_v1` | – | nucleo-f401re-loopback, stm32f4-discovery |

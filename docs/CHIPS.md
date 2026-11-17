@@ -33,7 +33,7 @@ the markers; the merge gate regenerates them.
 | STM32F401RE | – | HIL | HIL | – | – | HIL | HIL | n/a | HIL | HIL | HIL |
 | STM32F405RG | – `INH` | HIL | HIL | – | – | HIL | HIL | n/a | HIL | HIL | HIL |
 | STM32F407VG | – | HIL | HIL | – | – | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32H743VI | – `INH` | HIL | HIL | – | – | HIL | HIL | – | HIL | HIL | HIL |
+| STM32H743VI | – | HIL | HIL | – | – | HIL | HIL | – | HIL | HIL | HIL |
 | STM32H753ZI | – | HIL | HIL | – | – | HIL | HIL | – | HIL | HIL | HIL |
 <!-- end generated -->
 

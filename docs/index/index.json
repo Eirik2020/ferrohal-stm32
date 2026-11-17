@@ -3,7 +3,7 @@
  "counts": {
   "documents": 74,
   "agent": 52,
-  "bytes": 371961
+  "bytes": 371936
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 11250
+   "bytes": 11248
   },
   {
    "path": "docs/DEBT.md",
@@ -479,7 +479,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6452
+   "bytes": 6429
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",
