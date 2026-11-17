@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review U7: no unsafe casts for the buffer check** (2026-11-17).
+  `chip::check_dma_buffer` took `&[u8]`, so the ADC and the timer lanes kept three unsafe
+  slice-to-bytes casts only to call it. It is now generic over `&[T]` (the span is
+  `size_of_val`), as is the `within` helper behind it, and the three casts and their
+  `unsafe` blocks are gone. Spawned by `ea7a9f8`, `a8a3a05`.
+
 - **Every errata entry has a verdict** (2026-11-17). ADR-010 transcribed every row of
   ES0182, ES0299 and ES0392 (2026-11-15) with 265 left `Unreviewed`; each now carries
   its handling, read against the sheet and the source, in `docs/errata/`. The rows that

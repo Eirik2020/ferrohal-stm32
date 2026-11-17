@@ -530,10 +530,10 @@ where
     S: CompareDma<T, C>,
 {
     let samples_ok = match &input {
-        Some((_, samples)) => crate::chip::check_dma_buffer(u16_bytes(samples)),
+        Some((_, samples)) => crate::chip::check_dma_buffer(samples),
         None => Ok(()),
     };
-    if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)).and(samples_ok) {
+    if let Err(error) = crate::chip::check_dma_buffer(buffer).and(samples_ok) {
         return Err((
             error.into(),
             wiring,
@@ -703,11 +703,6 @@ fn reload_counter(gp: TimGp16, prescaler: u32, reload: u64) {
         .write_value(stm32_metapac::timer::regs::ArrCore((reload - 1) as u32));
     gp.egr().write(|w| w.set_ug(true));
     gp.cnt().write(|w| w.set_cnt(0));
-}
-
-fn as_bytes(words: &[u32]) -> &[u8] {
-    // SAFETY: the same memory, viewed as bytes, for the address check.
-    unsafe { core::slice::from_raw_parts(words.as_ptr().cast(), core::mem::size_of_val(words)) }
 }
 
 /// A channel whose compare register a DMA stream feeds, one duty per
@@ -987,7 +982,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
                 return Err(Refused::new(error, (timer, stream, buffer)));
             }
         };
-        if let Err(error) = crate::chip::check_dma_buffer(u16_bytes(buffer)) {
+        if let Err(error) = crate::chip::check_dma_buffer(buffer) {
             return Err(Refused::new(error.into(), (timer, stream, buffer)));
         }
         rcc.enable(T::ENABLE);
@@ -1151,11 +1146,6 @@ impl<T: Instance, S> Sampler<T, S> {
     pub fn verify(&self) -> Result<(), IrqError> {
         crate::resource::verify_vectors([self.vector].into_iter())
     }
-}
-
-fn u16_bytes(words: &[u16]) -> &[u8] {
-    // SAFETY: the same memory, viewed as bytes, for the address check.
-    unsafe { core::slice::from_raw_parts(words.as_ptr().cast(), core::mem::size_of_val(words)) }
 }
 
 // SAFETY: a sampler owns its timer and stream; the buffer is its own.

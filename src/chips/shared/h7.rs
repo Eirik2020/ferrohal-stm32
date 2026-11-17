@@ -46,12 +46,12 @@ const DMA_RAM: [(usize, usize); 3] = [
 /// - While the data cache is on, it must lie in memory the MPU marks
 ///   non-cacheable, since the drivers do no cache maintenance: the CPU
 ///   would read stale received bytes and transmit stale written ones.
-pub fn check_dma_buffer(buffer: &[u8]) -> Result<(), crate::dma::BufferError> {
+pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> {
     if !super::macros::within(buffer, &DMA_RAM) {
         return Err(crate::dma::BufferError::Unreachable);
     }
     let start = buffer.as_ptr() as usize;
-    let end = start.saturating_add(buffer.len());
+    let end = start.saturating_add(core::mem::size_of_val(buffer));
     if cortex_m::peripheral::SCB::dcache_enabled() && !mpu_non_cacheable(start, end) {
         return Err(crate::dma::BufferError::Cacheable);
     }

@@ -351,9 +351,9 @@ macro_rules! stream_interrupts {
 }
 
 /// Whether all of `buffer` lies in one of `regions`, each (base, length).
-pub(crate) fn within(buffer: &[u8], regions: &[(usize, usize)]) -> bool {
+pub(crate) fn within<T>(buffer: &[T], regions: &[(usize, usize)]) -> bool {
     let start = buffer.as_ptr() as usize;
-    let end = start.saturating_add(buffer.len());
+    let end = start.saturating_add(core::mem::size_of_val(buffer));
     regions
         .iter()
         .any(|&(base, len)| start >= base && end <= base.saturating_add(len))

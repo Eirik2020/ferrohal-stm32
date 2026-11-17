@@ -291,7 +291,7 @@ impl<A: Instance> Adc<A> {
         if channels.is_empty() || channels.len() > 16 || channels.len() > buffer.len() {
             return Err(Refused::new(Error::Sequence, (self, stream, buffer)));
         }
-        if let Err(error) = crate::chip::check_dma_buffer(as_bytes(buffer)) {
+        if let Err(error) = crate::chip::check_dma_buffer(buffer) {
             return Err(Refused::new(Error::Buffer(error), (self, stream, buffer)));
         }
         let mut numbers = [0u8; 16];
@@ -362,11 +362,6 @@ pub fn temperature_from_samples(sample: u16, vdda_mv: u32) -> Result<i32, Error>
     let at_cal_vdda = (u32::from(sample) * vdda_mv / CAL_VDDA_MV) as i32;
     let span = i32::from(high) - i32::from(low);
     Ok(TS_CAL1_C * 10 + (at_cal_vdda - i32::from(low)) * (TS_CAL2_C - TS_CAL1_C) * 10 / span)
-}
-
-fn as_bytes(buffer: &[u16]) -> &[u8] {
-    // SAFETY: the same memory, every byte of a u16 initialized, u8 aligned.
-    unsafe { core::slice::from_raw_parts(buffer.as_ptr().cast(), core::mem::size_of_val(buffer)) }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
