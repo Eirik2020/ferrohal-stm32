@@ -1,0 +1,11 @@
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/awg-both-ways`
+     [38;5;10m[1mFinished[0m in 3.83s
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG out over the wire: the far lane reads the samples [AWG-008 AWG-009] (awg_both_ways ../common/tests.rs:381)
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG in over the wire: the near lane reads the reply on its own pin [AWG-009] (awg_both_ways ../common/tests.rs:381)
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG: with the output off, nothing crosses the wire [AWG-011] (awg_both_ways ../common/tests.rs:381)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (awg_both_ways ../common/tests.rs:1478)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 0 unreviewed (awg_both_ways ../common/tests.rs:1454)
+[INFO ] all checks passed (awg_both_ways ../common/tests.rs:1487)
+Firmware exited successfully

@@ -40,7 +40,7 @@ impl<U: Parts, Cs: OutputPin<Error = Infallible>> Imu<'_, U, Cs> {
             let start = link.now();
             result = loop {
                 link.service();
-                if let Some(done) = self.spi.poll() {
+                if let Some(done) = self.spi.on_interrupt() {
                     break done.map(|_| ());
                 }
                 if link.now().wrapping_sub(start) > 10_000 {
@@ -226,7 +226,7 @@ impl<U: Parts, Cs: OutputPin<Error = Infallible>> Imu<'_, U, Cs> {
             let mut result = self.spi.start(&burst);
             if result.is_ok() {
                 result = loop {
-                    if let Some(finished) = self.spi.poll() {
+                    if let Some(finished) = self.spi.on_interrupt() {
                         break finished.map(|_| ());
                     }
                     if link.now().wrapping_sub(began) > 1_000 {

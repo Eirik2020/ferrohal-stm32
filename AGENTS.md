@@ -15,7 +15,7 @@ Public repo. Bench-verified.
 | change public API | `docs/policies/safety.md`, `docs/design/api-surface.md` |
 | add a feature or adapter | `docs/policies/features.md` (G1, G2; ADR-007) |
 | add/move requirements | `docs/policies/documentation.md`, `requirements/goals.md`, `src/requirements/<ip>.yaml` |
-| fix/close debt | `docs/DEBT.md` (tagged; each item's origin), `docs/RESOLVED.md` -> owning file |
+| fix/close debt | `docs/DEBT.md` (tagged; each item's origin), `docs/resolved/` -> owning file |
 | what chips support; limits; roadmap | `docs/CHIPS.md` |
 | silicon errata, a workaround | `docs/design/errata.md` (ADR-010), `docs/errata/`; check the erratum, never a `REV_ID` |
 | what the benches prove | `hil/COVERAGE.md`, `hil/CAPABILITIES.md` |
@@ -40,6 +40,7 @@ python3 -I tools/check_docs.py   # byte budgets, orphans, decisions, housekeepin
 python3 -I tools/docs_index.py   # regenerate docs/index/
 python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap
 python3 -I tools/housekeeping.py # the review report
+python3 -I tools/stale_runs.py   # the bench runs a change owes (--shell: the commands)
 hil/run-f401.sh [runs]           # Nucleo-F401RE
 hil/run-h753.sh [runs]           # Nucleo-H753ZI
 hil/flash-dfu.sh <board>         # a DFU-flashed board (`FLSH` tier): Foxeer, Lucid
@@ -62,7 +63,7 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - G5: no `unsafe fn` public; only `Peripherals::steal` behind `rtic`. Registers -> take metapac.
 - No unsafe wrappers around register writes; token-owning module only; PAC imports confined.
 - One `shall` per requirement; module trailer names its IDs.
-- `DEBT.md`/`RESOLVED.md` = pointer indexes, no prose.
+- `DEBT.md`/`resolved/` = pointer indexes, no prose.
 - Nothing documented only in commit/PR/chat.
 - Docs: human vs agent classes; 20000 B always-loaded, 40000 B otherwise (`docs/policies/documentation.md`); split, never compress; a split is linked, never orphaned.
 - Housekeeping forced: `state.md` due date or +10 docs -> `tools/housekeeping.py`, record pass.

@@ -24,7 +24,7 @@ macro_rules! ports {
 macro_rules! usarts {
     ($($kind:ident $name:ident => $info:ident, $bus:ident, $bit:literal;)+) => {
         $(
-            static $info: Info = Info::new(LineRegs::new(pac::$name));
+            static $info: Info = Info::new(Unit::new(pac::$name));
 
             impl crate::uart::Instance for $name {
                 const KERNEL: crate::rcc::Kernel = crate::rcc::Kernel::Bus(Bus::$bus);

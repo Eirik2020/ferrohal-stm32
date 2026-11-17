@@ -8,8 +8,6 @@
 //!
 //! Requirements: UARTDMA-006, UARTDMA-007, UARTDMA-010
 
-use core::sync::atomic::{AtomicU32, Ordering};
-
 /// Where a frame of `len` bytes goes, given where the last one ended
 /// (`write`) and where the oldest queued one starts (`oldest`, `None` with
 /// the queue empty). `None` if it does not fit now.
@@ -62,70 +60,59 @@ pub(crate) struct Frame {
     pub len: u16,
 }
 
-/// A single-producer, single-consumer queue of frames: the writer pushes,
-/// the service that starts transfers (task or interrupt, one at a time)
-/// pops. Atomics only.
+/// A first-in, first-out queue of frames: the writer pushes, the service
+/// that finishes transfers pops. Plain fields: the UART's one owner holds it
+/// (ADR-011).
 pub(crate) struct FrameQueue {
-    slots: [AtomicU32; FRAMES],
-    head: AtomicU32,
-    tail: AtomicU32,
+    slots: [Frame; FRAMES],
+    head: u32,
+    tail: u32,
 }
 
 impl FrameQueue {
     pub const fn new() -> Self {
         Self {
-            slots: [const { AtomicU32::new(0) }; FRAMES],
-            head: AtomicU32::new(0),
-            tail: AtomicU32::new(0),
+            slots: [Frame { offset: 0, len: 0 }; FRAMES],
+            head: 0,
+            tail: 0,
         }
     }
 
-    /// Producer side. `false` if the queue is full.
-    pub fn push(&self, frame: Frame) -> bool {
-        let head = self.head.load(Ordering::Relaxed);
-        if head.wrapping_sub(self.tail.load(Ordering::Acquire)) as usize >= FRAMES {
+    /// `false` if the queue is full.
+    pub fn push(&mut self, frame: Frame) -> bool {
+        if self.len() >= FRAMES {
             return false;
         }
-        self.slots[head as usize % FRAMES].store(
-            (u32::from(frame.offset) << 16) | u32::from(frame.len),
-            Ordering::Relaxed,
-        );
-        self.head.store(head.wrapping_add(1), Ordering::Release);
+        if let Some(slot) = self.slots.get_mut(self.head as usize % FRAMES) {
+            *slot = frame;
+        }
+        self.head = self.head.wrapping_add(1);
         true
     }
 
-    /// Either side: the oldest frame, left in place.
+    /// The oldest frame, left in place.
     pub fn peek(&self) -> Option<Frame> {
-        let tail = self.tail.load(Ordering::Acquire);
-        if self.head.load(Ordering::Acquire) == tail {
+        if self.head == self.tail {
             return None;
         }
-        let packed = self.slots[tail as usize % FRAMES].load(Ordering::Relaxed);
-        Some(Frame {
-            offset: (packed >> 16) as u16,
-            len: packed as u16,
-        })
+        self.slots.get(self.tail as usize % FRAMES).copied()
     }
 
-    /// Consumer side: drops the oldest frame.
-    pub fn pop(&self) {
-        let tail = self.tail.load(Ordering::Relaxed);
-        if self.head.load(Ordering::Acquire) != tail {
-            self.tail.store(tail.wrapping_add(1), Ordering::Release);
+    /// Drops the oldest frame.
+    pub fn pop(&mut self) {
+        if self.head != self.tail {
+            self.tail = self.tail.wrapping_add(1);
         }
     }
 
     /// Frames queued, in flight included.
     pub fn len(&self) -> usize {
-        self.head
-            .load(Ordering::Acquire)
-            .wrapping_sub(self.tail.load(Ordering::Acquire)) as usize
+        self.head.wrapping_sub(self.tail) as usize
     }
 
-    /// Consumer side: drops every frame.
-    pub fn clear(&self) {
-        let head = self.head.load(Ordering::Acquire);
-        self.tail.store(head, Ordering::Release);
+    /// Drops every frame.
+    pub fn clear(&mut self) {
+        self.tail = self.head;
     }
 }
 
@@ -201,7 +188,7 @@ mod tests {
 
     #[test]
     fn queue_is_first_in_first_out_and_bounded() {
-        let queue = FrameQueue::new();
+        let mut queue = FrameQueue::new();
         assert_eq!(queue.peek(), None);
         for i in 0..FRAMES as u16 {
             assert!(queue.push(Frame {
@@ -228,7 +215,7 @@ mod tests {
 
     #[test]
     fn queue_keeps_offset_and_length() {
-        let queue = FrameQueue::new();
+        let mut queue = FrameQueue::new();
         let frame = Frame {
             offset: 0xfffe,
             len: 0xabcd,

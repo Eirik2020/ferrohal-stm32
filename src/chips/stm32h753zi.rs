@@ -15,14 +15,14 @@ use stm32_metapac as pac;
 pub use stm32_metapac::Interrupt;
 
 use crate::{
-    dma_v1::{Dma, DmaInstance, Stream},
+    dma::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{SclPin, SdaPin},
     rcc_h7_rm0433::{Bus, RCC, RccBit},
     sdmmc::{CkPin, CmdPin, D0Pin, D1Pin, D2Pin, D3Pin},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     uart::{Info, RxDma, RxPin, TxDma, TxPin},
-    usart_v4::LineRegs,
+    usart_v4::Unit,
 };
 
 #[path = "shared/macros.rs"]

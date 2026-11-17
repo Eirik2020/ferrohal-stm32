@@ -15,13 +15,13 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
    and DMA streams frees to its token, both pins and both typed stream tokens; a handle
    keeps those parts typed so they come back typed. **Met by every driver:** `Adc` (its
    token), `AdcScan` (the ADC, its stream, its buffer), `Sdmmc` (its wiring), `UsbFs`
-   (its token and both pins), `Uart` (its wiring and buffers), `UartRx::free(line)` (its
+   (its token and both pins), `Uart` (its wiring and buffers, or a receive-only one's
    receive wiring and ring), `Spi` (its wiring and buffers), `BlockingSpi` and `I2c`
    (their wiring), `PwmChannel` (its pin), `CompareLane` (its wiring and buffers),
    `Sampler` (its timer, stream and buffer), `Awg` (its `Pwm`s and lanes), timers. A
    handle is generic over its whole wiring (`Uart<W>`, owner 2026-11-13), so a board
    names its route once, as a type alias.
-   **[Decided 2026-11-15, owner]** A handle that owns DMA buffers (`Uart`, `UartRx`,
+   **[Decided 2026-11-15, owner]** A handle that owns DMA buffers (`Uart`,
    `Spi`, `CompareLane`, `Sampler`, `AdcScan`) refuses to free while one of its
    streams does not stop: `free` returns `Result<parts, Refused<StopTimeout, Self>>`,
    so the buffers never leave under a running stream, and the handle comes back to try
@@ -30,19 +30,19 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 
 1. Every handle that can touch a peripheral carries the token, or a borrow of it; a
    second handle is a compile error, not a runtime rule. **Met:** the token lives in
-   `Pwm<T>`, `Tick<T>`, `Timebase<T>`, `Line<W>`/`RxLine<W>`, `Spi<W>`,
+   `Pwm<T>`, `Tick<T>`, `Timebase<T>`, `Uart<W>`, `Spi<W>`,
    `BlockingSpi<W>`, `I2c<W>` and `Sampler<T, S>`; an `Awg` frees both its timers;
-   `PwmChannel` borrows its `Pwm`; the UART halves carry their instance.
+   `PwmChannel` borrows its `Pwm`; the UART has one owner and no halves (ADR-011).
 2. `free(self) -> T` returns the token only when the last handle is gone. **Met:** a
-   UART frees whole, after `join`, or receive-only through its `RxLine`; a channel
+   UART frees whole, a receive-only one to its `RxWiring`; a channel
    borrows, so it is gone before `Pwm::free`.
 3. A channel or lane that outlives `Pwm::free` must not be constructible. **Met:**
    `PwmChannel<'a, ..>` borrows; a `CompareLane` holds no timer access and writes
    only through a `&Pwm` it is handed.
 
-Proof: `checks/no-metapac` probes that a split UART's receive half cannot free the
-line and that halves do not cross instances (E0308); `checks/no-panic` runs every
-`free()`, `split` and `join` on all four chips.
+Proof: `checks/no-metapac` probes that a receive-only UART frees only to its
+`RxWiring` (E0308) and has no transmit operations (E0599); `checks/no-panic` runs every
+`free()` on all five chips.
 
 ## Gate
 

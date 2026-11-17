@@ -822,10 +822,7 @@ pub fn open<U, TxP, RxP, TxD, RxD>(
     wiring: Wiring<U, TxP, RxP, TxD, RxD>,
     config: &ferrohal_stm32::uart::Config,
     buffers: DmaBuffers,
-) -> (
-    ferrohal_stm32::uart::Uart<Wiring<U, TxP, RxP, TxD, RxD>>,
-    ferrohal_stm32::uart::UartIrq,
-)
+) -> ferrohal_stm32::uart::Uart<Wiring<U, TxP, RxP, TxD, RxD>>
 where
     U: ferrohal_stm32::uart::Instance,
     TxP: ferrohal_stm32::uart::TxPin<U>,
@@ -838,7 +835,7 @@ where
         rx: buffers.rx,
     };
     match ferrohal_stm32::uart::Uart::new(rcc, wiring, config, buffers) {
-        Ok(parts) => parts,
+        Ok(uart) => uart,
         Err(error) => defmt::panic!("{=str}: {}", name, error),
     }
 }

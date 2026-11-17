@@ -1,13 +1,22 @@
 # Housekeeping state
 
-- Last review: 2026-11-13
+- Last review: 2026-11-17
 - Next due: 2026-12-13
-- Documents at last review: 72
+- Documents at last review: 85
 
 Cadence: monthly, or immediately when more than ten documents have been added since the
 last review. The owner changes the cadence by editing the two dates above.
 
 ## Reviews
+
+- 2026-11-17 - pass forced by the chip work merged with the src layout (+13 documents,
+  mostly eight errata sheets, ES0206, ES0287, ES0290, ES0298, ES0305, ES0334, ES0360 and
+  ES0372, the F7 plan, and ADR-011 and ADR-012).
+  No orphans. Duplicate-title hints: the errata sheets share ST's titles, one document
+  per sheet by ADR-010, kept; the two dated `docs/resolved/` files are one log split by
+  period, kept; `benches-analysis.md` and `benches-refusals.md` as on 2026-11-13. ADR-002,
+  ADR-005, ADR-006 still await the owner's promote-or-archive call. No plans or notes
+  older than 90 days. Workspace: `agent-memory` is not in this checkout, not run.
 
 - 2026-11-13 - pass forced by the day's restructuring (+13 documents: `docs/CHIPS.md`,
   `hil/COVERAGE.md`, `docs/policies/features.md`, ADR-007 to ADR-009 with

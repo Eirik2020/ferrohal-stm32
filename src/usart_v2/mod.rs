@@ -2,7 +2,7 @@
 //! register operations the [`crate::uart`] driver needs. The driver and the
 //! routing traits the glue implements are [`crate::uart`]'s.
 //!
-//! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V2-001
+//! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V2-001, USART-V2-002, UART-021
 
 use stm32_metapac::usart::{
     regs::Sr,
@@ -21,11 +21,14 @@ pub type Regs = stm32_metapac::usart::Usart;
 /// RX and TX inversion: v2 has no such bits.
 pub(crate) const INVERSION: bool = false;
 
+/// TX/RX swap: v2 has no SWAP bit.
+pub(crate) const SWAP: bool = false;
+
 /// One USART's register block, as the driver uses it.
 #[derive(Clone, Copy)]
-pub struct LineRegs(Regs);
+pub struct Unit(Regs);
 
-impl LineRegs {
+impl Unit {
     pub(crate) const fn new(regs: Regs) -> Self {
         Self(regs)
     }
@@ -58,6 +61,7 @@ impl LineRegs {
             w.set_dmat(true);
             w.set_dmar(true);
             w.set_eie(true);
+            w.set_hdsel(config.half_duplex);
         });
         regs.cr1().write(|w| {
             w.set_ue(true);
@@ -125,8 +129,8 @@ impl LineRegs {
         self.0.sr().read().tc()
     }
 
-    /// SBK in CR1. After `Uart::split`, the transmit half is the only
-    /// writer of CR1.
+    /// SBK in CR1, written by the `Uart` that owns the line, its only
+    /// writer.
     pub(crate) fn request_break(self) {
         self.0.cr1().modify(|w| w.set_sbk(true));
     }

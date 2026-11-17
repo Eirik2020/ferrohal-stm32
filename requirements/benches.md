@@ -15,6 +15,9 @@ The injected faults, split out to keep this file in its budget, are
 [benches-faults.md](benches-faults.md); the host analyses (no reachable panic, the
 chip glue) are [benches-analysis.md](benches-analysis.md).
 
+A run letter is its bench's alias for a binary named by its test:
+`hil/<crate>/runs.tsv` maps them (H753 run M is `usb-cdc`, F401 run V is `refusals`).
+
 ## UART on the Nucleo-F401RE
 
 `hil/run-f401.sh a b c d`, with the links in
@@ -29,7 +32,10 @@ also checks the parity error's clear, each way: one byte with a parity error, th
 a good frame straight after it, which must arrive whole and in order, with the one
 parity error reported right after the bad byte, and PE seen by the UART's vectors,
 counted and reported once. Its log states whether RXNE was set when a vector first
-saw PE, and how many bytes the receive DMA had taken by then.
+saw PE, and how many bytes the receive DMA had taken by then. Run B also puts USART6 in
+half-duplex [UART-021]: a frame it sends from PC6 must reach USART1 and come back
+into USART6's own ring, though USART1 sends nothing meanwhile, and a frame USART1
+sends into PC7, the RX pin half-duplex leaves unused, must not arrive.
 
 ## UART on the Nucleo-H753ZI
 
@@ -40,14 +46,19 @@ the same checks in `hil/common/tests.rs`; run A also masks USART1's line for the
 UART-020 drill, as the F401's run A does. Run Y crosses two UARTs over Z6, USART3's
 TX on PC10 into UART4's RX on PC11, for what a loop cannot show: even parity into
 odd reaches UART4's reader as a parity error [UART-014], half the baud rate as a
-framing error.
+framing error. Half-duplex [UART-021]: run Y's pair is wired one way, so USART3
+in half-duplex must put a frame on PC10 that reaches UART4 and comes back into its
+own ring, and back in full duplex its ring (on the unwired PB11) must stay silent.
+TX and RX swap [USART-V4-002]: run B runs USART3's PC10/PC11 loop
+swapped, which must still carry a line and a stream, and run Y swaps USART3 alone,
+so it sends on PB11 and UART4 on PC11 must hear nothing.
 
 ## USB on the Nucleo-H753ZI
 
 `hil/run-h753.sh m`, with the CN13 cable on the H753, as the rig keeps it
 (`hil/WIRING.md`). Pass: every check passes and the script exits zero. Before the echo, the port is freed to its token and both pins and reopened from them, so the echo runs on the reopened port [API-002]. The run clocks from HSE in bypass (the ST-LINK-V3's MCO); after the echo it counts CPU cycles over 1000 of the host's start-of-frames and requires 400 MHz within 0.5 %, the MCO's own error (`hil/RIG.md`) [RCC-001].
 
-Run M (USB CDC over CN13) builds `run-m` before starting `hil/usb_cdc_host.py`, so the host's wait for a port
+Run M (USB CDC over CN13) builds its binary (`usb-cdc`) before starting `hil/usb_cdc_host.py`, so the host's wait for a port
 is not spent compiling, and the host opens only a port that appeared after the one
 a previous image left had gone: a rerun cannot talk to the image it is about to
 replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.

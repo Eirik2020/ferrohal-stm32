@@ -11,7 +11,12 @@ fn git(args: &[&str]) -> Option<String> {
 
 fn main() {
     let rev = git(&["rev-parse", "--short=12", "HEAD"]).unwrap_or_else(|| "unknown".into());
-    let dirty = git(&["status", "--porcelain", "--untracked-files=no"]).is_some_and(|s| !s.is_empty());
+    // --no-optional-locks: a plain `git status` rewrites the index when it
+    // refreshes racily clean entries, and the index is watched below, so each
+    // build would re-run this script and recompile the next one (measured
+    // 2026-11-17: every H753 run recompiled its image, about 2 s each).
+    let dirty = git(&["--no-optional-locks", "status", "--porcelain", "--untracked-files=no"])
+        .is_some_and(|s| !s.is_empty());
     println!("cargo:rustc-env=FERRO_GIT={rev}{}", if dirty { "+dirty" } else { "" });
     for path in ["memory.x", "src", "Cargo.toml", "../common", "../../src", "../../Cargo.toml"] {
         println!("cargo:rerun-if-changed={path}");

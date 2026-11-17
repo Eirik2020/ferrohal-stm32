@@ -10,11 +10,26 @@
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
+# A run letter's binary, from the bench's alias table (API review B1).
+bin_of() { awk -v r="$1" '$1 == r { print $2 }' "$here/stm32f4-discovery/runs.tsv"; }
 crate="$here/stm32f4-discovery"
 chip=STM32F407VGTx
 source "$here/probe.sh"
 probe_for DISCOVERY_PROBE 0x413 || exit 1
 mkdir -p "$here/logs"
+
+# Every image first, in one cargo call, which compiles them in parallel: each
+# run's own `cargo run` then only finds it built. A bin that fails to build here
+# still fails its own run below, with the compiler's message in that run's log.
+# Bins behind a feature (`required-features`) are left to their runs.
+case " ${*:-all} " in
+    " probe ") ;;
+    *) if (cd "$here/stm32f4-discovery" && timeout 600 cargo build --release --bins) > "$here/logs/discovery-build.log" 2>&1; then
+           echo "build: every image built ($(grep -oE 'in [0-9.]+(s|m [0-9]+s)$' "$here/logs/discovery-build.log" | tail -1))"
+       else
+           echo "build: some images failed; their runs will say which (hil/logs/discovery-build.log)"
+       fi ;;
+esac
 
 # The serial the ROM's DFU device reports: the UID's words 0 and 2 summed, then
 # word 1's upper half, in hex (measured on the Foxeer's ROM, 2026-11-14).
@@ -31,22 +46,22 @@ for run in ${*:-probe a b c d}; do
     : > "$log"
     code=0
     if [ "$run" = b ]; then
-        (cd "$crate" && timeout 300 cargo build --release --bin run-b) >> "$log" 2>&1 || code=$?
+        (cd "$crate" && timeout 300 cargo build --release --bin "$(bin_of b)") >> "$log" 2>&1 || code=$?
         host=""
         if [ "$code" -eq 0 ]; then
             python3 -I "$here/usb_cdc_host.py" --fresh 30 f407vg > "$log.host" 2>&1 &
             host=$!
-            (cd "$crate" && timeout 300 cargo run --release --bin run-b) >> "$log" 2>&1 || code=$?
+            (cd "$crate" && timeout 300 cargo run --release --bin "$(bin_of b)") >> "$log" 2>&1 || code=$?
             wait "$host" || code=1
             cat "$log.host" >> "$log"
             rm -f "$log.host"
         fi
     elif [ "$run" = c ]; then
         serial=$(rom_serial)
-        (cd "$crate" && timeout 300 cargo build --release --bin run-c) >> "$log" 2>&1 || code=$?
+        (cd "$crate" && timeout 300 cargo build --release --bin "$(bin_of c)") >> "$log" 2>&1 || code=$?
         if [ "$code" -eq 0 ]; then
             (cd "$crate" && CARGO_TARGET_THUMBV7EM_NONE_EABIHF_RUNNER="probe-rs run --no-catch-reset --chip $chip" \
-                timeout 60 cargo run --release --bin run-c) >> "$log" 2>&1 &
+                timeout 60 cargo run --release --bin "$(bin_of c)") >> "$log" 2>&1 &
             runner=$!
             found=""
             for _ in $(seq 1 30); do
@@ -76,7 +91,7 @@ for run in ${*:-probe a b c d}; do
             # through this board's probe, no firmware.
             (cd "$here/../tools/glue-gen" && timeout 300 cargo run -q --release -- probe part stm32f407vg) >> "$log" 2>&1 || code=$?
         else
-            (cd "$crate" && timeout 300 cargo run --release --bin "run-$run") >> "$log" 2>&1 || code=$?
+            (cd "$crate" && timeout 300 cargo run --release --bin "$(bin_of "$run")") >> "$log" 2>&1 || code=$?
         fi
     fi
     pass=$(grep -c "PASS" "$log")

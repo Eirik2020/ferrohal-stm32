@@ -1,8 +1,9 @@
-//! What a driver's wiring uses, as data, the check that its interrupt
-//! vectors are bound as it needs, and what a constructor that refuses hands
-//! back. Shared by every peripheral driver.
+//! What a driver's wiring uses, as data, the vectors it needs and the check
+//! that they are bound, the [`Service`] every interrupt-served driver
+//! offers, and what a constructor that refuses hands back. Shared by every
+//! peripheral driver.
 //!
-//! Requirements: RESOURCE-001
+//! Requirements: RESOURCE-001, RESOURCE-002
 
 /// One resource a wiring uses, as data: for checking a board's manifest
 /// against the types that wire it (`Wiring::RESOURCES` and the like).
@@ -96,9 +97,88 @@ pub enum Signal {
 pub enum IrqError {
     /// This vector is masked in the NVIC: nothing serves it.
     NotEnabled(crate::chip::Interrupt),
-    /// These two vectors have different priorities, so one could preempt
-    /// the other in the middle of the driver's interrupt work.
-    PriorityMismatch(crate::chip::Interrupt, crate::chip::Interrupt),
+}
+
+/// A driver served from interrupts: the scheduler's handler for each of the
+/// driver's [`Vectors`] calls [`on_interrupt`](Self::on_interrupt), and acts
+/// on the event it returns (spawns a reader, wakes a task). Neutral about the
+/// scheduler: RTIC, an executor or a bare `#[interrupt]` all call the same
+/// method (ADR-011).
+///
+/// The driver has one owner, and `on_interrupt` takes it `&mut`: a task and
+/// a handler that share a driver share it under the scheduler's lock, which
+/// is the only concurrency control there is. `on_interrupt` is also safe to
+/// call from a task, with nothing pending, which is how firmware with the
+/// vectors unbound polls. Each driver also has it as an inherent method, so
+/// callers need not import this trait.
+pub trait Service {
+    /// What one service found: a completion, a fault, a frame's end.
+    type Event;
+
+    /// Serves whatever the driver's vectors have pending, and says what
+    /// happened.
+    fn on_interrupt(&mut self) -> Self::Event;
+}
+
+/// The most vectors one driver needs: an arbitrary waveform generator's
+/// eight lanes.
+pub const MAX_VECTORS: usize = 8;
+
+/// The interrupt vectors a driver needs bound to its
+/// [`on_interrupt`](Service::on_interrupt), from the driver's `vectors()`.
+/// Each may run at its own priority; the scheduler's lock orders them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct Vectors {
+    list: [Option<crate::chip::Interrupt>; MAX_VECTORS],
+}
+
+impl Vectors {
+    /// No vectors.
+    pub(crate) const fn none() -> Self {
+        Self {
+            list: [None; MAX_VECTORS],
+        }
+    }
+
+    /// One vector.
+    pub(crate) const fn one(vector: crate::chip::Interrupt) -> Self {
+        Self::none().with(vector)
+    }
+
+    /// These and `vector`, unless it is listed already. A ninth is dropped:
+    /// no driver has one.
+    pub(crate) const fn with(mut self, vector: crate::chip::Interrupt) -> Self {
+        let mut i = 0;
+        while i < MAX_VECTORS {
+            match self.list[i] {
+                Some(listed) if listed as u16 == vector as u16 => return self,
+                Some(_) => i += 1,
+                None => {
+                    self.list[i] = Some(vector);
+                    return self;
+                }
+            }
+        }
+        self
+    }
+
+    /// Every vector, in the order the driver lists them, each once.
+    pub fn iter(&self) -> impl Iterator<Item = crate::chip::Interrupt> + '_ {
+        self.list.iter().flatten().copied()
+    }
+
+    /// Whether `vector` is one of these.
+    pub fn contains(&self, vector: crate::chip::Interrupt) -> bool {
+        self.iter().any(|listed| listed == vector)
+    }
+
+    /// Checks the NVIC, reading only: every vector enabled. FerroHAL never
+    /// sets NVIC state; this tells the firmware whether its scheduler set it
+    /// as the driver needs.
+    pub fn verify(&self) -> Result<(), IrqError> {
+        verify_vectors(self.iter())
+    }
 }
 
 /// A constructor's refusal: why, and everything it took by value, handed
@@ -156,26 +236,12 @@ impl<E: defmt::Format, P> defmt::Format for Refused<E, P> {
     }
 }
 
-/// Checks the NVIC, reading only: every vector enabled, all at the first
-/// one's priority. FerroHAL never sets NVIC state; this tells the firmware
-/// whether its scheduler set it as a driver needs.
-pub(crate) fn verify_vectors(
-    mut vectors: impl Iterator<Item = crate::chip::Interrupt>,
-) -> Result<(), IrqError> {
+/// Checks the NVIC, reading only: every vector enabled.
+fn verify_vectors(vectors: impl Iterator<Item = crate::chip::Interrupt>) -> Result<(), IrqError> {
     use cortex_m::peripheral::NVIC;
-    let Some(first) = vectors.next() else {
-        return Ok(());
-    };
-    if !NVIC::is_enabled(first) {
-        return Err(IrqError::NotEnabled(first));
-    }
-    let priority = NVIC::get_priority(first);
     for vector in vectors {
         if !NVIC::is_enabled(vector) {
             return Err(IrqError::NotEnabled(vector));
-        }
-        if NVIC::get_priority(vector) != priority {
-            return Err(IrqError::PriorityMismatch(first, vector));
         }
     }
     Ok(())

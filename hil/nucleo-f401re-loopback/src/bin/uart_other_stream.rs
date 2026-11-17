@@ -1,0 +1,131 @@
+//! Run C: USART6 over J2 (PA11 to PA12) on DMA2 stream 7, its other
+//! transmit stream, which USART1 holds in runs A and B. The full check
+//! list.
+//!
+//! | Vector | Owner | Priority |
+//! | --- | --- | --- |
+//! | `USART6`, `DMA2_STREAM1`, `DMA2_STREAM7` | USART6's `on_interrupt` | 2 |
+//! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
+
+#![no_std]
+#![no_main]
+
+#[path = "../board.rs"]
+mod board;
+#[path = "../../../common/tests.rs"]
+mod tests;
+
+use defmt_rtt as _;
+use panic_probe as _;
+
+#[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
+mod app {
+    use ferrohal_stm32::{
+        chip::Interrupt,
+        uart::{Buffers, Config, Uart, Vectors},
+    };
+
+    use crate::{
+        board,
+        tests::{self, Loop, Report},
+    };
+
+    const RX_RING: usize = 256;
+    const TX_BUFFER: usize = 256;
+
+    #[shared]
+    struct Shared {
+        usart6: Uart<board::Usart6LoopS7>,
+    }
+
+    #[local]
+    struct Local {
+        vectors6: Vectors,
+        led: board::Led,
+    }
+
+    #[init(local = [
+        tx6: [u8; TX_BUFFER] = [0; TX_BUFFER],
+        rx6: [u8; RX_RING] = [0; RX_RING],
+    ])]
+    fn init(mut cx: init::Context) -> (Shared, Local) {
+        // The cycle counter, for the wait-bound check.
+        cx.core.DCB.enable_trace();
+        cx.core.DWT.enable_cycle_counter();
+        let mut run = match board::run_c(cx.device) {
+            Ok(run) => run,
+            Err(error) => defmt::panic!("clocks: {}", error),
+        };
+        defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
+        defmt::info!("run C, clocks: {}", board::CLOCKS);
+
+        let usart6 = Uart::new(
+            &mut run.rcc,
+            run.usart6,
+            &Config::new(ferrohal_stm32::time::Hertz(115_200)),
+            Buffers {
+                tx: cx.local.tx6,
+                rx: cx.local.rx6,
+            },
+        )
+        .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
+
+        let vectors6 = usart6.vectors();
+
+        checks::spawn().ok();
+        (
+            Shared { usart6 },
+            Local {
+                vectors6,
+                led: run.led,
+            },
+        )
+    }
+
+    #[task(binds = USART6, priority = 2, shared = [usart6])]
+    fn usart6_line(mut cx: usart6_line::Context) {
+        cx.shared.usart6.lock(|uart| tests::serve(uart));
+    }
+
+    #[task(binds = DMA2_STREAM1, priority = 2, shared = [usart6])]
+    fn usart6_rx(mut cx: usart6_rx::Context) {
+        cx.shared.usart6.lock(|uart| tests::serve(uart));
+    }
+
+    #[task(binds = DMA2_STREAM7, priority = 2, shared = [usart6])]
+    fn usart6_tx(mut cx: usart6_tx::Context) {
+        cx.shared.usart6.lock(|uart| tests::serve(uart));
+    }
+
+    #[task(priority = 1, shared = [usart6], local = [vectors6, led])]
+    async fn checks(cx: checks::Context) {
+        let mut usart6 = tests::Locked(cx.shared.usart6);
+        tests::set_cpu_hz(board::CLOCKS.cpu.0);
+        let mut report = Report::new();
+        report.check_for(
+            "USART6",
+            "UART-003 RESOURCE-001",
+            "vectors enabled",
+            tests::vectors_verified(cx.local.vectors6),
+        );
+        tests::full_suite(
+            &mut report,
+            &mut Loop {
+                name: "USART6 PA11->PA12, TX on stream 7",
+                uart: &mut usart6,
+            },
+            &Config::new(ferrohal_stm32::time::Hertz(115_200)),
+            RX_RING,
+            TX_BUFFER,
+            &mut tests::nvic_mask(Interrupt::DMA2_STREAM1),
+            &mut tests::nvic_mask_all([
+                Interrupt::USART6,
+                Interrupt::DMA2_STREAM1,
+                Interrupt::DMA2_STREAM7,
+            ]),
+            false,
+        );
+        let led = cx.local.led;
+        tests::finish(&report, || led.set_high());
+    }
+}

@@ -235,7 +235,7 @@ requirements:
   - id: UART-013
     title: A break can be sent
     statement: >-
-      The transmit half shall send a line break on request.
+      A UART with a transmitter shall send a line break on request.
     rationale: >-
       Some protocols use a break to mark a frame.
     derived_from: [G3]
@@ -581,7 +581,7 @@ requirements:
       Requesting a break shall send one, and show it pending until its stop
       bit.
     rationale: >-
-      The transmit half waits for the break to finish before sending more.
+      The UART waits for the break to finish before sending more.
     derived_from: [UART-013]
     verification:
       entries:
@@ -633,6 +633,40 @@ requirements:
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
+  - id: UART-021
+    title: A half-duplex UART carries both directions on one pin
+    statement: >-
+      A UART opened for half-duplex shall send and receive on its TX pin.
+    rationale: >-
+      Single-wire peripherals (smart ports, one-wire telemetry) share one
+      line for both directions.
+    derived_from: [UART-001]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: UART-022
+    title: A receive-only UART refuses what needs a TX pin
+    statement: >-
+      A receive-only UART shall refuse a configuration asking for half-duplex
+      or swapped lines.
+    rationale: >-
+      Both need the TX pin, which a receive-only UART does not hold.
+    derived_from: [UART-004]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::uart::stream_dma::tests::a_receive_only_uart_refuses_what_needs_a_tx_pin
+
   - id: USART-V2-001
     title: USART v2 refuses inversion
     statement: >-
@@ -648,12 +682,40 @@ requirements:
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
 
+  - id: USART-V2-002
+    title: USART v2 refuses swapped lines
+    statement: >-
+      USART v2 shall refuse a frame asking for TX and RX to be swapped.
+    rationale: >-
+      It has no SWAP bit, so the frame cannot work.
+    derived_from: [UART-004]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::tests::usart_v2_takes_half_duplex_and_refuses_swap
+
   - id: USART-V4-001
     title: USART v4 inverts both directions
     statement: >-
       USART v4 shall carry traffic with both directions inverted when asked.
     rationale: >-
       Inverted serial receivers connect directly on these chips.
+    derived_from: [UART-001]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
+
+  - id: USART-V4-002
+    title: USART v4 swaps TX and RX
+    statement: >-
+      USART v4 shall carry traffic with TX and RX swapped when asked.
+    rationale: >-
+      A board wired with the lines crossed works without a rework.
     derived_from: [UART-001]
     verification:
       entries:

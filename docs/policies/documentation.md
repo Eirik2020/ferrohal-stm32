@@ -4,7 +4,7 @@ Normative. Two classes:
 
 - **Human-readable** (prose, citations, people read them): `requirements/**` (`goals.md`,
   `benches.md`, `evidence/`), `src/requirements/*.yaml`,
-  `docs/DEBT.md`, `docs/RESOLVED*.md`, `docs/CHIPS.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
+  `docs/DEBT.md`, `docs/resolved/*.md`, `docs/CHIPS.md`, `README.md`, `THIRD-PARTY.md`, `hil/*.md`, `hil/*/README.md`.
 - Agent-facing (token-optimised, [agent-docs.md](agent-docs.md) style): `AGENTS.md`,
   `docs/{policies,decisions,notes,housekeeping,design}/**`.
 - **Plans are human-readable**: `docs/plans/**` uses prose. A finished plan is deleted: its
@@ -17,7 +17,7 @@ Normative. Two classes:
 |---|---|
 | RM/DS/UM/AN fact shaping code | IP module doc, cited by doc+section (`RM0433 §47.4.9 Table 389`, `ES0299 2.10.1`, `DS12110`, `AN2606`, UM1724/UM2407 in `hil/WIRING.md`) |
 | vendor fact binding the caller | that item's `# Safety`/limits text |
-| bench measurement of the device | `RESOLVED.md` (dated, measured), run module doc, `requirements/benches.md`, `requirements/evidence/`; driver module doc once it changes a contract |
+| bench measurement of the device | `docs/resolved/` (dated, measured), run module doc, `requirements/benches.md`, `requirements/evidence/`; driver module doc once it changes a contract |
 | bench fact about the instrument | that instrument's crate docs |
 | tooling workaround | script comment + `requirements/benches.md`; `DEBT.md` pointer only |
 | open debt: owed work on what ships | `docs/DEBT.md`: tags, severity, what is wrong and the fix, the recorded origin (*Spawned:*, never reconstructed) |
@@ -53,7 +53,7 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
   architecture drafts go in `review/`, which git ignores whole and agents may not write
   to without the owner's explicit permission (its local `README.md` and `AGENTS.md`).
   Every other document lives under `docs/` or beside what it describes (`hil/`,
-  `requirements/`); the debt registries are `docs/DEBT.md` and `docs/RESOLVED*.md`.
+  `requirements/`); the debt registries are `docs/DEBT.md` and `docs/resolved/*.md`.
 - `tools/check_docs.py` fails a committed root `.md` outside that list, and treats an
   uncommitted root `.md` as temporary: no budget, no index.
 
@@ -65,7 +65,7 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
   compress, never drop a fact.
 - No orphans: every document is linked, or named by its path, from another document,
   the code or a requirement file; entries (`AGENTS.md`, `README.md`, `docs/DEBT.md`,
-  `docs/RESOLVED.md`, the decision and housekeeping hubs) and the decision indexes aside.
+  `docs/resolved/README.md`, the decision and housekeeping hubs) and the decision indexes aside.
 - Checker: `tools/check_docs.py` in `checks/run.sh` (sizes and orphans, both fail);
   workspace: `agent-memory/tools/check_agent_docs.py`.
 - Generated `docs/index/` (hub, one file per area, `index.json`): `tools/docs_index.py` (`--check` fails stale).

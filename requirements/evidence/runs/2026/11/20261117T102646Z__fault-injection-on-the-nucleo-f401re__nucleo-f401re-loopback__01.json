@@ -1,0 +1,226 @@
+{
+  "schema_version": 5,
+  "run_id": "20261117T102646Z__fault-injection-on-the-nucleo-f401re__nucleo-f401re-loopback__01",
+  "recorded_at_utc": "2026-11-17T10:26:46Z",
+  "board": "nucleo-f401re-loopback",
+  "tier": "HIL",
+  "revision": "603883c6a15d1ae270fec56588444e3a7f2d7957",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "nucleo-f401re-loopback",
+    "features": [],
+    "files": {
+      "hil/nucleo-f401re-loopback/../../Cargo.toml": "cd7f6b58804cde2d324c252e558e224f3e297b6ad182cf62b862f92b5c4f06df",
+      "hil/nucleo-f401re-loopback/.cargo/config.toml": "2fb6c8648a6ca90449e9b35fb962adec336a248a30bd53ae7fa67fcbb13ab0fd",
+      "hil/nucleo-f401re-loopback/Cargo.toml": "df7af17a718c07ce93523c3afe3f8d69be7ed203e737d1a8572595dd962a43de",
+      "hil/nucleo-f401re-loopback/memory.x": "5222acc476a2bdc4d1b7e211144e621c3d8e496be636a60152716aa7c5750668",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/adc.rs": "2ecdda6882828fe62b95080ab5129dd687e527ad5543631786b8854df16d75db",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/bootloader.rs": "9ed4481a69f48069bf9be506d58755dc32d43b2ea36dacc544f14fc55bd5555c",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/i2c.rs": "79e163403e4d0f754bb83ec5cdde81f0d5797f23b8510875dae703535e323995",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/i2c_live.rs": "52369a4b3a62c24331214c76d1ce25906ea28b55cd3503e3d8a9797a8e9c86a6",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/ident.rs": "75e05b29ee2cab428023f841cd1b3229f726e01d1342a167c1efffb7b433d68a",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/pwm.rs": "1203c80c9108403b59a1c731a406803b7eba646e8c6f87b19009e7c0951f106f",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/spi_exti.rs": "0c4f0853b34e099d945f15af1f6b98092573f0bd2e6193dea83135917b0dcf50",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/tests.rs": "9fb4f988883d8005b98a84ef4df2c85ea75e31c6552216b20d2ff045ecb3b9d6",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/timers.rs": "1c9263e38981d6791a58b108854f000bb85753c9ad25a164a94e98c801a04efa",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/watchdog.rs": "41ef77ec384c0d8dd7799de1506920704c79644308c0c883e9b4fd71d12db4dd",
+      "hil/nucleo-f401re-loopback/src/bin/../board.rs": "c0a57d60ac4083c5745afc492ccdcfcd6ffa6c4297cf6619c57ef9bfe83635cf",
+      "hil/nucleo-f401re-loopback/src/bin/adc.rs": "33e725f59cb902e6409db3ee6b261afdda0800334e92e5bc3921321c639a3756",
+      "hil/nucleo-f401re-loopback/src/bin/awg_out.rs": "e9c67fc5dfc4415b10f470591b96fb2f4fdad6023cf935d4cf701c2cadd27682",
+      "hil/nucleo-f401re-loopback/src/bin/bootloader_request.rs": "351ff9712b316e2f362766efb006e548c152a7428650bd64c9ab6a51984f5643",
+      "hil/nucleo-f401re-loopback/src/bin/dshot_lanes.rs": "20acf1375074a8351d04eebe3cb4d133cee4e9c5aa7f420b19b97b7fa2c8955c",
+      "hil/nucleo-f401re-loopback/src/bin/faults.rs": "7e2177b8dd4c202836e1eb512cf968765909b0f6993da0ddc7226b73bf4f1607",
+      "hil/nucleo-f401re-loopback/src/bin/i2c_master.rs": "92c4cbdd076989d315a6774484041157097f1909126c1cf639a77a857359b39d",
+      "hil/nucleo-f401re-loopback/src/bin/i2c_pico.rs": "15bee6d2bc9e4678f65127e6ba75e2d55ee87cb75fa7ec0249c811d48b64feaf",
+      "hil/nucleo-f401re-loopback/src/bin/lane_in.rs": "190307f7fc7ef62ca34600fe24da0686e191214feadf4fa4b81c9bfddff44309",
+      "hil/nucleo-f401re-loopback/src/bin/motor_lanes.rs": "31191e5db61fa5d70a02a3a76882002f69b0dc2de5900bdadd34e3e07f04ed7d",
+      "hil/nucleo-f401re-loopback/src/bin/pico_reboot.rs": "7a377f3866984c4cac52009304d9c8a1cae3f24bfa372fec3d3d27b702a87e21",
+      "hil/nucleo-f401re-loopback/src/bin/refusals.rs": "e0a8b67c8a21a1be12776508dee8013c21a2f4c27648193123e3e9c4b85ae343",
+      "hil/nucleo-f401re-loopback/src/bin/spi3_port_b.rs": "f55ea02f4d2615a7859cab55c11c6dec9aa9b0ebe1178f01cf3289d58746f27c",
+      "hil/nucleo-f401re-loopback/src/bin/spi_exti.rs": "d06e5bd1484e1f453d4909bc2ed99bdb9997224a6b26b22a52acfdb6cc538cee",
+      "hil/nucleo-f401re-loopback/src/bin/spi_other_pins.rs": "db28b500fa24e0dc6258a51ed9b2f8981ae28c1bcc67aace7a4b8b23a27af17d",
+      "hil/nucleo-f401re-loopback/src/bin/spi_polled.rs": "365877de8f7041fccecbd5882e1663e3df0114e45b703fbf60374059b1139451",
+      "hil/nucleo-f401re-loopback/src/bin/timer_trigger.rs": "6da3341fbc0edc7cbce062e52f997ed57f3c0def5cda39272f44c9b94b702af9",
+      "hil/nucleo-f401re-loopback/src/bin/timers_against_dwt.rs": "6ade81d1ee8d8c2250a98b61a29ed88e66ad96b3d681750f385ff8aad863b9a1",
+      "hil/nucleo-f401re-loopback/src/bin/uart_cross.rs": "ae5a37bf702b9265c3c79060be909f41e5d5d1bc8ce9c5a648f3b31b1bb67e5a",
+      "hil/nucleo-f401re-loopback/src/bin/uart_each.rs": "aa0cbb46aafa62a12659b219f67a8e9dbe523151ff22952664acb3d72b26d164",
+      "hil/nucleo-f401re-loopback/src/bin/uart_other_stream.rs": "fe0ae70a82931d8bd652e3488c3b780b26e2943a715ff81c1b114cc09a68b63f",
+      "hil/nucleo-f401re-loopback/src/bin/uart_rx_only.rs": "eed32fcf63fca2228a2f297f7513850fdd7ad15d3cfd9f9a361a8f0b8b40a85f",
+      "hil/nucleo-f401re-loopback/src/bin/watchdog.rs": "304c18321578be1ef554e29917b9929a0e6fe5bb1b929936d07ade2c2720bf47",
+      "src/adc/mod.rs": "024ce55ab5b565bd2dd2b8fc8bcc1da4bace86a42e2a165ae6e68e1fab1b853a",
+      "src/adc_v2/mod.rs": "cd24f788efd1e08d81eb1c9356854edca48f705415ee0d3721d3e1c9ea2fb9dd",
+      "src/chips/gen/stm32f401re.rs": "c2e961c1ba7f1e2fc4427e9ee4e68be4dcf684b7f4c1d1e48b2cd236327713ea",
+      "src/chips/shared/errata_es0299.rs": "d2ca0eb05f3fba97b5172ab0ea4998a69149c77484b1f670b3623486520d4b1f",
+      "src/chips/shared/f4_macros.rs": "75c98bf51a481259061a49c996b8ca94379d85c46a8b414b4f137ff8a90bf7e2",
+      "src/chips/shared/macros.rs": "915cf4de3ab28d7d4b5b5525d3c6d8806f8e192edb525c80c948e5a12f75cc99",
+      "src/chips/stm32f401re.rs": "8057bcbd78f8095cac5f7d87413b32c5cb0222e49847a661e53431e9d08132fb",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma_stream.rs": "a7cc1a1c425d6ada16cebbdd1bbd87d91f0f04ca6e775f9c4ebe7f3efdb60c71",
+      "src/errata.rs": "800114cb735e801adcccb9e66f348538e0b18201134356bb97e7a9b5288f7da3",
+      "src/exti.rs": "df62d1cd792bc09826cdc6b51dfbaef9c23968a78dc7e98fee20418ce7f086a8",
+      "src/gpio_v2/mod.rs": "8d9ecf0fd728b67e41245c0486a1fba54922f372e7cafccf4d3f345c81cfb71b",
+      "src/i2c/mod.rs": "251ef070193c9758e66d929f97b8fd001ea846779c4760546c2846e11bdc7d62",
+      "src/i2c_v1/mod.rs": "afe92c2188b73e18843ffdf35aa85ce42c38aab16662ba1dc7ce81843104eff3",
+      "src/iwdg.rs": "513442c57ee11182d607e6f87246d6af4c87f4e0a639b478b8f5eb7fbfdb6eb9",
+      "src/lib.rs": "7a38a120f1a0830919b253f757e4163adf8a062ef1b31e25a58b04f475a787c8",
+      "src/rcc_f4/mod.rs": "fef10acb9ca806f8e85ab583fc0bd5480d713c23c7f6e0650e8b033c79ab0ed1",
+      "src/rcc_kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+      "src/rcc_shared.rs": "abd1b08c98d3955cc6c1dd937de6597d3157ed8d03b4553873e1e0a8bc991c5e",
+      "src/reset.rs": "1607d70a1aca0a2e4f1717f82c7e167b4805d8714b4efeecc84b676f3a6c5763",
+      "src/resource.rs": "74467e929f27d3f540eaa64ba3042940685de23bd1b92e1af0f70d8c4ad7a2d1",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/instance.rs": "c74841baa531e4c781a005d813a38022df9d034d656c384fb92704dab4607fee",
+      "src/spi/mod.rs": "0bd9cf5ce23b2e84b7b2ca26bc11e6a5360bada584d4c071eb06c89cf6e384ea",
+      "src/spi/polled.rs": "bd072765c9b2b88b99084b2f3a5991fcf9f8a39ef12fa401ca75b2efea23700f",
+      "src/spi/stream_dma.rs": "eb4e5016c3b26878c9a5989902ddcbea996564fcd94867c9a553252564494e8a",
+      "src/spi_v2/mod.rs": "ff115f48fe6da14472ab9e6e87e9ad7460138fd9dac51df039e02ce48862c8d5",
+      "src/syscfg.rs": "2ae9fa779ef1bb55a892668b55205479745af74f7bb4ae79881a0130ec55739a",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer.rs": "cb3503c31a5059e97c7af3ecf70025be5a462502d635c8539dea6d4b3c9af989",
+      "src/timer_awg.rs": "261dd58db5846a5cd44594b54457d84dfc4b66d26303e79dd015c954acbd4ef8",
+      "src/timer_pwm.rs": "327a72048f8472c3f09edc89f6c90068dbaad75249f1b1b5240fd7f935bc138c",
+      "src/uart/mod.rs": "7c94ed1123c42ce232c0892ecc4b93c10419fd86510b47c71770964d3d5144c7",
+      "src/uart/ring.rs": "6e93c664a105cc570e3893309c131294e5975244b044401f1cc85402433328bc",
+      "src/uart/stream_dma.rs": "30676a88210c2cfacd698317c4cd19cf237f9452652e49a601f08d787f086d5b",
+      "src/uart/tx_ring.rs": "8e75e58d60f7da72902bebca74f88ee9b974ea0acfe22e825f97c56308ae8b05",
+      "src/usart_v2/mod.rs": "c562b8863ba6e806301631f6200ae08c24da727d160ec0022bdef0f902a1478e",
+      "src/usb.rs": "a59951aa8e0308b7f4550aa1e019fef33734d00d2eee574c11ce5622c45f80ca",
+      "src/wait.rs": "e81144f39b38427ba861350232161bd56ef497b997b87e44045afe49895d0c70"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "bitflags": "1.3.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "cortex-m-semihosting": "0.5.0",
+      "critical-section": "1.2.0",
+      "defmt": "0.3.101, 1.2.0",
+      "defmt-macros": "1.2.0",
+      "defmt-parser": "1.1.0",
+      "defmt-rtt": "1.3.1",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "panic-probe": "1.0.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.9",
+      "synopsys-usb-otg": "0.4.0+902ebe9494899ef13d1a9e7b757fb86b6f308727",
+      "thiserror": "2.0.21",
+      "thiserror-impl": "2.0.21",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "CARGO_PKG_NAME": "nucleo-f401re-loopback",
+      "DEFMT_LOG": "info"
+    }
+  },
+  "results": [
+    {
+      "requirement": "UART-015",
+      "method": {
+        "procedure": "requirements/benches-faults.md#Fault injection on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "df503e9aa74c92fb99e7565d672f084be2e742ed9307e420125ce77f90de1641",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-019",
+      "method": {
+        "procedure": "requirements/benches-faults.md#Fault injection on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "04486f3a946fc7adffa2df86a8896d7d2050f714ceeacc4170325784bcd7fda3",
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-011",
+      "method": {
+        "procedure": "requirements/benches-faults.md#Fault injection on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "5067a03a569783de14b012fc6e74f8afcc5b68cefb3eb56a4467b6e3268e2c81",
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-012",
+      "method": {
+        "procedure": "requirements/benches-faults.md#Fault injection on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "8ff15f75c0b3dc1b56e6a6f3af3bccbdfc8df9eb9a66df3dc2e8a2d268d44414",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "31f698e42c79e626a85d5df6dc3af823589e712ff1fe35b330e2f18456bb35e8",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-f401.sh w",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "nucleo-f401re-loopback-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/api-review-runs-20261117/nucleo-f401re-loopback-images.sha256",
+        "bytes": 1626,
+        "sha256": "31f698e42c79e626a85d5df6dc3af823589e712ff1fe35b330e2f18456bb35e8"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-w",
+        "kind": "log",
+        "path": "requirements/evidence/logs/api-review-runs-20261117/nucleo-f401re-loopback-run-w.log",
+        "bytes": 2703,
+        "sha256": "ebfafc8a3e4a5ea670c06835bd9ca98744e88f7816e614ce49e64cccef754c2b"
+      }
+    ],
+    "observations": [
+      "Every check in every run of the subset passed (PASS lines in the logs; no FAIL)."
+    ]
+  }
+}

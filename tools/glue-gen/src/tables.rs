@@ -127,7 +127,7 @@ pub fn tables(
         "| part | series, core | die | device | package (bonded pins) | clock as offered |\n|---|---|---|---|---|---|\n",
     );
     let mut matrix: Vec<(&str, Vec<String>)> = vec![
-        ("**UART** (`Uart`, `UartRx`)", vec![]),
+        ("**UART** (`Uart`; receive-only by `new_rx`)", vec![]),
         ("**SPI** over DMA (`Spi`)", vec![]),
         ("**SPI** polled (`BlockingSpi`)", vec![]),
         ("**I2C** (`I2c`)", vec![]),

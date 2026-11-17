@@ -5,116 +5,116 @@ edition = "2024"
 publish = false
 
 [[bin]]
-name = "run-a"
-path = "src/bin/run_a.rs"
+name = "uart-lucid"
+path = "src/bin/uart_lucid.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-b"
-path = "src/bin/run_b.rs"
+name = "uart-first-pins"
+path = "src/bin/uart_first_pins.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-c"
-path = "src/bin/run_c.rs"
+name = "uart-other-pins"
+path = "src/bin/uart_other_pins.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-d"
-path = "src/bin/run_d.rs"
+name = "uart-shared-link"
+path = "src/bin/uart_shared_link.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-e"
-path = "src/bin/run_e.rs"
+name = "uart-rx-only"
+path = "src/bin/uart_rx_only.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-f"
-path = "src/bin/run_f.rs"
+name = "spi-exti"
+path = "src/bin/spi_exti.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-g"
-path = "src/bin/run_g.rs"
+name = "spi-other-pins"
+path = "src/bin/spi_other_pins.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-h"
-path = "src/bin/run_h.rs"
+name = "spi3-spi2"
+path = "src/bin/spi3_spi2.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-i"
-path = "src/bin/run_i.rs"
+name = "timers-against-dwt"
+path = "src/bin/timers_against_dwt.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-j"
-path = "src/bin/run_j.rs"
+name = "dshot-lanes"
+path = "src/bin/dshot_lanes.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-k"
-path = "src/bin/run_k.rs"
+name = "watchdog"
+path = "src/bin/watchdog.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-l"
-path = "src/bin/run_l.rs"
+name = "spi-polled"
+path = "src/bin/spi_polled.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-m"
-path = "src/bin/run_m.rs"
+name = "usb-cdc"
+path = "src/bin/usb_cdc.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-n"
-path = "src/bin/run_n.rs"
+name = "bootloader-request"
+path = "src/bin/bootloader_request.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-o"
-path = "src/bin/run_o.rs"
+name = "adc"
+path = "src/bin/adc.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-p"
-path = "src/bin/run_p.rs"
+name = "timer-trigger"
+path = "src/bin/timer_trigger.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-q"
-path = "src/bin/run_q.rs"
+name = "awg-both-ways"
+path = "src/bin/awg_both_ways.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-r"
-path = "src/bin/run_r.rs"
+name = "i2c-master"
+path = "src/bin/i2c_master.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-s"
-path = "src/bin/run_s.rs"
+name = "i2c-pico"
+path = "src/bin/i2c_pico.rs"
 test = false
 bench = false
 
@@ -122,39 +122,39 @@ bench = false
 # `--features fault-injection` (hil/run-h753.sh passes it); every other run's
 # image is built without it.
 [[bin]]
-name = "run-t"
-path = "src/bin/run_t.rs"
+name = "stuck-streams"
+path = "src/bin/stuck_streams.rs"
 test = false
 bench = false
 required-features = ["fault-injection"]
 
 [[bin]]
-name = "run-u"
-path = "src/bin/run_u.rs"
+name = "refusals"
+path = "src/bin/refusals.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-x"
-path = "src/bin/run_x.rs"
+name = "cache-mpu"
+path = "src/bin/cache_mpu.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-z"
-path = "src/bin/run_z.rs"
+name = "rom-bootloader"
+path = "src/bin/rom_bootloader.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-y"
-path = "src/bin/run_y.rs"
+name = "uart-cross"
+path = "src/bin/uart_cross.rs"
 test = false
 bench = false
 
 [[bin]]
-name = "run-w"
-path = "src/bin/run_w.rs"
+name = "faults"
+path = "src/bin/faults.rs"
 test = false
 bench = false
 

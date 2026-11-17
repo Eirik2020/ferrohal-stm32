@@ -21,12 +21,17 @@ the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
   Discovery. The flashed boards (Foxeer F405 V2, TBS Lucid H7) run only when something
   they alone reach changes: crystal-mode clocks, DFU flashing, the SD slot. Running a
   bench out of habit is exhaustive testing.
+- **[Decided 2026-11-17, owner]** The runs before a merge are the runs owed, not every
+  run of each bench: `tools/stale_runs.py` names them from reqtool's statuses (each
+  entry not verified on its board names its procedure, each procedure its runs) plus
+  every run whose bench code changed, which declares no requirement and so never goes
+  stale by itself. An H7 I2C driver change owes H753 runs R and S alone.
 - **[Decided 2026-11-13]** Evidence follows files, not images. A requirement verified on a bench stands while the files that bench exercised for it are unchanged; another file added to the image, another run's code, or a rebuilt binary does not re-owe it. reqtool does this since reqtool#4 and #5 (2026-11-13): board evidence holds while its declaring files, and the external crates they import, are unchanged; CI pins that revision (`.github/workflows/ci.yml`).
 
 ## Files and hashes
 
 - **[Decided]** Things are grouped into files, for example `usart_v2`. The file states its requirements and is hashed. Verification evidence records the hash, and evidence that does not match the hash is flagged as unverified.
-- **[Decided]** Another local file is not part of a file's hash; the requirements cover that link. A consequence: a file serving two IP versions, such as `dma_stream.rs`, has one hash, so changing it re-owes both unless it is split.
+- **[Decided]** Another local file is not part of a file's hash; the requirements cover that link. A consequence: a file serving two IP versions, such as `dma/mod.rs`, has one hash, so changing it re-owes both unless it is split.
 - **[Proposal]** The tool keeps two labels for the flag: `stale` when a pass exists and the hash has changed, `unverified` when none ever passed. Both count as not verified and hold a gate closed.
 - **[Proposal]** A file's evidence also covers the `macro_rules!` definitions it expands, since a macro changes what a file compiles to without changing its hash. `chips/shared/macros.rs` expands in all four chip files. Requirement docs and markers for internal macros go inside the macro body, so each expansion carries them.
 

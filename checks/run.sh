@@ -13,14 +13,21 @@
 # - G5's safe API on the sources (tools/check_safe_api.py), and the
 #   register hatches proven closed (checks/no-metapac compile-fail probes);
 # - the pure logic's unit tests, on the host.
+#
+# The per-chip steps run as one job per chip, side by side, each in its own
+# target directory (target/checks/<chip>) so cargo's build lock does not
+# serialise them; the chip-independent steps run meanwhile. The log keeps the
+# order a serial run printed. CHECKS_JOBS=1 runs the chips one at a time.
+# It needs no board, so it can run while the benches do: start it beside
+# them rather than after, and the merge gate waits for the longer of the two.
 
 set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
 chips=(stm32f401re stm32f411ce stm32f405rg stm32f407vg stm32f427vi stm32f429zi stm32f412zg stm32f413zh stm32f446re stm32f722re stm32f745vg stm32f767zi stm32h743vi stm32h753zi)
 # Every other package of those lines: the same hand facts, its own generated
-# glue, so it gets clippy and the unit tests, not the full set. A flash-size
-# variant mounts its package's glue and is not listed
-# (tools/glue-gen/src/registry.rs).
+# glue, so it gets clippy, not the full set. A flash-size variant mounts its
+# package's glue and is not listed (tools/glue-gen/src/registry.rs). They run
+# as one more job, in its own target directory.
 packages=(
     stm32f401ce stm32f401ve stm32f411re stm32f411ve
     stm32f405og stm32f405vg stm32f405zg stm32f407zg stm32f407ig
@@ -34,10 +41,12 @@ packages=(
     stm32h743zi stm32h743ii stm32h743bi stm32h743ai stm32h743xi
     stm32h753vi stm32h753ii stm32h753bi stm32h753ai stm32h753xi
 )
-# The F7 has no UART driver until the UART redesign lands, and the no-panic
-# program is built around one, so the F7 joins it with its UART (the F7 plan).
+# Lines whose no-panic image waits for their UART driver
+# (docs/plans/2026-11-17-f411-f722-f745.md).
 no_panic_skip=(stm32f722re stm32f745vg stm32f767zi)
 status=0
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
 
 # A passing step prints only its pass line. A failing one prints its FAIL line
 # and then, on stderr, everything the step wrote, so the cause is in the log.
@@ -54,51 +63,100 @@ step() {
     fi
 }
 
-step "rustfmt" cargo fmt --manifest-path "$root/Cargo.toml" --check
-for chip in "${chips[@]}"; do
-    step "clippy ($chip)" \
-        cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb" -- -D warnings
-    step "clippy without usb ($chip)" \
-        cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit" -- -D warnings
-    # A broken intra-doc link, or one into a private item, is a doc that
-    # points nowhere for the crate's users.
-    step "rustdoc ($chip)" \
-        env RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb"
-    # From its own directory: cargo reads .cargo/config.toml from where it
-    # runs, and without that package's link.x the linker can discard
-    # everything, panics included, and pass for nothing. A linker warning
-    # fails the step, and the build that raised it is kept to be printed.
-    if [[ " ${no_panic_skip[*]} " == *" $chip "* ]]; then
-        echo "skip  no reachable panic ($chip): no UART driver yet (docs/plans/2026-11-17-f411-f722-f745.md)"
-        continue
-    fi
-    step "no reachable panic ($chip)" \
-        bash -c 'cd "$1" || exit 1; out=$(cargo build --release --features "$2" 2>&1); if grep -q "warning: linker stderr" <<< "$out"; then printf "%s\n" "$out"; exit 1; fi; cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
-done
-for part in "${packages[@]}"; do
-    step "clippy ($part)" \
-        cargo clippy --manifest-path "$root/Cargo.toml" --features "$part,rt,defmt,fugit,usb" -- -D warnings
-done
-step "no-panic calls every public function" python3 -I "$root/tools/check_no_panic_coverage.py"
-step "firmware crates enable rt" python3 -I "$root/tools/check_firmware_features.py"
-step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
-step "names (ADR-003)" python3 -I "$root/tools/check_names.py"
-step "no-metapac probes" bash "$root/checks/no-metapac/run.sh"
-step "evidence recorder tests" python3 -I "$root/tools/test_record_evidence.py"
-# The requirements against the code (a renamed test a requirement names fails here):
-# reqtool from $REQTOOL, or the sibling checkout CI pins (tools/record_evidence.py too).
-# CI has no sibling checkout here: its Requirements job installs reqtool and runs this.
-reqtool="${REQTOOL:-$root/../reqtool/target/release/reqtool}"
-if [ -x "$reqtool" ]; then
-    step "requirements valid (reqtool validate)" bash -c 'cd "$1" && "$2" validate' _ "$root" "$reqtool"
-else
-    echo "skip  requirements valid: no reqtool at $reqtool (set REQTOOL)"
-fi
-step "docs index up to date" python3 -I "$root/tools/docs_index.py" --check
-step "doc size limits" python3 -I "$root/tools/check_docs.py"
-host=$(rustc -vV | sed -n 's/^host: //p')
-for chip in "${chips[@]}" "${packages[@]}"; do
+# One chip's steps. Its lines go to $work/<chip>.lint (before the shared
+# steps in the log) and $work/<chip>.host (the host tests, after them), its
+# failures' output to $work/<chip>.err, and a failure leaves $work/<chip>.fail;
+# a subshell, so its status stays its own.
+chip_job() (
+    chip=$1
+    target="$root/target/checks/$1"
+    status=0
+    {
+        step "clippy ($chip)" \
+            env CARGO_TARGET_DIR="$target" cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb" -- -D warnings
+        step "clippy without usb ($chip)" \
+            env CARGO_TARGET_DIR="$target" cargo clippy --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit" -- -D warnings
+        # A broken intra-doc link, or one into a private item, is a doc that
+        # points nowhere for the crate's users.
+        step "rustdoc ($chip)" \
+            env CARGO_TARGET_DIR="$target" RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --manifest-path "$root/Cargo.toml" --features "$chip,rt,defmt,fugit,usb"
+        # From its own directory: cargo reads .cargo/config.toml from where it
+        # runs, and without that package's link.x the linker can discard
+        # everything, panics included, and pass for nothing. A linker warning
+        # fails the step, and the build that raised it is kept to be printed.
+        if [[ " ${no_panic_skip[*]} " == *" $chip "* ]]; then
+            echo "skip  no reachable panic ($chip): no UART driver yet (docs/plans/2026-11-17-f411-f722-f745.md)"
+        else
+            step "no reachable panic ($chip)" \
+                env CARGO_TARGET_DIR="$target/no-panic" bash -c 'cd "$1" || exit 1; out=$(cargo build --release --features "$2" 2>&1); if grep -q "warning: linker stderr" <<< "$out"; then printf "%s\n" "$out"; exit 1; fi; cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
+        fi
+    } > "$work/$chip.lint" 2>> "$work/$chip.err"
     step "host unit tests ($chip)" \
-        cargo test --lib --manifest-path "$root/Cargo.toml" --features "$chip" --target "$host"
+        env CARGO_TARGET_DIR="$target" cargo test --lib --manifest-path "$root/Cargo.toml" --features "$chip" --target "$host" \
+        > "$work/$chip.host" 2>> "$work/$chip.err"
+    [ "$status" -eq 0 ] || : > "$work/$chip.fail"
+)
+
+host=$(rustc -vV | sed -n 's/^host: //p')
+step "rustfmt" cargo fmt --manifest-path "$root/Cargo.toml" --check
+jobs=()
+for chip in "${chips[@]}"; do
+    if [ "${CHECKS_JOBS:-0}" = 1 ]; then
+        chip_job "$chip"
+    else
+        chip_job "$chip" &
+        jobs+=($!)
+    fi
 done
+packages_job() (
+    status=0
+    for part in "${packages[@]}"; do
+        step "clippy ($part)" \
+            env CARGO_TARGET_DIR="$root/target/checks/packages" cargo clippy --manifest-path "$root/Cargo.toml" --features "$part,rt,defmt,fugit,usb" -- -D warnings
+    done > "$work/packages.lint" 2>> "$work/packages.err"
+    [ "$status" -eq 0 ] || : > "$work/packages.fail"
+)
+if [ "${CHECKS_JOBS:-0}" = 1 ]; then
+    packages_job
+else
+    packages_job &
+    jobs+=($!)
+fi
+# The chip-independent steps, while the chips build.
+shared=$(
+    step "no-panic calls every public function" python3 -I "$root/tools/check_no_panic_coverage.py"
+    step "firmware crates enable rt" python3 -I "$root/tools/check_firmware_features.py"
+    step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
+    step "names (ADR-003)" python3 -I "$root/tools/check_names.py"
+    step "no-metapac probes" bash "$root/checks/no-metapac/run.sh"
+    step "evidence recorder tests" python3 -I "$root/tools/test_record_evidence.py"
+    # The requirements against the code (a renamed test a requirement names fails here):
+    # reqtool from $REQTOOL, or the sibling checkout CI pins (tools/record_evidence.py too).
+    # CI has no sibling checkout here: its Requirements job installs reqtool and runs this.
+    reqtool="${REQTOOL:-$root/../reqtool/target/release/reqtool}"
+    if [ -x "$reqtool" ]; then
+        step "requirements valid (reqtool validate)" bash -c 'cd "$1" && "$2" validate' _ "$root" "$reqtool"
+    else
+        echo "skip  requirements valid: no reqtool at $reqtool (set REQTOOL)"
+    fi
+    step "docs index up to date" python3 -I "$root/tools/docs_index.py" --check
+    step "doc size limits" python3 -I "$root/tools/check_docs.py"
+    exit "$status"
+) 2> "$work/shared.err" || status=1
+for job in "${jobs[@]}"; do
+    wait "$job"
+done
+for chip in "${chips[@]}"; do
+    cat "$work/$chip.lint"
+done
+cat "$work/packages.lint"
+cat "$work/packages.err" >&2
+[ -e "$work/packages.fail" ] && status=1
+printf '%s\n' "$shared"
+for chip in "${chips[@]}"; do
+    cat "$work/$chip.host"
+    cat "$work/$chip.err" >&2
+    [ -e "$work/$chip.fail" ] && status=1
+done
+cat "$work/shared.err" >&2
 exit "$status"

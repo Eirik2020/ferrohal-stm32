@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 83,
-  "agent": 52,
-  "bytes": 493753
+  "documents": 85,
+  "agent": 54,
+  "bytes": 513786
  },
  "documents": [
   {
@@ -11,14 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: every pack",
-   "bytes": 5656
+   "bytes": 5740
   },
   {
    "path": "README.md",
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 5536
+   "bytes": 5543
   },
   {
    "path": "THIRD-PARTY.md",
@@ -32,42 +32,14 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 30771
+   "bytes": 30787
   },
   {
    "path": "docs/DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9634
-  },
-  {
-   "path": "docs/RESOLVED-chips-and-features.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt, by chip and feature",
-   "purpose": "The chip and feature sections of RESOLVED.mdR",
-   "bytes": 8495
-  },
-  {
-   "path": "docs/RESOLVED-crate-wide-2026-11-10-to-16.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
-   "purpose": "The crate-wide entries of RESOLVED.mdRESOLVED",
-   "bytes": 21943
-  },
-  {
-   "path": "docs/RESOLVED-crate-wide-to-2026-11-09.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt, crate-wide, to 2026-11-09",
-   "purpose": "The older crate-wide entries of RESOLVED.mdRE",
-   "bytes": 26528
-  },
-  {
-   "path": "docs/RESOLVED.md",
-   "class": "human",
-   "title": "FerroHAL: resolved debt",
-   "purpose": "History: items moved out of DEBT.mdDEBT.md on",
-   "bytes": 21002
+   "bytes": 9408
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -83,7 +55,7 @@
    "class": "agent",
    "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
    "purpose": "ADR-002 - Status: accepted",
-   "bytes": 2743,
+   "bytes": 2750,
    "adr": "ADR-002",
    "status": "accepted"
   },
@@ -103,15 +75,6 @@
    "purpose": "ADR-003 - Status: promoted",
    "bytes": 3234,
    "adr": "ADR-003",
-   "status": "promoted"
-  },
-  {
-   "path": "docs/decisions/2026-11-09-uart-capabilities.md",
-   "class": "agent",
-   "title": "Decision: UART control and flag capabilities (2026-11-09)",
-   "purpose": "ADR-004 - Status: promoted",
-   "bytes": 2125,
-   "adr": "ADR-004",
    "status": "promoted"
   },
   {
@@ -160,6 +123,24 @@
    "status": "promoted"
   },
   {
+   "path": "docs/decisions/2026-11-17-src-layout.md",
+   "class": "agent",
+   "title": "ADR-012: The `src/` layout, clean slate (2026-11-17)",
+   "purpose": "ADR-012 - Status: promoted",
+   "bytes": 3310,
+   "adr": "ADR-012",
+   "status": "promoted"
+  },
+  {
+   "path": "docs/decisions/2026-11-17-uart-single-owner.md",
+   "class": "agent",
+   "title": "ADR-011: One owner per UART, and a scheduler-neutral `Service` trait (2026-11-17)",
+   "purpose": "ADR-011 - Status: promoted",
+   "bytes": 7883,
+   "adr": "ADR-011",
+   "status": "promoted"
+  },
+  {
    "path": "docs/decisions/README.md",
    "class": "agent",
    "title": "Decision records (ADR hub)",
@@ -167,11 +148,20 @@
    "bytes": 1418
   },
   {
+   "path": "docs/decisions/archive/2026/2026-11-09-uart-capabilities.md",
+   "class": "agent",
+   "title": "Decision: UART control and flag capabilities (2026-11-09)",
+   "purpose": "ADR-004 - Status: superseded",
+   "bytes": 2455,
+   "adr": "ADR-004",
+   "status": "superseded"
+  },
+  {
    "path": "docs/decisions/index/2026.md",
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 1437
+   "bytes": 1716
   },
   {
    "path": "docs/design/api-surface.md",
@@ -220,7 +210,7 @@
    "class": "agent",
    "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3547
+   "bytes": 3498
   },
   {
    "path": "docs/design/glue-generator.md",
@@ -255,14 +245,14 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 8086
+   "bytes": 10034
   },
   {
    "path": "docs/design/ownership.md",
    "class": "agent",
    "title": "Ownership and shared registers",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2601
+   "bytes": 2774
   },
   {
    "path": "docs/design/requirements-ids.md",
@@ -276,7 +266,7 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 4679
+   "bytes": 5091
   },
   {
    "path": "docs/design/requirements-tooling.md",
@@ -297,7 +287,7 @@
    "class": "agent",
    "title": "Crate and module structure",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 1497
+   "bytes": 2053
   },
   {
    "path": "docs/design/uart-ferrowasp.md",
@@ -309,30 +299,30 @@
   {
    "path": "docs/design/uart-ownership.md",
    "class": "agent",
-   "title": "UART ownership: line, flags, data (2026-11-09)",
-   "purpose": "Source: ADR-004, ../decisions/2026-11-09-uart",
-   "bytes": 1710
+   "title": "UART ownership: one owner, served by `on_interrupt` (2026-11-17)",
+   "purpose": "Source: ADR-011, ../decisions/2026-11-17-uart",
+   "bytes": 3459
   },
   {
    "path": "docs/errata/ES0182.md",
    "class": "human",
    "title": "ES0182: errata of die 0x413 (F405, F407)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 14622
+   "bytes": 14626
   },
   {
    "path": "docs/errata/ES0206.md",
    "class": "human",
    "title": "ES0206: errata of die 0x419 (F427/437, F429/439)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 15539
+   "bytes": 15543
   },
   {
    "path": "docs/errata/ES0287.md",
    "class": "human",
    "title": "ES0287: errata of die 0x431 (F411xC/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10697
+   "bytes": 10701
   },
   {
    "path": "docs/errata/ES0290.md",
@@ -346,28 +336,28 @@
    "class": "human",
    "title": "ES0298: errata of die 0x421 (F446xC/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 13538
+   "bytes": 13542
   },
   {
    "path": "docs/errata/ES0299.md",
    "class": "human",
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10768
+   "bytes": 10772
   },
   {
    "path": "docs/errata/ES0305.md",
    "class": "human",
    "title": "ES0305: errata of die 0x441 (F412xE/xG)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 11948
+   "bytes": 11952
   },
   {
    "path": "docs/errata/ES0334.md",
    "class": "human",
    "title": "ES0334: errata of die 0x451 (F76xxx/F77xxx)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10207
+   "bytes": 10211
   },
   {
    "path": "docs/errata/ES0360.md",
@@ -381,28 +371,28 @@
    "class": "human",
    "title": "ES0372: errata of die 0x463 (F413xG/xH, F423xH)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 11765
+   "bytes": 11769
   },
   {
    "path": "docs/errata/ES0392.md",
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 23559
+   "bytes": 23609
   },
   {
    "path": "docs/housekeeping/README.md",
    "class": "agent",
    "title": "Housekeeping",
    "purpose": "Documents rot by addition. An agent adds a no",
-   "bytes": 2090
+   "bytes": 2093
   },
   {
    "path": "docs/housekeeping/state.md",
    "class": "agent",
    "title": "Housekeeping state",
    "purpose": "Cadence: monthly, or immediately when more th",
-   "bytes": 2566
+   "bytes": 3226
   },
   {
    "path": "docs/notes/2026-11-08-naming-audit.md",
@@ -423,7 +413,7 @@
    "class": "agent",
    "title": "IP versions across families (stm32-metapac 21, measured)",
    "purpose": "From the architecture map's section 11, disso",
-   "bytes": 1259
+   "bytes": 1266
   },
   {
    "path": "docs/notes/2026-11-10-reference-implementations.md",
@@ -500,21 +490,21 @@
    "class": "human",
    "title": "Plan: the STM32F411, F722, F745 and G474",
    "purpose": "Opened 2026-11-17. The owner's fifth and last",
-   "bytes": 13596
+   "bytes": 13590
   },
   {
    "path": "docs/policies/agent-docs.md",
    "class": "agent",
    "title": "Agent-doc style",
    "purpose": "Agent docs = AGENTS.md + docs/{policies,decis",
-   "bytes": 1164
+   "bytes": 1165
   },
   {
    "path": "docs/policies/documentation.md",
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 4756
+   "bytes": 4768
   },
   {
    "path": "docs/policies/features.md",
@@ -528,7 +518,35 @@
    "class": "agent",
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
-   "bytes": 3035
+   "bytes": 3028
+  },
+  {
+   "path": "docs/resolved/README.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt",
+   "purpose": "History: items moved out of DEBT.md../DEBT.md",
+   "bytes": 22291
+  },
+  {
+   "path": "docs/resolved/chips-and-features.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, by chip and feature",
+   "purpose": "The chip and feature sections of README.mdREA",
+   "bytes": 8491
+  },
+  {
+   "path": "docs/resolved/crate-wide-2026-11-10-to-16.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
+   "purpose": "The crate-wide entries of README.mdREADME.md ",
+   "bytes": 21909
+  },
+  {
+   "path": "docs/resolved/crate-wide-to-2026-11-09.md",
+   "class": "human",
+   "title": "FerroHAL: resolved debt, crate-wide, to 2026-11-09",
+   "purpose": "The older crate-wide entries of README.mdREAD",
+   "bytes": 26530
   },
   {
    "path": "hil/CAPABILITIES.md",
@@ -542,7 +560,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6690
+   "bytes": 6498
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",
@@ -556,7 +574,7 @@
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 4508
+   "bytes": 5381
   },
   {
    "path": "hil/WIRING.md",
@@ -584,7 +602,7 @@
    "class": "human",
    "title": "Bench Procedures: the injected faults and the cache matrix",
    "purpose": "The fault-injection and cache-matrix runs of ",
-   "bytes": 5903
+   "bytes": 5905
   },
   {
    "path": "requirements/benches-refusals.md",
@@ -598,7 +616,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 19823
+   "bytes": 20689
   },
   {
    "path": "requirements/goals.md",

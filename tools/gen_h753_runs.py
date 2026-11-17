@@ -2,9 +2,9 @@
 
     python3 -I tools/gen_h753_runs.py
 
-The four runs (hil/nucleo-h753zi-loopback/src/bin/run_[a-d].rs) differ only
+The four runs A to D (hil/nucleo-h753zi-loopback/src/bin/, named in runs.tsv) differ only
 in which UARTs they open, their interrupt vectors, their frames and run A's
-cache phase, so they are generated from `RUNS` below rather than kept in
+cache phase and Service count, so they are generated from `RUNS` below rather than kept in
 step by hand. Edit `RUNS` (and the board's wiring in board.rs), rerun this,
 and commit the generated files with the change. Needs rustfmt.
 """
@@ -14,6 +14,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 out = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "hil" / "nucleo-h753zi-loopback" / "src" / "bin"
+
+
+def file_of(run):
+    """The run's source file, named by its binary in the bench's alias table."""
+    for line in (ROOT / "hil" / "nucleo-h753zi-loopback" / "runs.tsv").read_text().splitlines():
+        if line and not line.startswith("#") and line.split()[0] == run:
+            return line.split()[1].replace("-", "_") + ".rs"
+    raise SystemExit(f"run {run} is not in runs.tsv")
 
 # run, summary lines, uarts: (field, label, line vector, rx dma vector, tx dma vector, config expr)
 RUNS = {
@@ -40,7 +48,8 @@ RUNS = {
     "b": (
         ["Run B: UART4, UART5, UART7 and USART3 on their first pin pairs, and",
          "the DMA streams run A leaves free. The full check list on each, then",
-         "all four streaming at once."],
+         "all four streaming at once. USART3 also runs with TX and RX swapped.",
+         "[USART-V4-002]"],
         [
             ("uart4", "UART4 PB9->PB8", "UART4", "DMA1_STREAM5", "DMA1_STREAM7", "PLAIN"),
             ("uart5", "UART5 PC12->PD2", "UART5", "DMA2_STREAM0", "DMA2_STREAM1", "PLAIN"),
@@ -69,6 +78,9 @@ RUNS = {
     ),
 }
 
+# The loops that also run swapped (USART-V4-002): one is enough for the IP.
+SWAPPED = {("b", "usart3")}
+
 # Each run's UART fields are typed by the wiring the board hands it: the
 # alias its `RunX` struct names for that field (`Uart<board::Usart6Lucid>`).
 import re as _re
@@ -82,44 +94,46 @@ WIRINGS = {
 for run, (summary, uarts) in RUNS.items():
     doc = "\n".join(f"//! {l}".rstrip() for l in summary)
     table = "\n".join(
-        f"//! | `{line}`, `{dma}`, `{txdma}` | {label.split(',')[0]}'s `UartIrq` | 2 |"
+        f"//! | `{line}`, `{dma}`, `{txdma}` | {label.split(' ')[0]}'s `on_interrupt` | 2 |"
         for _, label, line, dma, txdma, _ in uarts
     )
-    shared = "\n".join(f"        #[lock_free]\n        irq_{f}: UartIrq," for f, *_ in uarts)
-    local_uarts = "\n".join(f"        {f}: Uart<board::{WIRINGS[run][f]}>,\n        vectors_{f}: UartInterrupts," for f, *_ in uarts)
+    shared = "\n".join(f"        {f}: Uart<board::{WIRINGS[run][f]}>," for f, *_ in uarts)
+    local_uarts = "\n".join(f"        vectors_{f}: Vectors," for f, *_ in uarts)
     instances = ", ".join(line for _, _, line, *_ in uarts)
     opens = "\n".join(
-        f"        let (uart_{f}, irq_{f}) =\n            board::open(&mut run.rcc, \"{label}\", run.{f}, &{cfg}, buffers.next().unwrap());"
+        f"        let {f} =\n            board::open(&mut run.rcc, \"{label}\", run.{f}, &{cfg}, buffers.next().unwrap());"
         for f, label, _, _, _, cfg in uarts
     )
-    shared_init = ", ".join(f"irq_{f}" for f, *_ in uarts)
-    vector_lets = "\n".join(f"        let vectors_{f} = irq_{f}.interrupts();" for f, *_ in uarts)
-    local_init = "\n".join(f"                {f}: uart_{f},\n                vectors_{f}," for f, *_ in uarts)
-    split = run == "a"
+    shared_init = ", ".join(f for f, *_ in uarts)
+    vector_lets = "\n".join(f"        let vectors_{f} = {f}.vectors();" for f, *_ in uarts)
+    local_init = "\n".join(f"                vectors_{f}," for f, *_ in uarts)
+    shared_names = ", ".join(f for f, *_ in uarts)
+    lockeds = "\n".join(f"        let mut {f} = Locked(cx.shared.{f});" for f, *_ in uarts)
+    mask_line = run == "a"
     tasks = "\n\n".join(
-        f"""    #[task(binds = {line}, priority = 2, shared = [irq_{f}])]
-    fn {f}_line(cx: {f}_line::Context) {{
-        cx.shared.irq_{f}.{'on_uart' if split and f == 'usart1' else 'on_interrupt'}();
+        f"""    #[task(binds = {line}, priority = 2, shared = [{f}])]
+    fn {f}_line(mut cx: {f}_line::Context) {{
+        cx.shared.{f}.lock(|uart| tests::serve(uart));
     }}
 
-    #[task(binds = {dma}, priority = 2, shared = [irq_{f}])]
-    fn {f}_rx(cx: {f}_rx::Context) {{
-        cx.shared.irq_{f}.{'on_rx_dma' if split and f == 'usart1' else 'on_interrupt'}();
+    #[task(binds = {dma}, priority = 2, shared = [{f}])]
+    fn {f}_rx(mut cx: {f}_rx::Context) {{
+        cx.shared.{f}.lock(|uart| tests::serve(uart));
     }}
 
-    #[task(binds = {txdma}, priority = 2, shared = [irq_{f}])]
-    fn {f}_tx(cx: {f}_tx::Context) {{
-        cx.shared.irq_{f}.{'on_tx_dma' if split and f == 'usart1' else 'on_interrupt'}();
+    #[task(binds = {txdma}, priority = 2, shared = [{f}])]
+    fn {f}_tx(mut cx: {f}_tx::Context) {{
+        cx.shared.{f}.lock(|uart| tests::serve(uart));
     }}"""
         for f, label, line, dma, txdma, cfg in uarts
     )
-    fields = ", ".join(f"{f}, vectors_{f}" for f, *_ in uarts)
+    fields = ", ".join(f"vectors_{f}" for f, *_ in uarts)
     suites = "\n".join(
         f"""        tests::full_suite(
             &mut report,
             &mut Loop {{
                 name: "{label}",
-                uart: &mut *{f},
+                uart: &mut {f},
             }},
             &{cfg},
             RX_RING,
@@ -134,16 +148,45 @@ for run, (summary, uarts) in RUNS.items():
             "a masked line keeps its events out until unmasking",
             tests::line_mask(&mut Loop {{
                 name: "{label}",
-                uart: &mut *{f},
+                uart: &mut {f},
             }}),
-        );""" if split and f == "usart1" else "")
+        );
+        report.check_for(
+            "{label}",
+            "UARTDMA-002",
+            "a handler held off by the task's lock runs within half a ring",
+            tests::lock_delay(
+                &mut {f}.0,
+                Interrupt::{line},
+                board::CLOCKS.cpu.0,
+                {cfg}.baudrate.0,
+                RX_RING,
+                TX_BUFFER,
+            ),
+        );
+        tests::drain(&mut Loop {{
+            name: "{label}",
+            uart: &mut {f},
+        }});""" if mask_line and f == "usart1" else "") + (f"""
+        report.check_for(
+            "{label}",
+            "USART-V4-002",
+            "TX and RX swapped: the loop carries a line and a stream back the other way",
+            tests::swapped(
+                &mut Loop {{
+                    name: "{label}",
+                    uart: &mut {f},
+                }},
+                &{cfg},
+            ),
+        );""" if (run, f) in SWAPPED else "")
         for f, label, line, dma, txdma, cfg in uarts
     )
     together_name = " + ".join(label.split(" ")[0] for _, label, *_ in uarts)
     links = "\n".join(
         f"""                &mut Loop {{
                     name: "{label}",
-                    uart: &mut *{f},
+                    uart: &mut {f},
                 }},"""
         for f, label, *_ in uarts
     )
@@ -166,7 +209,7 @@ for run, (summary, uarts) in RUNS.items():
             tests::wait_bounds(
                 &mut Loop {{
                     name: "{label}",
-                    uart: &mut *{f},
+                    uart: &mut {f},
                 }},
                 board::CLOCKS.cpu.0,
                 {cfg}.baudrate.0,
@@ -206,7 +249,7 @@ for run, (summary, uarts) in RUNS.items():
 {bounds}
 """
         extra_uses = ", check_dma_buffer"
-        extra_uses2 = "        dma::BufferError,\n        uart::{Config, Parity, StopBits, Uart, UartInterrupts, UartIrq},\n"
+        extra_uses2 = "        dma::BufferError,\n        uart::{Config, Parity, StopBits, Uart, Vectors},\n"
         core_uses = "    use cortex_m::peripheral::{CPUID, SCB};\n"
         consts = """
     /// The Lucid's frames: CRSF to the receiver, SBUS from the DJI
@@ -224,29 +267,37 @@ for run, (summary, uarts) in RUNS.items():
         task_locals = f"{fields}, led"
         cache_phase = ""
         extra_uses = ""
-        extra_uses2 = "        uart::{Config, Uart, UartInterrupts, UartIrq},\n"
+        extra_uses2 = "        uart::{Config, Uart, Vectors},\n"
         core_uses = ""
         consts = "\n    const PLAIN: Config = Config::new(ferrohal_stm32::time::Hertz(115_200));\n"
     rebind = "\n".join(
-        f"""        let {f} = cx.local.{f};
-        report.check_for(
+        f"""        report.check_for(
             "{label}",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors_{f}),
         );"""
         for f, label, *_ in uarts
     )
+    served = f"""
+        report.check_for(
+            "{together_name}",
+            "RESOURCE-002",
+            "every handler serves its UART through Service",
+            tests::served(),
+        );""" if run == "a" else ""
     chip_use = f"chip::{{Interrupt{extra_uses}}}," if extra_uses else "chip::Interrupt,"
     src = f"""// Generated by tools/gen_h753_runs.py: edit RUNS there, not this file.
 
 {doc}
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
-//! receive stream's own interrupt bits. Each vector in use, and what serves
-//! it:
+//! streams' own interrupt bits. Each UART is one shared resource, served by
+//! its handlers and used by the `checks` task under RTIC's lock, one call at
+//! a time (`tests::Locked`; `docs/design/uart-ownership.md`). Each vector in
+//! use, and what serves it:
 //!
-//! | Vector | Owner | Priority |
+//! | Vector | Serves | Priority |
 //! | --- | --- | --- |
 {table}
 //! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
@@ -270,13 +321,11 @@ mod app {{
 
     use crate::{{
         board::{{self, RX_RING, TX_BUFFER}},
-        tests::{{self, Loop, Report}},
+        tests::{{self, Locked, Loop, Report}},
     }};
 {consts}
     #[shared]
     struct Shared {{
-        // Each handle's two tasks run at one priority, so neither preempts
-        // the other and the handle needs no lock.
 {shared}
     }}
 
@@ -319,22 +368,23 @@ mod app {{
 
 {tasks}
 
-    #[task(priority = 1, local = [{task_locals}])]
+    #[task(priority = 1, shared = [{shared_names}], local = [{task_locals}])]
     async fn checks(cx: checks::Context) {{
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
 {rebind}
+{lockeds}
 
 {suites}
 
 {streams}
-{cache_phase}
+{cache_phase}{served}
         let led = cx.local.led;
         tests::finish(&report, || led.set_high());
     }}
 }}
 """
-    (out / f"run_{run}.rs").write_text(src)
+    (out / file_of(run)).write_text(src)
 # rustfmt, so the files match what `cargo fmt` would leave after a hand edit.
-subprocess.run(["rustfmt", "--edition", "2024", *(str(out / f"run_{run}.rs") for run in RUNS)], check=True)
+subprocess.run(["rustfmt", "--edition", "2024", *(str(out / file_of(run)) for run in RUNS)], check=True)
 print("written")

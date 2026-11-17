@@ -9,11 +9,26 @@
 
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
+# A run letter's binary, from the bench's alias table (API review B1).
+bin_of() { awk -v r="$1" '$1 == r { print $2 }' "$here/nucleo-f401re-loopback/runs.tsv"; }
 source "$here/probe.sh"
 probe_for F401_PROBE 0x433 || exit 1
 # The host echo runs over this probe's own virtual COM port.
 port="${F401_VCP:-/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_${PROBE_RS_PROBE#*:*:}-if02}"
 mkdir -p "$here/logs"
+
+# Every image first, in one cargo call, which compiles them in parallel: each
+# run's own `cargo run` then only finds it built. A bin that fails to build here
+# still fails its own run below, with the compiler's message in that run's log.
+# Bins behind a feature (`required-features`) are left to their runs.
+case " ${*:-all} " in
+    " probe ") ;;
+    *) if (cd "$here/nucleo-f401re-loopback" && timeout 600 cargo build --release --bins) > "$here/logs/f401-build.log" 2>&1; then
+           echo "build: every image built ($(grep -oE 'in [0-9.]+(s|m [0-9]+s)$' "$here/logs/f401-build.log" | tail -1))"
+       else
+           echo "build: some images failed; their runs will say which (hil/logs/f401-build.log)"
+       fi ;;
+esac
 
 python3 -I "$here/vcp_echo.py" "$port" 115200 > "$here/logs/f401-echo.log" 2>&1 &
 echo_pid=$!
@@ -35,7 +50,7 @@ for run in ${*:-probe a b c d e f g h i j k l m n o p q r s v w}; do
         # through this board's probe, no firmware.
         (cd "$here/../tools/glue-gen" && timeout 300 cargo run -q --release -- probe part stm32f401re) > "$log" 2>&1
     else
-        (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "run-$run") > "$log" 2>&1
+        (cd "$here/nucleo-f401re-loopback" && timeout 300 "${runner[@]}" cargo run --release --bin "$(bin_of "$run")") > "$log" 2>&1
     fi
     code=$?
     pass=$(grep -c "PASS" "$log")

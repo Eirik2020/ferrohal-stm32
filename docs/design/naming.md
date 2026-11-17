@@ -63,32 +63,44 @@ Which IP versions each series carries, as metapac measured them:
 
 - **[Decided]** A neutral module plus a directory per IP version for every new IP:
   `uart` with `usart_v2`/`usart_v4`, and so `spi`, `i2c`, `adc`.
-- **[Decided]** Deliberate exceptions: one source compiled under two names
-  (`iwdg.rs` as `iwdg_v1`/`iwdg_v2`, `exti.rs`, `dma_stream.rs`), and the timer split
-  by function, not version (`timer.rs`, `timer_pwm.rs`, `timer_awg.rs`, as
-  `timer_v1`/`timer_v3`). Each is two IP versions, so each needs a chip per version.
-  This list is complete: these four are every `#[path]` alias in `src/lib.rs` and
-  `src/timer.rs` (the chip files' `#[path]`s pull in glue, not drivers). ADR-003 rule 4
-  named only the first and the timer; the 2026-11-13 debt sweep counted five. Both
-  counts are superseded by this one (API review K4, 2026-11-17). Not a driver alias
-  either: the F4 clock tree's configuration and solver (`rcc_f4/tree.rs`), mounted by
-  `rcc_f4` and by `rcc_f7`, which keeps its own register writes (the F7 plan's Q3,
-  owner, 2026-11-17).
+  A directory holding only `mod.rs` is that rule, not a leftover: it is where the IP
+  version's next file goes.
+- **[Decided]** One folder per IP (ADR-012, owner 2026-11-17): every peripheral IP lives
+  in its own folder, never as a loose file in `src/`, and its submodules live inside it.
+  The folder is the unit that may later become its own crate (`ferrohal-<ip>`, per
+  [structure.md](structure.md)), so it reaches only the crate's core (`resource`, `wait`,
+  `time`, `rcc`, the chip's glue traits) and other IPs' public items, never a
+  neighbour's internals. Loose files in `src/` are that core, not IPs.
+- **[Decided]** Deliberate exceptions: one source compiled under two version names, by
+  `#[path = "<ip>/mod.rs"]` (`dma/` as `dma_v1`/`dma_v2`, `exti/` as `exti_v1`/`exti_h7`,
+  `iwdg/` as `iwdg_v1`/`iwdg_v2`, `timer/` as `timer_v1`/`timer_v3`). Each is two IP
+  versions, so each needs a chip per version. A file mounted by `#[path]` owns its
+  folder, so `timer/mod.rs`'s `mod pwm;` finds `timer/pwm.rs` under both names. This
+  list is complete: these four are every `#[path]` alias in `src/lib.rs` (the chip files'
+  `#[path]`s pull in glue, not drivers). Earlier counts (ADR-003 rule 4, the 2026-11-13
+  debt sweep, API review K4) are superseded by this one. Not a driver alias either: the
+  F4 clock tree's configuration and solver (`rcc_f4/tree.rs`), mounted by `rcc_f4` and by
+  `rcc_f7`, which keeps its own register writes (the F7 plan's Q3, owner, 2026-11-17).
+- **[Decided]** A die with two DMA IPs (the H7: stream DMA, BDMA, MDMA) gives each its own
+  folder and neutral name, as metapac does (`dma`, `bdma`), not one name for both.
+- **[Decided]** The RCC's shared code is a neutral module like `uart/`: `rcc/` holds what
+  every RCC version shares (`kernel.rs`, `shared.rs`) and re-exports the chip's version
+  (`rcc_f4`, `rcc_f7`, `rcc_h7_rm0433`).
 - **[Decided]** Not an exception: a neutral module's engine serving every IP version
-  through that version's register wrapper (`Unit`; the UART's `LineRegs`, N7)
-  (`uart/stream_dma.rs`, `spi/stream_dma.rs`,
+  through that version's register wrapper (`Unit`, the UART's too since N7)
+  (`uart/stream_dma/`, `spi/stream_dma.rs`,
   `spi/polled.rs`, `i2c/mod.rs`, `adc/mod.rs`). That is the neutral-module pattern
   itself, so these are never counted as shared sources.
 
 ## Vocabulary
 
 - **[Decided]** *channel*: a timer compare output. *lane*: a DMA-fed output. *stream*:
-  a DMA stream. *line*: a UART's control registers. *handle*: an ownerless view of a
+  a DMA stream. *line*: a UART's wire and its USART's event enables (`mask`, `unmask`). *handle*: an ownerless view of a
   running driver that another context, an interrupt handler above all, holds and copies
   freely, because everything it does is a single read or a write no one else races:
   `ExtiHandle`, `TimebaseHandle` (from `Timebase::handle`), `Watchdog::handle` (owner,
-  2026-11-17, API review N5). The DMA's `FlagHandle` and the UART's `UartIrq` follow it
-  with the UART's single-owner redesign.
+  2026-11-17, API review N5). The DMA's `FlagHandle` follows it. The UART has no handle
+  since its single-owner redesign (ADR-011).
 - **[Decided]** Constructors are `new`; `Watchdog::start` is the deliberate exception,
   because an independent watchdog cannot be stopped once started and the name says so.
   Its token is `chip::IWDG` on every chip (the H7's IWDG1) (owner, 2026-11-17, N17).
@@ -101,13 +113,13 @@ Which IP versions each series carries, as metapac measured them:
 - **[Decided]** A refusal's alias is `<What>Refused`, named after what refuses, not
   after the method (owner, 2026-11-17, API review N1): `SpiRefused`, `I2cRefused`,
   `LaneRefused`, `SamplerRefused`, `ScanRefused`. Names stay put when a method is
-  renamed. The UART's comes with its single-owner redesign.
+  renamed. The UART's are `UartRefused` and `UartRxRefused` (ADR-011).
 - **[Decided]** No module prefix on an item, `spi::Parts` not `spi::SpiParts` (owner,
   2026-11-17, API review N2), except: each module's main driver types (`Spi`, `I2c`,
-  `Adc`, `AdcScan`, `UsbFs`) and the refusals named after them (`SpiRefused`); and the
+  `Adc`, `AdcScan`, `UsbFs`, `Uart`) and the refusals named after them (`SpiRefused`); and the
   routing traits a chip's glue file imports beside another module's of the same name
   (`SpiTxDma` and `SpiRxDma` beside the UART's `TxDma`, `AdcPin` beside `gpio::Pin`).
-  The UART's names come with its single-owner redesign.
+  The UART's parts trait is `uart::Parts` (ADR-011).
 
 - **[Decided]** A clock tree's host tests sit in the chip file whose limits they need
   (`src/chips/<part>.rs`), and are named by the tree they pin, not by a board:
@@ -119,11 +131,21 @@ Which IP versions each series carries, as metapac measured them:
 - **[Decided]** `hil/run-<bench>.sh` runs a bench: `run-f401`, `run-h753`, `run-foxeer`,
   `run-lucid`. Helpers that are not benches take their own names: `flash-dfu.sh`,
   `pico-i2c-sim.sh` (owner, 2026-11-13).
-- **[Decided]** Run letters upper case in prose (run M), lower case in file names
-  (`run_m.rs`, `run-m`).
+- **[Decided]** A bench binary is named by its test, `src/bin/usb_cdc.rs` building
+  `usb-cdc`, the same name on every bench that runs the test (owner, 2026-11-17, API
+  review B1). The run letters stay as each bench's aliases, upper case in prose (run M)
+  and lower case on the command line (`hil/run-h753.sh m`); `hil/<crate>/runs.tsv` maps
+  them, and the run scripts and `tools/` read it. A letter still means a different test
+  on each bench; the binary's name says which.
+- **[Decided]** A bench generates its runs only where several runs differ only in data:
+  the H753's runs A to D (`tools/gen_h753_runs.py`), which open different UARTs at
+  different rates on one template. Every other run, on every bench, is written by hand,
+  because it tests something of its own (owner, 2026-11-17, API review B2).
 
 ## Documents
 
-- **[Decided]** Registries in capitals (`DEBT`, `RESOLVED`, `README`, `WIRING`,
-  `AGENTS`); everything else kebab-case, with dated names where
-  `docs/policies/documentation.md` asks for them.
+- **[Decided]** Registries in capitals (`DEBT`, `README`, `WIRING`, `AGENTS`);
+  everything else kebab-case, with dated names where
+  `docs/policies/documentation.md` asks for them. The resolved-debt registry is a
+  folder, `docs/resolved/`, whose hub is its `README.md` and whose parts, split for the
+  size budget, are kebab-case (owner, 2026-11-17).
