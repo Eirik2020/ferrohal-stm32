@@ -19,9 +19,10 @@ Public repo. Bench-verified.
 | what chips support; limits; roadmap | `docs/CHIPS.md` |
 | silicon errata, a workaround | `docs/design/errata.md` (ADR-010), `docs/errata/`; check the erratum, never a `REV_ID` |
 | what the benches prove | `hil/COVERAGE.md`, `hil/CAPABILITIES.md` |
-| touch IP driver | `src/<ip>_vN/mod.rs` + `src/requirements/<ip>.yaml` |
+| touch IP driver | `src/<ip>/` (neutral driver, or the IP's own folder: ADR-012), `src/<ip>_vN/mod.rs` (register wrapper) + `src/requirements/<ip>.yaml` |
+| add/change a user example | `examples/README.md`; built by `checks/run.sh` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `docs/DEBT.md`; `docs/CHIPS.md` roadmap; open plan: `docs/plans/2026-11-17-f411-f722-f745.md` |
+| plan work | `docs/DEBT.md`; `docs/CHIPS.md` roadmap; open plan: `docs/plans/2026-11-17-f411-f722-f745.md`; ADR-012 item 4 (`chips/` by family, generated chip selection) waits on the F7 glue branch |
 | naming/catalogs/IDs | `docs/design/naming.md`; `tools/check_names.py` holds it |
 | chip glue, parts, dies, packages | `docs/design/glue-generator.md` (ADR-008), `tools/glue-gen` |
 | maturity, tiers, evidence axes | `docs/design/maturity.md` (ADR-009) |
@@ -43,6 +44,7 @@ python3 -I tools/housekeeping.py # the review report
 python3 -I tools/stale_runs.py   # the bench runs a change owes (--shell: the commands)
 hil/run-f401.sh [runs]           # Nucleo-F401RE
 hil/run-h753.sh [runs]           # Nucleo-H753ZI
+hil/run-discovery.sh [runs]      # STM32F4 Discovery
 hil/flash-dfu.sh <board>         # a DFU-flashed board (`FLSH` tier): Foxeer, Lucid
 hil/pico-i2c-sim.sh [flash|run]  # Pico 1 I2C slave, both benches
 python3 -I tools/rig_run.py hil/run-<bench>.sh [runs]  # the same run, timed into the rig telemetry
@@ -74,14 +76,17 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - `review/` (owner's reviews + drafts, uncommitted): read only; no write of any kind without the owner's explicit permission.
 - Workspace habits: `../agent-memory/MEMORY.md`.
 
-## State 2026-11-13
+## State 2026-11-17
 
 Debt sweep W1-W13 done (#29); refusal runs (#31) and fault injection (#33) landed. The
 `free()` redesign and the requirements cleanup under the car rule merged (#37, #38), W14
 naming (#39, `docs/design/naming.md`). Debt sweep 2026-11-13: one tagged ledger with
 recorded origins; limits and roadmap to `docs/CHIPS.md`, coverage to `hil/COVERAGE.md`. Every
 requirement names a method since #48 (USB-F4-001 and F4 RESET-004 on the Discovery); rig
-upgrades held by the owner are in `hil/RIG-IMPROVEMENTS.md`.
+upgrades held by the owner are in `hil/RIG-IMPROVEMENTS.md`. 2026-11-17: one owner per UART
+and the `Service` trait (#52, ADR-011), one folder per IP (#53, ADR-012), user examples
+(#54), rig telemetry (#55). Their shared-file changes owe the F4/H7 bench rerun
+(`tools/stale_runs.py`); DEBT §2's ADR-011 rows leave when it passes.
 
 ## Style
 
