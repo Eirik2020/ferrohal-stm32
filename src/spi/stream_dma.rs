@@ -40,9 +40,8 @@ use crate::{
     resource::Refused,
     spi::{
         Buffers, Config, ConfigError, Error, Health, Info, Instance, MisoPin, MosiPin, Parts,
-        SckPin, SpiInterrupts, SpiRxDma, SpiTxDma, Wiring,
+        SckPin, SpiInterrupts, SpiRxDma, SpiTxDma, Wiring, instance::SckClock,
     },
-    spi_ip::Unit,
     time::{CycleClock, Hertz},
     wait::Deadline,
 };
@@ -69,11 +68,7 @@ pub struct Spi<W: Parts> {
     /// The longest transfer: the shorter buffer.
     cap: u16,
     state: State,
-    kernel_clock: Hertz,
-    cpu: Hertz,
-    frequency: Hertz,
-    /// CPU cycles per SCK period, rounded up.
-    sck_cycles: u32,
+    sck: SckClock,
     clock: Option<&'static dyn CycleClock>,
     vector: Interrupt,
     health: Health,
@@ -127,13 +122,13 @@ where
         buffers: &mut Buffers,
     ) -> Result<Self, (ConfigError, Wiring<U, Sck, Miso, Mosi, TxD, RxD>)> {
         // One bundled check phase, so the wiring comes back on any refusal.
-        let (info, clocks, kernel_clock, code, tx_len, rx_len) = match (|| {
+        let (info, clocks, kernel_clock, tx_len, rx_len) = match (|| {
             let info = U::info();
             let clocks = rcc.clocks();
             let kernel_clock = U::KERNEL
                 .frequency(&clocks)
                 .ok_or(ConfigError::KernelClock)?;
-            let code = config.divider(kernel_clock)?;
+            config.divider(kernel_clock)?;
             let tx_len = u16::try_from(buffers.tx.len())
                 .ok()
                 .filter(|&len| len > 0)
@@ -144,7 +139,7 @@ where
                 .ok_or(ConfigError::RxBuffer)?;
             crate::chip::check_dma_buffer(buffers.tx)?;
             crate::chip::check_dma_buffer(buffers.rx)?;
-            Ok((info, clocks, kernel_clock, code, tx_len, rx_len))
+            Ok((info, clocks, kernel_clock, tx_len, rx_len))
         })() {
             Ok(checked) => checked,
             Err(error) => return Err((error, wiring)),
@@ -163,9 +158,11 @@ where
         }
         tx.clear_flags(Flags::ALL);
         rx.clear_flags(Flags::ALL);
-        info.unit().configure(code, config);
-
-        let frequency = Hertz(kernel_clock.0 >> (code + 1));
+        // The divider was checked above, so this cannot refuse.
+        let sck = match SckClock::configure(info.unit(), kernel_clock, clocks.cpu, config) {
+            Ok(sck) => sck,
+            Err(error) => return Err((error, wiring)),
+        };
         Ok(Self {
             info,
             tx,
@@ -177,10 +174,7 @@ where
             rx_buf: core::mem::take(&mut buffers.rx),
             cap: tx_len.min(rx_len),
             state: State::Idle,
-            kernel_clock,
-            cpu: clocks.cpu,
-            frequency,
-            sck_cycles: clocks.cpu.0.div_ceil(frequency.0.max(1)),
+            sck,
             clock: None,
             vector: RxD::INTERRUPT,
             health: Health::default(),
@@ -227,21 +221,17 @@ impl<W: Parts> Spi<W> {
         if matches!(self.state, State::Running(_)) {
             return Err(ConfigError::Busy);
         }
-        let code = config.divider(self.kernel_clock)?;
-        self.info.unit().configure(code, config);
-        self.frequency = Hertz(self.kernel_clock.0 >> (code + 1));
-        self.sck_cycles = self.cpu.0.div_ceil(self.frequency.0.max(1));
-        Ok(self.frequency)
+        self.sck.reconfigure(self.info.unit(), config)
     }
 
     /// The SCK in use.
     pub fn frequency(&self) -> Hertz {
-        self.frequency
+        self.sck.frequency()
     }
 
     /// The kernel clock SCK is divided from.
     pub fn kernel_clock(&self) -> Hertz {
-        self.kernel_clock
+        self.sck.kernel_clock()
     }
 
     /// The instance's name in the reference manual.
@@ -362,7 +352,7 @@ impl<W: Parts> Spi<W> {
         let unit = self.info.unit();
         // The last byte is in; the SPI finishes its frame within an SCK or
         // two. Counted: a register read per pass, at least a cycle each.
-        let mut deadline = Deadline::new(None, self.sck_cycles.saturating_mul(32), 1);
+        let mut deadline = Deadline::new(None, self.sck.cycles().saturating_mul(32), 1);
         while !unit.done() {
             if deadline.expired() {
                 self.fail();
@@ -370,11 +360,7 @@ impl<W: Parts> Spi<W> {
                 return Some(Err(Error::Timeout));
             }
         }
-        if Unit::HOLD_AFTER_END {
-            // ES0392 2.22.6: disabling right after EOT can cut the last SCK
-            // pulse short at a slow SCK. Hold one SCK period first.
-            cortex_m::asm::delay(self.sck_cycles);
-        }
+        self.sck.hold_after_end();
         let (overrun, mode_fault) = unit.take_errors();
         unit.end();
         self.rx.clear_flags(Flags::ALL);
@@ -432,7 +418,7 @@ impl<W: Parts> Spi<W> {
     fn wait_done(&mut self, len: usize) -> Result<(), Error> {
         let bits = u32::try_from(len).unwrap_or(u32::MAX).saturating_mul(8);
         let cycles = bits
-            .saturating_mul(self.sck_cycles)
+            .saturating_mul(self.sck.cycles())
             .saturating_mul(2)
             .saturating_add(crate::wait::MARGIN_CYCLES);
         let mut deadline = Deadline::new(self.clock, cycles, crate::wait::PASS_CYCLES);
@@ -467,7 +453,7 @@ impl<W: Parts> Spi<W> {
         // a cycle each, so this bound covers them twice over.
         self.info
             .unit()
-            .reset_state(self.sck_cycles.saturating_mul(32));
+            .reset_state(self.sck.cycles().saturating_mul(32));
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);

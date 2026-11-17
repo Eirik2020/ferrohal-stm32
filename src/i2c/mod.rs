@@ -54,22 +54,10 @@ const fn wire_bits(len: usize) -> u32 {
 
 /// Per-instance facts. Chip facts: the glue layer holds one static `Info`
 /// per I2C.
-pub struct Info {
-    unit: Unit,
-}
+pub type Info = crate::resource::Info<Unit>;
 
-// SAFETY: `unit` is an address.
+// SAFETY: a `Unit` is an address.
 unsafe impl Sync for Info {}
-
-impl Info {
-    pub(crate) const fn new(unit: Unit) -> Self {
-        Self { unit }
-    }
-
-    pub(crate) fn unit(&self) -> Unit {
-        self.unit
-    }
-}
 
 /// An I2C instance this chip has. Chip facts: the glue layer implements it.
 pub trait Instance: crate::Sealed + 'static {

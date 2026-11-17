@@ -30,6 +30,24 @@ pub enum Resource {
     Interrupt(&'static str),
 }
 
+/// An instance's static facts: its register wrapper, held by the glue in one
+/// `static` per instance. One shape for every driver that keeps one
+/// (API review U6: SPI's and I2C's were the same type written twice); each
+/// driver module states it is `Sync` for its own `Unit`.
+pub struct Info<U> {
+    unit: U,
+}
+
+impl<U: Copy> Info<U> {
+    pub(crate) const fn new(unit: U) -> Self {
+        Self { unit }
+    }
+
+    pub(crate) fn unit(&self) -> U {
+        self.unit
+    }
+}
+
 impl Resource {
     /// A pin row from the pin's type: its port, number and alternate
     /// function, carrying `signal` (API review U5).

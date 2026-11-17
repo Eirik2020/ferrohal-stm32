@@ -14,9 +14,9 @@ use crate::{
     rcc::Rcc,
     resource::Refused,
     spi::{
-        BlockingWiring, Config, ConfigError, Error, Info, Instance, MisoPin, MosiPin, Parts, SckPin,
+        BlockingWiring, Config, ConfigError, Error, Info, Instance, MisoPin, MosiPin, Parts,
+        SckPin, instance::SckClock,
     },
-    spi_ip::Unit,
     time::{CycleClock, Hertz},
     wait::Deadline,
 };
@@ -29,10 +29,7 @@ const CHUNK: usize = 65_535;
 /// [`free`](BlockingSpi::free) hands it back, so the same parts open again.
 pub struct BlockingSpi<W: Parts> {
     info: &'static Info,
-    kernel_clock: Hertz,
-    cpu: Hertz,
-    frequency: Hertz,
-    sck_cycles: u32,
+    sck: SckClock,
     clock: Option<&'static dyn CycleClock>,
     name: &'static str,
     wiring: W,
@@ -63,19 +60,19 @@ where
         let Some(kernel_clock) = U::KERNEL.frequency(&clocks) else {
             return Err(Refused::new(ConfigError::KernelClock, wiring));
         };
-        let code = match config.divider(kernel_clock) {
-            Ok(code) => code,
+        // Checked before the clock goes on, so every refusal comes before
+        // anything is written to hardware.
+        if let Err(error) = config.divider(kernel_clock) {
+            return Err(Refused::new(error, wiring));
+        }
+        rcc.open(U::ENABLE);
+        let sck = match SckClock::configure(info.unit(), kernel_clock, clocks.cpu, config) {
+            Ok(sck) => sck,
             Err(error) => return Err(Refused::new(error, wiring)),
         };
-        rcc.open(U::ENABLE);
-        info.unit().configure(code, config);
-        let frequency = Hertz(kernel_clock.0 >> (code + 1));
         Ok(Self {
             info,
-            kernel_clock,
-            cpu: clocks.cpu,
-            frequency,
-            sck_cycles: clocks.cpu.0.div_ceil(frequency.0.max(1)),
+            sck,
             clock: None,
             name: U::NAME,
             wiring,
@@ -95,21 +92,17 @@ where
 impl<W: Parts> BlockingSpi<W> {
     /// Changes the bus settings. Returns the new SCK.
     pub fn set_config(&mut self, config: &Config) -> Result<Hertz, ConfigError> {
-        let code = config.divider(self.kernel_clock)?;
-        self.info.unit().configure(code, config);
-        self.frequency = Hertz(self.kernel_clock.0 >> (code + 1));
-        self.sck_cycles = self.cpu.0.div_ceil(self.frequency.0.max(1));
-        Ok(self.frequency)
+        self.sck.reconfigure(self.info.unit(), config)
     }
 
     /// The SCK in use.
     pub fn frequency(&self) -> Hertz {
-        self.frequency
+        self.sck.frequency()
     }
 
     /// The kernel clock SCK is divided from.
     pub fn kernel_clock(&self) -> Hertz {
-        self.kernel_clock
+        self.sck.kernel_clock()
     }
 
     /// The instance's name in the reference manual.
@@ -139,7 +132,7 @@ impl<W: Parts> BlockingSpi<W> {
         let unit = self.info.unit();
         let bits = u32::from(count).saturating_mul(8);
         let cycles = bits
-            .saturating_mul(self.sck_cycles)
+            .saturating_mul(self.sck.cycles())
             .saturating_mul(2)
             .saturating_add(crate::wait::MARGIN_CYCLES);
         let mut deadline = Deadline::new(self.clock, cycles, 1);
@@ -163,10 +156,7 @@ impl<W: Parts> BlockingSpi<W> {
                 return self.fail(Error::Timeout);
             }
         }
-        if Unit::HOLD_AFTER_END {
-            // ES0392 2.22.6, as for DMA transfers.
-            cortex_m::asm::delay(self.sck_cycles);
-        }
+        self.sck.hold_after_end();
         let (overrun, mode_fault) = unit.take_errors();
         unit.end_polled();
         if mode_fault {
@@ -181,7 +171,7 @@ impl<W: Parts> BlockingSpi<W> {
     fn fail(&mut self, error: Error) -> Result<(), Error> {
         self.info
             .unit()
-            .reset_state(self.sck_cycles.saturating_mul(32));
+            .reset_state(self.sck.cycles().saturating_mul(32));
         Err(error)
     }
 }

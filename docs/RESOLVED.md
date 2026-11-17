@@ -4,6 +4,14 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review U6: SPI's two engines share their clock side; one `Info` shape**
+  (2026-11-17). The DMA and polled SPI each kept the kernel clock, the SCK in use, the
+  CPU cycles per SCK and the ES0392 2.22.6 hold after the end, and computed them twice.
+  `spi::instance::SckClock` holds them once (`configure`, `reconfigure`,
+  `hold_after_end`). `spi::Info` and `i2c::Info` were the same type written twice; both
+  are now `resource::Info<Unit>`, each module stating `Sync` for its own `Unit`. Spawned
+  by `66afdaa` copying `99e6404`; `cdfe190`.
+
 - **API review D8: refusals carry `ConfigError`** (2026-11-17). UART, SPI, I2C and the
   timers refused with a `ConfigError`; the ADC, IWDG and SDMMC with their runtime
   `Error`, the ADC's mixing `KernelClock` and `Sequence` with `Overrun`. Now
