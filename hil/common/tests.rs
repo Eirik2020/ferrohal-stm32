@@ -1754,7 +1754,7 @@ pub fn full_suite(
 
 /// The HAL's per-pass cycle floor for the read loop (`uart::stream_dma`);
 /// a counted wait is only as long as promised while no pass is faster.
-const RX_PASS_CYCLES: u32 = 224;
+const RX_PASS_CYCLES: u32 = 378;
 const TX_PASS_CYCLES: u32 = 48;
 /// The most a counted wait may overshoot: the slowest configuration
 /// measured (H753, caches off) passes about 3.2 times slower than the

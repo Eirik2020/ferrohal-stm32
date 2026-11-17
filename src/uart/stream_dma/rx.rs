@@ -24,12 +24,14 @@ use crate::{
 /// The fewest CPU cycles one pass of the `read_within` loop (an empty
 /// `try_read`) takes, used when no [`CycleClock`](crate::time::CycleClock) is
 /// set. The fastest pass measured with the DWT cycle counter (`hil`
-/// `wait_bounds`), halved: H753 at 400 MHz with caches on, 474 cycles.
-/// Slower configurations wait longer than asked (F401 at 84 MHz: 679; H753
-/// with caches off: about 1500); a caller clock makes every wait exact. A
+/// `wait_bounds`), halved: H753 at 400 MHz with caches on, 757 cycles
+/// (2026-11-17, since a read also serves the transmit queue and the receive
+/// stream's flags; 474 before). Slower configurations wait longer than asked
+/// (F401 at 84 MHz: 1002 to 1086; H753 with caches off: about 2450, so up to
+/// about 6.5 times the time asked); a caller clock makes every wait exact. A
 /// faster pass would make a bound run short; the HIL check `wait_bounds`
 /// catches that on every board.
-const RX_PASS_CYCLES: u32 = 224;
+const RX_PASS_CYCLES: u32 = 378;
 
 /// Reporting order: the error that restarts reception comes first.
 const ERRORS: [(u8, Error); 6] = [

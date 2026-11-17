@@ -122,8 +122,8 @@ names where the code documents it.
   owner under the scheduler's lock, any priorities are sound.
 
 **Waits**
-- Counted-wait floors are measurements (UART `RX_PASS_CYCLES` 224, `TX_PASS_CYCLES` 48;
-  SPI `PASS_CYCLES` 112). Without a `CycleClock`, UART waits run 2.5-7 times long and
+- Counted-wait floors are measurements (UART `RX_PASS_CYCLES` 378, `TX_PASS_CYCLES` 48;
+  SPI `PASS_CYCLES` 112). Without a `CycleClock`, UART waits run 2-6.5 times long and
   SPI waits up to 3 (F401) or 6 (uncached H753). A new chip must pass the bench's
   wait-bound check.
 
