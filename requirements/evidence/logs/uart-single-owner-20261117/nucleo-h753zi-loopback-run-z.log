@@ -1,0 +1,9 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --no-catch-reset --chip STM32H753ZI target/thumbv7em-none-eabihf/release/rom-bootloader`
+     [38;5;10m[1mFinished[0m in 2.39s
+[INFO ] run Z: asking for the ROM bootloader; the host looks for its DFU device (rom_bootloader src/bin/rom_bootloader.rs:24)
+[33m WARN[0m [2mprobe_rs::util::rtt::client[0m[2m:[0m RTT control block corrupted (write pointer is 0x49f76081 while buffer size is 0x00002000 for up channel 0 (defmt)), re-attaching
+Received SIGTERM, exiting
+Exited by user request
+PASS rom: a new DFU device 200364500070, this die's IDCODE 20036450, is listed on CN13 [RESET-004]
