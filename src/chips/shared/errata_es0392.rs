@@ -34,6 +34,10 @@ pub const ES0392_2_2_10: Erratum = erratum!("2.2.10", "Reading from AXI SRAM may
 #[rustfmt::skip]
 pub const ES0392_2_22_6: Erratum = erratum!("2.22.6", "Truncation of SPI output signals after EOT event", [0x1003, 0x2001, 0x2003], Workaround, Workaround("one SCK period held between EOT and disabling (spi_v4 HOLD_AFTER_END)"), ["SPI-V4-001"]);
 
+/// ES0392 2.19.5, named for the code that acts on it.
+#[rustfmt::skip]
+pub const ES0392_2_19_5: Erratum = erratum!("2.19.5", "Last-received byte loss in reload mode", [0x1003], Partial, Workaround("reads over 255 bytes reload one byte at a time (i2c_v2 read_chunk)"), []);
+
 /// Every erratum of the sheet, in its order: one row each, as the sheet has them.
 #[rustfmt::skip]
 pub const ERRATA: &[Erratum] = &[
@@ -130,9 +134,9 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.18.4", "Alarm flag may be repeatedly set when the core is stopped in debug", [0x1003, 0x2001, 0x2003], None, NotReached("no LSE or RTC driver"), []),
     erratum!("2.18.5", "A tamper event fails to trigger timestamp or timestamp overflow events during a few cycles", [0x1003, 0x2001, 0x2003], None, NotReached("no LSE or RTC driver"), []),
     erratum!("2.19.1", "10-bit controller mode: new transfer cannot be launched if first part of the address is not", [0x1003], Workaround, Avoided("7-bit addresses only"), []),
-    erratum!("2.19.3", "Wrong data sampling when data setup time (tSU;DAT) is shorter than one I2C kernel clock period", [0x1003, 0x2001, 0x2003], Partial, Open("the H7 I2C lacks three ES0392 workarounds"), []),
-    erratum!("2.19.4", "Spurious bus error detection in controller mode", [0x1003, 0x2001, 0x2003], Workaround, Open("the H7 I2C lacks three ES0392 workarounds"), []),
-    erratum!("2.19.5", "Last-received byte loss in reload mode", [0x1003], Partial, Open("the H7 I2C lacks three ES0392 workarounds"), []),
+    erratum!("2.19.3", "Wrong data sampling when data setup time (tSU;DAT) is shorter than one I2C kernel clock period", [0x1003, 0x2001, 0x2003], Partial, Workaround("timing refuses a kernel clock slower than the mode's data setup: 4, 10, 20 MHz"), []),
+    erratum!("2.19.4", "Spurious bus error detection in controller mode", [0x1003, 0x2001, 0x2003], Workaround, Workaround("BERR is cleared and counted, and the transfer carries on"), []),
+    ES0392_2_19_5,
     erratum!("2.19.6", "Spurious controller transfer upon own target address match", [0x1003, 0x2001, 0x2003], Partial, Avoided("controller only: no target mode"), []),
     erratum!("2.19.8", "OVR flag not set in underrun condition", [0x1003, 0x2001, 0x2003], None, Avoided("controller only: no target mode"), []),
     erratum!("2.19.9", "Transmission stalled after first byte transfer", [0x1003, 0x2001, 0x2003], Workaround, Avoided("the kernel clock is the bus clock (freeze sets the mux), so the APB-to-kernel ratio is 1"), []),

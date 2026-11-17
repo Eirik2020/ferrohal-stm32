@@ -297,18 +297,27 @@ impl Unit {
     /// Nothing to clear: BUSY drops by itself.
     pub(crate) fn stop_clear(self) {}
 
-    /// AF, BERR, ARLO and OVR, each cleared as it is taken, by writing
-    /// zero (RM0368 §27.6.7).
+    /// BERR, cleared by writing zero if set. ES0299 2.9.1, ES0182 2.10.1:
+    /// in controller mode it can rise spuriously and has no effect on the
+    /// transfer, which carries on; the driver counts it and does not fail
+    /// the transfer.
+    pub(crate) fn take_bus_error(self) -> bool {
+        let regs = self.0;
+        let berr = regs.sr1().read().berr();
+        if berr {
+            regs.sr1().modify(|w| w.set_berr(false));
+        }
+        berr
+    }
+
+    /// AF, ARLO and OVR, each cleared as it is taken, by writing zero
+    /// (RM0368 §27.6.7). BERR is [`take_bus_error`](Self::take_bus_error)'s.
     pub(crate) fn error(self) -> Option<Error> {
         let regs = self.0;
         let sr1 = regs.sr1().read();
         if sr1.af() {
             regs.sr1().modify(|w| w.set_af(false));
             return Some(Error::Nack);
-        }
-        if sr1.berr() {
-            regs.sr1().modify(|w| w.set_berr(false));
-            return Some(Error::Bus);
         }
         if sr1.arlo() {
             regs.sr1().modify(|w| w.set_arlo(false));

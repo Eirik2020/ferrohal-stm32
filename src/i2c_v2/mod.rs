@@ -82,6 +82,13 @@ impl Unit {
             } else {
                 (500, 260, 120, 120, 50, 450)
             };
+        // ES0392 2.19.3: SDA is sampled a kernel clock late when the data
+        // setup time is shorter than one kernel clock period, so the kernel
+        // clock must run at least as fast as the mode's minimum setup time
+        // asks: 4, 10 and 20 MHz for 250, 100 and 50 ns.
+        if kernel_clock.0 < 1_000_000_000u32.div_ceil(setup) {
+            return Err(ConfigError::KernelClock);
+        }
         // The period asked for, split around the mode's minimum low,
         // with the rest high but never under the mode's minimum.
         let period = 1_000_000_000u32.div_ceil(speed.0);
@@ -199,8 +206,12 @@ impl Unit {
                 false => stm32_metapac::i2c::vals::Dir::WRITE,
             });
             w.set_add10(stm32_metapac::i2c::vals::Addmode::BIT7);
-            w.set_nbytes(len.min(255) as u8);
-            w.set_reload(match len > 255 {
+            let (nbytes, reload) = match read {
+                true => read_chunk(len, one_byte_reloads()),
+                false => (len.min(255) as u8, len > 255),
+            };
+            w.set_nbytes(nbytes);
+            w.set_reload(match reload {
                 true => stm32_metapac::i2c::vals::Reload::NOT_COMPLETED,
                 false => stm32_metapac::i2c::vals::Reload::COMPLETED,
             });
@@ -242,14 +253,14 @@ impl Unit {
         self.0.txdr().write(|w| w.set_txdata(byte));
     }
 
-    /// RXNE, with the chunk reload of `tx_ready`.
+    /// RXNE, with the chunk reload of `tx_ready`, in [`read_chunk`]'s sizes.
     pub(crate) fn recv_ready(self, position: usize, len: usize, _last: bool) -> bool {
         let regs = self.0;
         if regs.isr().read().tcr() {
-            let left = (len - position) as u32;
+            let (nbytes, reload) = read_chunk(len - position, one_byte_reloads());
             regs.cr2().modify(|w| {
-                w.set_nbytes(left.min(255) as u8);
-                w.set_reload(match left > 255 {
+                w.set_nbytes(nbytes);
+                w.set_reload(match reload {
                     true => stm32_metapac::i2c::vals::Reload::NOT_COMPLETED,
                     false => stm32_metapac::i2c::vals::Reload::COMPLETED,
                 });
@@ -287,18 +298,26 @@ impl Unit {
         self.0.icr().write(|w| w.set_stopcf(true));
     }
 
-    /// NACKF, BERR, ARLO and OVR, each cleared through ICR as it is
-    /// taken (RM0433 §47.6.9, §47.6.10).
+    /// BERR, cleared through ICR if set. ES0392 2.19.4: in controller mode
+    /// it can rise spuriously and has no effect on the transfer, which
+    /// carries on; the driver counts it and does not fail the transfer.
+    pub(crate) fn take_bus_error(self) -> bool {
+        let regs = self.0;
+        let berr = regs.isr().read().berr();
+        if berr {
+            regs.icr().write(|w| w.set_berrcf(true));
+        }
+        berr
+    }
+
+    /// NACKF, ARLO and OVR, each cleared through ICR as it is taken
+    /// (RM0433 §47.6.9, §47.6.10). BERR is [`take_bus_error`](Self::take_bus_error)'s.
     pub(crate) fn error(self) -> Option<Error> {
         let regs = self.0;
         let isr = regs.isr().read();
         if isr.nackf() {
             regs.icr().write(|w| w.set_nackcf(true));
             return Some(Error::Nack);
-        }
-        if isr.berr() {
-            regs.icr().write(|w| w.set_berrcf(true));
-            return Some(Error::Bus);
         }
         if isr.arlo() {
             regs.icr().write(|w| w.set_arlocf(true));
@@ -327,6 +346,27 @@ impl Unit {
         });
         regs.cr1().modify(|w| w.set_pe(true));
     }
+}
+
+/// NBYTES and RELOAD for a read with `left` bytes to go. A chunk is 255
+/// bytes, RELOAD set while more follow; with `one_byte_reloads`, every
+/// chunk before the last is one byte (ES0392 2.19.5: on the revisions it
+/// affects, the last byte of a reload chunk is lost if the one before it is
+/// read just as it lands, unless NBYTES is 1). The last chunk has no
+/// reload, so no TCR, and is whole.
+pub(crate) const fn read_chunk(left: usize, one_byte_reloads: bool) -> (u8, bool) {
+    if left <= 255 {
+        (left as u8, false)
+    } else if one_byte_reloads {
+        (1, true)
+    } else {
+        (255, true)
+    }
+}
+
+/// Whether this die's revision has ES0392 2.19.5.
+fn one_byte_reloads() -> bool {
+    crate::chip::ES0392_2_19_5.affects(crate::signature::revision())
 }
 
 #[cfg(test)]
@@ -379,6 +419,41 @@ mod tests {
         assert!(high >= 4_000, "tHIGH {high}");
         assert!(setup >= 1_250, "tSCLDEL {setup}");
         assert!(low + high >= 10_000, "period {}", low + high);
+    }
+
+    /// ES0392 2.19.3: the kernel clock at least as fast as each mode's data
+    /// setup asks, 4, 10 and 20 MHz.
+    #[test]
+    fn a_kernel_clock_too_slow_to_sample_sda_is_refused() {
+        for (speed, floor) in [
+            (100_000, 4_000_000),
+            (400_000, 10_000_000),
+            (1_000_000, 20_000_000),
+        ] {
+            assert_eq!(
+                Unit::timing(Hertz(floor - 1), Hertz(speed)).err(),
+                Some(ConfigError::KernelClock)
+            );
+            assert!(Unit::timing(Hertz(floor * 2), Hertz(speed)).is_ok());
+        }
+    }
+
+    /// ES0392 2.19.5: one-byte reloads before the last chunk, which is
+    /// whole and unreloaded; otherwise 255-byte chunks.
+    #[test]
+    fn read_chunks() {
+        assert_eq!(read_chunk(255, true), (255, false));
+        assert_eq!(read_chunk(256, true), (1, true));
+        assert_eq!(read_chunk(256, false), (255, true));
+        assert_eq!(read_chunk(10, false), (10, false));
+        // A 600-byte read on an affected revision: 345 one-byte reloads,
+        // then 255 at once.
+        let (mut left, mut reloads) = (600usize, 0);
+        while let (n, true) = read_chunk(left, true) {
+            left -= usize::from(n);
+            reloads += 1;
+        }
+        assert_eq!((reloads, left), (345, 255));
     }
 
     #[test]

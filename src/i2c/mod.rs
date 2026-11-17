@@ -24,9 +24,10 @@
 //!   is set, otherwise counted as passes of at least `wait::PASS_CYCLES`. A
 //!   transfer that runs past its bound is stopped, the peripheral is put
 //!   back, and the next transfer can start: [`Error::Timeout`].
-//! - **errors**: a device's NACK, a bus error, lost arbitration and an
-//!   overrun are reported, their flags cleared and the bus recovered, so
-//!   the next transfer can start.
+//! - **errors**: a device's NACK, lost arbitration and an overrun are
+//!   reported, their flags cleared and the bus recovered, so the next
+//!   transfer can start. A bus error is counted in [`Health`] and the
+//!   transfer goes on, as the errata sheets ask.
 //! - **scope**: master only, 7-bit addresses, no SMBus, no clock
 //!   stretching on our side (a slow device may stretch SCL; the bound
 //!   covers only a device that answers within it). No DMA: an I2C
@@ -184,7 +185,10 @@ pub enum Error {
     /// bus recovered; the next one can start.
     Timeout,
     /// A bus error: a misplaced START or STOP, or a line that didn't
-    /// behave. The flag was cleared and the bus recovered.
+    /// behave. Neither IP version raises it: in controller mode the errata
+    /// sheets (ES0392 2.19.4, ES0299 2.9.1, ES0182 2.10.1) say BERR can
+    /// rise spuriously and leaves the transfer running, so the driver
+    /// clears it, counts it in [`Health::bus_errors`] and carries on.
     Bus,
     /// Another master kept the bus (arbitration lost). The flag was
     /// cleared and the bus recovered.
@@ -217,7 +221,7 @@ pub struct Health {
     pub nacks: u32,
     /// Transfers that ran past their bound.
     pub timeouts: u32,
-    /// Bus errors (BERR).
+    /// Bus errors (BERR), cleared and counted while the transfer went on.
     pub bus_errors: u32,
     /// Arbitrations lost to another master (ARLO).
     pub arbitration_lost: u32,
@@ -353,15 +357,21 @@ impl<W: I2cParts> I2c<W> {
         self.health
     }
 
-    /// One bounded wait: ready, an error flag, or the bound.
+    /// One bounded wait: ready, an error flag, or the bound. A bus error
+    /// is counted and cleared, and the wait goes on: in controller mode it
+    /// can rise spuriously while the transfer carries on (ES0392 2.19.4,
+    /// ES0299 2.9.1, ES0182 2.10.1).
     fn wait_ready(
-        &self,
+        &mut self,
         unit: Unit,
         deadline: &mut Deadline,
         ready: impl FnMut() -> bool,
     ) -> Result<(), Error> {
         let mut ready = ready;
         loop {
+            if unit.take_bus_error() {
+                self.health.bus_errors = self.health.bus_errors.wrapping_add(1);
+            }
             if let Some(error) = unit.error() {
                 return Err(error);
             }

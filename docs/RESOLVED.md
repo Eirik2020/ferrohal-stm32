@@ -4,6 +4,17 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **The H7 I2C has its three ES0392 workarounds** (2026-11-17). 2.19.4: a BERR in
+  controller mode can be spurious and leaves the transfer running, but `i2c_v2` failed
+  the transfer with `Error::Bus`; the shared driver now clears BERR, counts it in
+  `Health::bus_errors` and carries on, on both IP versions (`i2c_v1` too, for ES0299
+  2.9.1 and ES0182 2.10.1). 2.19.3: `timing` refuses a kernel clock slower than the
+  mode's data setup (4, 10, 20 MHz). 2.19.5: on revisions Y and W a read over 255 bytes
+  reloads one byte at a time before its last chunk, checked through `ES0392_2_19_5`. Host
+  tests cover the floor and the chunking; a spurious BERR cannot be provoked, and both H7s
+  here are revision V, so 2.19.5's path runs on no bench (DEBT §4, another silicon
+  revision). Spawned by the ES0392 row review (2026-11-17).
+
 - **An F405 revision A matches its own errata** (2026-11-17). ES0182 2.2.2: revision A
   reads REV_ID 0x2000, which `Erratum::affects` took for a revision newer than the
   sheet's newest, so revision A's errata read as unaffected and `freeze` set PRFTEN
