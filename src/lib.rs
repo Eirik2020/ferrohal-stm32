@@ -11,9 +11,8 @@
 //! - One module per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`,
 //!   `spi_v4`, `i2c_v1`, `i2c_v2`, `exti_v1`, `exti_h7`, `timer_v1`,
 //!   `timer_v3`, `iwdg_v1`, `iwdg_v2`, `gpio_v2`, `adc_v2`, `adc_v4`,
-//!   `sdmmc_v2`, `rcc_f4`, `rcc_h7_rm0433`), each behind its own feature.
-//!   They speak registers only. DMA is by engine instead: [`dma`] holds the
-//!   stream DMA (features `dma_v1`, `dma_v2`).
+//!   `sdmmc_v2`, `rcc_f4`, `rcc_h7_rm0433`, `dma_v1`, `dma_v2`), each behind
+//!   its own feature, each in its own folder. They speak registers only.
 //! - [`chip`]: the glue for the chip feature that is on. It holds the chip
 //!   facts (RCC bits, pin alternate functions, DMA request routing, memory
 //!   map) and the svd2rust-style [`chip::Peripherals`].
@@ -83,18 +82,18 @@ mod wait;
 
 // EXTI: one source, two IP versions (see the module).
 #[cfg(feature = "exti_h7")]
-#[path = "exti.rs"]
+#[path = "exti/mod.rs"]
 pub mod exti_h7;
 #[cfg(feature = "exti_v1")]
-#[path = "exti.rs"]
+#[path = "exti/mod.rs"]
 pub mod exti_v1;
 
 // The independent watchdog: one source, two IP versions (see the module).
 #[cfg(feature = "iwdg_v1")]
-#[path = "iwdg.rs"]
+#[path = "iwdg/mod.rs"]
 pub mod iwdg_v1;
 #[cfg(feature = "iwdg_v2")]
-#[path = "iwdg.rs"]
+#[path = "iwdg/mod.rs"]
 pub mod iwdg_v2;
 
 // Timers: one source, two IP versions (see the module).
@@ -109,9 +108,13 @@ pub mod timer_v3;
 pub(crate) mod adc_v2;
 #[cfg(feature = "adc_v4")]
 pub(crate) mod adc_v4;
-// DMA: the neutral module holds an engine per DMA kind (see the module).
-#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
-pub mod dma;
+// The stream DMA: one source, two IP versions (see the module).
+#[cfg(feature = "dma_v1")]
+#[path = "dma/mod.rs"]
+pub mod dma_v1;
+#[cfg(feature = "dma_v2")]
+#[path = "dma/mod.rs"]
+pub mod dma_v2;
 #[cfg(feature = "gpio_v2")]
 pub mod gpio_v2;
 #[cfg(feature = "i2c_v1")]
@@ -138,6 +141,10 @@ pub(crate) mod usart_v4;
 use adc_v2 as adc_ip;
 #[cfg(feature = "adc_v4")]
 use adc_v4 as adc_ip;
+#[cfg(feature = "dma_v1")]
+pub use dma_v1 as dma;
+#[cfg(feature = "dma_v2")]
+pub use dma_v2 as dma;
 #[cfg(feature = "exti_h7")]
 pub use exti_h7 as exti;
 #[cfg(feature = "exti_v1")]

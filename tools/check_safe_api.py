@@ -35,7 +35,7 @@ ALLOWED_UNSAFE = {"src/chips/shared/macros.rs": "steal"}
 # Where `stm32_metapac` may appear: the RTIC device module, the one-file IP
 # modules, and the shared sources' register files. The directory set below
 # covers the rest.
-METAPAC_FILES = {"device.rs", "exti.rs", "iwdg.rs", "dma/stream.rs",
+METAPAC_FILES = {"device.rs", "exti/mod.rs", "iwdg/mod.rs", "dma/mod.rs",
                  "timer/mod.rs", "timer/pwm.rs"}
 METAPAC_DIRS = {"adc_v2", "adc_v4", "gpio_v2", "i2c_v1", "i2c_v2", "rcc_f4",
                 "rcc_h7_rm0433", "sdmmc_v2", "spi_v2", "spi_v4", "usart_v2",

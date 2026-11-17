@@ -31,7 +31,7 @@ the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
 ## Files and hashes
 
 - **[Decided]** Things are grouped into files, for example `usart_v2`. The file states its requirements and is hashed. Verification evidence records the hash, and evidence that does not match the hash is flagged as unverified.
-- **[Decided]** Another local file is not part of a file's hash; the requirements cover that link. A consequence: a file serving two IP versions, such as `dma/stream.rs`, has one hash, so changing it re-owes both unless it is split.
+- **[Decided]** Another local file is not part of a file's hash; the requirements cover that link. A consequence: a file serving two IP versions, such as `dma/mod.rs`, has one hash, so changing it re-owes both unless it is split.
 - **[Proposal]** The tool keeps two labels for the flag: `stale` when a pass exists and the hash has changed, `unverified` when none ever passed. Both count as not verified and hold a gate closed.
 - **[Proposal]** A file's evidence also covers the `macro_rules!` definitions it expands, since a macro changes what a file compiles to without changing its hash. `chips/shared/macros.rs` expands in all four chip files. Requirement docs and markers for internal macros go inside the macro body, so each expansion carries them.
 

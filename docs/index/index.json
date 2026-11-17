@@ -3,7 +3,7 @@
  "counts": {
   "documents": 76,
   "agent": 54,
-  "bytes": 391584
+  "bytes": 392237
  },
  "documents": [
   {
@@ -127,7 +127,7 @@
    "class": "agent",
    "title": "ADR-012: The `src/` layout, clean slate (2026-11-17)",
    "purpose": "ADR-012 - Status: promoted",
-   "bytes": 2821,
+   "bytes": 3310,
    "adr": "ADR-012",
    "status": "promoted"
   },
@@ -245,7 +245,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 8526
+   "bytes": 8757
   },
   {
    "path": "docs/design/ownership.md",
@@ -266,7 +266,7 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 5094
+   "bytes": 5091
   },
   {
    "path": "docs/design/requirements-tooling.md",
@@ -287,7 +287,7 @@
    "class": "agent",
    "title": "Crate and module structure",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2122
+   "bytes": 2053
   },
   {
    "path": "docs/design/uart-ferrowasp.md",
@@ -308,21 +308,21 @@
    "class": "human",
    "title": "ES0182: errata of die 0x413 (F405, F407)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 14622
+   "bytes": 14626
   },
   {
    "path": "docs/errata/ES0299.md",
    "class": "human",
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10768
+   "bytes": 10772
   },
   {
    "path": "docs/errata/ES0392.md",
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 23601
+   "bytes": 23609
   },
   {
    "path": "docs/housekeeping/README.md",
@@ -455,7 +455,7 @@
    "class": "agent",
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
-   "bytes": 3039
+   "bytes": 3028
   },
   {
    "path": "docs/resolved/README.md",
