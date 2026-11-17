@@ -40,6 +40,7 @@ python3 -I tools/check_docs.py   # byte budgets, orphans, decisions, housekeepin
 python3 -I tools/docs_index.py   # regenerate docs/index/
 python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap
 python3 -I tools/housekeeping.py # the review report
+python3 -I tools/stale_runs.py   # the bench runs a change owes (--shell: the commands)
 hil/run-f401.sh [runs]           # Nucleo-F401RE
 hil/run-h753.sh [runs]           # Nucleo-H753ZI
 hil/flash-dfu.sh <board>         # a DFU-flashed board (`FLSH` tier): Foxeer, Lucid
