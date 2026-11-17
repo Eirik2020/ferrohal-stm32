@@ -126,7 +126,9 @@ pub fn merge(id: u16, parts: &[(Part, Metadata)]) -> Result<Die, Vec<String>> {
             &mut conflicts,
             &name,
             &format!("{} {} peripherals", part.device, part.package),
-            die.cuts.entry(cut.clone()).or_insert_with(|| enabled.clone()),
+            die.cuts
+                .entry(cut.clone())
+                .or_insert_with(|| enabled.clone()),
             &enabled,
         );
         agree(

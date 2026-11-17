@@ -211,7 +211,10 @@ fn merged(id: u16, version: &str) -> Result<silicon::Die, String> {
     // A flash-size variant joins as its part's device and package, so any
     // fact it disagrees on (a pin, a route, a vector) is a conflict.
     for (variant, of) in registry::VARIANTS {
-        let Some(part) = registry::PARTS.iter().find(|p| p.feature == *of && p.die == id) else {
+        let Some(part) = registry::PARTS
+            .iter()
+            .find(|p| p.feature == *of && p.die == id)
+        else {
             continue;
         };
         let as_part = Part {
