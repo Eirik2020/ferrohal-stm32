@@ -150,7 +150,24 @@ for run, (summary, uarts) in RUNS.items():
                 name: "{label}",
                 uart: &mut {f},
             }}),
-        );""" if mask_line and f == "usart1" else "") + (f"""
+        );
+        report.check_for(
+            "{label}",
+            "UARTDMA-002",
+            "a handler held off by the task's lock runs within half a ring",
+            tests::lock_delay(
+                &mut {f}.0,
+                Interrupt::{line},
+                board::CLOCKS.cpu.0,
+                {cfg}.baudrate.0,
+                RX_RING,
+                TX_BUFFER,
+            ),
+        );
+        tests::drain(&mut Loop {{
+            name: "{label}",
+            uart: &mut {f},
+        }});""" if mask_line and f == "usart1" else "") + (f"""
         report.check_for(
             "{label}",
             "USART-V4-002",

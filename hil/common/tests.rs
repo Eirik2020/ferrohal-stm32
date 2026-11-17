@@ -99,6 +99,8 @@ pub trait Receiver: RxHalf {
     fn mask(&mut self);
     fn unmask(&mut self);
     fn vectors(&mut self) -> Vectors;
+    /// The driver's service, as a task polling it would call it.
+    fn service(&mut self);
 }
 
 /// A full UART: both sides, and the line operations only a transmitter has.
@@ -127,6 +129,9 @@ where
     }
     fn vectors(&mut self) -> Vectors {
         Self::vectors(self)
+    }
+    fn service(&mut self) {
+        Self::on_interrupt(self);
     }
 }
 
@@ -166,6 +171,9 @@ where
     }
     fn vectors(&mut self) -> Vectors {
         Self::vectors(self)
+    }
+    fn service(&mut self) {
+        Self::on_interrupt(self);
     }
 }
 
@@ -298,6 +306,9 @@ where
     fn vectors(&mut self) -> Vectors {
         self.0.lock(|uart| uart.vectors())
     }
+    fn service(&mut self) {
+        self.0.lock(|uart| uart.service())
+    }
 }
 
 impl<M: rtic::Mutex> Full for Locked<M>
@@ -341,8 +352,125 @@ impl<M: rtic::Mutex<T = Option<U>>, U> rtic::Mutex for Slot<M, U> {
 /// shape every interrupt-served driver has (RESOURCE-002), and counts the
 /// calls for [`served`].
 pub fn serve<S: ferrohal_stm32::Service>(driver: &mut S) -> S::Event {
+    if ARMED.swap(false, Ordering::Relaxed) {
+        ENTERED.store(cortex_m::peripheral::DWT::cycle_count(), Ordering::Relaxed);
+    }
     SERVED.fetch_add(1, Ordering::Relaxed);
     ferrohal_stm32::Service::on_interrupt(driver)
+}
+
+/// Set by [`lock_delay`] just before it pends a vector; the next [`serve`]
+/// clears it and notes the cycle count in `ENTERED`.
+static ARMED: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+static ENTERED: AtomicU32 = AtomicU32::new(0);
+
+/// What [`lock_delay`] holds the lock through: one call of each kind the
+/// checks task makes, at its largest.
+#[derive(Clone, Copy, defmt::Format)]
+enum Held {
+    /// Not locked at all: the vector's own entry latency.
+    Unlocked,
+    /// Locked, nothing done: the lock's own cost.
+    Empty,
+    /// `try_send` of a frame filling the transmit buffer: the copy.
+    SendWhole,
+    /// `try_read` of a whole ring: the copy out.
+    ReadRing,
+    /// `read_chunk` of a whole ring.
+    ChunkRing,
+    /// The service itself, as a task polling it would run it.
+    Service,
+}
+
+/// How late a UART's handler runs when the task that shares the UART holds
+/// the lock (the cost the UART design, `docs/design/uart-ownership.md`, accepts). For each kind of call in [`Held`], pends
+/// `vector` (the USART's own, served by [`serve`]) and makes the call under
+/// the lock; the handler runs once the lock is released, and the delay is
+/// from the pend to its entry. Logs every delay in cycles and microseconds.
+///
+/// Passes if every delay is within the time half the receive ring takes to
+/// fill at `baud`: the margin within which a late service of the receive
+/// stream still counts every half-lap (UARTDMA-002). The transmit queue
+/// must be idle on entry and is again on exit; the frame sent comes back
+/// into the ring on a looped link, so the caller drains it after.
+pub fn lock_delay<M: rtic::Mutex>(
+    uart: &mut M,
+    vector: ferrohal_stm32::chip::Interrupt,
+    cpu_hz: u32,
+    baud: u32,
+    ring: usize,
+    tx_buffer: usize,
+) -> Result<(), Fail>
+where
+    M::T: Full,
+{
+    use cortex_m::peripheral::{DWT, NVIC};
+    // Ten bits a byte at 8N1: half the ring, in CPU cycles.
+    let margin = ((ring as u64 / 2) * 10 * u64::from(cpu_hz) / u64::from(baud.max(1))) as u32;
+    let mut frame = [0x55u8; 1024];
+    let frame = &mut frame[..tx_buffer.min(1024)];
+    let mut buf = [0u8; 1024];
+    let buf = &mut buf[..ring.min(1024)];
+    let mut worst = 0u32;
+    for held in [
+        Held::Unlocked,
+        Held::Empty,
+        Held::SendWhole,
+        Held::ReadRing,
+        Held::ChunkRing,
+        Held::Service,
+    ] {
+        ENTERED.store(0, Ordering::Relaxed);
+        ARMED.store(true, Ordering::Relaxed);
+        let start = DWT::cycle_count();
+        match held {
+            Held::Unlocked => NVIC::pend(vector),
+            _ => uart.lock(|uart| {
+                NVIC::pend(vector);
+                match held {
+                    Held::SendWhole => {
+                        let _ = uart.try_send(frame);
+                    }
+                    Held::ReadRing => {
+                        let _ = uart.try_read(buf);
+                    }
+                    Held::ChunkRing => {
+                        let _ = uart.read_chunk(buf);
+                    }
+                    Held::Service => uart.service(),
+                    Held::Unlocked | Held::Empty => {}
+                }
+            }),
+        }
+        // The handler runs above this task, so it has run by now, unless
+        // the vector is not bound to `serve`.
+        let entered = ENTERED.load(Ordering::Relaxed);
+        if ARMED.swap(false, Ordering::Relaxed) || entered == 0 {
+            return Err(Fail::Count {
+                expected: 1,
+                got: 0,
+            });
+        }
+        let delay = entered.wrapping_sub(start);
+        defmt::info!(
+            "lock delay, held {}: {=u32} cycles, {=u32} us (margin {=u32} cycles)",
+            held,
+            delay,
+            (u64::from(delay) * 1_000_000 / u64::from(cpu_hz.max(1))) as u32,
+            margin
+        );
+        worst = worst.max(delay);
+        // The queued frame goes before the next pass.
+        let _ = uart.lock(|uart| Write::flush(uart));
+    }
+    if worst > margin {
+        return Err(Fail::Time {
+            cycles: worst,
+            min: 0,
+            max: margin,
+        });
+    }
+    Ok(())
 }
 
 static SERVED: AtomicU32 = AtomicU32::new(0);

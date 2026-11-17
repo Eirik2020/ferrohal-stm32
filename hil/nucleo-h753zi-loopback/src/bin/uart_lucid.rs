@@ -285,6 +285,23 @@ mod app {
                 uart: &mut usart1,
             }),
         );
+        report.check_for(
+            "USART1 PB6->PB7, SBUS 100000 8E2",
+            "UARTDMA-002",
+            "a handler held off by the task's lock runs within half a ring",
+            tests::lock_delay(
+                &mut usart1.0,
+                Interrupt::USART1,
+                board::CLOCKS.cpu.0,
+                SBUS.baudrate.0,
+                RX_RING,
+                TX_BUFFER,
+            ),
+        );
+        tests::drain(&mut Loop {
+            name: "USART1 PB6->PB7, SBUS 100000 8E2",
+            uart: &mut usart1,
+        });
         tests::full_suite(
             &mut report,
             &mut Loop {

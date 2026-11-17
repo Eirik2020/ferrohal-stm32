@@ -237,6 +237,20 @@ mod app {
             "a masked line keeps its events out until unmasking",
             tests::line_mask(&mut loop1),
         );
+        report.check_for(
+            "USART1 PA9->PA10",
+            "UARTDMA-002",
+            "a handler held off by the task's lock runs within half a ring",
+            tests::lock_delay(
+                &mut loop1.uart.0,
+                Interrupt::USART1,
+                board::CLOCKS.cpu.0,
+                115_200,
+                RX_RING,
+                TX_BUFFER,
+            ),
+        );
+        tests::drain(&mut loop1);
 
         let mut loop6 = Loop {
             name: "USART6 PA11->PA12",
