@@ -3,7 +3,7 @@
  "counts": {
   "documents": 81,
   "agent": 52,
-  "bytes": 466511
+  "bytes": 466692
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 27900
+   "bytes": 27978
   },
   {
    "path": "docs/DEBT.md",
@@ -332,7 +332,7 @@
    "class": "human",
    "title": "ES0287: errata of die 0x431 (F411xC/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10594
+   "bytes": 10697
   },
   {
    "path": "docs/errata/ES0290.md",

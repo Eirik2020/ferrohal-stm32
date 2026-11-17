@@ -278,7 +278,8 @@ names where the code documents it.
   refuses HCLK above 168 MHz with `ClockError::Hclk`.
 - The SPIs on APB2 (SPI1 and SPI4, and SPI5 and SPI6 on the F427/F429): a master
   receiving there wants PCLK2 at or below 84 MHz, since ES0298 2.14.5 and ES0206 2.12.4
-  allow no more even with SCK at very high speed.
+  allow no more even with SCK at very high speed. The same holds on the F411 at 100 MHz
+  (ES0287 2.11.4, SPI1, SPI4 and SPI5).
 - F427/F429 revisions A, Y and 1: on a 2 MiB part, or a 1 MiB part in dual-bank mode,
   PA12 must stay unconnected and held low, so OTG_FS is unusable there (ES0206 2.2.14).
 

@@ -91,7 +91,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.11.1", "BSY bit may stay high when SPI is disabled", [0x1000], Workaround, Avoided("SPE drops only in configure, with the bus idle"), []),
     erratum!("2.11.2", "Anticipated communication upon SPI transit from slave receiver to master", [0x1000], Workaround, Avoided("master only: never a slave first"), []),
     erratum!("2.11.3", "Wrong CRC calculation when the polynomial is even", [0x1000], Workaround, Avoided("CRC off"), []),
-    erratum!("2.11.4", "Corrupted last bit of data and/or CRC received in Master mode with delayed SCK feedback", [0x1000], Workaround, Firmware("SCK at high or very high speed with APB at 84 MHz; low allows 25 MHz, medium 75"), []),
+    erratum!("2.11.4", "Corrupted last bit of data and/or CRC received in Master mode with delayed SCK feedback", [0x1000], Workaround, Firmware("SCK at high or very high speed allows APB at 84 MHz, medium 75, low 25: APB2 at 100 MHz is above the limit, so a master receiving on SPI1, SPI4 or SPI5 wants PCLK2 at or below 84 MHz"), []),
     erratum!("2.11.5", "BSY flag may stay high at the end of a data transfer in Slave mode", [0x1000], Workaround, Avoided("master only: no slave mode"), []),
     erratum!("2.11.6", "In I2S Slave mode, the WS level must be set by the external master when enabling the I2S", [0x1000], Workaround, NotReached("no I2S driver"), []),
     erratum!("2.12.1", "Transmit data FIFO is corrupted when a write sequence to the FIFO is interrupted with", [0x1000], Workaround, Firmware("every USB call from one context, as usb.rs asks, so no register access cuts into a FIFO write"), []),
