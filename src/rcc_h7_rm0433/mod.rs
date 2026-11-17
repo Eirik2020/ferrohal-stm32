@@ -32,6 +32,7 @@ use stm32_metapac::{
 };
 
 pub use crate::rcc_kernel::Kernel;
+pub use crate::rcc_shared::{AhbPrescaler, ApbPrescaler, Hse, HseMode, PllSource, RccBit};
 use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency, undivided.
@@ -139,36 +140,6 @@ impl Rcc {
     }
 }
 
-macro_rules! bus_registers {
-    ($($bus:ident => $enr:ident, $rstr:ident;)+) => {
-        impl Rcc {
-            /// Turns a peripheral's clock on, then reads the register back so
-            /// the write has landed before the peripheral is touched.
-            pub(crate) fn enable(&mut self, bit: RccBit) {
-                let mask = 1 << bit.bit;
-                match bit.bus {
-                    $(Bus::$bus => {
-                        RCC_REGS.$enr().modify(|w| w.0 |= mask);
-                        let _ = RCC_REGS.$enr().read();
-                    })+
-                }
-            }
-
-            /// Pulses a peripheral's reset, returning its registers to reset
-            /// values.
-            pub(crate) fn reset(&mut self, bit: RccBit) {
-                let mask = 1 << bit.bit;
-                match bit.bus {
-                    $(Bus::$bus => {
-                        RCC_REGS.$rstr().modify(|w| w.0 |= mask);
-                        RCC_REGS.$rstr().modify(|w| w.0 &= !mask);
-                    })+
-                }
-            }
-        }
-    };
-}
-
 bus_registers!(
     Ahb1 => ahb1enr, ahb1rstr;
     Ahb2 => ahb2enr, ahb2rstr;
@@ -202,20 +173,6 @@ pub enum Bus {
     Apb2,
     Apb3,
     Apb4,
-}
-
-/// A peripheral's bit in its bus's enable and reset registers (the same
-/// position in both). Chip facts: the glue layer supplies them.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct RccBit {
-    pub(crate) bus: Bus,
-    pub(crate) bit: u8,
-}
-
-impl RccBit {
-    pub(crate) const fn new(bus: Bus, bit: u8) -> Self {
-        Self { bus, bit }
-    }
 }
 
 /// The frequencies a configuration produces. Drivers compute their
@@ -295,21 +252,6 @@ pub struct Config {
     pub voltage_scale: VoltageScale,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Hse {
-    pub freq: Hertz,
-    pub mode: HseMode,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum HseMode {
-    Oscillator,
-    /// An external clock on OSC_IN, such as an ST-LINK's MCO.
-    Bypass,
-}
-
 /// PLL1: `source / prediv * mul`, then `/ divp` to SYSCLK, `/ divq` and
 /// `/ divr` to kernel clocks. The fractional divider stays off.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -330,48 +272,13 @@ pub struct Pll {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum PllSource {
-    Hsi,
-    Hse,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Sysclk {
     Hsi,
     Hse,
     Pll1P,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum AhbPrescaler {
-    Div1,
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-    Div64,
-    Div128,
-    Div256,
-    Div512,
-}
-
 impl AhbPrescaler {
-    const fn divisor(self) -> u32 {
-        match self {
-            Self::Div1 => 1,
-            Self::Div2 => 2,
-            Self::Div4 => 4,
-            Self::Div8 => 8,
-            Self::Div16 => 16,
-            Self::Div64 => 64,
-            Self::Div128 => 128,
-            Self::Div256 => 256,
-            Self::Div512 => 512,
-        }
-    }
-
     const fn bits(self) -> Hpre {
         match self {
             Self::Div1 => Hpre::DIV1,
@@ -387,27 +294,7 @@ impl AhbPrescaler {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum ApbPrescaler {
-    Div1,
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-}
-
 impl ApbPrescaler {
-    const fn divisor(self) -> u32 {
-        match self {
-            Self::Div1 => 1,
-            Self::Div2 => 2,
-            Self::Div4 => 4,
-            Self::Div8 => 8,
-            Self::Div16 => 16,
-        }
-    }
-
     const fn bits(self) -> Ppre {
         match self {
             Self::Div1 => Ppre::DIV1,

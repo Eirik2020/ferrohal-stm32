@@ -4,6 +4,16 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review U2, S7 (F4 half) and U9: the RCC modules share what is the same**
+  (2026-11-17). `Hse`, `HseMode`, `PllSource`, `AhbPrescaler`, `ApbPrescaler` and
+  `RccBit` were written twice, identically; the F4 hand-wrote its `enable` and `reset`
+  as four-arm matches where the H7 used `bus_registers!`; and eleven constructors wrote
+  `rcc.enable(x); rcc.reset(x)`. The new private `rcc_shared` module holds the six types
+  and `bus_registers!`, which both RCC modules now expand, and which adds `Rcc::open`
+  (enable, then reset); every constructor calls it. Each RCC module keeps its register
+  encodings, which metapac types per family. S7's other half (`Tick::free` repeating
+  `stop`) stays open. Spawned by `af65cad`.
+
 - **API review U7: no unsafe casts for the buffer check** (2026-11-17).
   `chip::check_dma_buffer` took `&[u8]`, so the ADC and the timer lanes kept three unsafe
   slice-to-bytes casts only to call it. It is now generic over `&[T]` (the span is

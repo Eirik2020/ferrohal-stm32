@@ -1821,8 +1821,7 @@ fn check_open(
 
 /// Turns the USART's clock on, resets it, and resets its shared state.
 fn reset(rcc: &mut Rcc, enable: RccBit, info: &Info, rx_len: u16) {
-    rcc.enable(enable);
-    rcc.reset(enable);
+    rcc.open(enable);
     let state = &info.state;
     state.halves.store(0, Ordering::Relaxed);
     state.base.store(0, Ordering::Relaxed);

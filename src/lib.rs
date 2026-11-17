@@ -68,6 +68,8 @@ pub mod adc;
 pub mod errata;
 pub mod i2c;
 mod rcc_kernel;
+#[macro_use]
+mod rcc_shared;
 pub mod reset;
 pub mod resource;
 pub mod signature;

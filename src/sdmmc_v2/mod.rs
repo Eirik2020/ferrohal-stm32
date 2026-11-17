@@ -335,8 +335,7 @@ where
         {
             return Err(Refused::new(Error::Clock, wiring));
         }
-        rcc.enable(U::ENABLE);
-        rcc.reset(U::ENABLE);
+        rcc.open(U::ENABLE);
         Ok(Self {
             wiring,
             regs: U::info().regs(),

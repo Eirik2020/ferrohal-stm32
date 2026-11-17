@@ -234,8 +234,7 @@ impl<A: Instance> Adc<A> {
         if let Err(error) = crate::adc_ip::start_clock(rcc) {
             return Err(Refused::new(error, token));
         }
-        rcc.enable(A::ENABLE);
-        rcc.reset(A::ENABLE);
+        rcc.open(A::ENABLE);
         let unit = A::info().unit();
         if let Err(error) =
             unit.power_up(&rcc.clocks(), A::KERNEL, A::INTERNAL, config.sample_cycles)

@@ -37,6 +37,7 @@ use stm32_metapac::{
 };
 
 pub use crate::rcc_kernel::Kernel;
+pub use crate::rcc_shared::{AhbPrescaler, ApbPrescaler, Hse, HseMode, PllSource, RccBit};
 use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency on every F4.
@@ -129,55 +130,14 @@ impl Rcc {
         clear_reset_flags();
         cause
     }
-
-    /// Turns a peripheral's clock on. The read back is the delay RM0368
-    /// requires before the peripheral's registers are touched (ES0299 2.2.7,
-    /// ES0182 2.2.13).
-    pub(crate) fn enable(&mut self, bit: RccBit) {
-        let mask = 1 << bit.bit;
-        match bit.bus {
-            Bus::Ahb1 => {
-                RCC_REGS.ahb1enr().modify(|w| w.0 |= mask);
-                let _ = RCC_REGS.ahb1enr().read();
-            }
-            Bus::Ahb2 => {
-                RCC_REGS.ahb2enr().modify(|w| w.0 |= mask);
-                let _ = RCC_REGS.ahb2enr().read();
-            }
-            Bus::Apb1 => {
-                RCC_REGS.apb1enr().modify(|w| w.0 |= mask);
-                let _ = RCC_REGS.apb1enr().read();
-            }
-            Bus::Apb2 => {
-                RCC_REGS.apb2enr().modify(|w| w.0 |= mask);
-                let _ = RCC_REGS.apb2enr().read();
-            }
-        }
-    }
-
-    /// Pulses a peripheral's reset, returning its registers to reset values.
-    pub(crate) fn reset(&mut self, bit: RccBit) {
-        let mask = 1 << bit.bit;
-        match bit.bus {
-            Bus::Ahb1 => {
-                RCC_REGS.ahb1rstr().modify(|w| w.0 |= mask);
-                RCC_REGS.ahb1rstr().modify(|w| w.0 &= !mask);
-            }
-            Bus::Ahb2 => {
-                RCC_REGS.ahb2rstr().modify(|w| w.0 |= mask);
-                RCC_REGS.ahb2rstr().modify(|w| w.0 &= !mask);
-            }
-            Bus::Apb1 => {
-                RCC_REGS.apb1rstr().modify(|w| w.0 |= mask);
-                RCC_REGS.apb1rstr().modify(|w| w.0 &= !mask);
-            }
-            Bus::Apb2 => {
-                RCC_REGS.apb2rstr().modify(|w| w.0 |= mask);
-                RCC_REGS.apb2rstr().modify(|w| w.0 &= !mask);
-            }
-        }
-    }
 }
+
+bus_registers!(
+    Ahb1 => ahb1enr, ahb1rstr;
+    Ahb2 => ahb2enr, ahb2rstr;
+    Apb1 => apb1enr, apb1rstr;
+    Apb2 => apb2enr, apb2rstr;
+);
 
 /// The bus a peripheral sits on: which enable and reset registers hold its
 /// bits, and which clock it runs from.
@@ -188,20 +148,6 @@ pub enum Bus {
     Ahb2,
     Apb1,
     Apb2,
-}
-
-/// A peripheral's bit in its bus's enable and reset registers (the same
-/// position in both). Chip facts: the glue layer supplies them.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct RccBit {
-    pub(crate) bus: Bus,
-    pub(crate) bit: u8,
-}
-
-impl RccBit {
-    pub(crate) const fn new(bus: Bus, bit: u8) -> Self {
-        Self { bus, bit }
-    }
 }
 
 /// The frequencies a configuration produces. Drivers compute their
@@ -605,22 +551,6 @@ impl Config {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Hse {
-    pub freq: Hertz,
-    pub mode: HseMode,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum HseMode {
-    /// A crystal or resonator on OSC_IN and OSC_OUT.
-    Oscillator,
-    /// An external clock on OSC_IN, such as an ST-LINK's MCO.
-    Bypass,
-}
-
 /// The main PLL: `source / prediv * mul`, then `/ divp` to SYSCLK and
 /// `/ divq` to the 48 MHz domain.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -634,13 +564,6 @@ pub struct Pll {
     pub divp: PllP,
     /// PLLQ, 2 to 15. `None` leaves the field at 2 and reports no Q clock.
     pub divq: Option<u8>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum PllSource {
-    Hsi,
-    Hse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -680,35 +603,7 @@ pub enum Sysclk {
     PllP,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum AhbPrescaler {
-    Div1,
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-    Div64,
-    Div128,
-    Div256,
-    Div512,
-}
-
 impl AhbPrescaler {
-    const fn divisor(self) -> u32 {
-        match self {
-            Self::Div1 => 1,
-            Self::Div2 => 2,
-            Self::Div4 => 4,
-            Self::Div8 => 8,
-            Self::Div16 => 16,
-            Self::Div64 => 64,
-            Self::Div128 => 128,
-            Self::Div256 => 256,
-            Self::Div512 => 512,
-        }
-    }
-
     const fn bits(self) -> Hpre {
         match self {
             Self::Div1 => Hpre::DIV1,
@@ -724,27 +619,7 @@ impl AhbPrescaler {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum ApbPrescaler {
-    Div1,
-    Div2,
-    Div4,
-    Div8,
-    Div16,
-}
-
 impl ApbPrescaler {
-    const fn divisor(self) -> u32 {
-        match self {
-            Self::Div1 => 1,
-            Self::Div2 => 2,
-            Self::Div4 => 4,
-            Self::Div8 => 8,
-            Self::Div16 => 16,
-        }
-    }
-
     const fn bits(self) -> Ppre {
         match self {
             Self::Div1 => Ppre::DIV1,

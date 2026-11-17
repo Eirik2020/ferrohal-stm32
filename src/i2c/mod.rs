@@ -300,8 +300,7 @@ where
             Err(error) => return Err(Refused::new(error, wiring)),
         };
         let speed = timing.speed();
-        rcc.enable(U::ENABLE);
-        rcc.reset(U::ENABLE);
+        rcc.open(U::ENABLE);
         info.unit().apply(&timing);
         Ok(Self {
             info,

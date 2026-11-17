@@ -74,8 +74,7 @@ impl UsbFs {
         if let Err(error) = rcc.usb_clock() {
             return Err(Refused::new(error, wiring));
         }
-        rcc.enable(USB_FS.enable);
-        rcc.reset(USB_FS.enable);
+        rcc.open(USB_FS.enable);
         Ok(Self {
             wiring,
             hclk: rcc.clocks().hclk.0,

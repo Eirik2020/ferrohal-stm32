@@ -344,8 +344,7 @@ impl<T: Instance> Tick<T> {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, timer)),
         };
-        rcc.enable(T::ENABLE);
-        rcc.reset(T::ENABLE);
+        rcc.open(T::ENABLE);
         let core = T::info().core();
         load(core, prescaler, reload);
         core.dier().write(|w| w.set_uie(true));
@@ -462,8 +461,7 @@ impl<T: Instance32> Timebase<T> {
             Ok(prescaler) => prescaler,
             Err(error) => return Err(Refused::new(error, timer)),
         };
-        rcc.enable(T::ENABLE);
-        rcc.reset(T::ENABLE);
+        rcc.open(T::ENABLE);
         let core = T::info().core();
         load(core, prescaler, 1 << 32);
         core.cr1().modify(|w| w.set_cen(true));

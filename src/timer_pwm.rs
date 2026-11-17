@@ -136,8 +136,7 @@ impl<T: ChannelTimer> Pwm<T> {
             Ok(parts) => parts,
             Err(error) => return Err(Refused::new(error, timer)),
         };
-        rcc.enable(T::ENABLE);
-        rcc.reset(T::ENABLE);
+        rcc.open(T::ENABLE);
         let gp = Self::gp();
         let core = T::info().core();
         super::load(core, prescaler, reload);
@@ -985,8 +984,7 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
         if let Err(error) = crate::chip::check_dma_buffer(buffer) {
             return Err(Refused::new(error.into(), (timer, stream, buffer)));
         }
-        rcc.enable(T::ENABLE);
-        rcc.reset(T::ENABLE);
+        rcc.open(T::ENABLE);
         super::load(T::info().core(), prescaler, reload);
         let mut dma = crate::dma::claim_channel(&stream);
         if dma.stop(crate::dma::STOP_SPINS).is_err() {
