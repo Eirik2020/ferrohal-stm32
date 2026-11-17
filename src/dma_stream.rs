@@ -460,6 +460,8 @@ impl AnyStream {
     ///
     /// The two handles must never use the stream at the same time; the
     /// driver's own protocol has to guarantee it.
+    // Only the UART uses it, and the F7 has no UART driver yet.
+    #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
     pub(crate) unsafe fn alias(&self) -> AnyStream {
         AnyStream {
             regs: self.regs,

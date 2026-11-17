@@ -24,15 +24,15 @@
 //!
 //! Requirements: SPI-001, SPI-002, SPI-003, SPI-004, SPI-005, SPI-007, SPI-009, SPI-010
 
-#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+#[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 mod instance;
 mod polled;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub(crate) mod stream_dma;
 
-#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+#[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 pub use instance::{Info, Instance, MisoPin, MosiPin, Parts, SckPin, SpiRxDma, SpiTxDma, check};
-#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+#[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 pub use polled::BlockingSpi;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub use stream_dma::Spi;
@@ -153,7 +153,7 @@ pub struct Buffers {
 }
 
 #[cfg(all(
-    any(feature = "spi_v2", feature = "spi_v4"),
+    any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"),
     any(feature = "dma_v1", feature = "dma_v2")
 ))]
 impl<U, Sck, Miso, Mosi, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
@@ -190,7 +190,7 @@ where
     ];
 }
 
-#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+#[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 impl<U, Sck, Miso, Mosi> BlockingWiring<U, Sck, Miso, Mosi>
 where
     U: Instance,
@@ -220,14 +220,14 @@ pub type BlockingSpiRefused<U, Sck, Miso, Mosi> =
 
 /// The interrupt vector an SPI needs bound, from `Spi::interrupts`: its
 /// receive stream's, whose handler calls `Spi::on_interrupt`.
-#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+#[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct SpiInterrupts {
     pub rx_dma: crate::chip::Interrupt,
 }
 
-#[cfg(any(feature = "spi_v2", feature = "spi_v4"))]
+#[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 impl SpiInterrupts {
     pub fn iter(&self) -> impl Iterator<Item = crate::chip::Interrupt> {
         [self.rx_dma].into_iter()

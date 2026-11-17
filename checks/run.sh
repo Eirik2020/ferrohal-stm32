@@ -16,7 +16,10 @@
 
 set -u
 root="$(cd "$(dirname "$0")/.." && pwd)"
-chips=(stm32f401re stm32f411ce stm32f405rg stm32f407vg stm32h743vi stm32h753zi)
+chips=(stm32f401re stm32f411ce stm32f405rg stm32f407vg stm32f722re stm32f745vg stm32h743vi stm32h753zi)
+# The F7 has no UART driver until the UART redesign lands, and the no-panic
+# program is built around one, so the F7 joins it with its UART (the F7 plan).
+no_panic_skip=(stm32f722re stm32f745vg)
 status=0
 
 # A passing step prints only its pass line. A failing one prints its FAIL line
@@ -48,6 +51,10 @@ for chip in "${chips[@]}"; do
     # runs, and without that package's link.x the linker can discard
     # everything, panics included, and pass for nothing. A linker warning
     # fails the step, and the build that raised it is kept to be printed.
+    if [[ " ${no_panic_skip[*]} " == *" $chip "* ]]; then
+        echo "skip  no reachable panic ($chip): no UART driver yet (docs/plans/2026-11-17-f411-f722-f745.md)"
+        continue
+    fi
     step "no reachable panic ($chip)" \
         bash -c 'cd "$1" || exit 1; out=$(cargo build --release --features "$2" 2>&1); if grep -q "warning: linker stderr" <<< "$out"; then printf "%s\n" "$out"; exit 1; fi; cargo build --release --features "$2"' _ "$root/checks/no-panic" "$chip"
 done

@@ -62,3 +62,29 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: RCC-004
+    title: The F7's over-drive follows HCLK
+    statement: >-
+      On the F7, the driver shall run the regulator in over-drive exactly
+      when the configuration's HCLK is above 180 MHz, entering it before the
+      system runs from the PLL.
+    rationale: >-
+      Above 180 MHz the F7 runs out of specification without the over-drive
+      (DS11853 Table 16, DS10916 Table 18), and the over-drive's higher APB
+      limits hold only while it is on.
+    derived_from: [RCC-003]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::tests::solve_gives_216_mhz_and_usb_in_overdrive
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::chip::tests::at_180_mhz_the_overdrive_stays_off_and_the_apbs_drop
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI on the Nucleo-F767ZI

@@ -228,9 +228,9 @@ mod tests {
         write!(
             out,
             "{:?}",
-            Refused::new(crate::uart::ConfigError::BaudRate, Token(1))
+            Refused::new(crate::spi::ConfigError::KernelClock, Token(1))
         )
         .unwrap();
-        assert_eq!(&out.0[..out.1], b"BaudRate");
+        assert_eq!(&out.0[..out.1], b"KernelClock");
     }
 }

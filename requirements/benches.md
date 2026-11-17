@@ -60,6 +60,14 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 `hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Run F also samples port A with TIM2's update request on DMA1 stream 1 while SPI1 runs at its slowest, as the F401's run E does [SPI-010]. Run H then turns both caches on and runs SPI2's suite again, its buffers in the MPU's non-cacheable block. Pass: every check in every run passes and the script exits zero.
 
+## SPI on the Nucleo-F767ZI
+
+Proposed: no bench code yet, which waits for the owner's go. Link S1 (PB5 to PB4,
+`docs/plans/2026-11-17-f411-f722-f745.md`) fitted; the board's clocks frozen at 216 MHz
+from the ST-LINK's 8 MHz MCO in bypass, so the over-drive is on [RCC-004]. SPI1's suite
+as the F401's run E, with transfers of odd and even lengths [SPI-V3-002] and SCK
+sampled between them [SPI-V3-001]. Pass: every check passes and the script exits zero.
+
 ## Timers on the Nucleo-F401RE
 
 `hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run I stops its TIM3 generator mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the generator's period [AWG-007 API-002]. Run I then runs one pulse on TIM4 channel 1 (PB6), read by the same sampler [PWM-007]. Run R ends with its four lanes as one generator, TIM3 starting TIM2 through its trigger, and every lane of both must finish [AWG-005]. Pass: every check in every run passes and the script exits zero.

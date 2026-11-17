@@ -57,6 +57,7 @@ fault-injection = []
 # version it carries; the IP modules compile only behind their own feature.
 _vendor-st = []
 _family-stm32f4 = ["_vendor-st"]
+_family-stm32f7 = ["_vendor-st"]
 _family-stm32h7 = ["_vendor-st"]
 
 # IP versions. Each needs an RCC module and, for the UART, a stream DMA;
@@ -64,6 +65,7 @@ _family-stm32h7 = ["_vendor-st"]
 usart_v2 = []
 usart_v4 = []
 spi_v2 = []
+spi_v3 = []
 spi_v4 = []
 i2c_v1 = []
 i2c_v2 = []
@@ -77,6 +79,7 @@ dma_v1 = []
 dma_v2 = []
 gpio_v2 = []
 rcc_f4 = []
+rcc_f7 = []
 rcc_h7_rm0433 = []
 adc_v2 = []
 adc_v4 = []
@@ -141,6 +144,36 @@ stm32f407vg = [
     "dma_v2",
     "gpio_v2",
     "rcc_f4",
+    "adc_v2",
+]
+# The F7s carry usart_v3, which the UART redesign serves (ADR-011); until
+# then they have no UART driver.
+stm32f722re = [
+    "stm32-metapac/stm32f722re",
+    "_family-stm32f7",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
+    "adc_v2",
+]
+stm32f745vg = [
+    "stm32-metapac/stm32f745vg",
+    "_family-stm32f7",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
     "adc_v2",
 ]
 stm32h743vi = [
