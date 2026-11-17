@@ -347,7 +347,7 @@ mod tests {
                 sysclk: Hertz::mhz(480),
                 q: None,
             }),
-            Err(ClockError::Cpu)
+            Err(ClockError::Sysclk)
         );
     }
 }

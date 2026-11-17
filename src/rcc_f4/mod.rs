@@ -37,7 +37,9 @@ use stm32_metapac::{
 };
 
 pub use crate::rcc_kernel::Kernel;
-pub use crate::rcc_shared::{AhbPrescaler, ApbPrescaler, Hse, HseMode, PllSource, RccBit};
+pub use crate::rcc_shared::{
+    AhbPrescaler, ApbPrescaler, ClockError, Hse, HseMode, PllSource, RccBit,
+};
 use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency on every F4.
@@ -637,37 +639,6 @@ impl ApbPrescaler {
 pub enum Supply {
     /// 2.7 V to 3.6 V: one wait state per 30 MHz.
     V2_7To3_6,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum ClockError {
-    HseFrequency,
-    HseNotConfigured,
-    PllNotConfigured,
-    PllDivider,
-    PllMultiplier,
-    /// The PLL input after PLLM is outside the chip's range.
-    PllInput,
-    /// The VCO frequency is outside the chip's range.
-    PllVco,
-    Sysclk,
-    Hclk,
-    Pclk1,
-    Pclk2,
-    /// HSE did not report ready within its bound. The system is still on HSI.
-    HseTimeout,
-    /// The PLL did not lock within its bound. The system is still on HSI.
-    PllTimeout,
-    /// No combination of the dividers meets the request.
-    Unsatisfiable,
-    /// A clock switch or the flash latency did not take within its bound.
-    SwitchTimeout,
-    /// The USB port needs 48 MHz from PLLQ, and `Config` doesn't give it.
-    Usb,
-    /// PWR did not report the voltage scale ready (VOSRDY) within its
-    /// bound. The PLL is running, and the system is still on HSI.
-    SupplyTimeout,
 }
 
 /// A chip's clock limits, from its datasheet. Supplied by the glue layer.

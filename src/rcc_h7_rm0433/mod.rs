@@ -32,7 +32,9 @@ use stm32_metapac::{
 };
 
 pub use crate::rcc_kernel::Kernel;
-pub use crate::rcc_shared::{AhbPrescaler, ApbPrescaler, Hse, HseMode, PllSource, RccBit};
+pub use crate::rcc_shared::{
+    AhbPrescaler, ApbPrescaler, ClockError, Hse, HseMode, PllSource, RccBit,
+};
 use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};
 
 /// The HSI frequency, undivided.
@@ -336,36 +338,6 @@ impl VoltageScale {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum ClockError {
-    /// HSI48 or the USB supply didn't report ready within its bound.
-    UsbTimeout,
-    HseFrequency,
-    HseNotConfigured,
-    PllNotConfigured,
-    /// DIVM, DIVN or an output divider is outside its range, or DIVP is odd.
-    PllDivider,
-    /// The PLL input after DIVM is outside 1 to 16 MHz.
-    PllInput,
-    /// The VCO frequency fits neither VCO range for this input.
-    PllVco,
-    /// SYSCLK or the core clock is above the voltage scale's limit.
-    Cpu,
-    Hclk,
-    Pclk,
-    /// PWR did not report the supply or voltage scale ready.
-    SupplyTimeout,
-    /// HSE did not report ready within its bound. The system is on HSI.
-    HseTimeout,
-    /// The PLL did not lock within its bound. The system is on HSI.
-    PllTimeout,
-    /// A clock switch or the flash latency did not take within its bound.
-    SwitchTimeout,
-    /// No combination of the dividers meets the request.
-    Unsatisfiable,
-}
-
 /// A chip's clock limits. Supplied by the glue layer.
 pub(crate) struct Limits {
     /// (core, AXI/AHB, APB) maxima for scales 1, 2 and 3.
@@ -533,7 +505,7 @@ impl Config {
             },
         };
         if sysclk.0 > cpu_max.0 {
-            return Err(ClockError::Cpu);
+            return Err(ClockError::Sysclk);
         }
         let cpu = Hertz(sysclk.0 / self.cpu_pre.divisor());
         let hclk = Hertz(cpu.0 / self.ahb_pre.divisor());
@@ -544,12 +516,17 @@ impl Config {
         let pclk2 = Hertz(hclk.0 / self.apb2_pre.divisor());
         let pclk3 = Hertz(hclk.0 / self.apb3_pre.divisor());
         let pclk4 = Hertz(hclk.0 / self.apb4_pre.divisor());
-        if pclk1.0 > pclk_max.0
-            || pclk2.0 > pclk_max.0
-            || pclk3.0 > pclk_max.0
-            || pclk4.0 > pclk_max.0
-        {
-            return Err(ClockError::Pclk);
+        if pclk1.0 > pclk_max.0 {
+            return Err(ClockError::Pclk1);
+        }
+        if pclk2.0 > pclk_max.0 {
+            return Err(ClockError::Pclk2);
+        }
+        if pclk3.0 > pclk_max.0 {
+            return Err(ClockError::Pclk3);
+        }
+        if pclk4.0 > pclk_max.0 {
+            return Err(ClockError::Pclk4);
         }
         let Some((flash_latency, flash_wrhighfreq)) = flash_setup(hclk.0, self.voltage_scale)
         else {
@@ -669,11 +646,11 @@ impl Config {
     /// as ever.
     pub const fn solve(request: Request) -> Result<Self, ClockError> {
         if request.sysclk.0 == 0 {
-            return Err(ClockError::Cpu);
+            return Err(ClockError::Sysclk);
         }
         let limits = &CLOCK_LIMITS;
         if request.sysclk.0 > limits.scale1.0.0 {
-            return Err(ClockError::Cpu);
+            return Err(ClockError::Sysclk);
         }
         // The scales, lowest voltage first: the first that supports the
         // request wins.

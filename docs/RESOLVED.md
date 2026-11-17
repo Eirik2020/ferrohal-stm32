@@ -4,6 +4,14 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review N13: one `ClockError` for both families** (2026-11-17). The F4 named
+  `Sysclk`, `Pclk1`, `Pclk2`, `Usb`; the H7 `Cpu`, `Pclk`, `UsbTimeout`. `rcc_shared`
+  now holds one enum, re-exported as `crate::rcc::ClockError`: the H7's `Cpu` is
+  `Sysclk`, its single `Pclk` is split into `Pclk1` to `Pclk4` so a refusal names the
+  bus, and `Usb` (no 48 MHz source configured) and `UsbTimeout` (HSI48 or the USB supply
+  not ready) are both kept, since they mean different things. Spawned by `af65cad`, the
+  two RCC modules written separately.
+
 - **API review N5 and N17: "handle" has one meaning; the watchdog's names**
   (2026-11-17; owner's pick A). `design/naming.md` defines a handle as an ownerless,
   freely copied view a second context holds. `TimebaseReader` is `TimebaseHandle`, made

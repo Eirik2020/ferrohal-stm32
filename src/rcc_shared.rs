@@ -88,6 +88,49 @@ impl ApbPrescaler {
     }
 }
 
+/// Why a clock configuration was refused or did not take: one set for both
+/// families (API review N13). A family names the variants its tree has; the
+/// F4 has no APB3 or APB4, so never `Pclk3` or `Pclk4`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum ClockError {
+    HseFrequency,
+    HseNotConfigured,
+    PllNotConfigured,
+    /// A PLL divider is outside its range (on the H7 also DIVM, or an odd
+    /// DIVP).
+    PllDivider,
+    /// The F4's PLLN is outside its range.
+    PllMultiplier,
+    /// The PLL input after its first divider is outside the chip's range.
+    PllInput,
+    /// The VCO frequency is outside the chip's range.
+    PllVco,
+    /// SYSCLK, or on the H7 the core clock, is above the chip's limit.
+    Sysclk,
+    Hclk,
+    Pclk1,
+    Pclk2,
+    Pclk3,
+    Pclk4,
+    /// No combination of the dividers meets the request.
+    Unsatisfiable,
+    /// HSE did not report ready within its bound. The system is on HSI.
+    HseTimeout,
+    /// The PLL did not lock within its bound. The system is on HSI.
+    PllTimeout,
+    /// A clock switch or the flash latency did not take within its bound.
+    SwitchTimeout,
+    /// PWR did not report the supply or the voltage scale ready within its
+    /// bound.
+    SupplyTimeout,
+    /// The USB port has no 48 MHz source: on the F4, `Config` doesn't give
+    /// it from PLLQ.
+    Usb,
+    /// The H7's HSI48 or USB supply didn't report ready within its bound.
+    UsbTimeout,
+}
+
 /// A peripheral's bit in its bus's enable and reset registers (the same
 /// position in both). Chip facts: the glue layer supplies them.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
