@@ -49,7 +49,7 @@ use ferrohal_stm32::{
 
 use clocks::{CLOCK_CONFIG, CLOCKS, REFUSAL_CONFIG};
 use imu::Imu;
-use usb_bench::{Link, Report, WATCHDOG_US, reboot_to_dfu};
+use usb_bench::{Link, Report, WATCHDOG_US};
 
 /// The endpoint memory `usb_bench` gives the driver: the F4's OTG_FS FIFO.
 #[path = "ident.rs"]
@@ -451,12 +451,12 @@ fn main() -> ! {
     usb_bench::enter_bootloader_if_requested();
 
     let Some(mut core) = cortex_m::Peripherals::take() else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
     core.DCB.enable_trace();
     core.DWT.enable_cycle_counter();
     let Some(p) = Peripherals::take() else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
     // Scale 2, harmless on the reset clock, for `freeze` to replace.
     stm32_metapac::RCC.apb1enr().modify(|w| w.set_pwren(true));
@@ -478,10 +478,10 @@ fn main() -> ! {
                 .map_err(|refused| refused.error())
             {
                 Ok(rcc) => (refused_plls, rcc),
-                Err(_) => reboot_to_dfu(),
+                Err(_) => usb_bench::stop(line!()),
             }
         }
-        Ok(_) => reboot_to_dfu(),
+        Ok(_) => usb_bench::stop(line!()),
     };
     let cause = usb_bench::cause_text(rcc.reset_cause());
     let (watchdog_refused, iwdg) = match Watchdog::start(p.IWDG, 1) {
@@ -489,10 +489,10 @@ fn main() -> ! {
             let refused_timeout = matches!(refused.error(), ferrohal_stm32::iwdg::Error::Timeout);
             (refused_timeout, refused.into_parts())
         }
-        Ok(_) => reboot_to_dfu(),
+        Ok(_) => usb_bench::stop(line!()),
     };
     let Ok(watchdog) = Watchdog::start(iwdg, WATCHDOG_US) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
     let (timebase_refused, tim2) = match Timebase::new(&mut rcc, p.TIM2, Hertz::mhz(5)) {
         Err(refused) => {
@@ -500,10 +500,10 @@ fn main() -> ! {
                 matches!(refused.error(), ferrohal_stm32::timer::ConfigError::Inexact);
             (refused_inexact, refused.into_parts())
         }
-        Ok(_) => reboot_to_dfu(),
+        Ok(_) => usb_bench::stop(line!()),
     };
     let Ok(clock) = Timebase::new(&mut rcc, tim2, Hertz::mhz(1)) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
 
     let mut a = p.GPIOA.split(&mut rcc);
@@ -541,10 +541,10 @@ fn main() -> ! {
                 let (wiring, buffers) = refused.into_parts();
                 (refused_zero, wiring, buffers)
             }
-            Ok(_) => reboot_to_dfu(),
+            Ok(_) => usb_bench::stop(line!()),
         };
     let Ok(mut imu_spi) = Spi::new(&mut rcc, imu_wiring, &IMU_SLOW, buffers) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
 
     let mut nor_cs = b.p12.into_push_pull_output(&mut b.ctrl);
@@ -566,10 +566,10 @@ fn main() -> ! {
             let refused_zero = matches!(refused.error(), spi::ConfigError::Frequency);
             (refused_zero, refused.into_parts())
         }
-        Ok(_) => reboot_to_dfu(),
+        Ok(_) => usb_bench::stop(line!()),
     };
     let Ok(spi) = BlockingSpi::new(&mut rcc, nor_wiring, &NOR_BUS) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
     let mut nor = Nor { spi, cs: nor_cs };
 
@@ -583,7 +583,7 @@ fn main() -> ! {
     // The battery inputs, on ADC1 with the temperature sensor: the sequence
     // and the free stream the flight code uses.
     let Ok(mut adc) = Adc::new(&mut rcc, p.ADC1, &AdcConfig::slow_source()) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
     let voltage = c.p0.into_analog(&mut c.ctrl);
     let current = c.p1.into_analog(&mut c.ctrl);
@@ -602,10 +602,10 @@ fn main() -> ! {
             let (adc1, stream, samples) = refused.into_parts();
             (refused_empty, adc1, stream, samples)
         }
-        Ok(_) => reboot_to_dfu(),
+        Ok(_) => usb_bench::stop(line!()),
     };
     let Ok(mut scan) = adc1.into_scan(scan_stream, &channels, samples) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
 
     let (pwm_refused, tim1) = match Pwm::new(&mut rcc, p.TIM1, Hertz(0)) {
@@ -614,14 +614,14 @@ fn main() -> ! {
                 matches!(refused.error(), ferrohal_stm32::timer::ConfigError::Inexact);
             (refused_zero, refused.into_parts())
         }
-        Ok(_) => reboot_to_dfu(),
+        Ok(_) => usb_bench::stop(line!()),
     };
     let (Ok(mut tim1), Ok(mut tim8)) = (
         Pwm::new(&mut rcc, tim1, Hertz::khz(600)),
         // A different rate on purpose, for the waveform generator's refusal.
         Pwm::new(&mut rcc, p.TIM8, Hertz::khz(300)),
     ) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
 
     // The motor pads get their timers with duty 0 and the counters stopped,
@@ -657,7 +657,7 @@ fn main() -> ! {
             let (wiring, (_ccm, read)) = refused.into_parts();
             (refused_ccm, wiring, read)
         }
-        Ok(_) => reboot_to_dfu(),
+        Ok(_) => usb_bench::stop(line!()),
     };
     let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
         wiring1.assemble_two_way::<'A'>(&tim1, &mut one[..], lane_read1),
@@ -677,7 +677,7 @@ fn main() -> ! {
             &mut read4[..],
         ),
     ) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
     // Assembly opens each channel's output; the motor pads lose theirs at
     // once, before any counter runs, as before.
@@ -700,10 +700,10 @@ fn main() -> ! {
                 let re_rated = tim8.set_frequency(Hertz::khz(600)).is_ok();
                 (refused_mismatch && re_rated, tim1, tim8, first, second)
             }
-            Ok(_) => reboot_to_dfu(),
+            Ok(_) => usb_bench::stop(line!()),
         };
     let Ok(mut motors) = Awg::linked(tim1, tim8, first, second) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
 
     let mut dm = a.p11.into_alternate::<10>(&mut a.ctrl);
@@ -718,7 +718,7 @@ fn main() -> ! {
             dp,
         },
     ) else {
-        reboot_to_dfu()
+        usb_bench::stop(line!())
     };
     let mut link = Link::new(usb, "foxeer-f405-v2", watchdog, clock.reader());
     let mut imu = Imu {
