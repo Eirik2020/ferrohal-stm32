@@ -3,7 +3,7 @@
  "counts": {
   "documents": 75,
   "agent": 53,
-  "bytes": 384089
+  "bytes": 384188
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9634
+   "bytes": 9733
   },
   {
    "path": "docs/RESOLVED-chips-and-features.md",
