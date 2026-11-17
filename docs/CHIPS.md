@@ -17,8 +17,8 @@ part's clock limits (ADR-008 item 7); do not edit between the markers.
 | STM32F411CE | F4, Cortex-M4F | 0x431 | STM32F411 | UFQFPN48 (36) | 100 MHz |
 | STM32F405RG | F4, Cortex-M4F | 0x413 | STM32F405 | LQFP64 (51) | 168 MHz |
 | STM32F407VG | F4, Cortex-M4F | 0x413 | STM32F407 | LQFP100 (82) | 168 MHz |
-| STM32F722RE | F7, Cortex-M7 | 0x452 | STM32F722 | LQFP64 (50) | ? |
-| STM32F745VG | F7, Cortex-M7 | 0x449 | STM32F745 | LQFP100 (82) | ? |
+| STM32F722RE | F7, Cortex-M7 | 0x452 | STM32F722 | LQFP64 (50) | 216 MHz |
+| STM32F745VG | F7, Cortex-M7 | 0x449 | STM32F745 | LQFP100 (82) | 216 MHz |
 | STM32F767ZI | F7, Cortex-M7 | 0x451 | STM32F767 | LQFP144 (114) | ? |
 | STM32H743VI | H7, Cortex-M7 | 0x450 | STM32H743 | LQFP100 (82) | 400 MHz (VOS1) |
 | STM32H753ZI | H7, Cortex-M7 | 0x450 | STM32H753 | LQFP144 (114) | 400 MHz (VOS1) |
@@ -34,15 +34,15 @@ the markers; the merge gate regenerates them.
 <!-- generated: glue-gen tiers -->
 | part | platform | UART | SPI | I2C | Timers | ADC | USB | SDMMC | Watchdog | EXTI | DMA |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| STM32F401RE | – | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F401RE | – | HIL | – | – | HIL | HIL | HIL | n/a | HIL | HIL | – |
 | STM32F411CE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
-| STM32F405RG | – `INH` | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F407VG | – | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F405RG | – `INH` | HIL | – | – | HIL | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F407VG | – | HIL | – | – | HIL | HIL | HIL | n/a | HIL | HIL | – |
 | STM32F722RE | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
 | STM32F745VG | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
 | STM32F767ZI | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
-| STM32H743VI | – | HIL | HIL | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H753ZI | – | HIL | HIL | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H743VI | – | – | – | – | – | – | – | – | – | – | – |
+| STM32H753ZI | – | – | – | – | – | – | – | – | – | – | – |
 <!-- end generated -->
 
 The rig's parts, measured on each bench's identity line:
@@ -78,31 +78,32 @@ one in an IP version FerroHAL does not drive yet.
 <!-- end generated -->
 
 What each driver does, hand-written: ✓ supported · – on the chip, not supported · n/a
-not on the chip. The F407VG is as the F405RG throughout, and the F411CE as the F401RE.
+not on the chip. The F407VG is as the F405RG throughout, the F411CE as the F401RE, and the
+F745VG as the F722RE. The F7's UARTs (usart_v3) wait for the UART redesign.
 
-| capability | F401RE | F405RG | H743VI | H753ZI |
-|---|---|---|---|---|
-| UART full duplex over DMA, idle-ended chunks, receive-only, parity, break, line masking, `free()` | ✓ | ✓ | ✓ | ✓ |
-| RX/TX inversion (refused on `usart_v2`, USART-V2-001) | n/a | n/a | ✓ | ✓ |
-| LPUART | n/a | n/a | – | – |
-| SPI6 over DMA (BDMA) | n/a | n/a | – | – |
-| I2C master, 7-bit, polled | ✓ | ✓ | ✓ | ✓ |
-| timers: one-pulse, trigger start, compare lanes and samplers over DMA, the waveform generator | ✓ | ✓ | ✓ | ✓ |
-| LPTIM, HRTIM | n/a | n/a | – | – |
-| **EXTI**, GPIO lines 0-15 | ✓ | ✓ | ✓ | ✓ |
-| **GPIO** per-package bonded pins, alternate functions | ✓ | ✓ | ✓ | ✓ |
-| DMAMUX1 on the H7; BDMA, MDMA | n/a | n/a | DMAMUX1 ✓, BDMA/MDMA – | as H743 |
-| ADC regular sequence, software start; internal channels: VREFINT, die temperature, factory calibration | ✓ | ✓ | ✓ | ✓ |
-| ADC2 and ADC3 (F4), ADC2 (H7): not offered, opening one would reset another | – | – | – | – |
-| **Watchdog** (IWDG): start, LSI-scaled, debug freeze | ✓ | ✓ | ✓ | ✓ |
-| windowed watchdog start | n/a | n/a | ✓ | ✓ |
-| **Clocks** (`freeze`, const solver): HSI, HSE bypass, HSE crystal, PLL | ✓ | ✓ | ✓ | ✓ |
-| voltage scale | ✓ | ✓ | VOS1 | VOS1 |
-| USB device CDC, full speed | ✓ | ✓ | ✓ | ✓ |
-| SDMMC 4-bit, polled (the F4's SDIO: –) | n/a | n/a | ✓ | ✓ |
-| **System**: reset cause, ROM bootloader entry, UID, die revision | ✓ | ✓ | ✓ | ✓ |
-| **Adapters** (features): `fugit` rate conversions | ✓ | ✓ | ✓ | ✓ |
-| tokens only, no driver: CAN/FDCAN, DAC, RNG, CRC, RTC, WWDG, SAI, ETH, QSPI, FMC, LTDC | – | – | – | – |
+| capability | F401RE | F405RG | F722RE | H743VI | H753ZI |
+|---|---|---|---|---|---|
+| UART full duplex over DMA, idle-ended chunks, receive-only, parity, break, line masking, `free()` | ✓ | ✓ | – | ✓ | ✓ |
+| RX/TX inversion (refused on `usart_v2`, USART-V2-001) | n/a | n/a | – | ✓ | ✓ |
+| LPUART | n/a | n/a | n/a | – | – |
+| SPI6 over DMA (BDMA) | n/a | n/a | n/a | – | – |
+| I2C master, 7-bit, polled | ✓ | ✓ | ✓ | ✓ | ✓ |
+| timers: one-pulse, trigger start, compare lanes and samplers over DMA, the waveform generator | ✓ | ✓ | ✓ | ✓ | ✓ |
+| LPTIM, HRTIM | n/a | n/a | – | – | – |
+| **EXTI**, GPIO lines 0-15 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **GPIO** per-package bonded pins, alternate functions | ✓ | ✓ | ✓ | ✓ | ✓ |
+| DMAMUX1 on the H7; BDMA, MDMA | n/a | n/a | n/a | DMAMUX1 ✓, BDMA/MDMA – | as H743 |
+| ADC regular sequence, software start; internal channels: VREFINT, die temperature, factory calibration | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ADC2 and ADC3 (F4), ADC2 (H7): not offered, opening one would reset another | – | – | – | – | – |
+| **Watchdog** (IWDG): start, LSI-scaled, debug freeze | ✓ | ✓ | ✓ | ✓ | ✓ |
+| windowed watchdog start | n/a | n/a | ✓ | ✓ | ✓ |
+| **Clocks** (`freeze`, const solver): HSI, HSE bypass, HSE crystal, PLL | ✓ | ✓ | ✓ | ✓ | ✓ |
+| voltage scale | ✓ | ✓ | VOS1, over-drive | VOS1 | VOS1 |
+| USB device CDC, full speed | ✓ | ✓ | ✓ | ✓ | ✓ |
+| SDMMC 4-bit, polled (the F4's SDIO: –) | n/a | n/a | – | ✓ | ✓ |
+| **System**: reset cause, ROM bootloader entry, UID, die revision | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Adapters** (features): `fugit` rate conversions | ✓ | ✓ | ✓ | ✓ | ✓ |
+| tokens only, no driver: CAN/FDCAN, DAC, RNG, CRC, RTC, WWDG, SAI, ETH, QSPI, FMC, LTDC | – | – | – | – | – |
 
 ## Limits
 
@@ -149,10 +150,12 @@ names where the code documents it.
 - Arming and staging two lanes takes 14 µs on the F401 at 84 MHz.
 - Samplers are measured up to about 7 MHz.
 - Only the trigger routes in use are offered: TIM1→TIM3, TIM1→TIM8, and TIM3→TIM2 on
-  the F4 (RM0090 table 94, RM0368 table 54, RM0383 table 53, RM0433 table 336).
+  the F4 and F7 (RM0090 table 94, RM0368 table 54, RM0383 table 53, RM0431 table 121,
+  RM0385 table 154, RM0433 table 336).
 - F4: DMA2 serving GPIO and APB2 at once can corrupt data (ES0299 2.2.11, ES0287 2.2.11, ES0182
   2.2.19), and only DMA2 reaches GPIO, so samplers and two-way lanes must not overlap
-  APB2 DMA (TIM1, TIM8, SPI1, USART1/6).
+  APB2 DMA (TIM1, TIM8, SPI1, USART1/6). On the F7 too only DMA2 reaches GPIO (RM0431
+  and RM0385 8.3.2), without that erratum.
 
 **Watchdog**
 - The LSI drifts with temperature and supply; `start_with_lsi` scales to one measured
@@ -167,6 +170,17 @@ names where the code documents it.
 - `check_dma_buffer` steps the MPU's RNR and restores it: do not reprogram the MPU while a
   `Uart` opens. Buffers must be in non-cacheable memory.
 - DMAMUX overruns are not watched; ES0392 2.5.1 says CFR writes do not raise them.
+
+**DMA, memory and caches (F7)**
+- The streams reach the DTCM (through the core's AHBS port), SRAM1 and SRAM2, not the
+  ITCM. With the data cache on, a buffer in SRAM1 or SRAM2 must be in a region the MPU
+  marks non-cacheable; the DTCM is never cached (`check_dma_buffer`).
+
+**Clocks and power (F7)**
+- HCLK above 180 MHz runs in over-drive, which `freeze` enters and leaves on HSI: freeze
+  before any driver opens, since RM0431 4.1.4 wants no peripheral clock on during the
+  switch. APB1 and APB2 are capped at 45 and 90 MHz without it, 54 and 108 with it.
+- The 48 MHz domain (USB, SDMMC, RNG) comes from PLLQ only; PLLSAI is not offered.
 
 **Clocks and power (H7)**
 - The wide VCO is capped at 836 MHz (revision Y) though V allows 960.

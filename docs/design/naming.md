@@ -42,8 +42,12 @@ How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
 | `stm32f401re` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
 | `stm32f411ce` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
 | `stm32f405rg` | F4 | v2 | v2 | v1 | v1 | v1 | v1 | v2 | v2 | `rcc_f4` | v2 | - | OTG_FS |
+| `stm32f722re` | F7 | (v3) | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
+| `stm32f745vg` | F7 | (v3) | v3 | v2 | v1 | v1 | v2 | v2 | v2 | `rcc_f7` | v2 | - | OTG_FS |
 | `stm32h743vi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
 | `stm32h753zi` | H7 | v4 | v4 | v2 | h7 | v3 | v2 | v1 | v2 | `rcc_h7_rm0433` | v4 | v2 | OTG_HS (FS) |
+
+(v3): the F7's usart_v3, which the UART redesign serves; no feature until then.
 
 Which IP versions each series carries, as metapac measured them:
 [`../notes/2026-11-10-ip-versions.md`](../notes/2026-11-10-ip-versions.md).
@@ -59,7 +63,10 @@ Which IP versions each series carries, as metapac measured them:
   This list is complete: these four are every `#[path]` alias in `src/lib.rs` and
   `src/timer.rs` (the chip files' `#[path]`s pull in glue, not drivers). ADR-003 rule 4
   named only the first and the timer; the 2026-11-13 debt sweep counted five. Both
-  counts are superseded by this one (API review K4, 2026-11-17).
+  counts are superseded by this one (API review K4, 2026-11-17). Not a driver alias
+  either: the F4 clock tree's configuration and solver (`rcc_f4/tree.rs`), mounted by
+  `rcc_f4` and by `rcc_f7`, which keeps its own register writes (the F7 plan's Q3,
+  owner, 2026-11-17).
 - **[Decided]** Not an exception: a neutral module's engine serving every IP version
   through that version's register wrapper (`Unit`; the UART's `LineRegs`, N7)
   (`uart/stream_dma.rs`, `spi/stream_dma.rs`,
