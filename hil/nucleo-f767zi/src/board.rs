@@ -47,9 +47,9 @@ use ferrohal_stm32::{
 };
 
 /// 216 MHz, the F7's ceiling, from HSI so it needs no solder bridge: 16 MHz
-/// / 8 * 216 = 432 MHz VCO, / 2 = 216 MHz, / 9 = 48 MHz. APB1 at 54 MHz and
-/// APB2 at 108, both past their normal-mode limits (45 and 90), so `freeze`
-/// must put the regulator in over-drive (RCC-F7-001).
+/// / 8 * 216 = 432 MHz VCO, / 2 = 216 MHz, / 9 = 48 MHz; APB1 at 54 MHz, APB2
+/// at 108. HCLK is above the 180 MHz over-drive threshold, so `freeze` must put
+/// the regulator in over-drive (RCC-004).
 pub const CLOCK_CONFIG: Config = Config {
     hse: None,
     pll: Some(Pll {
@@ -73,9 +73,10 @@ pub const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
     Err(_) => panic!("CLOCK_CONFIG breaks the F7's limits"),
 };
 
-/// The IWDG's LSI: the nominal 32 kHz (DS11532 Table 46 gives 17 to 47 kHz)
-/// until run B measures this board's.
-pub const LSI_HZ: Hertz = Hertz::hz(32_000);
+/// The IWDG's LSI, measured across a reset: 50 ms at the nominal 32 kHz came
+/// back as 53.96 ms (run B, 2026-11-17), so this board's LSI runs at 29.65 kHz
+/// (DS11532 Table 46 gives 17 to 47 kHz).
+pub const LSI_HZ: Hertz = Hertz::hz(29_650);
 
 /// The blue user LED LD2 on PB7 (UM1974 7.5): lit when a run passes.
 pub type Led = Pin<'B', 7, Output>;
@@ -106,7 +107,9 @@ pub struct RunA {
 }
 
 fn freeze(p_rcc: ferrohal_stm32::rcc::RCC) -> Result<Rcc, ClockError> {
-    p_rcc.freeze(&CLOCK_CONFIG).map_err(|refused| refused.error())
+    p_rcc
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())
 }
 
 pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {

@@ -26,6 +26,9 @@ use tests::{Fail, Report};
 fn main() -> ! {
     let mut core = cortex_m::Peripherals::take().unwrap_or_else(|| defmt::unreachable!());
     core.DCB.enable_trace();
+    // The F7's Cortex-M7 ignores DWT writes until its lock access register
+    // is unlocked: measured 2026-11-17, CYCCNT stayed 0 without it.
+    cortex_m::peripheral::DWT::unlock();
     core.DWT.enable_cycle_counter();
     let p = Peripherals::take().unwrap_or_else(|| defmt::unreachable!());
     let mut run = match board::run_b(p) {

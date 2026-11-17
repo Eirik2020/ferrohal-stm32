@@ -4,9 +4,9 @@
 //! First the regulator. Before `freeze`, `init` sets voltage scale 3 (VOS
 //! 0b01), as a bootloader might have left it, harmless on the reset clock with
 //! the PLL off. `freeze` must replace it with scale 1 (VOS 0b11) and see
-//! VOSRDY [RCC-003], and, since the tree runs APB1 at 54 MHz and APB2 at 108,
-//! past their normal-mode limits, put the regulator in over-drive: ODEN and
-//! ODSWEN set, ODRDY and ODSWRDY reported [RCC-F7-001].
+//! VOSRDY [RCC-003], and, since HCLK runs at 216 MHz, above the 180 MHz
+//! threshold, put the regulator in over-drive: ODEN and ODSWEN set, ODRDY and
+//! ODSWRDY reported [RCC-004].
 //!
 //! Then each timer ticks at 1 kHz and must keep that rate to 0.05 %, then stop
 //! when paused. The run then frees TIM4 and reopens it at 8 kHz, and frees
@@ -78,6 +78,9 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local) {
         let mut core = cx.core;
         core.DCB.enable_trace();
+        // The F7's Cortex-M7 ignores DWT writes until its lock access register
+        // is unlocked: measured 2026-11-17, CYCCNT stayed 0 without it.
+        cortex_m::peripheral::DWT::unlock();
         core.DWT.enable_cycle_counter();
         // The PLL is off after reset, as RM0410 4.1.6 needs for a write to VOS.
         stm32_metapac::RCC.apb1enr().modify(|w| w.set_pwren(true));
@@ -211,7 +214,7 @@ mod app {
         );
         report.check_for(
             "PWR",
-            "RCC-F7-001",
+            "RCC-004",
             "over-drive on (ODEN, ODSWEN) and ready (ODRDY, ODSWRDY)",
             if cr1.oden() && cr1.odswen() && csr1.odrdy() && csr1.odswrdy() {
                 Ok(())
