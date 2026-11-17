@@ -92,6 +92,8 @@ for run in ${*:-probe a b c d e f g h i j k l m n o p q r s t u w x y z}; do
             features=()
             # Run T alone builds with the library's bench fault injection.
             [ "$run" = t ] && features=(--features fault-injection)
+            # For tools/record_evidence.py: what this image was built with.
+            if [ "${#features[@]}" -gt 0 ]; then echo "build features: ${features[1]}"; else echo "build features: none"; fi >> "$log"
             (cd "$here/nucleo-h753zi-loopback" && timeout 300 "${runner[@]}" cargo run --release "${features[@]}" --bin "run-$run") >> "$log" 2>&1
         fi
         code=$?

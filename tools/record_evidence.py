@@ -57,6 +57,31 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+# The line a run script writes before it builds: `build features: a,b` or
+# `build features: none`. A log without one was built with the defaults.
+FEATURES = re.compile(r"^build features: (.+)$", re.M)
+
+
+def features_of(logs):
+    """The features one procedure's images were built with, from its logs.
+    Every run of one procedure must agree, since reqtool records one
+    configuration per procedure; a disagreement is an error, not a guess."""
+    found = set()
+    for log in logs:
+        listed = FEATURES.findall(log.read_text(errors="replace")) or ["none"]
+        for line in listed:
+            names = [] if line.strip() == "none" else sorted(n.strip() for n in line.split(","))
+            found.add(tuple(names))
+    if len(found) > 1:
+        raise ValueError(f"runs built with different features: {sorted(found)}")
+    return list(found.pop()) if found else []
+
+
+def candidate(firmware_sha256, features):
+    return {"firmware_sha256": firmware_sha256, "features": list(features),
+            "target_triple": "thumbv7em-none-eabihf", "profile": "release"}
+
+
 def procedures():
     """(file, heading, bench, runs) for every procedure with a run command."""
     found = []
@@ -139,12 +164,14 @@ def artifact(folder, name, kind):
             "bytes": path.stat().st_size, "sha256": sha(path)}
 
 
-def reqtool_record(procedure, details, board, dry):
+def reqtool_record(procedure, details, board, dry, features=()):
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
         json.dump(details, f, indent=1)
     cmd = [str(REQTOOL), "record", "--procedure", procedure, "--result", "pass", "--details", f.name]
     if board:
         cmd += ["--board", board]
+    if features:
+        cmd += ["--features", ",".join(features)]
     if dry:
         cmd.append("--dry-run")
     out = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
@@ -177,17 +204,21 @@ def record(folder, dry, only=None):
                 continue
             command = f"hil/run-{bench}.sh {' '.join(rs)}"
         images = folder / f"{crate}-images.sha256"
+        try:
+            features = features_of(logs)
+        except ValueError as error:
+            print(f"skip  {heading}: {error}")
+            continue
         details = {
             "execution": {"performed_by": "agent", "user_confirmed": False},
-            "candidate": {"firmware_sha256": sha(images), "features": [],
-                          "target_triple": "thumbv7em-none-eabihf", "profile": "release"},
+            "candidate": candidate(sha(images), features),
             "commands": [{"command": command, "exit_code": 0}],
             "artifacts": [artifact(folder, images.name, "configuration")]
             + [artifact(folder, log.name, "log") for log in logs],
             "observations": ["Every check in every run of the subset passed (PASS lines in the logs; no FAIL)."]
             + ([f"The report holds `{CONDITION[heading][0]}` and not `{CONDITION[heading][1]}`."] if heading in CONDITION else []),
         }
-        out = reqtool_record(f"{file}#{heading}", details, crate, dry)
+        out = reqtool_record(f"{file}#{heading}", details, crate, dry, features)
         print(("ok    " if out.returncode == 0 else "FAIL  ") + heading, out.stderr.strip()[-200:])
     for heading in ANALYSIS:
         if only and heading != only:

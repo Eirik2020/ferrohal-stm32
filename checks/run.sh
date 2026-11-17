@@ -56,6 +56,7 @@ step "firmware crates enable rt" python3 -I "$root/tools/check_firmware_features
 step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
 step "names (ADR-003)" python3 -I "$root/tools/check_names.py"
 step "no-metapac probes" bash "$root/checks/no-metapac/run.sh"
+step "evidence recorder tests" python3 -I "$root/tools/test_record_evidence.py"
 step "docs index up to date" python3 -I "$root/tools/docs_index.py" --check
 step "doc size limits" python3 -I "$root/tools/check_docs.py"
 host=$(rustc -vV | sed -n 's/^host: //p')
