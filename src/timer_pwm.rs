@@ -47,8 +47,7 @@ use super::{
 use crate::{
     chip::Interrupt,
     dma::{
-        AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, StreamInterrupt, Transfer,
-        WordSize,
+        AnyStream, Direction, Flags, Priority, StopTimeout, StreamInterrupt, Transfer, WordSize,
     },
     gpio::{Port, PortInstance, PortRegisters},
     rcc::Rcc,
@@ -800,24 +799,15 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
             *last = 0;
         }
         pwm.set_duty::<C>(*first);
-        let transfer = Transfer {
-            request: self.request,
-            #[cfg(feature = "dma_v1")]
-            bufferable: false,
-            direction: Direction::MemoryToPeripheral,
-            peripheral: pwm.gp.ccr(usize::from((C - 1) & 3)).as_ptr() as u32,
-            memory: self.buffer.as_ptr() as u32,
+        let transfer = Transfer::one_shot(
+            self.request,
+            Direction::MemoryToPeripheral,
+            pwm.gp.ccr(usize::from((C - 1) & 3)).as_ptr() as u32,
+            self.buffer.as_ptr() as u32,
             len,
-            size: WordSize::Word,
-            memory_increment: true,
-            circular: false,
-            priority: Priority::VeryHigh,
-            interrupts: Interrupts {
-                complete: true,
-                error: true,
-                ..Interrupts::default()
-            },
-        };
+            WordSize::Word,
+            Priority::VeryHigh,
+        );
         // SAFETY: the buffer is the lane's own for its life and holds `len`
         // words; the address is this channel's compare register, whose
         // request the stream serves.
@@ -843,24 +833,15 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
             return Err(Error::TooLarge);
         }
         let len = u16::try_from(count).map_err(|_| Error::TooLarge)?;
-        let transfer = Transfer {
-            request: self.request,
-            #[cfg(feature = "dma_v1")]
-            bufferable: false,
-            direction: Direction::PeripheralToMemory,
-            peripheral: input.port,
-            memory: input.samples.as_mut_ptr() as u32,
+        let transfer = Transfer::one_shot(
+            self.request,
+            Direction::PeripheralToMemory,
+            input.port,
+            input.samples.as_mut_ptr() as u32,
             len,
-            size: WordSize::HalfWord,
-            memory_increment: true,
-            circular: false,
-            priority: Priority::VeryHigh,
-            interrupts: Interrupts {
-                complete: true,
-                error: true,
-                ..Interrupts::default()
-            },
-        };
+            WordSize::HalfWord,
+            Priority::VeryHigh,
+        );
         pwm.set_duty::<C>(duty);
         // SAFETY: the samples are the lane's own for its life and hold `len`
         // words; the address is a GPIO port's input register, read-only and
@@ -892,7 +873,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
             return None;
         }
         let flags = self.dma.flags();
-        if flags.transfer_error || flags.direct_mode_error {
+        if flags.failed() {
             // A stream that will not stop is caught by the next `arm`
             // (`Error::Dma`) or by `free`.
             let _ = self.stop_stream();
@@ -1075,24 +1056,15 @@ impl<T: Instance, S> Sampler<T, S> {
             return Err(Error::TooLarge);
         }
         let len = u16::try_from(count).map_err(|_| Error::TooLarge)?;
-        let transfer = Transfer {
-            request: self.request,
-            #[cfg(feature = "dma_v1")]
-            bufferable: false,
-            direction: Direction::PeripheralToMemory,
-            peripheral: self.input,
-            memory: self.buffer.as_mut_ptr() as u32,
+        let transfer = Transfer::one_shot(
+            self.request,
+            Direction::PeripheralToMemory,
+            self.input,
+            self.buffer.as_mut_ptr() as u32,
             len,
-            size: WordSize::HalfWord,
-            memory_increment: true,
-            circular: false,
-            priority: Priority::VeryHigh,
-            interrupts: Interrupts {
-                complete: true,
-                error: true,
-                ..Interrupts::default()
-            },
-        };
+            WordSize::HalfWord,
+            Priority::VeryHigh,
+        );
         let timer = self.timer;
         timer.cr1().modify(|w| w.set_cen(false));
         timer.cnt().write(|w| w.set_cnt(0));
@@ -1117,7 +1089,7 @@ impl<T: Instance, S> Sampler<T, S> {
             return None;
         };
         let flags = self.dma.flags();
-        if flags.transfer_error || flags.direct_mode_error {
+        if flags.failed() {
             self.abort();
             return Some(Err(Error::Dma));
         }

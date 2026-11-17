@@ -28,15 +28,6 @@ use crate::{
 /// caches off: about 390).
 const TX_PASS_CYCLES: u32 = 48;
 
-/// The transmit stream's interrupts: a frame done, or a DMA error. A FIFO
-/// error is advisory in direct mode and only cleared.
-const TX_INTERRUPTS: Interrupts = Interrupts {
-    complete: true,
-    half: false,
-    error: true,
-    fifo_error: false,
-};
-
 pub(super) struct Tx {
     dma: AnyStream,
     request: u8,
@@ -98,7 +89,7 @@ impl Tx {
         let mut finished = (false, false);
         if self.running {
             let flags = self.dma.flags();
-            if flags.transfer_error || flags.direct_mode_error {
+            if flags.failed() {
                 if self.dma.stop(crate::dma::STOP_SPINS).is_err() {
                     self.halted = true;
                 }
@@ -135,23 +126,17 @@ impl Tx {
             return finished;
         };
         unit.clear_tc();
-        let transfer = Transfer {
-            request: self.request,
-            // ES0392 2.20.4: TRBUFF keeps a U(S)ART stream from locking when
-            // another transfer runs beside it.
-            #[cfg(feature = "dma_v1")]
-            bufferable: true,
-            direction: Direction::MemoryToPeripheral,
-            peripheral: unit.tx_address(),
+        let transfer = Transfer::one_shot(
+            self.request,
+            Direction::MemoryToPeripheral,
+            unit.tx_address(),
             // The frame lies inside the buffer.
-            memory: self.buf.wrapping_add(usize::from(frame.offset)) as u32,
-            len: frame.len,
-            size: WordSize::Byte,
-            memory_increment: true,
-            circular: false,
-            priority: Priority::Medium,
-            interrupts: TX_INTERRUPTS,
-        };
+            self.buf.wrapping_add(usize::from(frame.offset)) as u32,
+            frame.len,
+            WordSize::Byte,
+            Priority::Medium,
+        )
+        .for_usart();
         // SAFETY: the frame's bytes are in the transmit buffer, written before
         // the frame was queued and untouched until it is popped, after the
         // stream has finished with it. The routing trait vouched for the

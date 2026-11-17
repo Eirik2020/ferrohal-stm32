@@ -287,33 +287,27 @@ impl<W: Parts> Spi<W> {
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         unit.enable_rx_dma(len);
-        let rx = Transfer {
-            request: self.rx_request,
-            #[cfg(feature = "dma_v1")]
-            bufferable: false,
-            direction: Direction::PeripheralToMemory,
-            peripheral: unit.rx_address(),
-            memory: self.rx_buf.as_mut_ptr() as u32,
+        let rx = Transfer::one_shot(
+            self.rx_request,
+            Direction::PeripheralToMemory,
+            unit.rx_address(),
+            self.rx_buf.as_mut_ptr() as u32,
             len,
-            size: WordSize::Byte,
-            memory_increment: true,
-            circular: false,
-            priority: Priority::VeryHigh,
-            interrupts: Interrupts {
-                complete: true,
-                error: true,
-                ..Interrupts::default()
-            },
-        };
-        let tx = Transfer {
-            request: self.tx_request,
-            direction: Direction::MemoryToPeripheral,
-            peripheral: unit.tx_address(),
-            memory: self.tx_buf.as_ptr() as u32,
-            priority: Priority::High,
-            interrupts: Interrupts::default(),
-            ..rx
-        };
+            WordSize::Byte,
+            Priority::VeryHigh,
+        );
+        // The receive stream's interrupt ends the transfer; the transmit
+        // stream's raises nothing.
+        let tx = Transfer::one_shot(
+            self.tx_request,
+            Direction::MemoryToPeripheral,
+            unit.tx_address(),
+            self.tx_buf.as_ptr() as u32,
+            len,
+            WordSize::Byte,
+            Priority::High,
+        )
+        .with_interrupts(Interrupts::default());
         // SAFETY: both buffers are the driver's own for its whole life, at
         // least `len` long (`len <= cap`), and nothing else touches them
         // until the transfer ends; the addresses are this SPI's data
@@ -341,7 +335,7 @@ impl<W: Parts> Spi<W> {
         let rx = self.rx.flags();
         let tx = self.tx.flags();
         // A FIFO error in direct mode is advisory; the others stop a stream.
-        if rx.transfer_error || rx.direct_mode_error || tx.transfer_error || tx.direct_mode_error {
+        if rx.failed() || tx.failed() {
             self.fail();
             self.health.dma_errors = self.health.dma_errors.saturating_add(1);
             return Some(Err(Error::Dma));

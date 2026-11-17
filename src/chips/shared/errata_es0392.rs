@@ -144,7 +144,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.20.1", "UDR flag set while the SPI slave transmitter is disabled", [0x1003], Workaround, Avoided("asynchronous mode only: no SPI slave mode"), []),
     erratum!("2.20.2", "Anticipated end-of-transmission signaling in SPI slave mode", [0x1003, 0x2001, 0x2003], Workaround, Avoided("asynchronous mode only: no SPI slave mode"), []),
     erratum!("2.20.3", "Data corruption due to noisy receive line", [0x1003, 0x2001, 0x2003], Workaround, Board("a clean receive line; filter a noisy one"), []),
-    erratum!("2.20.4", "DMA stream locked when transferring data to/from USART", [0x2001, 0x2003], Workaround, Workaround("TRBUFF (DMA_SxCR bit 20) on every U(S)ART stream and on no other (uart stream_dma)"), []),
+    erratum!("2.20.4", "DMA stream locked when transferring data to/from USART", [0x2001, 0x2003], Workaround, Workaround("TRBUFF (DMA_SxCR bit 20) on every U(S)ART stream and on no other (dma Transfer::for_usart, which only the UART engine calls)"), []),
     erratum!("2.20.5", "Received data may be corrupted upon clearing the ABREN bit", [0x1003, 0x2001, 0x2003], Workaround, Avoided("no auto baud rate: ABREN stays clear"), []),
     erratum!("2.20.6", "Noise error flag set while ONEBIT is set", [0x1003, 0x2001, 0x2003], None, Avoided("ONEBIT stays clear"), []),
     erratum!("2.21.1", "DMA stream locked when transferring data to/from LPUART", [0x2001, 0x2003], Workaround, NotReached("no LPUART driver"), []),

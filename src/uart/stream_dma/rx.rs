@@ -134,22 +134,18 @@ impl Rx {
         self.read_count = 0;
         self.read_index = 0;
         self.health.restarts = self.health.restarts.saturating_add(1);
-        let transfer = Transfer {
-            request: self.request,
-            // ES0392 2.20.4: TRBUFF (DMA_SxCR bit 20) keeps a U(S)ART stream
-            // from locking when another transfer runs beside it.
-            #[cfg(feature = "dma_v1")]
-            bufferable: true,
-            direction: Direction::PeripheralToMemory,
-            peripheral: unit.rx_address(),
-            memory: self.ring as u32,
-            len: self.len,
-            size: WordSize::Byte,
-            memory_increment: true,
-            circular: true,
-            priority: Priority::High,
-            interrupts: RX_INTERRUPTS,
-        };
+        let transfer = Transfer::one_shot(
+            self.request,
+            Direction::PeripheralToMemory,
+            unit.rx_address(),
+            self.ring as u32,
+            self.len,
+            WordSize::Byte,
+            Priority::High,
+        )
+        .circular()
+        .with_interrupts(RX_INTERRUPTS)
+        .for_usart();
         // SAFETY: the ring is this UART's for good, `len` is its length, and
         // the CPU only ever reads it. The routing trait vouched for the
         // request.

@@ -326,6 +326,12 @@ impl Flags {
     pub const fn any_error(self) -> bool {
         self.transfer_error || self.direct_mode_error || self.fifo_error
     }
+
+    /// A transfer or direct-mode error: the ones that stop a transfer. A
+    /// FIFO error is advisory in direct mode.
+    pub const fn failed(self) -> bool {
+        self.transfer_error || self.direct_mode_error
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -371,6 +377,69 @@ pub struct Interrupts {
     /// Transfer error and direct-mode error.
     pub error: bool,
     pub fifo_error: bool,
+}
+
+/// The interrupts a one-shot transfer raises: its end, and an error.
+pub(crate) const ONE_SHOT_INTERRUPTS: Interrupts = Interrupts {
+    complete: true,
+    half: false,
+    error: true,
+    fifo_error: false,
+};
+
+impl Transfer {
+    /// One pass over `len` words of memory, incrementing, at `priority`,
+    /// raising [`ONE_SHOT_INTERRUPTS`], not bufferable: the shape every
+    /// driver's transfer starts from (API review U3).
+    pub(crate) const fn one_shot(
+        request: u8,
+        direction: Direction,
+        peripheral: u32,
+        memory: u32,
+        len: u16,
+        size: WordSize,
+        priority: Priority,
+    ) -> Self {
+        Self {
+            request,
+            #[cfg(feature = "dma_v1")]
+            bufferable: false,
+            direction,
+            peripheral,
+            memory,
+            len,
+            size,
+            memory_increment: true,
+            circular: false,
+            priority,
+            interrupts: ONE_SHOT_INTERRUPTS,
+        }
+    }
+
+    /// Round and round the buffer, for ever.
+    pub(crate) const fn circular(self) -> Self {
+        Self {
+            circular: true,
+            ..self
+        }
+    }
+
+    pub(crate) const fn with_interrupts(self, interrupts: Interrupts) -> Self {
+        Self { interrupts, ..self }
+    }
+
+    /// TRBUFF on `dma_v1`, which RM0433 requires for a U(S)ART's stream
+    /// (ES0392 2.20.4: it keeps the stream from locking when another
+    /// transfer runs beside it). `dma_v2` has no such bit: unchanged.
+    pub(crate) const fn for_usart(self) -> Self {
+        #[cfg(feature = "dma_v1")]
+        return Self {
+            bufferable: true,
+            ..self
+        };
+        #[cfg(not(feature = "dma_v1"))]
+        self
+    }
 }
 
 /// One transfer, stated in full.

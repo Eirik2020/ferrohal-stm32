@@ -27,8 +27,8 @@ use crate::{
     adc_ip::{MAX_SAMPLE, Unit},
     chip::{Interrupt, TS_CAL1, TS_CAL2, VREFIN_CAL},
     dma::{
-        AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, StreamInstance,
-        StreamInterrupt, Transfer, WordSize,
+        AnyStream, Direction, Flags, Priority, StopTimeout, StreamInstance, StreamInterrupt,
+        Transfer, WordSize,
     },
     rcc::{Rcc, RccBit},
     resource::Refused,
@@ -417,24 +417,15 @@ impl<A: Instance, S> AdcScan<A, S> {
         if self.state == ScanState::Running {
             return Err(Error::Busy);
         }
-        let transfer = Transfer {
-            request: self.request,
-            #[cfg(feature = "dma_v1")]
-            bufferable: false,
-            direction: Direction::PeripheralToMemory,
-            peripheral: self.adc.unit.data_address(),
-            memory: self.buffer.as_mut_ptr() as u32,
-            len: self.len,
-            size: WordSize::HalfWord,
-            memory_increment: true,
-            circular: false,
-            priority: Priority::Medium,
-            interrupts: Interrupts {
-                complete: true,
-                error: true,
-                ..Interrupts::default()
-            },
-        };
+        let transfer = Transfer::one_shot(
+            self.request,
+            Direction::PeripheralToMemory,
+            self.adc.unit.data_address(),
+            self.buffer.as_mut_ptr() as u32,
+            self.len,
+            WordSize::HalfWord,
+            Priority::Medium,
+        );
         self.dma
             .stop(crate::dma::STOP_SPINS)
             .map_err(|_| Error::Dma)?;
@@ -456,7 +447,7 @@ impl<A: Instance, S> AdcScan<A, S> {
             return None;
         }
         let flags = self.dma.flags();
-        let failed = flags.transfer_error || flags.direct_mode_error;
+        let failed = flags.failed();
         if !failed && !flags.complete {
             return None;
         }
