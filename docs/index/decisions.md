@@ -1,6 +1,6 @@
 # Document index: decisions (generated)
 
-12 documents in docs/decisions/. Hub: [README.md](README.md).
+13 documents in docs/decisions/. Hub: [README.md](README.md).
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -14,5 +14,6 @@
 | a | docs/decisions/2026-11-13-chip-glue-generator.md | 3110 B | ADR-008 - Status: promoted |
 | a | docs/decisions/2026-11-13-maturity-tiers.md | 2112 B | ADR-009 - Status: promoted |
 | a | docs/decisions/2026-11-15-errata-as-data.md | 3068 B | ADR-010 - Status: promoted |
+| a | docs/decisions/2026-11-17-uart-single-owner.md | 7593 B | ADR-011 - Status: accepted |
 | a | docs/decisions/README.md | 1418 B | Record = event what, why, rejected, date, not |
-| a | docs/decisions/index/2026.md | 1437 B | One row per record. The record itself is auth |
+| a | docs/decisions/index/2026.md | 1569 B | One row per record. The record itself is auth |
