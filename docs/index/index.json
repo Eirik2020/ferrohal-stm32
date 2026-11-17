@@ -3,7 +3,7 @@
  "counts": {
   "documents": 73,
   "agent": 52,
-  "bytes": 359321
+  "bytes": 359564
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: stm32f401r",
-   "bytes": 5484
+   "bytes": 5533
   },
   {
    "path": "README.md",
@@ -465,14 +465,14 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9188
+   "bytes": 9356
   },
   {
    "path": "hil/COVERAGE.md",
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6426
+   "bytes": 6452
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",
