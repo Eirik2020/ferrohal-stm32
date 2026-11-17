@@ -25,7 +25,7 @@ pub fn suite<A: adc::Instance, S>(
         }
         let finished = loop {
             link.service();
-            if let Some(done) = scan.poll() {
+            if let Some(done) = scan.on_interrupt() {
                 break done.is_ok();
             }
             if link.now().wrapping_sub(began) > 20_000 {

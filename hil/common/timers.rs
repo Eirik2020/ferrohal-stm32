@@ -47,7 +47,7 @@ impl<T: Instance> BenchedTick for Tick<T> {
         self.rate()
     }
     fn verify(&self) -> Result<(), IrqError> {
-        self.verify()
+        self.vectors().verify()
     }
     fn stop(&mut self) {
         self.stop()
@@ -85,7 +85,7 @@ macro_rules! benched_ticks {
             }
             fn verify(&self) -> Result<(), ferrohal_stm32::resource::IrqError> {
                 match self {
-                    $(Self::$variant(tick) => tick.verify(),)+
+                    $(Self::$variant(tick) => tick.vectors().verify(),)+
                 }
             }
             fn stop(&mut self) {

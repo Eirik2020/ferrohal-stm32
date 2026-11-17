@@ -149,11 +149,11 @@ mod app {
                 pwm2.start();
             }
             let budget = cpu.0 / 100;
-            let done3 = pwm::wait(budget, || lane3.poll());
-            let done4 = pwm::wait(budget, || lane4.poll());
-            let done23 = pwm::wait(budget, || lane23.poll());
-            let done22 = pwm::wait(budget, || lane22.poll());
-            let sampled = pwm::wait(budget, || sampler.poll());
+            let done3 = pwm::wait(budget, || lane3.on_interrupt());
+            let done4 = pwm::wait(budget, || lane4.on_interrupt());
+            let done23 = pwm::wait(budget, || lane23.on_interrupt());
+            let done22 = pwm::wait(budget, || lane22.on_interrupt());
+            let sampled = pwm::wait(budget, || sampler.on_interrupt());
             pwm3.stop();
             pwm2.stop();
             pwm3.close_requests();
@@ -227,10 +227,14 @@ mod app {
             defmt::panic!("motor timers")
         };
         let (Ok(mut lane3), Ok(mut lane4), Ok(mut lane23), Ok(mut lane22)) = (
-            ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3).assemble(&pwm3, core::mem::take(cx.local.lane3)),
-            ferrohal_stm32::timer::LaneWiring::<_, 4, _, _>::new(run.ch4, run.lane4).assemble(&pwm3, core::mem::take(cx.local.lane4)),
-            ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch23, run.lane23).assemble(&pwm2, core::mem::take(cx.local.lane23)),
-            ferrohal_stm32::timer::LaneWiring::<_, 2, _, _>::new(run.ch22, run.lane22).assemble(&pwm2, core::mem::take(cx.local.lane22)),
+            ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3)
+                .assemble(&pwm3, core::mem::take(cx.local.lane3)),
+            ferrohal_stm32::timer::LaneWiring::<_, 4, _, _>::new(run.ch4, run.lane4)
+                .assemble(&pwm3, core::mem::take(cx.local.lane4)),
+            ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch23, run.lane23)
+                .assemble(&pwm2, core::mem::take(cx.local.lane23)),
+            ferrohal_stm32::timer::LaneWiring::<_, 2, _, _>::new(run.ch22, run.lane22)
+                .assemble(&pwm2, core::mem::take(cx.local.lane22)),
         ) else {
             defmt::panic!("motor lanes")
         };

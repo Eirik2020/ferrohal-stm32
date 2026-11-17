@@ -181,9 +181,9 @@ pub fn scan<A: adc::Instance, S>(
         refused &= scan.start() == Err(Error::Busy);
         let mut spins = bound_cycles / 8;
         let result = loop {
-            if let Some(done) = scan.poll() {
+            if let Some(done) = scan.on_interrupt() {
                 break Some(match done {
-                    Ok(samples) => check(samples, level, max),
+                    Ok(()) => check(scan.samples(), level, max),
                     Err(_) => false,
                 });
             }
@@ -223,8 +223,8 @@ fn once<A: adc::Instance, S>(scan: &mut AdcScan<A, S>, bound_cycles: u32) -> boo
         return false;
     }
     for _ in 0..bound_cycles / 8 {
-        if let Some(done) = scan.poll() {
-            return done.is_ok_and(|samples| !samples.is_empty());
+        if let Some(done) = scan.on_interrupt() {
+            return done.is_ok() && !scan.samples().is_empty();
         }
     }
     scan.abort();
@@ -244,7 +244,14 @@ pub fn freed<A: InternalChannels, S: adc::Dma<A>>(
     powered: impl Fn() -> bool,
 ) {
     let Ok((adc, stream, buffer)) = scan.free() else {
-        expect(report, name, "a freed scan's ADC, stream and buffer scan again [API-002]", false, 0, 1);
+        expect(
+            report,
+            name,
+            "a freed scan's ADC, stream and buffer scan again [API-002]",
+            false,
+            0,
+            1,
+        );
         return;
     };
     let adc = match adc.into_scan(stream, channels, buffer) {
@@ -259,7 +266,14 @@ pub fn freed<A: InternalChannels, S: adc::Dma<A>>(
                 1,
             );
             let Ok((adc, _stream, _buffer)) = again.free() else {
-                expect(report, name, "a freed scan frees again [API-002]", false, 0, 1);
+                expect(
+                    report,
+                    name,
+                    "a freed scan frees again [API-002]",
+                    false,
+                    0,
+                    1,
+                );
                 return;
             };
             adc
@@ -279,7 +293,14 @@ pub fn freed<A: InternalChannels, S: adc::Dma<A>>(
     };
     let token = adc.free();
     let on = powered();
-    expect(report, name, "a freed ADC is powered down [API-002]", !on, u32::from(on), 0);
+    expect(
+        report,
+        name,
+        "a freed ADC is powered down [API-002]",
+        !on,
+        u32::from(on),
+        0,
+    );
     let mv = match Adc::new(rcc, token, &Config::slow_source()) {
         Ok(mut adc) => {
             let mv = adc.vdda_millivolts().unwrap_or(0);

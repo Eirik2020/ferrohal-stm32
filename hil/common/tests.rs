@@ -2,11 +2,12 @@
 //! `embedded_io`, so nothing here names the chip: every board's firmware
 //! in `hil/` runs this same file against its own `board.rs`.
 //!
-//! Every check runs over a [`Link`]: a transmit half and the receive half
+//! Every check runs over a [`Link`]: a transmit side and the receive side
 //! that hears it. That is one UART with its TX jumpered to its own RX
 //! ([`Loop`]), one whose bytes come back through the host ([`HostEcho`]),
-//! two UARTs wired TX to RX ([`Cross`]), or borrowed halves of two UARTs
-//! ([`Pair`]) so both directions of a cross can stream at once.
+//! two UARTs wired TX to RX ([`Cross`]), or one UART's transmit side and
+//! another's receive side ([`Pair`]) so both directions of a cross can
+//! stream at once.
 
 // Each firmware compiles this file into itself and uses only the checks its
 // wiring allows.
@@ -18,69 +19,342 @@ use embedded_io::Write;
 use ferrohal_stm32::{
     time::CycleClock,
     uart::{
-        Chunk, ChunkEnd, Config, ConfigError, Error, Health, IrqError, Line, Parity, SendError,
-        StopBits, TxHealth, Uart, UartInterrupts, UartParts, UartRx, UartTx,
+        Chunk, ChunkEnd, Config, ConfigError, Error, Health, Instance, IrqError, Parity, Parts,
+        RxDma, RxPin, RxWiring, SendError, StopBits, TxDma, TxHealth, TxPin, Uart, Vectors, Wiring,
     },
 };
 
-/// What the checks ask of a transmit half, whatever its instance. The
-/// driver's halves are typed by instance; a [`Link`] erases that here, so
-/// one check runs over any UART. Each method forwards to the driver's own.
-pub trait TxHalf: Write<Error = Error> {
+/// What the checks ask of a UART's transmit side, whatever its instance.
+/// The driver is typed by its wiring; a [`Link`] erases that here, so one
+/// check runs over any UART. Each method forwards to the driver's own.
+pub trait TxHalf: Write<Error = Error> + embedded_io::WriteReady {
     fn try_send(&mut self, frame: &[u8]) -> Result<(), SendError>;
     fn is_idle(&mut self) -> Result<bool, Error>;
-    fn queued(&self) -> usize;
-    fn health(&self) -> TxHealth;
+    fn queued(&mut self) -> usize;
+    fn health(&mut self) -> TxHealth;
 }
 
-impl<U: UartParts> TxHalf for UartTx<U> {
+impl<U, TxP, RxP, TxD, RxD> TxHalf for Uart<Wiring<U, TxP, RxP, TxD, RxD>>
+where
+    U: Instance,
+    TxP: TxPin<U>,
+    RxP: RxPin<U>,
+    TxD: TxDma<U>,
+    RxD: RxDma<U>,
+{
     fn try_send(&mut self, frame: &[u8]) -> Result<(), SendError> {
-        UartTx::try_send(self, frame)
+        Self::try_send(self, frame)
     }
     fn is_idle(&mut self) -> Result<bool, Error> {
-        UartTx::is_idle(self)
+        Self::is_idle(self)
     }
-    fn queued(&self) -> usize {
-        UartTx::queued(self)
+    fn queued(&mut self) -> usize {
+        Self::queued(self)
     }
-    fn health(&self) -> TxHealth {
-        UartTx::health(self)
+    fn health(&mut self) -> TxHealth {
+        Self::tx_health(self)
     }
 }
 
-/// What the checks ask of a receive half, whatever its instance; see
-/// [`TxHalf`].
+/// What the checks ask of a UART's receive side, whatever its instance;
+/// see [`TxHalf`].
 pub trait RxHalf {
     fn try_read(&mut self, buf: &mut [u8]) -> Result<usize, Error>;
     fn read_chunk(&mut self, buf: &mut [u8]) -> Result<Option<Chunk>, Error>;
     fn read_within(&mut self, buf: &mut [u8], frames: u32) -> Result<usize, Error>;
     fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>);
     fn available(&mut self) -> Result<u16, Error>;
-    fn generation(&self) -> u32;
-    fn health(&self) -> Health;
+    fn generation(&mut self) -> u32;
+    fn health(&mut self) -> Health;
 }
 
-impl<U: UartParts> RxHalf for UartRx<U> {
+impl<W: Parts> RxHalf for Uart<W> {
     fn try_read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
-        UartRx::try_read(self, buf)
+        Self::try_read(self, buf)
     }
     fn read_chunk(&mut self, buf: &mut [u8]) -> Result<Option<Chunk>, Error> {
-        UartRx::read_chunk(self, buf)
+        Self::read_chunk(self, buf)
     }
     fn read_within(&mut self, buf: &mut [u8], frames: u32) -> Result<usize, Error> {
-        UartRx::read_within(self, buf, frames)
+        Self::read_within(self, buf, frames)
     }
     fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
-        UartRx::set_clock(self, clock)
+        Self::set_clock(self, clock)
     }
     fn available(&mut self) -> Result<u16, Error> {
-        UartRx::available(self)
+        Self::available(self)
     }
-    fn generation(&self) -> u32 {
-        UartRx::generation(self)
+    fn generation(&mut self) -> u32 {
+        Self::generation(self)
     }
-    fn health(&self) -> Health {
-        UartRx::health(self)
+    fn health(&mut self) -> Health {
+        Self::health(self)
+    }
+}
+
+/// A UART the checks can receive on and reconfigure: a full one or a
+/// receive-only one.
+pub trait Receiver: RxHalf {
+    fn set_config(&mut self, config: &Config) -> Result<(), ConfigError>;
+    fn mask(&mut self);
+    fn unmask(&mut self);
+    fn vectors(&mut self) -> Vectors;
+}
+
+/// A full UART: both sides, and the line operations only a transmitter has.
+pub trait Full: TxHalf + Receiver {
+    fn send_break(&mut self) -> Result<(), Error>;
+    fn tx_half(&mut self) -> &mut dyn TxHalf;
+    fn rx_half(&mut self) -> &mut dyn RxHalf;
+}
+
+impl<U, TxP, RxP, TxD, RxD> Receiver for Uart<Wiring<U, TxP, RxP, TxD, RxD>>
+where
+    U: Instance,
+    TxP: TxPin<U>,
+    RxP: RxPin<U>,
+    TxD: TxDma<U>,
+    RxD: RxDma<U>,
+{
+    fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
+        Self::set_config(self, config)
+    }
+    fn mask(&mut self) {
+        Self::mask(self)
+    }
+    fn unmask(&mut self) {
+        Self::unmask(self)
+    }
+    fn vectors(&mut self) -> Vectors {
+        Self::vectors(self)
+    }
+}
+
+impl<U, TxP, RxP, TxD, RxD> Full for Uart<Wiring<U, TxP, RxP, TxD, RxD>>
+where
+    U: Instance,
+    TxP: TxPin<U>,
+    RxP: RxPin<U>,
+    TxD: TxDma<U>,
+    RxD: RxDma<U>,
+{
+    fn send_break(&mut self) -> Result<(), Error> {
+        Self::send_break(self)
+    }
+    fn tx_half(&mut self) -> &mut dyn TxHalf {
+        self
+    }
+    fn rx_half(&mut self) -> &mut dyn RxHalf {
+        self
+    }
+}
+
+impl<U, RxP, RxD> Receiver for Uart<RxWiring<U, RxP, RxD>>
+where
+    U: Instance,
+    RxP: RxPin<U>,
+    RxD: RxDma<U>,
+{
+    fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
+        Self::set_config(self, config)
+    }
+    fn mask(&mut self) {
+        Self::mask(self)
+    }
+    fn unmask(&mut self) {
+        Self::unmask(self)
+    }
+    fn vectors(&mut self) -> Vectors {
+        Self::vectors(self)
+    }
+}
+
+/// A UART shared with its interrupt handlers under the scheduler's lock, as
+/// firmware holds one (ADR-011): every call locks for that call alone, so the
+/// handlers run between calls. A wait (`read_within`, a write waiting for
+/// room, a flush) is a loop of short locked calls, never one long lock, so a
+/// check never holds the handlers off for longer than one operation.
+pub struct Locked<M>(pub M);
+
+/// Tries of `write_ready` before `write` waits under the lock.
+const ROOM_TRIES: u32 = 100_000;
+
+impl<M> embedded_io::ErrorType for Locked<M> {
+    type Error = Error;
+}
+
+impl<M: rtic::Mutex> Write for Locked<M>
+where
+    M::T: Full,
+{
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
+        for _ in 0..ROOM_TRIES {
+            if self
+                .0
+                .lock(|uart| embedded_io::WriteReady::write_ready(uart))?
+            {
+                break;
+            }
+        }
+        self.0.lock(|uart| Write::write(uart, buf))
+    }
+
+    fn flush(&mut self) -> Result<(), Error> {
+        for _ in 0..ROOM_TRIES {
+            if self.0.lock(|uart| uart.is_idle())? {
+                break;
+            }
+        }
+        self.0.lock(|uart| Write::flush(uart))
+    }
+
+    fn write_all(&mut self, mut buf: &[u8]) -> Result<(), Error> {
+        while !buf.is_empty() {
+            let len = Write::write(self, buf)?;
+            buf = buf.get(len..).ok_or(Error::Halted)?;
+            if len == 0 {
+                return Err(Error::Halted);
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<M: rtic::Mutex> embedded_io::WriteReady for Locked<M>
+where
+    M::T: Full,
+{
+    fn write_ready(&mut self) -> Result<bool, Error> {
+        self.0
+            .lock(|uart| embedded_io::WriteReady::write_ready(uart))
+    }
+}
+
+impl<M: rtic::Mutex> TxHalf for Locked<M>
+where
+    M::T: Full,
+{
+    fn try_send(&mut self, frame: &[u8]) -> Result<(), SendError> {
+        self.0.lock(|uart| uart.try_send(frame))
+    }
+    fn is_idle(&mut self) -> Result<bool, Error> {
+        self.0.lock(|uart| uart.is_idle())
+    }
+    fn queued(&mut self) -> usize {
+        self.0.lock(|uart| uart.queued())
+    }
+    fn health(&mut self) -> TxHealth {
+        self.0.lock(|uart| TxHalf::health(uart))
+    }
+}
+
+impl<M: rtic::Mutex> RxHalf for Locked<M>
+where
+    M::T: RxHalf,
+{
+    fn try_read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        self.0.lock(|uart| uart.try_read(buf))
+    }
+    fn read_chunk(&mut self, buf: &mut [u8]) -> Result<Option<Chunk>, Error> {
+        self.0.lock(|uart| uart.read_chunk(buf))
+    }
+    /// One frame's wait per lock, `frames` times.
+    fn read_within(&mut self, buf: &mut [u8], frames: u32) -> Result<usize, Error> {
+        for _ in 0..frames {
+            match self.0.lock(|uart| uart.read_within(buf, 1)) {
+                Err(Error::Timeout) => {}
+                result => return result,
+            }
+        }
+        Err(Error::Timeout)
+    }
+    fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
+        self.0.lock(|uart| uart.set_clock(clock))
+    }
+    fn available(&mut self) -> Result<u16, Error> {
+        self.0.lock(|uart| uart.available())
+    }
+    fn generation(&mut self) -> u32 {
+        self.0.lock(|uart| uart.generation())
+    }
+    fn health(&mut self) -> Health {
+        self.0.lock(|uart| RxHalf::health(uart))
+    }
+}
+
+impl<M: rtic::Mutex> Receiver for Locked<M>
+where
+    M::T: Receiver,
+{
+    fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
+        self.0.lock(|uart| uart.set_config(config))
+    }
+    fn mask(&mut self) {
+        self.0.lock(|uart| uart.mask())
+    }
+    fn unmask(&mut self) {
+        self.0.lock(|uart| uart.unmask())
+    }
+    fn vectors(&mut self) -> Vectors {
+        self.0.lock(|uart| uart.vectors())
+    }
+}
+
+impl<M: rtic::Mutex> Full for Locked<M>
+where
+    M::T: Full,
+{
+    fn send_break(&mut self) -> Result<(), Error> {
+        self.0.lock(|uart| uart.send_break())
+    }
+    fn tx_half(&mut self) -> &mut dyn TxHalf {
+        self
+    }
+    fn rx_half(&mut self) -> &mut dyn RxHalf {
+        self
+    }
+}
+
+/// A shared UART that starts as `None` and is filled once a task has opened
+/// it, as a lock on the UART itself: for [`Locked`]. Locking it while it is
+/// `None` is a bench bug, and panics.
+pub struct Slot<M, U>(pub M, pub core::marker::PhantomData<U>);
+
+impl<M: rtic::Mutex<T = Option<U>>, U> Slot<M, U> {
+    pub fn new(mutex: M) -> Self {
+        Self(mutex, core::marker::PhantomData)
+    }
+}
+
+impl<M: rtic::Mutex<T = Option<U>>, U> rtic::Mutex for Slot<M, U> {
+    type T = U;
+
+    fn lock<R>(&mut self, f: impl FnOnce(&mut U) -> R) -> R {
+        self.0.lock(|slot| match slot.as_mut() {
+            Some(uart) => f(uart),
+            None => defmt::panic!("a shared UART used before it was opened"),
+        })
+    }
+}
+
+/// Serves `driver` through [`Service`](ferrohal_stm32::Service), the one
+/// shape every interrupt-served driver has (RESOURCE-002), and counts the
+/// calls for [`served`].
+pub fn serve<S: ferrohal_stm32::Service>(driver: &mut S) -> S::Event {
+    SERVED.fetch_add(1, Ordering::Relaxed);
+    ferrohal_stm32::Service::on_interrupt(driver)
+}
+
+static SERVED: AtomicU32 = AtomicU32::new(0);
+
+/// Passes once a handler has served a driver through [`serve`].
+pub fn served() -> Result<(), Fail> {
+    match SERVED.load(Ordering::Relaxed) {
+        0 => Err(Fail::Count {
+            expected: 1,
+            got: 0,
+        }),
+        _ => Ok(()),
     }
 }
 
@@ -226,27 +500,27 @@ pub trait Configurable: Link {
 }
 
 /// One UART, TX jumpered to its own RX.
-pub struct Loop<'a, U: UartParts> {
+pub struct Loop<'a, T: Full> {
     pub name: &'static str,
-    pub uart: &'a mut Uart<U>,
+    pub uart: &'a mut T,
 }
 
-impl<U: UartParts> Link for Loop<'_, U> {
+impl<T: Full> Link for Loop<'_, T> {
     fn name(&self) -> &'static str {
         self.name
     }
     fn tx(&mut self) -> &mut dyn TxHalf {
-        self.uart.tx()
+        self.uart.tx_half()
     }
     fn rx(&mut self) -> &mut dyn RxHalf {
-        self.uart.rx()
+        self.uart.rx_half()
     }
     fn send_break(&mut self) -> Result<(), Error> {
         self.uart.send_break()
     }
 }
 
-impl<U: UartParts> Configurable for Loop<'_, U> {
+impl<T: Full> Configurable for Loop<'_, T> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.uart.set_config(config)
     }
@@ -254,20 +528,20 @@ impl<U: UartParts> Configurable for Loop<'_, U> {
 
 /// One UART whose bytes the host sends back, through the ST-LINK's virtual
 /// COM port (`hil/vcp_echo.py`). USB adds milliseconds each way.
-pub struct HostEcho<'a, U: UartParts> {
+pub struct HostEcho<'a, T: Full> {
     pub name: &'static str,
-    pub uart: &'a mut Uart<U>,
+    pub uart: &'a mut T,
 }
 
-impl<U: UartParts> Link for HostEcho<'_, U> {
+impl<T: Full> Link for HostEcho<'_, T> {
     fn name(&self) -> &'static str {
         self.name
     }
     fn tx(&mut self) -> &mut dyn TxHalf {
-        self.uart.tx()
+        self.uart.tx_half()
     }
     fn rx(&mut self) -> &mut dyn RxHalf {
-        self.uart.rx()
+        self.uart.rx_half()
     }
     fn send_break(&mut self) -> Result<(), Error> {
         self.uart.send_break()
@@ -281,63 +555,125 @@ impl<U: UartParts> Link for HostEcho<'_, U> {
     }
 }
 
-impl<U: UartParts> Configurable for HostEcho<'_, U> {
+impl<T: Full> Configurable for HostEcho<'_, T> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.uart.set_config(config)
     }
 }
 
-/// Two UARTs: `from`'s TX wired to `to`'s RX.
-pub struct Cross<'a, U: UartParts, V: UartParts> {
+/// Two UARTs: `from`'s TX wired to `to`'s RX. `to` may be receive-only.
+pub struct Cross<'a, T: Full, R: Receiver> {
     pub name: &'static str,
-    pub from: &'a mut Uart<U>,
-    pub to: &'a mut Uart<V>,
+    pub from: &'a mut T,
+    pub to: &'a mut R,
 }
 
-impl<U: UartParts, V: UartParts> Link for Cross<'_, U, V> {
+impl<T: Full, R: Receiver> Link for Cross<'_, T, R> {
     fn name(&self) -> &'static str {
         self.name
     }
     fn tx(&mut self) -> &mut dyn TxHalf {
-        self.from.tx()
+        self.from.tx_half()
     }
     fn rx(&mut self) -> &mut dyn RxHalf {
-        self.to.rx()
+        self.to
     }
     fn send_break(&mut self) -> Result<(), Error> {
         self.from.send_break()
     }
 }
 
-impl<U: UartParts, V: UartParts> Configurable for Cross<'_, U, V> {
+impl<T: Full, R: Receiver> Configurable for Cross<'_, T, R> {
     fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         self.from.set_config(config)?;
         self.to.set_config(config)
     }
 }
 
-/// Borrowed halves of two UARTs: `U`'s transmit half wired to `V`'s
-/// receive half. It cannot change the frame, so it streams only.
-pub struct Pair<'a, U: UartParts, V: UartParts> {
-    pub name: &'static str,
-    /// The transmitting side's line.
-    pub line: &'a mut Line<U>,
-    pub tx: &'a mut UartTx<U>,
-    pub rx: &'a mut UartRx<V>,
+/// One side of a UART lent to a [`Pair`]: each call borrows the UART for
+/// itself alone, so one UART can transmit in one pair and receive in the
+/// other while both stream.
+pub struct Side<'a, T>(pub &'a core::cell::RefCell<T>);
+
+impl<T> embedded_io::ErrorType for Side<'_, T> {
+    type Error = Error;
 }
 
-impl<U: UartParts, V: UartParts> Link for Pair<'_, U, V> {
+impl<T: Full> Write for Side<'_, T> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Error> {
+        self.0.borrow_mut().write(buf)
+    }
+    fn flush(&mut self) -> Result<(), Error> {
+        self.0.borrow_mut().flush()
+    }
+}
+
+impl<T: Full> embedded_io::WriteReady for Side<'_, T> {
+    fn write_ready(&mut self) -> Result<bool, Error> {
+        self.0.borrow_mut().write_ready()
+    }
+}
+
+impl<T: Full> TxHalf for Side<'_, T> {
+    fn try_send(&mut self, frame: &[u8]) -> Result<(), SendError> {
+        self.0.borrow_mut().try_send(frame)
+    }
+    fn is_idle(&mut self) -> Result<bool, Error> {
+        self.0.borrow_mut().is_idle()
+    }
+    fn queued(&mut self) -> usize {
+        self.0.borrow_mut().queued()
+    }
+    fn health(&mut self) -> TxHealth {
+        TxHalf::health(&mut *self.0.borrow_mut())
+    }
+}
+
+impl<T: RxHalf> RxHalf for Side<'_, T> {
+    fn try_read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        self.0.borrow_mut().try_read(buf)
+    }
+    fn read_chunk(&mut self, buf: &mut [u8]) -> Result<Option<Chunk>, Error> {
+        self.0.borrow_mut().read_chunk(buf)
+    }
+    fn read_within(&mut self, buf: &mut [u8], frames: u32) -> Result<usize, Error> {
+        self.0.borrow_mut().read_within(buf, frames)
+    }
+    fn set_clock(&mut self, clock: Option<&'static dyn CycleClock>) {
+        self.0.borrow_mut().set_clock(clock)
+    }
+    fn available(&mut self) -> Result<u16, Error> {
+        self.0.borrow_mut().available()
+    }
+    fn generation(&mut self) -> u32 {
+        self.0.borrow_mut().generation()
+    }
+    fn health(&mut self) -> Health {
+        RxHalf::health(&mut *self.0.borrow_mut())
+    }
+}
+
+/// One UART's transmit side and another's receive side, wired TX to RX, so
+/// both directions of a cross can stream at once. It cannot change the
+/// frame, so it streams only.
+pub struct Pair<'a, T: Full, R: RxHalf> {
+    pub name: &'static str,
+    pub tx: Side<'a, T>,
+    pub rx: Side<'a, R>,
+}
+
+impl<T: Full, R: RxHalf> Link for Pair<'_, T, R> {
     fn name(&self) -> &'static str {
         self.name
     }
     fn tx(&mut self) -> &mut dyn TxHalf {
-        self.tx
+        &mut self.tx
     }
     fn rx(&mut self) -> &mut dyn RxHalf {
-        self.rx
+        &mut self.rx
     }
     fn send_break(&mut self) -> Result<(), Error> {
-        self.line.send_break(self.tx)
+        self.tx.0.borrow_mut().send_break()
     }
 }
 
@@ -348,21 +684,21 @@ pub trait Maskable: Link {
     fn unmask(&mut self);
 }
 
-impl<U: UartParts> Maskable for Loop<'_, U> {
+impl<T: Full> Maskable for Loop<'_, T> {
     fn mask(&mut self) {
-        self.uart.line().mask();
+        self.uart.mask();
     }
     fn unmask(&mut self) {
-        self.uart.line().unmask();
+        self.uart.unmask();
     }
 }
 
-impl<U: UartParts> Maskable for HostEcho<'_, U> {
+impl<T: Full> Maskable for HostEcho<'_, T> {
     fn mask(&mut self) {
-        self.uart.line().mask();
+        self.uart.mask();
     }
     fn unmask(&mut self) {
-        self.uart.line().unmask();
+        self.uart.unmask();
     }
 }
 
@@ -741,7 +1077,7 @@ pub fn chunk_fills_the_buffer(link: &mut dyn Link) -> Result<(), Fail> {
 pub fn break_is_a_gap(link: &mut dyn Link) -> Result<(), Fail> {
     drain(link);
     let generation = link.rx().generation();
-    let framing = link.rx().health().framing;
+    let framing = link.rx().health().framing_errors;
     send_pattern(link, 0, 10)?;
     delay_ms(2);
     link.send_break()?;
@@ -762,7 +1098,7 @@ pub fn break_is_a_gap(link: &mut dyn Link) -> Result<(), Fail> {
     }
     let after = next_chunk(link, &mut buf)?;
     expect_chunk(after, &buf, ChunkEnd::Idle, 10, 10, generation + 1)?;
-    if link.rx().health().framing <= framing {
+    if link.rx().health().framing_errors <= framing {
         return Err(Fail::NotReported(Error::Framing));
     }
     Ok(())
@@ -773,7 +1109,7 @@ pub fn break_is_a_gap(link: &mut dyn Link) -> Result<(), Fail> {
 pub fn overrun_is_a_gap(link: &mut dyn Link, ring_len: usize) -> Result<(), Fail> {
     drain(link);
     let generation = link.rx().generation();
-    let overruns = link.rx().health().buffer_overrun;
+    let overruns = link.rx().health().buffer_overruns;
     let chunk = [0x55; 64];
     for _ in 0..(3 * ring_len).div_ceil(chunk.len()) {
         link.tx().write_all(&chunk)?;
@@ -792,7 +1128,7 @@ pub fn overrun_is_a_gap(link: &mut dyn Link, ring_len: usize) -> Result<(), Fail
             generation: gap.generation,
         });
     }
-    if link.rx().health().buffer_overrun != overruns + 1 {
+    if link.rx().health().buffer_overruns != overruns + 1 {
         return Err(Fail::NotReported(Error::BufferOverrun));
     }
     drain(link);
@@ -989,9 +1325,7 @@ pub fn reconfigured(link: &mut dyn Configurable, config: &Config) -> Result<(), 
 
 /// The sender runs at half the receiver's baud rate and sends zeros: each
 /// one holds the line low past the receiver's stop bit, a framing error.
-pub fn framing_mismatch<U: UartParts, V: UartParts>(
-    cross: &mut Cross<'_, U, V>,
-) -> Result<(), Fail> {
+pub fn framing_mismatch<T: Full, R: Receiver>(cross: &mut Cross<'_, T, R>) -> Result<(), Fail> {
     cross
         .from
         .set_config(&Config::new(ferrohal_stm32::time::Hertz(57_600)))?;
@@ -1009,9 +1343,7 @@ pub fn framing_mismatch<U: UartParts, V: UartParts>(
 /// Even parity into a receiver expecting odd: every byte is a parity
 /// error. The receiver is not transmitting, so ES0299 2.10.2 (PE cleared by
 /// a write to DR) cannot hide it.
-pub fn parity_mismatch<U: UartParts, V: UartParts>(
-    cross: &mut Cross<'_, U, V>,
-) -> Result<(), Fail> {
+pub fn parity_mismatch<T: Full, R: Receiver>(cross: &mut Cross<'_, T, R>) -> Result<(), Fail> {
     let with = |parity| Config::new(ferrohal_stm32::time::Hertz(115_200)).with_parity(parity);
     cross.from.set_config(&with(Parity::Even))?;
     cross.to.set_config(&with(Parity::Odd))?;
@@ -1024,7 +1356,7 @@ pub fn parity_mismatch<U: UartParts, V: UartParts>(
 }
 
 /// Both ends back to 115200 8N1, and a line through to prove it.
-fn restore<U: UartParts, V: UartParts>(cross: &mut Cross<'_, U, V>) -> Result<(), Fail> {
+fn restore<T: Full, R: Receiver>(cross: &mut Cross<'_, T, R>) -> Result<(), Fail> {
     cross.set_config(&Config::new(ferrohal_stm32::time::Hertz(115_200)))?;
     drain(cross);
     echo(cross, b"restored")
@@ -1384,17 +1716,20 @@ pub fn receive_only<P: embedded_hal::digital::OutputPin>(
     Ok(())
 }
 
-/// The UART's vectors are enabled at one priority, as the scheduler bound
-/// them, and `verify` notices one masked on purpose.
-pub fn vectors_verified(vectors: &UartInterrupts) -> Result<(), Fail> {
+/// The UART's vectors are enabled, as the scheduler bound them, and
+/// `verify` notices the first of them, the USART's own, masked on purpose.
+pub fn vectors_verified(vectors: &Vectors) -> Result<(), Fail> {
     use cortex_m::peripheral::NVIC;
+    let Some(masked) = vectors.iter().next() else {
+        return Err(Fail::Irq(None));
+    };
     vectors.verify().map_err(|error| Fail::Irq(Some(error)))?;
-    NVIC::mask(vectors.rx_dma);
-    let masked = vectors.verify();
+    NVIC::mask(masked);
+    let result = vectors.verify();
     // SAFETY: RTIC bound and unmasked this vector; it is unmasked again.
-    unsafe { NVIC::unmask(vectors.rx_dma) };
-    match masked {
-        Err(IrqError::NotEnabled(vector)) if vector == vectors.rx_dma => Ok(()),
+    unsafe { NVIC::unmask(masked) };
+    match result {
+        Err(IrqError::NotEnabled(vector)) if vector == masked => Ok(()),
         Err(error) => Err(Fail::Irq(Some(error))),
         Ok(()) => Err(Fail::Irq(None)),
     }

@@ -14,7 +14,7 @@
 //!   stop bit the receiver's parity bit, so a byte with an odd count of
 //!   ones is a parity error and one with an even count is good, with no
 //!   change of frame between them: one bad byte, then a good frame straight
-//!   after it. Every vector of the receiving `UartIrq` reads SR first,
+//!   after it. Every vector of the receiving `on_interrupt` reads SR first,
 //!   through stm32-metapac, and notes RXNE, and the receive stream's NDTR,
 //!   whenever PE is set; the good frame must arrive whole and in order,
 //!   with the one parity error right after the bad byte; PE must be seen,
@@ -24,8 +24,8 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `USART1`, `DMA2_STREAM5`, `DMA2_STREAM7` | USART1's `UartIrq` | 2 |
-//! | `USART6`, `DMA2_STREAM2`, `DMA2_STREAM6` | USART6's `UartIrq` | 2 |
+//! | `USART1`, `DMA2_STREAM5`, `DMA2_STREAM7` | USART1's `on_interrupt` | 2 |
+//! | `USART6`, `DMA2_STREAM2`, `DMA2_STREAM6` | USART6's `on_interrupt` | 2 |
 //! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
 #![no_std]
@@ -41,7 +41,7 @@ use panic_probe as _;
 
 use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
-use ferrohal_stm32::uart::{Config, Error, Parity, StopBits, UartIrq};
+use ferrohal_stm32::uart::{Config, Error, Parity, Parts, StopBits, Uart};
 use stm32_metapac::{dma::St, usart::Usart};
 
 use tests::{Configurable, Cross, Fail, Link, Report};
@@ -73,40 +73,39 @@ const _: () = {
     }
 };
 
-/// What every vector bound to a UART's `UartIrq` runs: `on_interrupt`'s
-/// own three steps, in its order, with [`watch`] between the receive
-/// stream's and the USART's. Any of the three vectors can be the one that
-/// finds PE, since each runs `on_uart`, so all three watch.
-fn serve(irq: &mut UartIrq, usart: Usart, rx: St) {
-    irq.on_rx_dma();
+/// What every vector bound to a UART runs: [`watch`], then `on_interrupt`,
+/// which serves the receive stream, then the USART, then the transmit
+/// stream. Any of the three vectors can be the one that finds PE, since
+/// each serves the USART, so all three watch.
+fn serve<W: Parts>(uart: &mut Uart<W>, usart: Usart, rx: St) {
     watch(usart, rx);
-    irq.on_uart();
-    irq.on_tx_dma();
+    tests::serve(uart);
 }
 
 /// USART1's vectors: its receive stream is DMA2 stream 5 (`board::run_b`).
-fn serve_usart1(irq: &mut UartIrq) {
-    serve(irq, stm32_metapac::USART1, stm32_metapac::DMA2.st(5));
+fn serve_usart1<W: Parts>(uart: &mut Uart<W>) {
+    serve(uart, stm32_metapac::USART1, stm32_metapac::DMA2.st(5));
 }
 
 /// USART6's vectors: its receive stream is DMA2 stream 2.
-fn serve_usart6(irq: &mut UartIrq) {
-    serve(irq, stm32_metapac::USART6, stm32_metapac::DMA2.st(2));
+fn serve_usart6<W: Parts>(uart: &mut Uart<W>) {
+    serve(uart, stm32_metapac::USART6, stm32_metapac::DMA2.st(2));
 }
 
 /// Notes PE, with RXNE and the receive stream's NDTR, as they stand just
-/// before the driver's `on_uart` reads SR and then DR, which clears PE.
+/// before the driver's `on_interrupt` reads SR and then DR, which clears
+/// PE.
 ///
 /// The extra SR read leaves the clear being measured as it was. An SR read
 /// clears nothing by itself; a flag clears when a DR access follows an SR
-/// read made while it was set. `on_uart`'s own SR read comes a few cycles
-/// after this one, with nothing of the driver's between them, and its DR
-/// read follows, so the driver's SR-then-DR sequence clears PE as it does
-/// unwatched. What remains is a window of those few cycles: if the receive
+/// read made while it was set. `on_interrupt`'s own SR read comes a few
+/// cycles after this one, with only its receive-stream service (DMA flag
+/// registers, never the USART's) between them, and its DR read follows,
+/// so the driver's SR-then-DR sequence clears PE as it does unwatched. What remains is a window of those few cycles: if the receive
 /// DMA reads DR inside it, which RM0368's case allows when PE is raised
 /// before RXNE (the faulty byte reaches DR up to a bit later, about 8.7 us
-/// at 115200), this read and the DMA's would clear PE before `on_uart`
-/// sees it. The check would then show PE seen but not counted: a FAIL,
+/// at 115200), this read and the DMA's would clear PE before
+/// `on_interrupt` sees it. The check would then show PE seen but not counted: a FAIL,
 /// never a false PASS. This runs only while `WATCH` is on, so no other
 /// check sees it.
 ///
@@ -136,9 +135,9 @@ fn watch(usart: Usart, rx: St) {
 /// requirement, restores 8N1. `rx` is the receiver's stream, a circular
 /// ring of `ring` bytes; `baud` the line's rate for the check, `name` the
 /// link and that rate.
-fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
+fn pe_clear<T: tests::Full, R: tests::Receiver>(
     report: &mut Report,
-    cross: &mut Cross<'_, U, V>,
+    cross: &mut Cross<'_, T, R>,
     rx: St,
     ring: u32,
     baud: u32,
@@ -148,9 +147,9 @@ fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartPar
         .from
         .set_config(&Config::new(ferrohal_stm32::time::Hertz(baud)).with_stop_bits(StopBits::Two))
         .and_then(|()| {
-            cross
-                .to
-                .set_config(&Config::new(ferrohal_stm32::time::Hertz(baud)).with_parity(Parity::Odd))
+            cross.to.set_config(
+                &Config::new(ferrohal_stm32::time::Hertz(baud)).with_parity(Parity::Odd),
+            )
         });
     if let Err(error) = frames {
         report.check_for(
@@ -162,7 +161,7 @@ fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartPar
         return;
     }
     tests::drain(cross);
-    let counted_before = cross.to.rx().health().parity;
+    let counted_before = cross.to.health().parity_errors;
     // The line is quiet, so the stream stands still until the bad byte.
     let ndtr_before = u32::from(rx.ndtr().read().ndt());
     PE_SEEN.store(0, Ordering::Relaxed);
@@ -214,7 +213,7 @@ fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartPar
         NONE => None,
         at => Some((ndtr_before + ring - at) % ring),
     };
-    let counted = cross.to.rx().health().parity.wrapping_sub(counted_before);
+    let counted = cross.to.health().parity_errors.wrapping_sub(counted_before);
     defmt::info!(
         "{=str}: PE seen by a vector {=u32} time(s), RXNE set in {=u32}; bytes the DMA had taken when PE was first seen: {}; reader: {=usize} bytes, {=u32} parity error(s), first after byte {}; driver counted {=u32}",
         name,
@@ -306,9 +305,9 @@ fn pe_clear<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartPar
 /// One direction of the USART1 <-> USART6 cross: every check it can take.
 /// The two directions are different types (`Cross<USART1, USART6>` and the
 /// reverse), so a loop over one `cross` cannot typecheck; this does each.
-fn cross_checks<U: ferrohal_stm32::uart::UartParts, V: ferrohal_stm32::uart::UartParts>(
+fn cross_checks<T: tests::Full, R: tests::Receiver>(
     report: &mut Report,
-    cross: &mut Cross<'_, U, V>,
+    cross: &mut Cross<'_, T, R>,
     receiver: St,
     ring: u32,
 ) {
@@ -362,7 +361,10 @@ struct Label {
 
 impl Default for Label {
     fn default() -> Self {
-        Self { bytes: [0; 48], len: 0 }
+        Self {
+            bytes: [0; 48],
+            len: 0,
+        }
     }
 }
 
@@ -386,11 +388,11 @@ impl core::fmt::Write for Label {
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
+    use ferrohal_stm32::uart::{Buffers, Config, Uart, Vectors};
 
     use crate::{
         board,
-        tests::{self, Cross, Pair, Report},
+        tests::{self, Cross, Pair, Report, Side},
     };
 
     const RX_RING: usize = 256;
@@ -398,18 +400,14 @@ mod app {
 
     #[shared]
     struct Shared {
-        #[lock_free]
-        irq1: UartIrq,
-        #[lock_free]
-        irq6: UartIrq,
+        usart1: Uart<board::Usart1Cross>,
+        usart6: Uart<board::Usart6Cross>,
     }
 
     #[local]
     struct Local {
-        usart1: Uart<board::Usart1Cross>,
-        usart6: Uart<board::Usart6Cross>,
-        vectors1: UartInterrupts,
-        vectors6: UartInterrupts,
+        vectors1: Vectors,
+        vectors6: Vectors,
         led: board::Led,
     }
 
@@ -432,7 +430,7 @@ mod app {
 
         let config = Config::new(ferrohal_stm32::time::Hertz(115_200));
         let local = cx.local;
-        let (usart1, irq1) = Uart::new(
+        let usart1 = Uart::new(
             &mut run.rcc,
             run.usart1,
             &config,
@@ -442,7 +440,7 @@ mod app {
             },
         )
         .unwrap_or_else(|error| defmt::panic!("USART1: {}", error));
-        let (usart6, irq6) = Uart::new(
+        let usart6 = Uart::new(
             &mut run.rcc,
             run.usart6,
             &config,
@@ -453,16 +451,14 @@ mod app {
         )
         .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
 
-        let vectors1 = irq1.interrupts();
+        let vectors1 = usart1.vectors();
 
-        let vectors6 = irq6.interrupts();
+        let vectors6 = usart6.vectors();
 
         checks::spawn().ok();
         (
-            Shared { irq1, irq6 },
+            Shared { usart1, usart6 },
             Local {
-                usart1,
-                usart6,
                 vectors1,
                 vectors6,
                 led: run.led,
@@ -470,58 +466,59 @@ mod app {
         )
     }
 
-    #[task(binds = USART1, priority = 2, shared = [irq1])]
-    fn usart1_line(cx: usart1_line::Context) {
-        crate::serve_usart1(cx.shared.irq1);
+    #[task(binds = USART1, priority = 2, shared = [usart1])]
+    fn usart1_line(mut cx: usart1_line::Context) {
+        cx.shared.usart1.lock(crate::serve_usart1);
     }
 
-    #[task(binds = DMA2_STREAM5, priority = 2, shared = [irq1])]
-    fn usart1_rx(cx: usart1_rx::Context) {
-        crate::serve_usart1(cx.shared.irq1);
+    #[task(binds = DMA2_STREAM5, priority = 2, shared = [usart1])]
+    fn usart1_rx(mut cx: usart1_rx::Context) {
+        cx.shared.usart1.lock(crate::serve_usart1);
     }
 
-    #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq1])]
-    fn usart1_tx(cx: usart1_tx::Context) {
-        crate::serve_usart1(cx.shared.irq1);
+    #[task(binds = DMA2_STREAM7, priority = 2, shared = [usart1])]
+    fn usart1_tx(mut cx: usart1_tx::Context) {
+        cx.shared.usart1.lock(crate::serve_usart1);
     }
 
-    #[task(binds = USART6, priority = 2, shared = [irq6])]
-    fn usart6_line(cx: usart6_line::Context) {
-        crate::serve_usart6(cx.shared.irq6);
+    #[task(binds = USART6, priority = 2, shared = [usart6])]
+    fn usart6_line(mut cx: usart6_line::Context) {
+        cx.shared.usart6.lock(crate::serve_usart6);
     }
 
-    #[task(binds = DMA2_STREAM2, priority = 2, shared = [irq6])]
-    fn usart6_rx(cx: usart6_rx::Context) {
-        crate::serve_usart6(cx.shared.irq6);
+    #[task(binds = DMA2_STREAM2, priority = 2, shared = [usart6])]
+    fn usart6_rx(mut cx: usart6_rx::Context) {
+        cx.shared.usart6.lock(crate::serve_usart6);
     }
 
-    #[task(binds = DMA2_STREAM6, priority = 2, shared = [irq6])]
-    fn usart6_tx(cx: usart6_tx::Context) {
-        crate::serve_usart6(cx.shared.irq6);
+    #[task(binds = DMA2_STREAM6, priority = 2, shared = [usart6])]
+    fn usart6_tx(mut cx: usart6_tx::Context) {
+        cx.shared.usart6.lock(crate::serve_usart6);
     }
 
-    #[task(priority = 1, local = [usart1, usart6, vectors1, vectors6, led])]
+    #[task(priority = 1, shared = [usart6, usart1], local = [vectors1, vectors6, led])]
     async fn checks(cx: checks::Context) {
+        let mut usart6 = tests::Locked(cx.shared.usart6);
+        let mut usart1 = tests::Locked(cx.shared.usart1);
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         report.check_for(
             "USART1",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors1),
         );
         report.check_for(
             "USART6",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors6),
         );
-        let (usart1, usart6) = (cx.local.usart1, cx.local.usart6);
         {
             let mut cross = Cross {
                 name: "USART1 PB6->USART6 PC7",
-                from: &mut *usart1,
-                to: &mut *usart6,
+                from: &mut usart1,
+                to: &mut usart6,
             };
             crate::cross_checks(
                 &mut report,
@@ -533,8 +530,8 @@ mod app {
         {
             let mut cross = Cross {
                 name: "USART6 PC6->USART1 PB7",
-                from: &mut *usart6,
-                to: &mut *usart1,
+                from: &mut usart6,
+                to: &mut usart1,
             };
             crate::cross_checks(
                 &mut report,
@@ -544,8 +541,8 @@ mod app {
             );
         }
 
-        let (line1, tx1, rx1) = usart1.halves();
-        let (line6, tx6, rx6) = usart6.halves();
+        let usart1 = core::cell::RefCell::new(usart1);
+        let usart6 = core::cell::RefCell::new(usart6);
         report.check_for(
             "USART1 <-> USART6",
             "UART-002",
@@ -554,15 +551,13 @@ mod app {
                 &mut [
                     &mut Pair {
                         name: "USART1->USART6",
-                        line: line1,
-                        tx: tx1,
-                        rx: rx6,
+                        tx: Side(&usart1),
+                        rx: Side(&usart6),
                     },
                     &mut Pair {
                         name: "USART6->USART1",
-                        line: line6,
-                        tx: tx6,
-                        rx: rx1,
+                        tx: Side(&usart6),
+                        rx: Side(&usart1),
                     },
                 ],
                 8 * 1024,
