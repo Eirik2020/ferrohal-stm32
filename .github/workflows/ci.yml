@@ -23,28 +23,83 @@ env:
 jobs:
   glue:
     name: Generated glue
-    # The merge gate (ADR-008): pull requests into main only, not branch pushes.
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    # The merge gate (ADR-008): pull requests into main, and pushes to main.
+    # A pull request's caches are its own; only main's are shared, so main
+    # runs it too, or every pull request would start cold.
+    if: github.event_name == 'push' || github.base_ref == 'main'
     runs-on: ubuntu-latest
     steps:
+      # Depth 2: a pull request checks out its merge commit, whose first
+      # parent is main, so HEAD^1..HEAD is exactly what it changes.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      # The gate's inputs. The glue reads the generator, src/chips and the
+      # lockfiles; the tier tables read `reqtool check`, which hashes every
+      # library file under src/, the requirements and evidence, and builds the
+      # bench crates under hil/ (not the rig's own files at hil/'s top level;
+      # hil/COVERAGE.md is an output). A pull request touching none of them is
+      # skipped; it still regenerates every chip when it touches any.
+      - name: Does this change touch the gate's inputs?
+        id: inputs
+        run: |
+          if [ "${{ github.event_name }}" != pull_request ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          touched=$(git diff --name-only HEAD^1 HEAD -- \
+            .github/workflows/ci.yml tools/glue-gate.sh tools/glue-gen \
+            Cargo.toml Cargo.lock .cargo reqtool.toml \
+            src requirements docs/CHIPS.md hil/COVERAGE.md
+            git diff --name-only HEAD^1 HEAD -- hil ':(exclude,glob)hil/*')
+          if [ -n "$touched" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            printf 'inputs touched:\n%s\n' "$touched"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "skip  no gate input changed; main's last run stands"
+          fi
       - name: Install Rust toolchain
+        if: steps.inputs.outputs.run == 'true'
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: ${{ env.FIRMWARE_TARGET }}
           components: rustfmt
+      # Also the root and bench builds `reqtool check` makes for the tiers,
+      # and the installed reqtool.
       - name: Cache Cargo
+        if: steps.inputs.outputs.run == 'true'
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: tools/glue-gen -> target
+          workspaces: |
+            tools/glue-gen -> target
+            . -> target
+            hil/foxeer-f405-v2 -> target
+            hil/lucid-h7 -> target
+            hil/nucleo-f401re-loopback -> target
+            hil/nucleo-h753zi-loopback -> target
+            hil/stm32f4-discovery -> target
+      # Each part's metapac dump, under a key glue-gen checks per part
+      # (`dump_key`), so a stale entry is redumped, never read. Every chip is
+      # still emitted and compared.
+      - name: Cache the per-part metapac dumps
+        if: steps.inputs.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/glue-dumps
+          key: glue-dumps-${{ hashFiles('tools/glue-gen/Cargo.lock', 'tools/glue-gen/dump/**', 'tools/glue-gen/model/**') }}
+          restore-keys: glue-dumps-
       # The tier tables come from reqtool's evidence; reqtool builds the bench
       # configurations to judge it, hence the firmware target.
       - name: Install reqtool at its pinned revision
+        if: steps.inputs.outputs.run == 'true'
         run: >
           cargo install --git https://github.com/Eirik2020/reqtool
           --rev "$REQTOOL_REV" --locked
       - name: Regenerate the glue and the tables, fail on any difference
+        if: steps.inputs.outputs.run == 'true'
+        env:
+          GLUE_DUMP_CACHE: ${{ runner.temp }}/glue-dumps
         run: tools/glue-gate.sh
 
   checks:

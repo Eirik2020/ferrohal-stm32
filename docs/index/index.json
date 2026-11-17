@@ -3,7 +3,7 @@
  "counts": {
   "documents": 77,
   "agent": 54,
-  "bytes": 399259
+  "bytes": 399937
  },
  "documents": [
   {
@@ -217,7 +217,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 7718
+   "bytes": 8396
   },
   {
    "path": "docs/design/h7-errata.md",
