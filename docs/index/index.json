@@ -3,7 +3,7 @@
  "counts": {
   "documents": 76,
   "agent": 52,
-  "bytes": 394872
+  "bytes": 396363
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 11742
+   "bytes": 12629
   },
   {
    "path": "docs/DEBT.md",
@@ -227,7 +227,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 7718
+   "bytes": 8147
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -493,7 +493,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6490
+   "bytes": 6665
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",

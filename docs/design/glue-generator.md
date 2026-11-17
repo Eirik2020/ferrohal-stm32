@@ -22,7 +22,9 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 - **[Decided]** A package is the bonded-pin set; `Port::split` follows it, so an unbonded
   pin cannot be named. Built 2026-11-14 (owner chose the shape): the glue emits one parts
   type per bonded port, a field per bonded pin, behind a sealed `gpio::Split`.
-- Die IDs: F401xD/E 0x433, F405/F407/F415/F417 0x413, H742/H743/H750/H753 0x450.
+- Die IDs: F401xD/E 0x433, F405/F407/F415/F417 0x413, F411xC/E 0x431, F722/F723/F732/F733
+  0x452, F745/F746/F756 0x449, F765/F767/F768/F769/F777/F778/F779 0x451,
+  H742/H743/H750/H753 0x450.
 - **[Measured 2026-11-13, metapac 21]** What the die fixes and parts agree on: each
   peripheral's address, IP and register block, RCC fields, a pin's alternate function for
   a signal, and the set of DMAMUX requests per signal. What does not: a fixed-request
@@ -48,6 +50,10 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 - **[Decided]** Offering policy is data in the generator (`tools/glue-gen/src/emit.rs`):
   which DMA controllers routes may use (DMA1, DMA2, DMAMUX1; not BDMA), which IP versions
   have a driver, and the instances left out, each with its reason.
+- **[Decided 2026-11-17]** The F7's rows take the F4's macro shapes (fixed-request stream
+  DMA, bus-named RCC registers). Its usart_v3 has no driver until the UART redesign, so
+  its parts get no UART rows, and the capability table shows – (on the part, not driven)
+  where it shows n/a for a block the part lacks.
 - **[Decided 2026-11-14, owner]** The glue offers everything the silicon has for every IP
   version FerroHAL drives: each instance, pin row and DMA route metapac lists. Left out:
   an instance a driver cannot open without disturbing another (the F4's ADC2 and ADC3,

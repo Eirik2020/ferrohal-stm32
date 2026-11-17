@@ -36,6 +36,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `otg_v1` | HIL | nucleo-h753zi-loopback, stm32f4-discovery |
 | IP `sdmmc_v2` | FLSH | lucid-h7 |
 | IP `spi_v2_i2s` | HIL | nucleo-f401re-loopback |
+| IP `spi_v3_i2s` | HIL |  |
 | IP `spi_v4_i2s` | HIL | nucleo-h753zi-loopback |
 | IP `timer_v1` | HIL | nucleo-f401re-loopback, stm32f4-discovery |
 | IP `timer_v3` | HIL | nucleo-h753zi-loopback |
@@ -44,8 +45,12 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | die `0x413` (glue probe) | HIL | stm32f4-discovery |
 | die `0x431` (glue probe) | – |  |
 | die `0x433` (glue probe) | HIL | nucleo-f401re-loopback |
+| die `0x449` (glue probe) | – |  |
 | die `0x450` (glue probe) | HIL | nucleo-h753zi-loopback |
+| die `0x451` (glue probe) | – |  |
+| die `0x452` (glue probe) | – |  |
 | series F4 platform | – | nucleo-f401re-loopback, stm32f4-discovery |
+| series F7 platform | – |  |
 | series H7 platform | – | nucleo-h753zi-loopback |
 <!-- end generated -->
 

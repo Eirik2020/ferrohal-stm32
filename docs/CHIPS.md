@@ -17,6 +17,9 @@ part's clock limits (ADR-008 item 7); do not edit between the markers.
 | STM32F411CE | F4, Cortex-M4F | 0x431 | STM32F411 | UFQFPN48 (36) | 100 MHz |
 | STM32F405RG | F4, Cortex-M4F | 0x413 | STM32F405 | LQFP64 (51) | 168 MHz |
 | STM32F407VG | F4, Cortex-M4F | 0x413 | STM32F407 | LQFP100 (82) | 168 MHz |
+| STM32F722RE | F7, Cortex-M7 | 0x452 | STM32F722 | LQFP64 (50) | ? |
+| STM32F745VG | F7, Cortex-M7 | 0x449 | STM32F745 | LQFP100 (82) | ? |
+| STM32F767ZI | F7, Cortex-M7 | 0x451 | STM32F767 | LQFP144 (114) | ? |
 | STM32H743VI | H7, Cortex-M7 | 0x450 | STM32H743 | LQFP100 (82) | 400 MHz (VOS1) |
 | STM32H753ZI | H7, Cortex-M7 | 0x450 | STM32H753 | LQFP144 (114) | 400 MHz (VOS1) |
 <!-- end generated -->
@@ -35,6 +38,9 @@ the markers; the merge gate regenerates them.
 | STM32F411CE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F405RG | – `INH` | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
 | STM32F407VG | – | HIL | HIL | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F722RE | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
+| STM32F745VG | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
+| STM32F767ZI | – `INH` | n/a | – | – | – | – | – | n/a | – | – | – |
 | STM32H743VI | – | HIL | HIL | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
 | STM32H753ZI | – | HIL | HIL | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
 <!-- end generated -->
@@ -52,22 +58,23 @@ The rig's parts, measured on each bench's identity line:
 ## Capabilities
 
 The instances each driver offers, per part, generated from the same cut and offering
-policy as the glue (`tools/glue-gen/src/emit.rs`); n/a: the part has none.
+policy as the glue (`tools/glue-gen/src/emit.rs`); n/a: the part has none; –: the part has
+one in an IP version FerroHAL does not drive yet.
 
 <!-- generated: glue-gen instances -->
-| capability | F401RE | F411CE | F405RG | F407VG | H743VI | H753ZI |
-|---|---|---|---|---|---|---|
-| **UART** (`Uart`, `UartRx`) | USART1/2/6 | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
-| **SPI** over DMA (`Spi`) | SPI1-3 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-5 |
-| **SPI** polled (`BlockingSpi`) | SPI1-3 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-4/6 | SPI1-6 |
-| **I2C** (`I2c`) | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-4 | I2C1-4 |
-| **Timers** (`Tick`, `Timebase`, `Pwm`) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-14 | TIM1-14 | TIM1-8/12-17 | TIM1-8/12-17 |
-| compare channels (PWM, lanes) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8/12-17 | TIM1-5/8/12-17 |
-| complementary outputs (CHxN) | TIM1 | TIM1 | TIM1/8 | TIM1/8 | TIM1/8/15-17 | TIM1/8/15-17 |
-| **ADC** (`Adc`, `AdcScan`) | ADC1 | ADC1 | ADC1 | ADC1 | ADC1/3 | ADC1/3 |
-| **USB** device (`UsbFs`) | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS |
-| **SDMMC** (`Sdmmc`) | n/a | n/a | n/a | n/a | SDMMC1/2 | SDMMC1/2 |
-| **DMA** controllers | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 |
+| capability | F401RE | F411CE | F405RG | F407VG | F722RE | F745VG | F767ZI | H743VI | H753ZI |
+|---|---|---|---|---|---|---|---|---|---|
+| **UART** (`Uart`, `UartRx`) | USART1/2/6 | USART1/2/6 | UART4/5, USART1-3/6 | UART4/5, USART1-3/6 | – | – | – | UART4/5/7/8, USART1-3/6 | UART4/5/7/8, USART1-3/6 |
+| **SPI** over DMA (`Spi`) | SPI1-3 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-6 | SPI1-4 | SPI1-5 |
+| **SPI** polled (`BlockingSpi`) | SPI1-3 | SPI1-5 | SPI1-3 | SPI1-3 | SPI1-3 | SPI1-4 | SPI1-6 | SPI1-4/6 | SPI1-6 |
+| **I2C** (`I2c`) | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-3 | I2C1-4 | I2C1-4 | I2C1-4 | I2C1-4 |
+| **Timers** (`Tick`, `Timebase`, `Pwm`) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-14 | TIM1-8/12-17 | TIM1-8/12-17 |
+| compare channels (PWM, lanes) | TIM1-5/9-11 | TIM1-5/9-11 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8-14 | TIM1-5/8/12-17 | TIM1-5/8/12-17 |
+| complementary outputs (CHxN) | TIM1 | TIM1 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8 | TIM1/8/15-17 | TIM1/8/15-17 |
+| **ADC** (`Adc`, `AdcScan`) | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1 | ADC1/3 | ADC1/3 |
+| **USB** device (`UsbFs`) | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS | USB_OTG_FS |
+| **SDMMC** (`Sdmmc`) | – | – | – | – | – | – | – | SDMMC1/2 | SDMMC1/2 |
+| **DMA** controllers | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 | DMA1/2 |
 <!-- end generated -->
 
 What each driver does, hand-written: ✓ supported · – on the chip, not supported · n/a

@@ -15,41 +15,49 @@ use glue_model::PeripheralDma;
 use crate::registry::Part;
 use crate::silicon::{Die, DiePeripheral};
 
-/// The family whose macro shapes a part's rows take.
+/// The family whose macro shapes a part's rows take. The F7 takes the F4's:
+/// fixed-request stream DMA and bus-named RCC registers.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Family {
-    /// Fixed-request DMA: a route is (controller, stream, channel).
+    /// Fixed-request DMA: a route is (controller, stream, channel). The F4
+    /// and the F7.
     F4,
     /// DMAMUX1: any DMA1 or DMA2 stream serves a request ID.
     H7,
 }
 
-/// Whether FerroHAL drives this IP version on this series.
+/// Whether FerroHAL drives this IP version on this series. The F7's usart_v3
+/// waits for the UART redesign (plan 2026-11-17), so its UARTs are not
+/// offered yet.
 pub fn drives(series: &str, kind: &str, version: &str) -> bool {
-    match series {
-        "F4" => driven(Family::F4, kind, version),
-        "H7" => driven(Family::H7, kind, version),
-        _ => false,
-    }
+    matches!(
+        (series, kind, version),
+        ("F4", "usart", "v2")
+            | ("F4", "spi", "v2_i2s")
+            | ("F4", "i2c", "v1")
+            | ("F4", "timer", "v1")
+            | ("F4", "adc", "v2")
+            | ("F7", "spi", "v3_i2s")
+            | ("F7", "i2c", "v2")
+            | ("F7", "timer", "v1")
+            | ("F7", "adc", "v2")
+            | ("H7", "usart", "v4")
+            | ("H7", "spi", "v4_i2s")
+            | ("H7", "i2c", "v2")
+            | ("H7", "timer", "v3")
+            | ("H7", "adc", "v4")
+            | ("H7", "sdmmc", "v2")
+            | ("F4" | "F7" | "H7", "otg", "v1")
+    )
 }
 
-/// The IP versions FerroHAL drives, per kind, by family.
-fn driven(family: Family, kind: &str, version: &str) -> bool {
-    matches!(
-        (family, kind, version),
-        (Family::F4, "usart", "v2")
-            | (Family::F4, "spi", "v2_i2s")
-            | (Family::F4, "i2c", "v1")
-            | (Family::F4, "timer", "v1")
-            | (Family::F4, "adc", "v2")
-            | (Family::H7, "usart", "v4")
-            | (Family::H7, "spi", "v4_i2s")
-            | (Family::H7, "i2c", "v2")
-            | (Family::H7, "timer", "v3")
-            | (Family::H7, "adc", "v4")
-            | (Family::H7, "sdmmc", "v2")
-            | (_, "otg", "v1")
-    )
+/// The macro shapes a series' rows take.
+fn family(series: &str) -> Result<Family, String> {
+    match series {
+        "F4" | "F7" => Ok(Family::F4),
+        "H7" => Ok(Family::H7),
+        other => Err(format!("no macro shapes for series {other}")),
+    }
 }
 
 /// Offering policy beyond the IP version, with its reason.
@@ -59,8 +67,8 @@ fn offered(family: Family, name: &str, peripheral: &DiePeripheral) -> bool {
         // UART driver does not carry.
         Some("usart") => peripheral.block.as_deref() == Some("USART"),
         // The ADC driver enables and resets its instance's RCC bit on open.
-        // The F4's ADC2 and ADC3 have no reset of their own (ADCRST, ADC1's
-        // bit, resets all three), and the H7's ADC2 shares ADC12EN with
+        // The F4's and F7's ADC2 and ADC3 have no reset of their own
+        // (ADCRST, ADC1's bit, resets all three), and the H7's ADC2 shares ADC12EN with
         // ADC1: opening one would reset the other mid-conversion.
         Some("adc") => match family {
             Family::F4 => name == "ADC1",
@@ -146,12 +154,20 @@ impl<'a> Cut<'a> {
             .filter(|(name, p)| {
                 self.enabled.contains(*name)
                     && p.kind.as_deref() == Some(kind)
-                    && driven(self.family, kind, p.version.as_deref().unwrap_or(""))
+                    && drives(self.part.series, kind, p.version.as_deref().unwrap_or(""))
                     && offered(self.family, name, p)
             })
             .collect();
         out.sort_by_key(|(name, _)| natural(name));
         out
+    }
+
+    /// Whether the part enables any peripheral of `kind`, driven or not.
+    fn present(&self, kind: &str) -> bool {
+        self.die
+            .peripherals
+            .iter()
+            .any(|(name, p)| self.enabled.contains(name) && p.kind.as_deref() == Some(kind))
     }
 
     /// The bonded pins carrying `signal`, as `('A', 9, 7)` rows.
@@ -255,11 +271,7 @@ fn reset_kernel(mux: &str) -> Option<&'static str> {
 }
 
 pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
-    let family = match part.series {
-        "F4" => Family::F4,
-        "H7" => Family::H7,
-        other => return Err(format!("no macro shapes for series {other}")),
-    };
+    let family = family(part.series)?;
     let bonded = die
         .packages
         .get(part.package)
@@ -375,23 +387,27 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
 
     // UARTs.
     let usarts = cut.instances("usart");
-    writeln!(w, "\nusarts!(").ok();
-    for (name, p) in &usarts {
-        let (bus, bit) = rcc(p).map_err(|e| fail(name, &e))?;
-        let kind = if name.starts_with("UART") {
-            "uart"
-        } else {
-            "usart"
-        };
-        match family {
-            Family::F4 => writeln!(w, "    {kind} {name} => {name}_INFO, {bus}, {bit};"),
-            Family::H7 => writeln!(w, "    {name} => {name}_INFO, {bus}, {bit};"),
+    // A series whose USART version has no driver yet (the F7's usart_v3)
+    // gets no UART rows: the chip module leaves the UART out.
+    if !usarts.is_empty() {
+        writeln!(w, "\nusarts!(").ok();
+        for (name, p) in &usarts {
+            let (bus, bit) = rcc(p).map_err(|e| fail(name, &e))?;
+            let kind = if name.starts_with("UART") {
+                "uart"
+            } else {
+                "usart"
+            };
+            match family {
+                Family::F4 => writeln!(w, "    {kind} {name} => {name}_INFO, {bus}, {bit};"),
+                Family::H7 => writeln!(w, "    {name} => {name}_INFO, {bus}, {bit};"),
+            }
+            .ok();
         }
-        .ok();
+        writeln!(w, ");").ok();
+        pin_rows(w, &cut, &usarts, &[("TX", "TxPin"), ("RX", "RxPin")], None);
+        dma_rows(w, &cut, &usarts, ("RX", "RxDma"), ("TX", "TxDma"));
     }
-    writeln!(w, ");").ok();
-    pin_rows(w, &cut, &usarts, &[("TX", "TxPin"), ("RX", "RxPin")], None);
-    dma_rows(w, &cut, &usarts, ("RX", "RxDma"), ("TX", "TxDma"));
 
     // SPIs.
     let spis = cut.instances("spi");
@@ -560,7 +576,10 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         // driver names them as types rather than taking routing traits.
         let pin = |signal: &str| match cut.pins(p, signal).as_slice() {
             [(port, pin, af)] => Ok(format!("('{port}', {pin}, {af})")),
-            rows => Err(fail(name, &format!("{signal}: {} routes, not one", rows.len()))),
+            rows => Err(fail(
+                name,
+                &format!("{signal}: {} routes, not one", rows.len()),
+            )),
         };
         let (dm, dp) = (pin("DM")?, pin("DP")?);
         writeln!(
@@ -680,14 +699,13 @@ pub struct Offer {
     pub usb: Vec<String>,
     pub sdmmcs: Vec<String>,
     pub dmas: Vec<String>,
+    /// The kinds the part carries but FerroHAL does not drive in its IP
+    /// version (the F7's usart_v3, the F4's and F7's SDIO): `–`, not n/a.
+    pub undriven: Vec<&'static str>,
 }
 
 pub fn offer(die: &Die, part: &Part) -> Result<Offer, String> {
-    let family = match part.series {
-        "F4" => Family::F4,
-        "H7" => Family::H7,
-        other => return Err(format!("no macro shapes for series {other}")),
-    };
+    let family = family(part.series)?;
     let bonded = die
         .packages
         .get(part.package)
@@ -748,5 +766,9 @@ pub fn offer(die: &Die, part: &Part) -> Result<Offer, String> {
         .into_iter()
         .cloned()
         .collect(),
+        undriven: ["usart", "spi", "i2c", "timer", "adc", "otg", "sdmmc"]
+            .into_iter()
+            .filter(|kind| cut.instances(kind).is_empty() && cut.present(kind))
+            .collect(),
     })
 }

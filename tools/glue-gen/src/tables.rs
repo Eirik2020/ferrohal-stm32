@@ -103,7 +103,7 @@ fn clock(text: &str) -> String {
 fn core(series: &str) -> &'static str {
     match series {
         "F4" => "Cortex-M4F",
-        "H7" => "Cortex-M7",
+        "F7" | "H7" => "Cortex-M7",
         _ => "?",
     }
 }
@@ -153,20 +153,22 @@ pub fn tables(
         rule += "---|";
         let offer = emit::offer(die, part)?;
         let cells = [
-            &offer.uarts,
-            &offer.spis_dma,
-            &offer.spis,
-            &offer.i2cs,
-            &offer.timers,
-            &offer.channel_timers,
-            &offer.complementary,
-            &offer.adcs,
-            &offer.usb,
-            &offer.sdmmcs,
-            &offer.dmas,
+            (&offer.uarts, "usart"),
+            (&offer.spis_dma, "spi"),
+            (&offer.spis, "spi"),
+            (&offer.i2cs, "i2c"),
+            (&offer.timers, "timer"),
+            (&offer.channel_timers, "timer"),
+            (&offer.complementary, "timer"),
+            (&offer.adcs, "adc"),
+            (&offer.usb, "otg"),
+            (&offer.sdmmcs, "sdmmc"),
+            (&offer.dmas, "dma"),
         ];
-        for ((_, column), names) in matrix.iter_mut().zip(cells) {
-            column.push(if names.is_empty() {
+        for ((_, column), (names, kind)) in matrix.iter_mut().zip(cells) {
+            column.push(if names.is_empty() && offer.undriven.contains(&kind) {
+                "–".into()
+            } else if names.is_empty() {
                 "n/a".into()
             } else {
                 compact(names)

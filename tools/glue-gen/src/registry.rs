@@ -60,6 +60,27 @@ pub const PARTS: &[Part] = &[
         package: "LQFP100",
     },
     Part {
+        feature: "stm32f722re",
+        series: "F7",
+        die: 0x452,
+        device: "STM32F722",
+        package: "LQFP64",
+    },
+    Part {
+        feature: "stm32f745vg",
+        series: "F7",
+        die: 0x449,
+        device: "STM32F745",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f767zi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F767",
+        package: "LQFP144",
+    },
+    Part {
         feature: "stm32h743vi",
         series: "H7",
         die: 0x450,
@@ -104,9 +125,32 @@ pub const DIES: &[Die] = &[
         manual: "RM0368",
     },
     Die {
+        id: 0x449,
+        lines: &["STM32F745", "STM32F746", "STM32F756"],
+        manual: "RM0385",
+    },
+    Die {
         id: 0x450,
         lines: &["STM32H742", "STM32H743", "STM32H750", "STM32H753"],
         manual: "RM0433",
+    },
+    Die {
+        id: 0x451,
+        lines: &[
+            "STM32F765",
+            "STM32F767",
+            "STM32F768",
+            "STM32F769",
+            "STM32F777",
+            "STM32F778",
+            "STM32F779",
+        ],
+        manual: "RM0410",
+    },
+    Die {
+        id: 0x452,
+        lines: &["STM32F722", "STM32F723", "STM32F732", "STM32F733"],
+        manual: "RM0431",
     },
 ];
 
@@ -226,6 +270,10 @@ mod tests {
             ["stm32f401re", "stm32f411ce", "stm32f405rg", "stm32f407vg"]
         );
         assert_eq!(features("series h7"), ["stm32h743vi", "stm32h753zi"]);
+        assert_eq!(
+            features("series f7"),
+            ["stm32f722re", "stm32f745vg", "stm32f767zi"]
+        );
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);
     }
 
