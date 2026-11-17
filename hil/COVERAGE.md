@@ -52,6 +52,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | die `0x450` (glue probe) | – |  |
 | die `0x451` (glue probe) | – |  |
 | die `0x452` (glue probe) | – |  |
+| die `0x463` (glue probe) | – |  |
 | series F4 platform | – | nucleo-f401re-loopback, stm32f4-discovery |
 | series F7 platform | – |  |
 | series H7 platform | – | nucleo-h753zi-loopback |

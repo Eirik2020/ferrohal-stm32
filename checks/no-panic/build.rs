@@ -14,6 +14,9 @@ fn main() {
     } else if feature("STM32F412ZG") {
         // RM0402 2.3: 256 KiB of SRAM; the ZG's 1 MiB of flash.
         "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 1024K\n RAM : ORIGIN = 0x20000000, LENGTH = 256K }\n"
+    } else if feature("STM32F413ZH") {
+        // RM0430 2.3: SRAM1 and SRAM2, 320 KiB; the ZH's 1.5 MiB of flash.
+        "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 1536K\n RAM : ORIGIN = 0x20000000, LENGTH = 320K }\n"
     } else if feature("STM32F427VI") || feature("STM32F429ZI") {
         // RM0090 2.3: SRAM1 to SRAM3, 192 KiB; the xI's 2 MiB of flash.
         "MEMORY { FLASH : ORIGIN = 0x08000000, LENGTH = 2048K\n RAM : ORIGIN = 0x20000000, LENGTH = 192K }\n"

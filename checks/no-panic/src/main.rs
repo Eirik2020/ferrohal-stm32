@@ -849,6 +849,7 @@ fn exercise_i2c<W: i2c::Parts>(bus: &mut I2c<W>) {
     feature = "stm32f401re",
     feature = "stm32f411ce",
     feature = "stm32f412zg",
+    feature = "stm32f413zh",
     feature = "stm32f446re"
 ))]
 fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
@@ -861,6 +862,7 @@ fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
     feature = "stm32f401re",
     feature = "stm32f411ce",
     feature = "stm32f412zg",
+    feature = "stm32f413zh",
     feature = "stm32f446re"
 )))]
 pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::usb::Wiring) {
@@ -956,6 +958,7 @@ impl<C: StreamInstance> Spare<C> {
     feature = "stm32f401re",
     feature = "stm32f411ce",
     feature = "stm32f412zg",
+    feature = "stm32f413zh",
     feature = "stm32f446re"
 ))]
 mod chip {

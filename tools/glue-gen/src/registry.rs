@@ -221,6 +221,41 @@ pub const PARTS: &[Part] = &[
         package: "LQFP144",
     },
     Part {
+        feature: "stm32f413ch",
+        series: "F4",
+        die: 0x463,
+        device: "STM32F413",
+        package: "UFQFPN48",
+    },
+    Part {
+        feature: "stm32f413mh",
+        series: "F4",
+        die: 0x463,
+        device: "STM32F413",
+        package: "WLCSP81",
+    },
+    Part {
+        feature: "stm32f413rh",
+        series: "F4",
+        die: 0x463,
+        device: "STM32F413",
+        package: "LQFP64",
+    },
+    Part {
+        feature: "stm32f413vh",
+        series: "F4",
+        die: 0x463,
+        device: "STM32F413",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f413zh",
+        series: "F4",
+        die: 0x463,
+        device: "STM32F413",
+        package: "LQFP144",
+    },
+    Part {
         feature: "stm32f446me",
         series: "F4",
         die: 0x421,
@@ -477,6 +512,11 @@ pub const VARIANTS: &[(&str, &str)] = &[
     ("stm32f412re", "stm32f412rg"),
     ("stm32f412ve", "stm32f412vg"),
     ("stm32f412ze", "stm32f412zg"),
+    ("stm32f413cg", "stm32f413ch"),
+    ("stm32f413mg", "stm32f413mh"),
+    ("stm32f413rg", "stm32f413rh"),
+    ("stm32f413vg", "stm32f413vh"),
+    ("stm32f413zg", "stm32f413zh"),
 ];
 
 /// The benches evidence is recorded on (`hil/<crate>`), each with the part
@@ -547,6 +587,11 @@ pub const DIES: &[Die] = &[
         id: 0x452,
         lines: &["STM32F722", "STM32F723", "STM32F732", "STM32F733"],
         manual: "RM0431",
+    },
+    Die {
+        id: 0x463,
+        lines: &["STM32F413", "STM32F423"],
+        manual: "RM0430",
     },
 ];
 
@@ -681,7 +726,7 @@ mod tests {
             features("die 0x433"),
             ["stm32f401ce", "stm32f401re", "stm32f401ve"]
         );
-        assert_eq!(features("series F4").len(), 31);
+        assert_eq!(features("series F4").len(), 36);
         assert_eq!(features("series f7").len(), 12);
         assert_eq!(features("series h7").len(), 12);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);

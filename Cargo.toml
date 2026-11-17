@@ -245,6 +245,30 @@ stm32f412vg = ["stm32-metapac/stm32f412vg", "_line-stm32f412"]
 stm32f412ve = ["stm32-metapac/stm32f412ve", "_line-stm32f412"]
 stm32f412zg = ["stm32-metapac/stm32f412zg", "_line-stm32f412"]
 stm32f412ze = ["stm32-metapac/stm32f412ze", "_line-stm32f412"]
+_line-stm32f413 = [
+    "_family-stm32f4",
+    "usart_v2",
+    "spi_v2",
+    "i2c_v1",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v1",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f4",
+    "adc_v2",
+]
+stm32f413ch = ["stm32-metapac/stm32f413ch", "_line-stm32f413"]
+stm32f413cg = ["stm32-metapac/stm32f413cg", "_line-stm32f413"]
+stm32f413mh = ["stm32-metapac/stm32f413mh", "_line-stm32f413"]
+stm32f413mg = ["stm32-metapac/stm32f413mg", "_line-stm32f413"]
+stm32f413rh = ["stm32-metapac/stm32f413rh", "_line-stm32f413"]
+stm32f413rg = ["stm32-metapac/stm32f413rg", "_line-stm32f413"]
+stm32f413vh = ["stm32-metapac/stm32f413vh", "_line-stm32f413"]
+stm32f413vg = ["stm32-metapac/stm32f413vg", "_line-stm32f413"]
+stm32f413zh = ["stm32-metapac/stm32f413zh", "_line-stm32f413"]
+stm32f413zg = ["stm32-metapac/stm32f413zg", "_line-stm32f413"]
 _line-stm32f446 = [
     "_family-stm32f4",
     "usart_v2",

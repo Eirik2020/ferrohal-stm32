@@ -1,6 +1,6 @@
 # Document index: errata (generated)
 
-10 documents in docs/errata/. Hub: [README.md](README.md).
+11 documents in docs/errata/. Hub: [README.md](README.md).
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -13,4 +13,5 @@
 | h | docs/errata/ES0305.md | 11948 B | Generated from the chip's errata table src/ch |
 | h | docs/errata/ES0334.md | 10207 B | Generated from the chip's errata table src/ch |
 | h | docs/errata/ES0360.md | 4340 B | Generated from the chip's errata table src/ch |
+| h | docs/errata/ES0372.md | 11765 B | Generated from the chip's errata table src/ch |
 | h | docs/errata/ES0392.md | 23559 B | Generated from the chip's errata table src/ch |
