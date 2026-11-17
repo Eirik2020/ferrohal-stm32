@@ -24,6 +24,31 @@ fn frame(pattern: u16, period: u32) -> [u32; 16] {
     })
 }
 
+/// One service of every lane (`Awg::on_interrupt`): marks the lanes that
+/// ended, and says whether the generator failed, which stops every lane, so
+/// all are marked.
+fn serve<T1, T2, L1, L2>(awg: &mut Awg<T1, T2, L1, L2>, finished: &mut [bool; 4]) -> bool
+where
+    T1: ChannelTimer,
+    T2: ChannelTimer,
+    L1: Lanes<T1>,
+    L2: Lanes<T2>,
+{
+    match awg.on_interrupt() {
+        Some(Ok(ended)) => {
+            for (lane, seen) in finished.iter_mut().enumerate() {
+                *seen |= ended & (1 << lane) != 0;
+            }
+            false
+        }
+        Some(Err(_)) => {
+            *finished = [true; 4];
+            true
+        }
+        None => false,
+    }
+}
+
 /// The waveform generator over four lanes on two timers, however the board
 /// starts them, with its outputs as the board set them.
 pub fn suite<T1, T2, L1, L2>(report: &mut Report, link: &mut Link, awg: &mut Awg<T1, T2, L1, L2>)
@@ -51,14 +76,7 @@ where
         let mut finished = [false; 4];
         let mut failed = false;
         while finished.iter().any(|seen| !seen) && link.now().wrapping_sub(began) < 2_000 {
-            for (lane, seen) in finished.iter_mut().enumerate() {
-                if !*seen {
-                    if let Some(result) = awg.poll(lane) {
-                        *seen = true;
-                        failed |= result.is_err();
-                    }
-                }
-            }
+            failed |= serve(awg, &mut finished);
         }
         slowest_us = slowest_us.max(link.now().wrapping_sub(began));
         if finished.iter().any(|seen| !seen) {
@@ -99,14 +117,7 @@ pub fn listen_suite<T1, T2, L1, L2>(
     let mut finished = [false; 4];
     let mut failed = !started;
     while started && finished.iter().any(|seen| !seen) && link.now().wrapping_sub(began) < 2_000 {
-        for (lane, seen) in finished.iter_mut().enumerate() {
-            if !*seen {
-                if let Some(result) = awg.poll(lane) {
-                    *seen = true;
-                    failed |= result.is_err();
-                }
-            }
-        }
+        failed |= serve(awg, &mut finished);
     }
     let all = finished.iter().all(|seen| *seen);
     if !all {

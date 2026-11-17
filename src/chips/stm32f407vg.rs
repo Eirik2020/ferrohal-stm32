@@ -25,7 +25,7 @@ use crate::{
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
     uart::{Info, RxDma, RxPin, TxDma, TxPin},
-    usart_v2::LineRegs,
+    usart_v2::Unit,
 };
 
 #[path = "shared/macros.rs"]

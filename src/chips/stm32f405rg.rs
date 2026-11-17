@@ -24,7 +24,7 @@ use crate::{
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},
     time::Hertz,
     uart::{Info, RxDma, RxPin, TxDma, TxPin},
-    usart_v2::LineRegs,
+    usart_v2::Unit,
 };
 
 #[path = "shared/macros.rs"]
@@ -223,6 +223,20 @@ mod tests {
         );
         assert_eq!(crate::uart::check::<UART4>(&clocks, &two), Ok(()));
         assert_eq!(crate::uart::check::<USART3>(&clocks, &half), Ok(()));
+    }
+
+    #[test]
+    fn usart_v2_takes_half_duplex_and_refuses_swap() {
+        let clocks = crate::rcc_f4::Config::hsi().validate().unwrap();
+        let frame = crate::uart::Config::new(Hertz(115_200));
+        assert_eq!(
+            crate::uart::check::<USART1>(&clocks, &frame.with_half_duplex(true)),
+            Ok(())
+        );
+        assert_eq!(
+            crate::uart::check::<USART1>(&clocks, &frame.with_swap(true)),
+            Err(crate::uart::ConfigError::Unsupported)
+        );
     }
 
     #[test]

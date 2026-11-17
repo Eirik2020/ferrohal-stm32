@@ -16,7 +16,7 @@
 //! interrupt handler holds needs no owner.
 //!
 //! FerroHAL enables the line's interrupt in EXTI only; the scheduler binds
-//! the vector ([`Exti::interrupt`]) and clears the line in its handler.
+//! the vector (from [`Exti::vectors`]) and clears the line in its handler.
 //!
 //! Requirements: EXTI-001, EXTI-002, EXTI-003, EXTI-004
 
@@ -146,8 +146,8 @@ where
     Port<P>: PortInstance,
 {
     /// The vector to bind; shared with other lines for 5 and up.
-    pub const fn interrupt(&self) -> Interrupt {
-        vector(N)
+    pub const fn vectors(&self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(vector(N))
     }
 
     /// What an interrupt handler needs: pending check and clear.
@@ -237,8 +237,9 @@ impl ExtiHandle {
         EXTI_REGS.swier(0).write_value(lines(self.line));
     }
 
-    pub const fn interrupt(self) -> Interrupt {
-        vector(self.line)
+    /// The vector to bind; shared with other lines for 5 and up.
+    pub const fn vectors(self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(vector(self.line))
     }
 }
 

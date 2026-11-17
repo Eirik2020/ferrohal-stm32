@@ -73,8 +73,9 @@ order. Re-measure before fixing. Every row is `code`, so each changed file's evi
 reruns. The spawn pattern: each driver landed in its own commit between 2026-10-31 and
 2026-11-06 with no shared template, and later drivers reused the first ones' types.
 
-D12, D13, N7, N9, N10, N12, S3, U3 and U10 go with the UART single-owner redesign and the
-serve trait, which rewrite the code they name (owner, 2026-11-17).
+D12, D13, N7, N9, N10, N12, S3, U3 and U10 are fixed in code by the UART single-owner
+redesign and the `Service` trait ([ADR-011](decisions/2026-11-17-uart-single-owner.md));
+each leaves for `RESOLVED.md` when the F401 and H753 benches rerun on that code.
 
 | id | tags | sev | finding | spawned |
 |---|---|---|---|---|
@@ -97,7 +98,7 @@ serve trait, which rewrite the code they name (owner, 2026-11-17).
   the H753 runs that compile it. *Spawned:* `free()` for SDMMC (2026-11-13), whose only
   slot is on a flashed board.
 - `bench` **Low: FIFO error handling is unconfirmed on hardware.** Transmit FIFO errors
-  are cleared and ignored, receive ones are `DmaOverrun`; neither has been provoked.
+  are cleared and ignored, receive ones are `Error::Dma`; neither has been provoked.
   *Spawned:* `af65cad`, which took the transmit policy from the firmware the prototype
   was written for.
 - `bench` **Low: the bench isn't on FerroForge.** Decided 2026-11-02: add a FerroHAL

@@ -26,7 +26,7 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `USART6`, `DMA1_STREAM6`, `DMA1_STREAM1` | USART6's `UartIrq` | 2 |
+//! | `USART6`, `DMA1_STREAM6`, `DMA1_STREAM1` | USART6's `on_interrupt` | 2 |
 
 #![no_std]
 #![no_main]
@@ -76,18 +76,19 @@ fn rearm(dma: Dma, stream: usize, memory: Option<u32>, len: u16) {
 mod app {
     use ferrohal_stm32::{
         dma::{StopTimeout, fault},
-        uart::{Buffers as UartBuffers, Config as UartConfig, ConfigError, Error, Uart, UartIrq},
+        uart::{Buffers as UartBuffers, Config as UartConfig, ConfigError, Error, Uart},
     };
     use stm32_metapac::{DMA1, DMA2};
 
     use crate::{
         board, held, rearm, running,
-        tests::{self, Fail, Link, Loop, Report},
+        tests::{self, Fail, Link, Locked, Loop, Report, Slot},
     };
 
     #[shared]
     struct Shared {
-        irq6: Option<UartIrq>,
+        // The UART while it is open; None between a free and the next open.
+        usart6: Option<Uart<board::Usart6Z2S1>>,
     }
 
     #[local]
@@ -106,37 +107,37 @@ mod app {
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run T, clocks: {}", board::CLOCKS);
         checks::spawn().ok();
-        (Shared { irq6: None }, Local { run: Some(run) })
+        (Shared { usart6: None }, Local { run: Some(run) })
     }
 
-    #[task(binds = USART6, priority = 2, shared = [irq6])]
+    #[task(binds = USART6, priority = 2, shared = [usart6])]
     fn usart6_irq(mut cx: usart6_irq::Context) {
-        cx.shared.irq6.lock(|irq| {
-            if let Some(irq) = irq.as_mut() {
-                irq.on_interrupt();
+        cx.shared.usart6.lock(|slot| {
+            if let Some(uart) = slot.as_mut() {
+                tests::serve(uart);
             }
         });
     }
 
-    #[task(binds = DMA1_STREAM6, priority = 2, shared = [irq6])]
+    #[task(binds = DMA1_STREAM6, priority = 2, shared = [usart6])]
     fn usart6_tx(mut cx: usart6_tx::Context) {
-        cx.shared.irq6.lock(|irq| {
-            if let Some(irq) = irq.as_mut() {
-                irq.on_interrupt();
+        cx.shared.usart6.lock(|slot| {
+            if let Some(uart) = slot.as_mut() {
+                tests::serve(uart);
             }
         });
     }
 
-    #[task(binds = DMA1_STREAM1, priority = 2, shared = [irq6])]
+    #[task(binds = DMA1_STREAM1, priority = 2, shared = [usart6])]
     fn usart6_rx(mut cx: usart6_rx::Context) {
-        cx.shared.irq6.lock(|irq| {
-            if let Some(irq) = irq.as_mut() {
-                irq.on_interrupt();
+        cx.shared.usart6.lock(|slot| {
+            if let Some(uart) = slot.as_mut() {
+                tests::serve(uart);
             }
         });
     }
 
-    #[task(priority = 1, local = [run], shared = [irq6])]
+    #[task(priority = 1, local = [run], shared = [usart6])]
     async fn checks(mut cx: checks::Context) {
         use ferrohal_stm32::{
             adc::{Adc, Config as AdcConfig},
@@ -179,15 +180,16 @@ mod app {
         let open = |rcc: &mut ferrohal_stm32::rcc::Rcc, wiring, buffers| {
             Uart::new(rcc, wiring, &config, buffers)
         };
-        let (mut usart6, irq) = match open(&mut run.rcc, run.usart6, UartBuffers { tx, rx }) {
+        let usart6 = match open(&mut run.rcc, run.usart6, UartBuffers { tx, rx }) {
             Ok(opened) => opened,
             Err(refused) => defmt::panic!("USART6: {}", refused.error()),
         };
-        cx.shared.irq6.lock(|handle| *handle = Some(irq));
+        cx.shared.usart6.lock(|slot| *slot = Some(usart6));
         {
+            let mut uart = Locked(Slot::new(&mut cx.shared.usart6));
             let mut link = Loop {
                 name: UART,
-                uart: &mut usart6,
+                uart: &mut uart,
             };
             report.check(UART, "echo before any fault", tests::echo(&mut link, b"before\n"));
 
@@ -249,28 +251,37 @@ mod app {
                 },
             );
         }
-        let Ok((wiring, buffers)) = usart6.free() else {
+        let freed = cx.shared.usart6.lock(|slot| slot.take()).map(|uart| uart.free());
+        let Some(Ok((wiring, buffers))) = freed else {
             report.check(UART, "free once both streams stopped", Err(Fail::Count { expected: 1, got: 0 }));
             tests::finish(&report, || {})
         };
-        let (mut usart6, irq) = match open(&mut run.rcc, wiring, buffers) {
+        let usart6 = match open(&mut run.rcc, wiring, buffers) {
             Ok(opened) => opened,
             Err(refused) => defmt::panic!("USART6 reopen: {}", refused.error()),
         };
-        cx.shared.irq6.lock(|handle| *handle = Some(irq));
-        let mut link = Loop {
-            name: UART,
-            uart: &mut usart6,
-        };
-        report.check_for(
-            UART,
-            "UARTDMA-009",
-            "a free and a reopen bring transmission back",
-            tests::echo(&mut link, b"reopened\n"),
-        );
+        cx.shared.usart6.lock(|slot| *slot = Some(usart6));
+        {
+            let mut uart = Locked(Slot::new(&mut cx.shared.usart6));
+            let mut link = Loop {
+                name: UART,
+                uart: &mut uart,
+            };
+            report.check_for(
+                UART,
+                "UARTDMA-009",
+                "a free and a reopen bring transmission back",
+                tests::echo(&mut link, b"reopened\n"),
+            );
+        }
 
         // The receive ring runs all the time; stuck, `free` must refuse.
+        // The UART leaves the slot, so from here no handler serves it: the
+        // read below serves the receive stream itself.
         fault::stick(1, 1);
+        let Some(usart6) = cx.shared.usart6.lock(|slot| slot.take()) else {
+            defmt::panic!("USART6 left its slot")
+        };
         let Err(refused) = usart6.free() else {
             fault::release(1, 1);
             report.check_for(UART, "API-003", "free refuses while the receive stream will not stop", Err(Fail::Count { expected: 1, got: 0 }));
@@ -280,7 +291,7 @@ mod app {
         let error = refused.error();
         let mut usart6 = refused.into_parts();
         let mut byte = [0u8; 1];
-        let read = usart6.rx().try_read(&mut byte);
+        let read = usart6.try_read(&mut byte);
         report.check_for(
             UART,
             "API-003 UARTDMA-009",
@@ -325,11 +336,12 @@ mod app {
             }
         };
         match open(&mut run.rcc, wiring, buffers) {
-            Ok((mut usart6, irq)) => {
-                cx.shared.irq6.lock(|handle| *handle = Some(irq));
+            Ok(usart6) => {
+                cx.shared.usart6.lock(|slot| *slot = Some(usart6));
+                let mut uart = Locked(Slot::new(&mut cx.shared.usart6));
                 let mut link = Loop {
                     name: UART,
-                    uart: &mut usart6,
+                    uart: &mut uart,
                 };
                 report.check_for(
                     UART,
@@ -463,7 +475,7 @@ mod app {
                 let mut sequenced = false;
                 if scan.start().is_ok() {
                     for _ in 0..board::CLOCKS.cpu.0 / 8 {
-                        if let Some(done) = scan.poll() {
+                        if let Some(done) = scan.on_interrupt() {
                             sequenced = done.is_ok();
                             break;
                         }

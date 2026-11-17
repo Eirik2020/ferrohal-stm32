@@ -1,8 +1,8 @@
 //! The UART every chip offers, independent of the hardware underneath.
 //!
 //! This module is chip-neutral. It defines what a UART driver takes and
-//! reports; each IP version (`usart_v2` on F4, `usart_v4` on H7, later
-//! others) supplies a driver with the same shape:
+//! reports; each IP version (`usart_v2` on F4, `usart_v4` on H7 and, for
+//! v3, F7; later others) supplies a driver with the same shape:
 //!
 //! - **init**: `Uart::new(&mut rcc, wiring, &config, buffers)`. The
 //!   [`Wiring`] comes from the board file and names the instance, pins and
@@ -10,14 +10,16 @@
 //!   compile time. A refusal is a [`Refused`]: the reason, with the wiring
 //!   and buffers handed back.
 //! - **read and write**: `embedded_io::{Read, Write, ReadReady, WriteReady}`
-//!   on the driver and on its two halves.
-//! - **interrupts**: a `UartIrq` handle whose `on_interrupt()` the
-//!   scheduler's handlers call. FerroHAL never touches the NVIC.
+//!   on the driver, which is the one owner of everything it was opened from
+//!   (ADR-011).
+//! - **interrupts**: [`Service::on_interrupt`](crate::Service), which the
+//!   scheduler's handlers call on the same `Uart`, under the scheduler's
+//!   lock. FerroHAL never touches the NVIC.
 //!
 //! The driver for the enabled chip is re-exported here, so firmware names
 //! `ferrohal_stm32::uart::Uart` whatever the IP version.
 //!
-//! Requirements: UART-001, UART-002, UART-003, UART-004, UART-005, UART-007, UART-008, UART-009, UART-010, UART-012, UART-013, UART-014, UART-015
+//! Requirements: UART-001, UART-002, UART-003, UART-004, UART-005, UART-007, UART-008, UART-009, UART-010, UART-012, UART-013, UART-014, UART-015, UART-021
 
 use core::fmt;
 
@@ -28,10 +30,10 @@ pub(crate) mod stream_dma;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 mod tx_ring;
 
-#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+#[cfg(any(feature = "usart_v2", feature = "usart_v3", feature = "usart_v4"))]
 pub use stream_dma::{
-    Info, Instance, Line, RxDma, RxLine, RxPin, TxDma, TxPin, Uart, UartIrq, UartParts, UartRx,
-    UartTx, check,
+    Events, Info, Instance, Parts, RxDma, RxPin, TxDma, TxPin, Uart, UartRefused, UartRxRefused,
+    check,
 };
 
 /// Frame settings. Data is always 8 bits; with parity on, the parity bit
@@ -48,10 +50,22 @@ pub struct Config {
     pub invert_rx: bool,
     /// The TX line likewise.
     pub invert_tx: bool,
+    /// Single-wire half-duplex (HDSEL): the TX pin carries both directions
+    /// and the RX pin is left unused. The receiver hears every byte this UART
+    /// sends, so the receive ring holds the echo of each frame. The line
+    /// idles high only through a pull-up, the board's or the pin's. A
+    /// receive-only UART refuses it with [`ConfigError::Unsupported`], since
+    /// it holds no TX pin.
+    pub half_duplex: bool,
+    /// TX and RX swapped (SWAP): the TX pin receives and the RX pin sends,
+    /// for a board wired crossed. Only some IP versions can do this; the
+    /// others refuse it with [`ConfigError::Unsupported`], as does a
+    /// receive-only UART, which holds no TX pin.
+    pub swap: bool,
 }
 
 impl Config {
-    /// `baudrate`, 8N1, not inverted.
+    /// `baudrate`, 8N1, not inverted, full duplex, not swapped.
     pub const fn new(baudrate: crate::time::Hertz) -> Self {
         Self {
             baudrate,
@@ -59,6 +73,8 @@ impl Config {
             stop_bits: StopBits::One,
             invert_rx: false,
             invert_tx: false,
+            half_duplex: false,
+            swap: false,
         }
     }
 
@@ -78,6 +94,17 @@ impl Config {
         Self { invert_tx, ..self }
     }
 
+    pub const fn with_half_duplex(self, half_duplex: bool) -> Self {
+        Self {
+            half_duplex,
+            ..self
+        }
+    }
+
+    pub const fn with_swap(self, swap: bool) -> Self {
+        Self { swap, ..self }
+    }
+
     /// Whether a UART clocked at `kernel_clock` can take this frame: the
     /// baud rate within 1 %, and only the features its IP version has. A
     /// `const fn`, so a board can check its frames while compiling, as it
@@ -94,13 +121,16 @@ impl Config {
     /// BRR for oversampling by 16 with no prescaler: the kernel clock over
     /// the baud rate, in 12.4 fixed point, which is the plain quotient
     /// rounded.
-    #[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
+    #[cfg(any(feature = "usart_v2", feature = "usart_v3", feature = "usart_v4"))]
     pub(crate) const fn divider(
         &self,
         kernel_clock: crate::time::Hertz,
         fractional_stop: bool,
     ) -> Result<u16, ConfigError> {
         if (self.invert_rx || self.invert_tx) && !crate::usart_ip::INVERSION {
+            return Err(ConfigError::Unsupported);
+        }
+        if self.swap && !crate::usart_ip::SWAP {
             return Err(ConfigError::Unsupported);
         }
         if !fractional_stop && matches!(self.stop_bits, StopBits::Half | StopBits::OneAndHalf) {
@@ -152,7 +182,7 @@ pub struct Wiring<U, Tx, Rx, TxDma, RxDma> {
     pub rx_dma: RxDma,
 }
 
-/// What the board file hands to `UartRx::new` for a receive-only UART: the
+/// What the board file hands to `Uart::new_rx` for a receive-only UART: the
 /// instance, its RX pin and its receive DMA stream.
 pub struct RxWiring<U, Rx, RxDma> {
     pub uart: U,
@@ -160,38 +190,7 @@ pub struct RxWiring<U, Rx, RxDma> {
     pub rx_dma: RxDma,
 }
 
-pub use crate::resource::{IrqError, Refused, Resource, Signal};
-
-/// The interrupt vectors a UART needs bound to its `UartIrq`, all at one
-/// priority above every task that uses the UART. From
-/// `UartIrq::interrupts`.
-#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct UartInterrupts {
-    pub line: crate::chip::Interrupt,
-    pub rx_dma: crate::chip::Interrupt,
-    /// `None` for a receive-only UART.
-    pub tx_dma: Option<crate::chip::Interrupt>,
-}
-
-#[cfg(any(feature = "usart_v2", feature = "usart_v4"))]
-impl UartInterrupts {
-    /// Every vector, in order: line, receive, transmit.
-    pub fn iter(&self) -> impl Iterator<Item = crate::chip::Interrupt> {
-        [Some(self.line), Some(self.rx_dma), self.tx_dma]
-            .into_iter()
-            .flatten()
-    }
-
-    /// Checks the NVIC, reading only: every vector enabled, all at one
-    /// priority. FerroHAL never sets NVIC state; this tells the firmware
-    /// whether its scheduler set it as the driver needs. That the tasks
-    /// using the UART run below this priority is for the firmware to keep.
-    pub fn verify(&self) -> Result<(), IrqError> {
-        crate::resource::verify_vectors(self.iter())
-    }
-}
+pub use crate::resource::{IrqError, Refused, Resource, Signal, Vectors};
 
 /// The memory the driver's DMA uses, owned by the driver from `new` on.
 pub struct Buffers {
@@ -199,14 +198,14 @@ pub struct Buffers {
     pub tx: &'static mut [u8],
     /// The receive ring, filled continuously by DMA. An even length from 2
     /// to 65 534 bytes. `read` must keep up within one ring's worth of
-    /// bytes, and so must the receive DMA interrupt, which must also never
-    /// be preempted by the code that reads.
+    /// bytes, and the receive stream must be served (by the interrupt or a
+    /// read) within most of a lap.
     pub rx: &'static mut [u8],
 }
 
 pub use crate::time::CycleClock;
 
-/// One chunk of received bytes, as [`UartRx::read_chunk`] copies it out.
+/// One chunk of received bytes, as [`Uart::read_chunk`] copies it out.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Chunk {
@@ -233,18 +232,21 @@ pub enum ChunkEnd {
     Gap(Error),
 }
 
-/// How often each fault has struck since the UART was opened.
+/// How often each receive fault has struck since the UART was opened. Every
+/// count saturates.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Health {
-    pub overrun: u32,
-    pub framing: u32,
-    pub parity: u32,
-    pub noise: u32,
-    pub dma_transfer: u32,
-    pub dma_overrun: u32,
+    pub overruns: u32,
+    pub framing_errors: u32,
+    pub parity_errors: u32,
+    pub noise_errors: u32,
+    /// DMA transfer (bus) errors, each reported as [`Error::Dma`].
+    pub dma_errors: u32,
+    /// DMA direct-mode and FIFO errors, each reported as [`Error::Dma`].
+    pub dma_overruns: u32,
     /// `read` fell more than a ring behind.
-    pub buffer_overrun: u32,
+    pub buffer_overruns: u32,
     /// Times the receive DMA was restarted after an error.
     pub restarts: u32,
     /// Idle or error marks the interrupt could not queue. A lost idle mark
@@ -253,7 +255,7 @@ pub struct Health {
     pub marks_lost: u32,
 }
 
-/// Why `UartTx::try_send` did not queue a frame. Nothing was queued.
+/// Why `Uart::try_send` did not queue a frame. Nothing was queued.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SendError {
@@ -265,7 +267,8 @@ pub enum SendError {
     Halted,
 }
 
-/// How the transmit half has fared since the UART was opened.
+/// How transmission has fared since the UART was opened. Every count
+/// saturates.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TxHealth {
@@ -279,7 +282,7 @@ pub struct TxHealth {
 
 /// Why `Uart::new` or `set_config` refused a configuration. Apart from
 /// `DmaBusy`, nothing has been written to hardware when this is returned.
-/// `Uart::new` and `UartRx::new` return it in a [`Refused`], with what they
+/// `Uart::new` and `Uart::new_rx` return it in a [`Refused`], with what they
 /// took.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -289,7 +292,8 @@ pub enum ConfigError {
     /// The baud rate cannot be reached from this UART's clock within 1 %.
     BaudRate,
     /// The frame asks for something this IP version cannot do, such as
-    /// inversion on `usart_v2`.
+    /// inversion on `usart_v2`, or that needs a TX pin on a receive-only
+    /// UART (half-duplex, swap).
     Unsupported,
     /// The transmit buffer is empty or longer than one DMA transfer.
     TxBuffer,
@@ -321,11 +325,10 @@ pub enum Error {
     Noise,
     /// `read` fell more than one ring behind; the unread bytes are gone.
     BufferOverrun,
-    /// The DMA stream hit a bus error and stopped. The driver restarted
-    /// reception; anything in flight is lost.
-    DmaTransfer,
-    /// The DMA stream could not keep up with the UART.
-    DmaOverrun,
+    /// A DMA stream reported a fault: a bus error, which stopped it, or a
+    /// direct-mode or FIFO error, where it could not keep up. Reception
+    /// restarts; anything in flight is lost. [`Health`] says which.
+    Dma,
     /// A transfer did not finish within its counted bound. The driver
     /// stopped it.
     Timeout,
@@ -342,8 +345,7 @@ impl fmt::Display for Error {
             Self::Parity => "parity error",
             Self::Noise => "noise on the line",
             Self::BufferOverrun => "receive ring overrun",
-            Self::DmaTransfer => "DMA transfer error",
-            Self::DmaOverrun => "DMA overrun",
+            Self::Dma => "DMA fault",
             Self::Timeout => "transfer timed out",
             Self::Halted => "DMA stream did not stop",
         })
@@ -358,11 +360,7 @@ impl embedded_io::Error for Error {
         match self {
             Self::Framing | Self::Parity | Self::Noise => ErrorKind::InvalidData,
             Self::Timeout => ErrorKind::TimedOut,
-            Self::Overrun
-            | Self::BufferOverrun
-            | Self::DmaTransfer
-            | Self::DmaOverrun
-            | Self::Halted => ErrorKind::Other,
+            Self::Overrun | Self::BufferOverrun | Self::Dma | Self::Halted => ErrorKind::Other,
         }
     }
 }

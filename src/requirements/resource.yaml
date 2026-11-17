@@ -3,11 +3,12 @@ requirements:
   - id: RESOURCE-001
     title: A driver can see its vectors are enabled
     statement: >-
-      A driver shall report whether the vectors it needs are enabled at one
-      priority.
+      A driver shall report whether the vectors it needs are enabled.
     rationale: >-
       The caller binds vectors, so a missing one should show at start, not
-      as silence.
+      as silence. Their priorities are the scheduler's: one owner serves
+      every vector under the scheduler's lock, so vectors at different
+      priorities are sound and are not refused.
     derived_from: [G1]
     verification:
       entries:
@@ -15,3 +16,24 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
+
+  - id: RESOURCE-002
+    title: Every interrupt-served driver has one service shape
+    statement: >-
+      Every driver served from interrupts shall be served through the
+      Service trait's on_interrupt, taking the driver by unique reference.
+    rationale: >-
+      A scheduler or a generator (FerroForge) binds a vector to a driver
+      without knowing which driver it is; one owner and one method leave
+      concurrency to the scheduler's lock.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI

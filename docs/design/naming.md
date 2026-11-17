@@ -65,20 +65,20 @@ Which IP versions each series carries, as metapac measured them:
   named only the first and the timer; the 2026-11-13 debt sweep counted five. Both
   counts are superseded by this one (API review K4, 2026-11-17).
 - **[Decided]** Not an exception: a neutral module's engine serving every IP version
-  through that version's register wrapper (`Unit`; the UART's `LineRegs`, N7)
-  (`uart/stream_dma.rs`, `spi/stream_dma.rs`,
+  through that version's register wrapper (`Unit`, the UART's too since N7)
+  (`uart/stream_dma/`, `spi/stream_dma.rs`,
   `spi/polled.rs`, `i2c/mod.rs`, `adc/mod.rs`). That is the neutral-module pattern
   itself, so these are never counted as shared sources.
 
 ## Vocabulary
 
 - **[Decided]** *channel*: a timer compare output. *lane*: a DMA-fed output. *stream*:
-  a DMA stream. *line*: a UART's control registers. *handle*: an ownerless view of a
+  a DMA stream. *line*: a UART's wire and its USART's event enables (`mask`, `unmask`). *handle*: an ownerless view of a
   running driver that another context, an interrupt handler above all, holds and copies
   freely, because everything it does is a single read or a write no one else races:
   `ExtiHandle`, `TimebaseHandle` (from `Timebase::handle`), `Watchdog::handle` (owner,
-  2026-11-17, API review N5). The DMA's `FlagHandle` and the UART's `UartIrq` follow it
-  with the UART's single-owner redesign.
+  2026-11-17, API review N5). The DMA's `FlagHandle` follows it. The UART has no handle
+  since its single-owner redesign (ADR-011).
 - **[Decided]** Constructors are `new`; `Watchdog::start` is the deliberate exception,
   because an independent watchdog cannot be stopped once started and the name says so.
   Its token is `chip::IWDG` on every chip (the H7's IWDG1) (owner, 2026-11-17, N17).
@@ -91,13 +91,13 @@ Which IP versions each series carries, as metapac measured them:
 - **[Decided]** A refusal's alias is `<What>Refused`, named after what refuses, not
   after the method (owner, 2026-11-17, API review N1): `SpiRefused`, `I2cRefused`,
   `LaneRefused`, `SamplerRefused`, `ScanRefused`. Names stay put when a method is
-  renamed. The UART's comes with its single-owner redesign.
+  renamed. The UART's are `UartRefused` and `UartRxRefused` (ADR-011).
 - **[Decided]** No module prefix on an item, `spi::Parts` not `spi::SpiParts` (owner,
   2026-11-17, API review N2), except: each module's main driver types (`Spi`, `I2c`,
-  `Adc`, `AdcScan`, `UsbFs`) and the refusals named after them (`SpiRefused`); and the
+  `Adc`, `AdcScan`, `UsbFs`, `Uart`) and the refusals named after them (`SpiRefused`); and the
   routing traits a chip's glue file imports beside another module's of the same name
   (`SpiTxDma` and `SpiRxDma` beside the UART's `TxDma`, `AdcPin` beside `gpio::Pin`).
-  The UART's names come with its single-owner redesign.
+  The UART's parts trait is `uart::Parts` (ADR-011).
 
 - **[Decided]** A clock tree's host tests sit in the chip file whose limits they need
   (`src/chips/<part>.rs`), and are named by the tree they pin, not by a board:

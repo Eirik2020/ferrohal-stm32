@@ -8,8 +8,6 @@
 //!
 //! Requirements: UARTDMA-001, UARTDMA-003, UARTDMA-004, UARTDMA-005
 
-use core::sync::atomic::{AtomicU32, Ordering};
-
 /// Bytes DMA has written, and its index in the ring, from the half-laps
 /// counted since the ring started (served by the interrupt, plus flags
 /// still pending) and the stream's remaining count (NDTR).
@@ -41,19 +39,6 @@ pub(crate) enum MarkKind {
     Noise = 4,
 }
 
-impl MarkKind {
-    fn from_bits(bits: u32) -> Option<Self> {
-        Some(match bits {
-            0 => Self::Idle,
-            1 => Self::Overrun,
-            2 => Self::Framing,
-            3 => Self::Parity,
-            4 => Self::Noise,
-            _ => return None,
-        })
-    }
-}
-
 /// A boundary in the ring: the byte count at which it was seen, and in
 /// which run of the ring (`epoch`, advanced at every restart).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -67,70 +52,57 @@ pub(crate) struct Mark {
 /// this many times between two reads before marks are lost.
 pub(crate) const MARKS: usize = 16;
 
-/// A single-producer, single-consumer queue of marks: the interrupt pushes,
-/// the reader pops. Atomics only, so neither side locks. Each slot is two
-/// words, written before the head that publishes them.
+/// A first-in, first-out queue of marks: the service pushes, the reader
+/// pops. Plain fields: the UART's one owner holds it (ADR-011).
 pub(crate) struct MarkQueue {
-    at: [AtomicU32; MARKS],
-    /// The kind in the low byte, the epoch above it.
-    tag: [AtomicU32; MARKS],
-    head: AtomicU32,
-    tail: AtomicU32,
+    slots: [Mark; MARKS],
+    head: u32,
+    tail: u32,
 }
 
 impl MarkQueue {
     pub const fn new() -> Self {
         Self {
-            at: [const { AtomicU32::new(0) }; MARKS],
-            tag: [const { AtomicU32::new(0) }; MARKS],
-            head: AtomicU32::new(0),
-            tail: AtomicU32::new(0),
+            slots: [Mark {
+                at: 0,
+                kind: MarkKind::Idle,
+                epoch: 0,
+            }; MARKS],
+            head: 0,
+            tail: 0,
         }
     }
 
-    /// Producer side. `false` if the queue is full and the mark was dropped.
-    pub fn push(&self, mark: Mark) -> bool {
-        let head = self.head.load(Ordering::Relaxed);
-        let tail = self.tail.load(Ordering::Acquire);
-        if head.wrapping_sub(tail) as usize >= MARKS {
+    /// `false` if the queue is full and the mark was dropped.
+    pub fn push(&mut self, mark: Mark) -> bool {
+        if self.head.wrapping_sub(self.tail) as usize >= MARKS {
             return false;
         }
-        let slot = head as usize % MARKS;
-        self.at[slot].store(mark.at, Ordering::Relaxed);
-        self.tag[slot].store((mark.epoch << 8) | mark.kind as u32, Ordering::Relaxed);
-        self.head.store(head.wrapping_add(1), Ordering::Release);
+        if let Some(slot) = self.slots.get_mut(self.head as usize % MARKS) {
+            *slot = mark;
+        }
+        self.head = self.head.wrapping_add(1);
         true
     }
 
-    /// Consumer side: the oldest mark, left in place.
+    /// The oldest mark, left in place.
     pub fn peek(&self) -> Option<Mark> {
-        let tail = self.tail.load(Ordering::Relaxed);
-        let head = self.head.load(Ordering::Acquire);
-        if head == tail {
+        if self.head == self.tail {
             return None;
         }
-        let slot = tail as usize % MARKS;
-        let tag = self.tag[slot].load(Ordering::Relaxed);
-        Some(Mark {
-            at: self.at[slot].load(Ordering::Relaxed),
-            // Only `push` writes tags, always with a valid kind.
-            kind: MarkKind::from_bits(tag & 0xff).unwrap_or(MarkKind::Idle),
-            epoch: tag >> 8,
-        })
+        self.slots.get(self.tail as usize % MARKS).copied()
     }
 
-    /// Consumer side: drops the oldest mark.
-    pub fn pop(&self) {
-        let tail = self.tail.load(Ordering::Relaxed);
-        if self.head.load(Ordering::Acquire) != tail {
-            self.tail.store(tail.wrapping_add(1), Ordering::Release);
+    /// Drops the oldest mark.
+    pub fn pop(&mut self) {
+        if self.head != self.tail {
+            self.tail = self.tail.wrapping_add(1);
         }
     }
 
-    /// Consumer side: drops every mark.
-    pub fn clear(&self) {
-        let head = self.head.load(Ordering::Acquire);
-        self.tail.store(head, Ordering::Release);
+    /// Drops every mark.
+    pub fn clear(&mut self) {
+        self.tail = self.head;
     }
 }
 
@@ -224,7 +196,7 @@ mod tests {
 
     #[test]
     fn queue_is_first_in_first_out_and_bounded() {
-        let queue = MarkQueue::new();
+        let mut queue = MarkQueue::new();
         assert_eq!(queue.peek(), None);
         for i in 0..MARKS as u32 {
             assert!(queue.push(mark(i, MarkKind::Idle)));
@@ -244,7 +216,7 @@ mod tests {
 
     #[test]
     fn queue_keeps_kind_and_epoch() {
-        let queue = MarkQueue::new();
+        let mut queue = MarkQueue::new();
         let m = Mark {
             at: 0xdead_beef,
             kind: MarkKind::Noise,

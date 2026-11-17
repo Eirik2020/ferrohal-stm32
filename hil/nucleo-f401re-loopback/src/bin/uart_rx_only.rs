@@ -5,7 +5,7 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `USART6`, `DMA2_STREAM1` | USART6's `UartIrq` | 2 |
+//! | `USART6`, `DMA2_STREAM1` | USART6's `on_interrupt` | 2 |
 //! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
 #![no_std]
@@ -23,7 +23,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         gpio::{Output, Pin},
-        uart::{UartInterrupts, UartIrq, UartRx},
+        uart::{Uart, Vectors},
     };
 
     use crate::{
@@ -35,15 +35,13 @@ mod app {
 
     #[shared]
     struct Shared {
-        #[lock_free]
-        irq6: UartIrq,
+        usart6: Uart<board::Usart6RxOnly>,
     }
 
     #[local]
     struct Local {
-        usart6: UartRx<board::Usart6RxOnly>,
         feed: Pin<'A', 11, Output>,
-        vectors6: UartInterrupts,
+        vectors6: Vectors,
         led: board::Led,
     }
 
@@ -59,15 +57,13 @@ mod app {
         };
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
         defmt::info!("run D, clocks: {}", board::CLOCKS);
-        let (_line6, usart6, irq6) =
-            UartRx::new(&mut run.rcc, run.usart6, &board::SBUS_PLAIN, cx.local.rx6)
-                .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
-        let vectors6 = irq6.interrupts();
+        let usart6 = Uart::new_rx(&mut run.rcc, run.usart6, &board::SBUS_PLAIN, cx.local.rx6)
+            .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
+        let vectors6 = usart6.vectors();
         checks::spawn().ok();
         (
-            Shared { irq6 },
+            Shared { usart6 },
             Local {
-                usart6,
                 feed: run.feed,
                 vectors6,
                 led: run.led,
@@ -75,33 +71,34 @@ mod app {
         )
     }
 
-    #[task(binds = USART6, priority = 2, shared = [irq6])]
-    fn usart6_line(cx: usart6_line::Context) {
-        cx.shared.irq6.on_interrupt();
+    #[task(binds = USART6, priority = 2, shared = [usart6])]
+    fn usart6_line(mut cx: usart6_line::Context) {
+        cx.shared.usart6.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM1, priority = 2, shared = [irq6])]
-    fn usart6_rx(cx: usart6_rx::Context) {
-        cx.shared.irq6.on_interrupt();
+    #[task(binds = DMA2_STREAM1, priority = 2, shared = [usart6])]
+    fn usart6_rx(mut cx: usart6_rx::Context) {
+        cx.shared.usart6.lock(|uart| tests::serve(uart));
     }
 
-    #[task(priority = 1, local = [usart6, feed, vectors6, led])]
+    #[task(priority = 1, shared = [usart6], local = [feed, vectors6, led])]
     async fn checks(cx: checks::Context) {
+        let mut usart6 = tests::Locked(cx.shared.usart6);
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         report.check_for(
             "USART6",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors6),
         );
         report.check_for(
             "USART6 receive-only PA12, 100000 8E2",
             "UART-007",
             "25-byte frames, one chunk each",
-            tests::receive_only(cx.local.usart6, cx.local.feed, &board::SBUS_PLAIN, 25),
+            tests::receive_only(&mut usart6, cx.local.feed, &board::SBUS_PLAIN, 25),
         );
-        defmt::info!("USART6: health {}", cx.local.usart6.health());
+        defmt::info!("USART6: health {}", tests::RxHalf::health(&mut usart6));
         let led = cx.local.led;
         tests::finish(&report, || led.set_high());
     }

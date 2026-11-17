@@ -62,6 +62,9 @@ _family-stm32h7 = ["_vendor-st"]
 # IP versions. Each needs an RCC module and, for the UART, a stream DMA;
 # the chip feature supplies them.
 usart_v2 = []
+# USART v3 (F7) is v4 without PRESC and the FIFOs, at the same offsets: the
+# usart_v4 module serves it (ADR-011). No chip here enables it yet.
+usart_v3 = []
 usart_v4 = []
 spi_v2 = []
 spi_v4 = []

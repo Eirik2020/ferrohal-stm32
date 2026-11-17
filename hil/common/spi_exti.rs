@@ -103,10 +103,7 @@ fn spin(cycles: u32) {
 /// Waits for the receive stream's handler to end the transfer: at most
 /// `cycles` of the DWT counter. A transfer still running then is aborted,
 /// so one failed check leaves the bus ready for the next.
-fn wait_done<U: spi::Parts, B: Mutex<T = Bus<U>>>(
-    bus: &mut B,
-    cycles: u32,
-) -> Result<usize, Fail> {
+fn wait_done<U: spi::Parts, B: Mutex<T = Bus<U>>>(bus: &mut B, cycles: u32) -> Result<usize, Fail> {
     let start = DWT::cycle_count();
     loop {
         if let Some(result) = bus.lock(|b| b.done.take()) {
@@ -184,7 +181,7 @@ pub fn spi_suite<U: spi::Parts, B: Mutex<T = Bus<U>>, const P: char, const N: u8
     sck.mask(ctrl);
     let cap = bus.lock(|b| b.spi.as_ref().map_or(0, Spi::capacity));
     report.check(name, "receive-stream vector enabled [RESOURCE-001]", {
-        bus.lock(|b| b.spi.as_ref().map(|s| s.interrupts().verify()))
+        bus.lock(|b| b.spi.as_ref().map(|s| s.vectors().verify()))
             .unwrap_or(Ok(()))
             .map_err(|error| Fail::Irq(Some(error)))
     });
@@ -401,7 +398,7 @@ pub fn spi_suite<U: spi::Parts, B: Mutex<T = Bus<U>>, const P: char, const N: u8
             let started = bus.lock(|b| b.spi.as_mut().map_or(Ok(()), |s| s.start(&sent)));
             let start = DWT::cycle_count();
             let polled = loop {
-                if let Some(result) = bus.lock(|b| b.spi.as_mut().and_then(Spi::poll)) {
+                if let Some(result) = bus.lock(|b| b.spi.as_mut().and_then(Spi::on_interrupt)) {
                     break result;
                 }
                 if DWT::cycle_count().wrapping_sub(start) > cpu.0 / 10 {
@@ -431,7 +428,7 @@ pub fn spi_suite<U: spi::Parts, B: Mutex<T = Bus<U>>, const P: char, const N: u8
             let mut passes = 0;
             loop {
                 let start = DWT::cycle_count();
-                let done = bus.lock(|b| b.spi.as_mut().and_then(Spi::poll));
+                let done = bus.lock(|b| b.spi.as_mut().and_then(Spi::on_interrupt));
                 let cycles = DWT::cycle_count().wrapping_sub(start);
                 if done.is_some() || passes > 100_000 {
                     break;
@@ -769,7 +766,7 @@ pub fn wire_check<U, B, TM, S>(
                     let sent_ok = by_interrupt(bus, cpu, &sent);
                     let start = DWT::cycle_count();
                     let captured = loop {
-                        if let Some(done) = sampler.poll() {
+                        if let Some(done) = sampler.on_interrupt() {
                             break done.is_ok();
                         }
                         if DWT::cycle_count().wrapping_sub(start) > cpu.0 / 100 {
@@ -823,4 +820,3 @@ pub fn wire_check<U, B, TM, S>(
         })(),
     );
 }
-

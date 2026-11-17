@@ -29,7 +29,7 @@
 //! a chip with a data cache, memory the MPU marks non-cacheable. `Spi::new`
 //! checks both with `chip::check_dma_buffer`.
 //!
-//! Requirements: SPI-002, SPI-003, SPI-004, SPI-005, SPI-006, SPI-007, SPI-008, API-002, API-003
+//! Requirements: SPI-002, SPI-003, SPI-004, SPI-005, SPI-006, SPI-007, SPI-008, API-002, API-003, RESOURCE-002
 
 use core::sync::atomic::{Ordering, fence};
 
@@ -40,7 +40,7 @@ use crate::{
     resource::Refused,
     spi::{
         Buffers, Config, ConfigError, Error, Health, Info, Instance, MisoPin, MosiPin, Parts,
-        SckPin, SpiInterrupts, SpiRxDma, SpiTxDma, Wiring, instance::SckClock,
+        SckPin, SpiRxDma, SpiTxDma, Wiring, instance::SckClock,
     },
     time::{CycleClock, Hertz},
     wait::Deadline,
@@ -249,11 +249,10 @@ impl<W: Parts> Spi<W> {
         self.clock = clock;
     }
 
-    /// The vector to bind to [`on_interrupt`](Self::on_interrupt).
-    pub fn interrupts(&self) -> SpiInterrupts {
-        SpiInterrupts {
-            rx_dma: self.vector,
-        }
+    /// The vector to bind to [`on_interrupt`](Self::on_interrupt): the
+    /// receive stream's.
+    pub fn vectors(&self) -> crate::resource::Vectors {
+        crate::resource::Vectors::one(self.vector)
     }
 
     pub fn health(&self) -> Health {
@@ -265,7 +264,7 @@ impl<W: Parts> Spi<W> {
     }
 
     /// Starts one full-duplex transfer of `tx.len()` bytes and returns; the
-    /// receive stream's interrupt (or [`poll`](Self::poll)) ends it.
+    /// receive stream's interrupt (or [`on_interrupt`](Self::on_interrupt) from a task) ends it.
     pub fn start(&mut self, tx: &[u8]) -> Result<(), Error> {
         if self.is_busy() {
             return Err(Error::Busy);
@@ -288,33 +287,27 @@ impl<W: Parts> Spi<W> {
         self.tx.clear_flags(Flags::ALL);
         self.rx.clear_flags(Flags::ALL);
         unit.enable_rx_dma(len);
-        let rx = Transfer {
-            request: self.rx_request,
-            #[cfg(feature = "dma_v1")]
-            bufferable: false,
-            direction: Direction::PeripheralToMemory,
-            peripheral: unit.rx_address(),
-            memory: self.rx_buf.as_mut_ptr() as u32,
+        let rx = Transfer::one_shot(
+            self.rx_request,
+            Direction::PeripheralToMemory,
+            unit.rx_address(),
+            self.rx_buf.as_mut_ptr() as u32,
             len,
-            size: WordSize::Byte,
-            memory_increment: true,
-            circular: false,
-            priority: Priority::VeryHigh,
-            interrupts: Interrupts {
-                complete: true,
-                error: true,
-                ..Interrupts::default()
-            },
-        };
-        let tx = Transfer {
-            request: self.tx_request,
-            direction: Direction::MemoryToPeripheral,
-            peripheral: unit.tx_address(),
-            memory: self.tx_buf.as_ptr() as u32,
-            priority: Priority::High,
-            interrupts: Interrupts::default(),
-            ..rx
-        };
+            WordSize::Byte,
+            Priority::VeryHigh,
+        );
+        // The receive stream's interrupt ends the transfer; the transmit
+        // stream's raises nothing.
+        let tx = Transfer::one_shot(
+            self.tx_request,
+            Direction::MemoryToPeripheral,
+            unit.tx_address(),
+            self.tx_buf.as_ptr() as u32,
+            len,
+            WordSize::Byte,
+            Priority::High,
+        )
+        .with_interrupts(Interrupts::default());
         // SAFETY: both buffers are the driver's own for its whole life, at
         // least `len` long (`len <= cap`), and nothing else touches them
         // until the transfer ends; the addresses are this SPI's data
@@ -332,7 +325,8 @@ impl<W: Parts> Spi<W> {
 
     /// Serves the receive stream's interrupt: `Some` once the running
     /// transfer has ended, with its length or why it failed. `None` if
-    /// nothing has ended (or nothing was running).
+    /// nothing has ended (or nothing was running). Safe to call from a task
+    /// to poll, with the vector unbound.
     pub fn on_interrupt(&mut self) -> Option<Result<usize, Error>> {
         let State::Running(len) = self.state else {
             self.rx.clear_flags(Flags::ALL);
@@ -341,7 +335,7 @@ impl<W: Parts> Spi<W> {
         let rx = self.rx.flags();
         let tx = self.tx.flags();
         // A FIFO error in direct mode is advisory; the others stop a stream.
-        if rx.transfer_error || rx.direct_mode_error || tx.transfer_error || tx.direct_mode_error {
+        if rx.failed() || tx.failed() {
             self.fail();
             self.health.dma_errors = self.health.dma_errors.saturating_add(1);
             return Some(Err(Error::Dma));
@@ -381,12 +375,6 @@ impl<W: Parts> Spi<W> {
         self.state = State::Done(len);
         self.health.transfers = self.health.transfers.saturating_add(1);
         Some(Ok(usize::from(len)))
-    }
-
-    /// [`on_interrupt`](Self::on_interrupt), for firmware that polls
-    /// instead of binding the vector.
-    pub fn poll(&mut self) -> Option<Result<usize, Error>> {
-        self.on_interrupt()
     }
 
     /// The bytes the last completed transfer clocked in; empty while one is
@@ -494,6 +482,14 @@ fn copy(dst: &mut [u8], src: &[u8]) {
     let n = dst.len().min(src.len());
     if let (Some(dst), Some(src)) = (dst.get_mut(..n), src.get(..n)) {
         dst.copy_from_slice(src);
+    }
+}
+
+impl<W: Parts> crate::resource::Service for Spi<W> {
+    type Event = Option<Result<usize, Error>>;
+
+    fn on_interrupt(&mut self) -> Self::Event {
+        Spi::on_interrupt(self)
     }
 }
 

@@ -181,9 +181,9 @@ pub fn lane_pair_check<
         })?;
         pwm.start();
         let budget = cpu.0 / 100;
-        let first = wait(budget, || lanes.0.poll());
-        let second = wait(budget, || lanes.1.poll());
-        let sampled = wait(budget, || sampler.poll());
+        let first = wait(budget, || lanes.0.on_interrupt());
+        let second = wait(budget, || lanes.1.on_interrupt());
+        let sampled = wait(budget, || sampler.on_interrupt());
         pwm.stop();
         pwm.close_requests();
         if !matches!(first, Some(Ok(()))) || !matches!(second, Some(Ok(()))) {
@@ -285,9 +285,9 @@ pub fn top_to_zero_check<
         sampler.start(count).ok()?;
         pwm.start();
         let budget = cpu.0 / 100;
-        let first = wait(budget, || lanes.0.poll());
-        let second = wait(budget, || lanes.1.poll());
-        let sampled = wait(budget, || sampler.poll());
+        let first = wait(budget, || lanes.0.on_interrupt());
+        let second = wait(budget, || lanes.1.on_interrupt());
+        let sampled = wait(budget, || sampler.on_interrupt());
         pwm.stop();
         pwm.close_requests();
         match (first, second, sampled) {
@@ -323,23 +323,25 @@ pub fn top_to_zero_check<
             got: stepped as u32,
         })
     } else {
-        expected.zip(steps.iter()).try_for_each(|(index, &(start, _))| {
-            let at = periods[index].0;
-            if start.abs_diff(at) <= slack {
-                Ok(())
-            } else {
-                defmt::info!(
-                    "step lane: duty {} starts at sample {}, its period at {}",
-                    index,
-                    start,
-                    at
-                );
-                Err(Fail::Count {
-                    expected: at as u32,
-                    got: start as u32,
-                })
-            }
-        })
+        expected
+            .zip(steps.iter())
+            .try_for_each(|(index, &(start, _))| {
+                let at = periods[index].0;
+                if start.abs_diff(at) <= slack {
+                    Ok(())
+                } else {
+                    defmt::info!(
+                        "step lane: duty {} starts at sample {}, its period at {}",
+                        index,
+                        start,
+                        at
+                    );
+                    Err(Fail::Count {
+                        expected: at as u32,
+                        got: start as u32,
+                    })
+                }
+            })
     };
     report.check(
         name,
@@ -390,15 +392,23 @@ pub fn awg_check<
             awg.abort();
             return Err(unfinished);
         }
-        for lane in 0..2 {
-            if lanes & (1 << lane) != 0 && !matches!(wait(budget, || awg.poll(lane)), Some(Ok(())))
-            {
-                sampler.abort();
-                awg.abort();
-                return Err(unfinished);
+        // Each service reports every lane that ended since the last, as a
+        // mask; wait until the loaded lanes have all ended.
+        let mut ended = 0u8;
+        let all = wait(budget, || match awg.on_interrupt() {
+            Some(Ok(mask)) => {
+                ended |= mask;
+                (ended & lanes as u8 == lanes as u8).then_some(true)
             }
+            Some(Err(_)) => Some(false),
+            None => None,
+        });
+        if all != Some(true) {
+            sampler.abort();
+            awg.abort();
+            return Err(unfinished);
         }
-        match wait(budget, || sampler.poll()) {
+        match wait(budget, || sampler.on_interrupt()) {
             Some(Ok(_)) => Ok(()),
             _ => Err(unfinished),
         }
@@ -546,13 +556,13 @@ pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<
         while finished.count_ones() < lanes as u32
             && DWT::cycle_count().wrapping_sub(start) < budget
         {
-            for lane in 0..lanes {
-                if finished & (1 << lane) == 0 {
-                    if let Some(result) = awg.poll(lane) {
-                        finished |= 1 << lane;
-                        failed |= result.is_err();
-                    }
+            match awg.on_interrupt() {
+                Some(Ok(ended)) => finished |= u32::from(ended),
+                Some(Err(_)) => {
+                    failed = true;
+                    break;
                 }
+                None => {}
             }
         }
         if finished.count_ones() == lanes as u32 && !failed {
@@ -618,7 +628,7 @@ pub fn awg_free_check<
             expected: 1000,
             got: 0,
         })?;
-        if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
+        if !matches!(wait(cpu.0 / 100, || sampler.on_interrupt()), Some(Ok(_))) {
             sampler.abort();
             return Err(Fail::Count {
                 expected: 1000,
@@ -742,7 +752,10 @@ fn play_one<T: ChannelTimer, const C: u8, WC>(
         awg.abort();
         return Err(failed);
     }
-    if matches!(wait(budget, || awg.poll(0)), Some(Ok(()))) {
+    if matches!(
+        wait(budget, || awg.on_interrupt().map(|r| r.map(|_| ()))),
+        Some(Ok(()))
+    ) {
         Ok(())
     } else {
         awg.abort();
@@ -774,7 +787,7 @@ pub fn awg_wire_out_check<
             got: 0,
         })?;
         play_one(awg, &sent, budget)?;
-        if !matches!(wait(budget, || sampler.poll()), Some(Ok(_))) {
+        if !matches!(wait(budget, || sampler.on_interrupt()), Some(Ok(_))) {
             sampler.abort();
             return Err(Fail::Count {
                 expected: CAPTURES as u32,
@@ -806,7 +819,7 @@ pub fn awg_wire_out_check<
             got: 0,
         })?;
         play_one(awg, &sent, budget)?;
-        if !matches!(wait(budget, || sampler.poll()), Some(Ok(_))) {
+        if !matches!(wait(budget, || sampler.on_interrupt()), Some(Ok(_))) {
             sampler.abort();
             return Err(Fail::Count {
                 expected: CAPTURES as u32,
@@ -857,7 +870,10 @@ pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
                 got: 0,
             })?;
         play_one(far, &sent, budget)?;
-        if !matches!(wait(budget, || near.poll(0)), Some(Ok(()))) {
+        if !matches!(
+            wait(budget, || near.on_interrupt().map(|r| r.map(|_| ()))),
+            Some(Ok(()))
+        ) {
             near.abort();
             return Err(Fail::Count {
                 expected: CAPTURES as u32,
@@ -915,7 +931,10 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
             .listen(CAPTURE_RATE, CAPTURES)
             .map_err(|_| short(CAPTURES))?;
         play_one(near, &sent, budget)?;
-        if !matches!(wait(budget, || far.poll(0)), Some(Ok(()))) {
+        if !matches!(
+            wait(budget, || far.on_interrupt().map(|r| r.map(|_| ()))),
+            Some(Ok(()))
+        ) {
             far.abort();
             return Err(short(CAPTURES));
         }
@@ -942,7 +961,10 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
             .listen(CAPTURE_RATE, CAPTURES)
             .map_err(|_| short(CAPTURES))?;
         play_one(far, &answer, budget)?;
-        if !matches!(wait(budget, || near.poll(0)), Some(Ok(()))) {
+        if !matches!(
+            wait(budget, || near.on_interrupt().map(|r| r.map(|_| ()))),
+            Some(Ok(()))
+        ) {
             near.abort();
             return Err(short(CAPTURES));
         }
@@ -969,7 +991,10 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
         far.listen(CAPTURE_RATE, CAPTURES)
             .map_err(|_| short(CAPTURES))?;
         play_one(near, &sent, budget)?;
-        if !matches!(wait(budget, || far.poll(0)), Some(Ok(()))) {
+        if !matches!(
+            wait(budget, || far.on_interrupt().map(|r| r.map(|_| ()))),
+            Some(Ok(()))
+        ) {
             far.abort();
             return Err(short(CAPTURES));
         }
@@ -1041,7 +1066,7 @@ fn measure_duty<T: ferrohal_stm32::timer::Instance, ST>(
             expected: 1000,
             got: 0,
         })?;
-        if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
+        if !matches!(wait(cpu.0 / 100, || sampler.on_interrupt()), Some(Ok(_))) {
             sampler.abort();
             return Err(Fail::Count {
                 expected: 1000,
@@ -1081,7 +1106,7 @@ pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, SU>(
             got: 0,
         })?;
         pwm.start_one_pulse();
-        if !matches!(wait(cpu.0 / 100, || sampler.poll()), Some(Ok(_))) {
+        if !matches!(wait(cpu.0 / 100, || sampler.on_interrupt()), Some(Ok(_))) {
             sampler.abort();
             return Err(Fail::Count {
                 expected: count as u32,

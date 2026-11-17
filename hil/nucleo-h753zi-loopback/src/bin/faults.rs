@@ -12,7 +12,7 @@
 //!   DTCM — which DMA1 and DMA2 cannot reach, the same fact
 //!   `ConfigError::Buffer(BufferError::Unreachable)` refuses at construction — and
 //!   restarted. The next byte is a bus error; the stream stops, the
-//!   driver reports DmaTransfer and restarts the ring on its own buffer.
+//!   driver reports `Error::Dma` and restarts the ring on its own buffer.
 //!   What the outage costs is timing, so the bytes right after the gap go
 //!   to the log unnamed and an echo after it carries the check.
 //! - Timeout: the DMA transmit request is disconnected before a frame is
@@ -22,7 +22,7 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `USART6`, `DMA1_STREAM0`, `DMA1_STREAM6` | USART6's `UartIrq` | 2 |
+//! | `USART6`, `DMA1_STREAM0`, `DMA1_STREAM6` | USART6's `on_interrupt` | 2 |
 //!
 //! Injections reach the registers through `stm32_metapac`, as run R's
 //! timer work does: the bench may sabotage what the library may not.
@@ -56,8 +56,8 @@ fn stop_stream(st: St) {
 
 /// One fault's worth of reading: the bytes, the overrun and DMA errors,
 /// and anything else. Stops at a silent line.
-fn collect<U: ferrohal_stm32::uart::UartParts>(
-    loop_: &mut Loop<'_, U>,
+fn collect<T: tests::Full>(
+    loop_: &mut Loop<'_, T>,
     cap: usize,
 ) -> (usize, [u8; 64], u32, u32, Option<Error>) {
     let (mut len, mut overrun, mut dma, mut other) = (0, 0, 0, None);
@@ -76,7 +76,7 @@ fn collect<U: ferrohal_stm32::uart::UartParts>(
             }
             Err(Error::Timeout) => break,
             Err(Error::Overrun) => overrun += 1,
-            Err(Error::DmaTransfer) => dma += 1,
+            Err(Error::Dma) => dma += 1,
             Err(error) => other = Some(error),
         }
         if len >= cap {
@@ -87,10 +87,10 @@ fn collect<U: ferrohal_stm32::uart::UartParts>(
 }
 
 /// Overrun: two frames with the DMA request disconnected.
-fn inject_overrun<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_: &mut Loop<'_, U>) {
+fn inject_overrun<T: tests::Full>(report: &mut Report, loop_: &mut Loop<'_, T>) {
     let name = loop_.name();
     tests::drain(loop_);
-    let before = loop_.rx().health().overrun;
+    let before = loop_.rx().health().overruns;
     stm32_metapac::USART6.cr3().modify(|w| w.set_dmar(false));
     let first = loop_
         .tx()
@@ -100,7 +100,7 @@ fn inject_overrun<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_
     // completion; wait until the driver has counted it before the request
     // returns, so the restore cannot race the flag and swallow the fault.
     for _ in 0..100 {
-        if loop_.rx().health().overrun != before {
+        if loop_.rx().health().overruns != before {
             break;
         }
         tests::delay_ms(1);
@@ -111,7 +111,7 @@ fn inject_overrun<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_
         .write_all(b"CDE")
         .and_then(|()| loop_.tx().flush());
     let (len, got, overrun, dma, other) = collect(loop_, 8);
-    let counted = loop_.rx().health().overrun.wrapping_sub(before);
+    let counted = loop_.rx().health().overruns.wrapping_sub(before);
     defmt::info!(
         "{=str}: overrun: reader {=u32}, driver counted {=u32}, {=usize} byte(s) after it, dma {=u32}, sends ok {} and {}",
         name,
@@ -136,7 +136,7 @@ fn inject_overrun<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_
                 got: if overrun != 1 { overrun } else { counted },
             })
         } else if dma != 0 {
-            Err(Fail::Uart(Error::DmaTransfer))
+            Err(Fail::Uart(Error::Dma))
         } else {
             Ok(())
         },
@@ -174,14 +174,11 @@ fn inject_overrun<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_
 }
 
 /// DMA transfer error: the receive stream re-pointed at DTCM.
-fn inject_dma_transfer<U: ferrohal_stm32::uart::UartParts>(
-    report: &mut Report,
-    loop_: &mut Loop<'_, U>,
-) {
+fn inject_dma_transfer<T: tests::Full>(report: &mut Report, loop_: &mut Loop<'_, T>) {
     let name = loop_.name();
     tests::drain(loop_);
     let health = loop_.rx().health();
-    let (transfers, restarts) = (health.dma_transfer, health.restarts);
+    let (transfers, restarts) = (health.dma_errors, health.restarts);
     let rx = stm32_metapac::DMA1.st(0);
     stop_stream(rx);
     rx.m0ar().write(|w| *w = UNREACHABLE);
@@ -193,7 +190,7 @@ fn inject_dma_transfer<U: ferrohal_stm32::uart::UartParts>(
         "{=str}: dma transfer: reader {=u32}, driver counted {=u32}, restarts {=u32} -> {=u32}, {=usize} byte(s) after it, overrun {=u32}, sent {}, bytes {=[u8]:02x}",
         name,
         dma,
-        after.dma_transfer.wrapping_sub(transfers),
+        after.dma_errors.wrapping_sub(transfers),
         restarts,
         after.restarts,
         len,
@@ -209,13 +206,13 @@ fn inject_dma_transfer<U: ferrohal_stm32::uart::UartParts>(
             Err(Fail::Uart(error))
         } else if let Err(error) = sent {
             Err(Fail::Uart(error))
-        } else if dma != 1 || after.dma_transfer.wrapping_sub(transfers) != 1 {
+        } else if dma != 1 || after.dma_errors.wrapping_sub(transfers) != 1 {
             Err(Fail::Count {
                 expected: 1,
                 got: if dma != 1 { dma } else { 0 },
             })
         } else if after.restarts <= restarts {
-            Err(Fail::NotReported(Error::DmaTransfer))
+            Err(Fail::NotReported(Error::Dma))
         } else if overrun != 0 {
             Err(Fail::Uart(Error::Overrun))
         } else {
@@ -234,7 +231,7 @@ fn inject_dma_transfer<U: ferrohal_stm32::uart::UartParts>(
 }
 
 /// Timeout: the DMA transmit request disconnected before a frame is queued.
-fn inject_timeout<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_: &mut Loop<'_, U>) {
+fn inject_timeout<T: tests::Full>(report: &mut Report, loop_: &mut Loop<'_, T>) {
     let name = loop_.name();
     tests::drain(loop_);
     let before = loop_.tx().health().timeouts;
@@ -271,23 +268,21 @@ fn inject_timeout<U: ferrohal_stm32::uart::UartParts>(report: &mut Report, loop_
 
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
-    use ferrohal_stm32::uart::{Buffers, Config, Uart, UartInterrupts, UartIrq};
+    use ferrohal_stm32::uart::{Buffers, Config, Uart, Vectors};
 
     use crate::{
         board,
-        tests::{self, Loop, Report},
+        tests::{self, Locked, Loop, Report},
     };
 
     #[shared]
     struct Shared {
-        #[lock_free]
-        irq6: UartIrq,
+        usart6: Uart<board::Usart6Lucid>,
     }
 
     #[local]
     struct Local {
-        usart6: Uart<board::Usart6Lucid>,
-        vectors6: UartInterrupts,
+        vectors6: Vectors,
         led: board::Led,
     }
 
@@ -307,7 +302,7 @@ mod app {
 
         let config = Config::new(ferrohal_stm32::time::Hertz(115_200));
         let local = cx.local;
-        let (usart6, irq6) = Uart::new(
+        let usart6 = Uart::new(
             &mut run.rcc,
             run.usart6,
             &config,
@@ -318,54 +313,47 @@ mod app {
         )
         .unwrap_or_else(|error| defmt::panic!("USART6: {}", error));
 
-        let vectors6 = irq6.interrupts();
+        let vectors6 = usart6.vectors();
 
         checks::spawn().ok();
         (
-            Shared { irq6 },
+            Shared { usart6 },
             Local {
-                usart6,
                 vectors6,
                 led: run.led,
             },
         )
     }
 
-    /// The driver's own three steps, in their order.
-    fn serve(irq: &mut UartIrq) {
-        irq.on_rx_dma();
-        irq.on_uart();
-        irq.on_tx_dma();
+    #[task(binds = USART6, priority = 2, shared = [usart6])]
+    fn usart6_line(mut cx: usart6_line::Context) {
+        cx.shared.usart6.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = USART6, priority = 2, shared = [irq6])]
-    fn usart6_line(cx: usart6_line::Context) {
-        serve(cx.shared.irq6);
+    #[task(binds = DMA1_STREAM0, priority = 2, shared = [usart6])]
+    fn usart6_rx(mut cx: usart6_rx::Context) {
+        cx.shared.usart6.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA1_STREAM0, priority = 2, shared = [irq6])]
-    fn usart6_rx(cx: usart6_rx::Context) {
-        serve(cx.shared.irq6);
+    #[task(binds = DMA1_STREAM6, priority = 2, shared = [usart6])]
+    fn usart6_tx(mut cx: usart6_tx::Context) {
+        cx.shared.usart6.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA1_STREAM6, priority = 2, shared = [irq6])]
-    fn usart6_tx(cx: usart6_tx::Context) {
-        serve(cx.shared.irq6);
-    }
-
-    #[task(priority = 1, local = [usart6, vectors6, led])]
+    #[task(priority = 1, shared = [usart6], local = [vectors6, led])]
     async fn checks(cx: checks::Context) {
+        let mut usart6 = Locked(cx.shared.usart6);
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
         report.check_for(
             "USART6",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors6),
         );
         let mut loop_ = Loop {
             name: "USART6 PC6->PC7 loopback",
-            uart: cx.local.usart6,
+            uart: &mut usart6,
         };
 
         crate::inject_overrun(&mut report, &mut loop_);

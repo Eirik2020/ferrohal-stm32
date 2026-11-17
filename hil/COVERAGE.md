@@ -54,6 +54,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 |---|---|---|---|---|
 | `usart_v2` | F401, F405 | F401: A, B, C, D, V, W | – | USART2's break, baud and parity (ST-LINK); parity clear above 115200 |
 | `usart_v4` | H743, H753 | H753: A, B, C, D, E, U, W, Y | – | UART8 TX and the morpho-only pins |
+| `usart_v3` (served by `usart_v4`) | none enabled | – | – | everything: no chip carries it yet |
 | `spi_v2` | F401, F405 | F401: E, F, G (DMA), K (polled); E samples the wire (bit order, phase) | Foxeer: IMU, NOR | – |
 | `spi_v4` | H743, H753 | H753: F, G, H (DMA), L (polled); F samples the wire (bit order, phase); H again with caches on | Lucid: IMU | – |
 | `i2c_v1` | F401, F405 | F401: Q, S (Pico simulator) | – | – |
@@ -79,7 +80,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 
 | what | proven on: runs | not proven |
 |---|---|---|
-| UART engine (`uart/stream_dma.rs`), both IP versions | the UART runs on both Nucleos | UARTDMA-009 (a stream that will not stop) |
+| UART engine (`uart/stream_dma/`), both IP versions | the UART runs on both Nucleos | UARTDMA-009 (a stream that will not stop) |
 | SPI engines, DMA and polled | the SPI runs on both Nucleos | – |
 | Waveform generator, two-way lanes | F401: O, P, R; H753: Q | – |
 | Reset cause, ROM bootloader request | F401: L; Discovery: C (ROM DFU on CN5); H753: N, Z (ROM DFU on CN13) | RESET-004 on both families |

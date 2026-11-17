@@ -2,18 +2,21 @@
 
 //! Run B: UART4, UART5, UART7 and USART3 on their first pin pairs, and
 //! the DMA streams run A leaves free. The full check list on each, then
-//! all four streaming at once.
+//! all four streaming at once. USART3 also runs with TX and RX swapped.
+//! [USART-V4-002]
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
-//! receive stream's own interrupt bits. Each vector in use, and what serves
-//! it:
+//! streams' own interrupt bits. Each UART is one shared resource, served by
+//! its handlers and used by the `checks` task under RTIC's lock, one call at
+//! a time (`tests::Locked`; `docs/design/uart-ownership.md`). Each vector in
+//! use, and what serves it:
 //!
-//! | Vector | Owner | Priority |
+//! | Vector | Serves | Priority |
 //! | --- | --- | --- |
-//! | `UART4`, `DMA1_STREAM5`, `DMA1_STREAM7` | UART4 PB9->PB8's `UartIrq` | 2 |
-//! | `UART5`, `DMA2_STREAM0`, `DMA2_STREAM1` | UART5 PC12->PD2's `UartIrq` | 2 |
-//! | `UART7`, `DMA2_STREAM2`, `DMA2_STREAM3` | UART7 PF7->PF6's `UartIrq` | 2 |
-//! | `USART3`, `DMA2_STREAM6`, `DMA2_STREAM7` | USART3 PC10->PC11's `UartIrq` | 2 |
+//! | `UART4`, `DMA1_STREAM5`, `DMA1_STREAM7` | UART4's `on_interrupt` | 2 |
+//! | `UART5`, `DMA2_STREAM0`, `DMA2_STREAM1` | UART5's `on_interrupt` | 2 |
+//! | `UART7`, `DMA2_STREAM2`, `DMA2_STREAM3` | UART7's `on_interrupt` | 2 |
+//! | `USART3`, `DMA2_STREAM6`, `DMA2_STREAM7` | USART3's `on_interrupt` | 2 |
 //! | `SPI1` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
 #![no_std]
@@ -31,40 +34,30 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         chip::Interrupt,
-        uart::{Config, Uart, UartInterrupts, UartIrq},
+        uart::{Config, Uart, Vectors},
     };
 
     use crate::{
         board::{self, RX_RING, TX_BUFFER},
-        tests::{self, Loop, Report},
+        tests::{self, Locked, Loop, Report},
     };
 
     const PLAIN: Config = Config::new(ferrohal_stm32::time::Hertz(115_200));
 
     #[shared]
     struct Shared {
-        // Each handle's two tasks run at one priority, so neither preempts
-        // the other and the handle needs no lock.
-        #[lock_free]
-        irq_uart4: UartIrq,
-        #[lock_free]
-        irq_uart5: UartIrq,
-        #[lock_free]
-        irq_uart7: UartIrq,
-        #[lock_free]
-        irq_usart3: UartIrq,
+        uart4: Uart<board::Uart4B>,
+        uart5: Uart<board::Uart5B>,
+        uart7: Uart<board::Uart7B>,
+        usart3: Uart<board::Usart3B>,
     }
 
     #[local]
     struct Local {
-        uart4: Uart<board::Uart4B>,
-        vectors_uart4: UartInterrupts,
-        uart5: Uart<board::Uart5B>,
-        vectors_uart5: UartInterrupts,
-        uart7: Uart<board::Uart7B>,
-        vectors_uart7: UartInterrupts,
-        usart3: Uart<board::Usart3B>,
-        vectors_usart3: UartInterrupts,
+        vectors_uart4: Vectors,
+        vectors_uart5: Vectors,
+        vectors_uart7: Vectors,
+        vectors_usart3: Vectors,
         led: board::Led,
     }
 
@@ -86,28 +79,28 @@ mod app {
         defmt::info!("run B, clocks: {}", board::CLOCKS);
 
         let mut buffers = board::dma_buffers().into_iter();
-        let (uart_uart4, irq_uart4) = board::open(
+        let uart4 = board::open(
             &mut run.rcc,
             "UART4 PB9->PB8",
             run.uart4,
             &PLAIN,
             buffers.next().unwrap(),
         );
-        let (uart_uart5, irq_uart5) = board::open(
+        let uart5 = board::open(
             &mut run.rcc,
             "UART5 PC12->PD2",
             run.uart5,
             &PLAIN,
             buffers.next().unwrap(),
         );
-        let (uart_uart7, irq_uart7) = board::open(
+        let uart7 = board::open(
             &mut run.rcc,
             "UART7 PF7->PF6",
             run.uart7,
             &PLAIN,
             buffers.next().unwrap(),
         );
-        let (uart_usart3, irq_usart3) = board::open(
+        let usart3 = board::open(
             &mut run.rcc,
             "USART3 PC10->PC11",
             run.usart3,
@@ -115,130 +108,126 @@ mod app {
             buffers.next().unwrap(),
         );
 
-        let vectors_uart4 = irq_uart4.interrupts();
-        let vectors_uart5 = irq_uart5.interrupts();
-        let vectors_uart7 = irq_uart7.interrupts();
-        let vectors_usart3 = irq_usart3.interrupts();
+        let vectors_uart4 = uart4.vectors();
+        let vectors_uart5 = uart5.vectors();
+        let vectors_uart7 = uart7.vectors();
+        let vectors_usart3 = usart3.vectors();
         checks::spawn().ok();
         (
             Shared {
-                irq_uart4,
-                irq_uart5,
-                irq_uart7,
-                irq_usart3,
+                uart4,
+                uart5,
+                uart7,
+                usart3,
             },
             Local {
-                uart4: uart_uart4,
                 vectors_uart4,
-                uart5: uart_uart5,
                 vectors_uart5,
-                uart7: uart_uart7,
                 vectors_uart7,
-                usart3: uart_usart3,
                 vectors_usart3,
                 led: run.led,
             },
         )
     }
 
-    #[task(binds = UART4, priority = 2, shared = [irq_uart4])]
-    fn uart4_line(cx: uart4_line::Context) {
-        cx.shared.irq_uart4.on_interrupt();
+    #[task(binds = UART4, priority = 2, shared = [uart4])]
+    fn uart4_line(mut cx: uart4_line::Context) {
+        cx.shared.uart4.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA1_STREAM5, priority = 2, shared = [irq_uart4])]
-    fn uart4_rx(cx: uart4_rx::Context) {
-        cx.shared.irq_uart4.on_interrupt();
+    #[task(binds = DMA1_STREAM5, priority = 2, shared = [uart4])]
+    fn uart4_rx(mut cx: uart4_rx::Context) {
+        cx.shared.uart4.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA1_STREAM7, priority = 2, shared = [irq_uart4])]
-    fn uart4_tx(cx: uart4_tx::Context) {
-        cx.shared.irq_uart4.on_interrupt();
+    #[task(binds = DMA1_STREAM7, priority = 2, shared = [uart4])]
+    fn uart4_tx(mut cx: uart4_tx::Context) {
+        cx.shared.uart4.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = UART5, priority = 2, shared = [irq_uart5])]
-    fn uart5_line(cx: uart5_line::Context) {
-        cx.shared.irq_uart5.on_interrupt();
+    #[task(binds = UART5, priority = 2, shared = [uart5])]
+    fn uart5_line(mut cx: uart5_line::Context) {
+        cx.shared.uart5.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM0, priority = 2, shared = [irq_uart5])]
-    fn uart5_rx(cx: uart5_rx::Context) {
-        cx.shared.irq_uart5.on_interrupt();
+    #[task(binds = DMA2_STREAM0, priority = 2, shared = [uart5])]
+    fn uart5_rx(mut cx: uart5_rx::Context) {
+        cx.shared.uart5.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM1, priority = 2, shared = [irq_uart5])]
-    fn uart5_tx(cx: uart5_tx::Context) {
-        cx.shared.irq_uart5.on_interrupt();
+    #[task(binds = DMA2_STREAM1, priority = 2, shared = [uart5])]
+    fn uart5_tx(mut cx: uart5_tx::Context) {
+        cx.shared.uart5.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = UART7, priority = 2, shared = [irq_uart7])]
-    fn uart7_line(cx: uart7_line::Context) {
-        cx.shared.irq_uart7.on_interrupt();
+    #[task(binds = UART7, priority = 2, shared = [uart7])]
+    fn uart7_line(mut cx: uart7_line::Context) {
+        cx.shared.uart7.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM2, priority = 2, shared = [irq_uart7])]
-    fn uart7_rx(cx: uart7_rx::Context) {
-        cx.shared.irq_uart7.on_interrupt();
+    #[task(binds = DMA2_STREAM2, priority = 2, shared = [uart7])]
+    fn uart7_rx(mut cx: uart7_rx::Context) {
+        cx.shared.uart7.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM3, priority = 2, shared = [irq_uart7])]
-    fn uart7_tx(cx: uart7_tx::Context) {
-        cx.shared.irq_uart7.on_interrupt();
+    #[task(binds = DMA2_STREAM3, priority = 2, shared = [uart7])]
+    fn uart7_tx(mut cx: uart7_tx::Context) {
+        cx.shared.uart7.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = USART3, priority = 2, shared = [irq_usart3])]
-    fn usart3_line(cx: usart3_line::Context) {
-        cx.shared.irq_usart3.on_interrupt();
+    #[task(binds = USART3, priority = 2, shared = [usart3])]
+    fn usart3_line(mut cx: usart3_line::Context) {
+        cx.shared.usart3.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM6, priority = 2, shared = [irq_usart3])]
-    fn usart3_rx(cx: usart3_rx::Context) {
-        cx.shared.irq_usart3.on_interrupt();
+    #[task(binds = DMA2_STREAM6, priority = 2, shared = [usart3])]
+    fn usart3_rx(mut cx: usart3_rx::Context) {
+        cx.shared.usart3.lock(|uart| tests::serve(uart));
     }
 
-    #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq_usart3])]
-    fn usart3_tx(cx: usart3_tx::Context) {
-        cx.shared.irq_usart3.on_interrupt();
+    #[task(binds = DMA2_STREAM7, priority = 2, shared = [usart3])]
+    fn usart3_tx(mut cx: usart3_tx::Context) {
+        cx.shared.usart3.lock(|uart| tests::serve(uart));
     }
 
-    #[task(priority = 1, local = [uart4, vectors_uart4, uart5, vectors_uart5, uart7, vectors_uart7, usart3, vectors_usart3, led])]
+    #[task(priority = 1, shared = [uart4, uart5, uart7, usart3], local = [vectors_uart4, vectors_uart5, vectors_uart7, vectors_usart3, led])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
-        let uart4 = cx.local.uart4;
         report.check_for(
             "UART4 PB9->PB8",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors_uart4),
         );
-        let uart5 = cx.local.uart5;
         report.check_for(
             "UART5 PC12->PD2",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors_uart5),
         );
-        let uart7 = cx.local.uart7;
         report.check_for(
             "UART7 PF7->PF6",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors_uart7),
         );
-        let usart3 = cx.local.usart3;
         report.check_for(
             "USART3 PC10->PC11",
             "UART-003 RESOURCE-001",
-            "vectors enabled at one priority",
+            "vectors enabled",
             tests::vectors_verified(cx.local.vectors_usart3),
         );
+        let mut uart4 = Locked(cx.shared.uart4);
+        let mut uart5 = Locked(cx.shared.uart5);
+        let mut uart7 = Locked(cx.shared.uart7);
+        let mut usart3 = Locked(cx.shared.usart3);
 
         tests::full_suite(
             &mut report,
             &mut Loop {
                 name: "UART4 PB9->PB8",
-                uart: &mut *uart4,
+                uart: &mut uart4,
             },
             &PLAIN,
             RX_RING,
@@ -255,7 +244,7 @@ mod app {
             &mut report,
             &mut Loop {
                 name: "UART5 PC12->PD2",
-                uart: &mut *uart5,
+                uart: &mut uart5,
             },
             &PLAIN,
             RX_RING,
@@ -272,7 +261,7 @@ mod app {
             &mut report,
             &mut Loop {
                 name: "UART7 PF7->PF6",
-                uart: &mut *uart7,
+                uart: &mut uart7,
             },
             &PLAIN,
             RX_RING,
@@ -289,7 +278,7 @@ mod app {
             &mut report,
             &mut Loop {
                 name: "USART3 PC10->PC11",
-                uart: &mut *usart3,
+                uart: &mut usart3,
             },
             &PLAIN,
             RX_RING,
@@ -302,6 +291,18 @@ mod app {
             ]),
             true,
         );
+        report.check_for(
+            "USART3 PC10->PC11",
+            "USART-V4-002",
+            "TX and RX swapped: the loop carries a line and a stream back the other way",
+            tests::swapped(
+                &mut Loop {
+                    name: "USART3 PC10->PC11",
+                    uart: &mut usart3,
+                },
+                &PLAIN,
+            ),
+        );
 
         report.check_for(
             "UART4 + UART5 + UART7 + USART3",
@@ -311,19 +312,19 @@ mod app {
                 &mut [
                     &mut Loop {
                         name: "UART4 PB9->PB8",
-                        uart: &mut *uart4,
+                        uart: &mut uart4,
                     },
                     &mut Loop {
                         name: "UART5 PC12->PD2",
-                        uart: &mut *uart5,
+                        uart: &mut uart5,
                     },
                     &mut Loop {
                         name: "UART7 PF7->PF6",
-                        uart: &mut *uart7,
+                        uart: &mut uart7,
                     },
                     &mut Loop {
                         name: "USART3 PC10->PC11",
-                        uart: &mut *usart3,
+                        uart: &mut usart3,
                     },
                 ],
                 8 * 1024,

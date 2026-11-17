@@ -20,7 +20,7 @@ no framing error; below 4.35 % no sample straddles, above 5.1 % the middle
 one crosses too and the byte corrupts. DMA transfer error: USART6's
 receive stream is stopped, re-pointed at 0x20200000, past the 96 KiB of
 SRAM, and restarted; the next byte is a bus error, the driver reports
-DmaTransfer and restarts the ring on its own buffer, and an echo after the
+`Error::Dma` and restarts the ring on its own buffer, and an echo after the
 gap succeeds — what the outage costs is timing (a frame completed into a
 dead stream raises overrun, whose mark the restart wipes), so the bytes
 right after the gap go to the log unnamed. Timeout: USART1's DMA transmit
@@ -41,7 +41,7 @@ discarded or lands once the request returns is the shift register's
 timing, which the check accepts both ways. DMA transfer error: USART6's
 receive stream is re-pointed at the DTCM, which DMA1 and DMA2 cannot reach
 — the same fact `ConfigError::Buffer(BufferError::Unreachable)` refuses at construction —
-and the next byte is a bus error; the driver reports DmaTransfer, restarts
+and the next byte is a bus error; the driver reports `Error::Dma`, restarts
 the ring on its own buffer, and an echo after the gap succeeds. Timeout:
 USART6's DMA transmit request is disconnected before a 128-byte frame is
 queued; the bound expires, the queue is dropped and counted, and the next

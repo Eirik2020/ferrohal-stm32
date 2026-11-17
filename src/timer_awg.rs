@@ -1,7 +1,7 @@
 //! The arbitrary waveform generator, [`Awg`]; its documentation is on the type,
 //! since this module is private. Part of the timer module, for both IP versions.
 //!
-//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, API-002
+//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, API-002, RESOURCE-002
 
 use super::pwm::{CompareLane, Error, Pwm};
 use super::{ChannelTimer, ConfigError, TriggeredBy};
@@ -91,7 +91,7 @@ macro_rules! lanes {
             }
             fn vector(&self, index: usize) -> Option<Interrupt> {
                 match index {
-                    $($index => Some(self.$index.interrupt()),)+
+                    $($index => self.$index.vectors().iter().next(),)+
                     _ => None,
                 }
             }
@@ -453,29 +453,43 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         (first, second)
     }
 
-    /// Serves `lane`'s stream: `Some` once its waveform has ended. When the last
-    /// lane ends, the timers stop and their requests close. A lane that fails
+    /// Serves every lane's stream, from any lane's vector or from a task:
+    /// `Some(Ok(ended))` once one or more waveforms have ended, bit `n` of
+    /// `ended` set for lane `n`; `None` if none did. When the last lane
+    /// ends, the timers stop and their requests close. A lane that fails
     /// stops the whole generator, since its waveforms belong together.
-    pub fn on_interrupt(&mut self, lane: usize) -> Option<Result<(), Error>> {
-        let result = if lane < LA::COUNT {
-            self.first_lanes.serve(lane)
-        } else {
-            self.second_lanes.serve(lane.wrapping_sub(LA::COUNT))
-        }?;
-        if result.is_err() {
-            self.abort();
-            return Some(result);
+    pub fn on_interrupt(&mut self) -> Option<Result<u8, Error>> {
+        let mut ended = 0u8;
+        let mut lane = 0;
+        while lane < (LA::COUNT + LB::COUNT).min(8) {
+            let bit = 1u8 << (lane & 7);
+            if self.state.active & bit != 0 {
+                let served = if lane < LA::COUNT {
+                    self.first_lanes.serve(lane)
+                } else {
+                    self.second_lanes.serve(lane.wrapping_sub(LA::COUNT))
+                };
+                match served {
+                    Some(Err(error)) => {
+                        self.abort();
+                        return Some(Err(error));
+                    }
+                    Some(Ok(())) => {
+                        self.state.active &= !bit;
+                        ended |= bit;
+                    }
+                    None => {}
+                }
+            }
+            lane += 1;
         }
-        self.state.active &= !(1u8 << (lane & 7));
+        if ended == 0 {
+            return None;
+        }
         if self.state.active == 0 {
             self.halt();
         }
-        Some(result)
-    }
-
-    /// [`on_interrupt`](Self::on_interrupt), for firmware that polls.
-    pub fn poll(&mut self, lane: usize) -> Option<Result<(), Error>> {
-        self.on_interrupt(lane)
+        Some(Ok(ended))
     }
 
     /// Stops everything, with every output at duty 0, ready to load again.
@@ -530,13 +544,35 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         self.state.started = false;
     }
 
-    /// `lane`'s stream vector, to bind to [`on_interrupt`](Self::on_interrupt).
-    pub fn interrupt(&self, lane: usize) -> Option<Interrupt> {
-        if lane < LA::COUNT {
-            self.first_lanes.vector(lane)
-        } else {
-            self.second_lanes.vector(lane.wrapping_sub(LA::COUNT))
+    /// Every lane's stream vector, to bind to
+    /// [`on_interrupt`](Self::on_interrupt).
+    pub fn vectors(&self) -> crate::resource::Vectors {
+        let mut vectors = crate::resource::Vectors::none();
+        let mut lane = 0;
+        while lane < LA::COUNT + LB::COUNT {
+            let vector = if lane < LA::COUNT {
+                self.first_lanes.vector(lane)
+            } else {
+                self.second_lanes.vector(lane.wrapping_sub(LA::COUNT))
+            };
+            if let Some(vector) = vector {
+                vectors = vectors.with(vector);
+            }
+            lane += 1;
         }
+        vectors
+    }
+}
+
+impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> crate::resource::Service
+    for Awg<A, B, LA, LB>
+{
+    /// Which lanes ended (bit `n` for lane `n`), or why the generator
+    /// stopped; `None` if nothing ended.
+    type Event = Option<Result<u8, Error>>;
+
+    fn on_interrupt(&mut self) -> Self::Event {
+        Awg::on_interrupt(self)
     }
 }
 

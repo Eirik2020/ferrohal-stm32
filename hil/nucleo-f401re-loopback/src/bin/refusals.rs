@@ -28,7 +28,7 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `USART1`, `DMA2_STREAM2`, `DMA2_STREAM7` | USART1's `UartIrq` | 2 |
+//! | `USART1`, `DMA2_STREAM2`, `DMA2_STREAM7` | USART1's `on_interrupt` | 2 |
 //! | `SDIO` | RTIC, dispatching the priority 1 `checks` task | 1 |
 //!
 //! Needs J1, J2, S1 and S3 fitted; nothing else.
@@ -78,7 +78,6 @@ mod app {
         rcc::ClockError,
         uart::{
             Buffers as UartBuffers, Config as UartConfig, ConfigError as UartConfigError, Uart,
-            UartIrq,
         },
         usb::{self, UsbFs},
     };
@@ -91,10 +90,9 @@ mod app {
 
     #[shared]
     struct Shared {
-        // The UART's tasks run at one priority, so the handle needs no lock.
         // None until the checks task constructs the port from the parts a
-        // refusal hands back.
-        irq1: Option<UartIrq>,
+        // refusal hands back, and again once it frees it.
+        usart1: Option<Uart<board::Usart1LoopS2>>,
     }
 
     #[local]
@@ -115,7 +113,7 @@ mod app {
         defmt::info!("run V, clocks: {}", board::REFUSAL_CLOCKS);
         checks::spawn().ok();
         (
-            Shared { irq1: None },
+            Shared { usart1: None },
             Local {
                 run: Some(run),
                 rcc_refusal: Some(rcc_refusal),
@@ -123,34 +121,34 @@ mod app {
         )
     }
 
-    #[task(binds = USART1, priority = 2, shared = [irq1])]
+    #[task(binds = USART1, priority = 2, shared = [usart1])]
     fn usart1_irq(mut cx: usart1_irq::Context) {
-        cx.shared.irq1.lock(|irq| {
-            if let Some(irq) = irq.as_mut() {
-                irq.on_interrupt();
+        cx.shared.usart1.lock(|slot| {
+            if let Some(uart) = slot.as_mut() {
+                tests::serve(uart);
             }
         });
     }
 
-    #[task(binds = DMA2_STREAM2, priority = 2, shared = [irq1])]
+    #[task(binds = DMA2_STREAM2, priority = 2, shared = [usart1])]
     fn usart1_rx(mut cx: usart1_rx::Context) {
-        cx.shared.irq1.lock(|irq| {
-            if let Some(irq) = irq.as_mut() {
-                irq.on_interrupt();
+        cx.shared.usart1.lock(|slot| {
+            if let Some(uart) = slot.as_mut() {
+                tests::serve(uart);
             }
         });
     }
 
-    #[task(binds = DMA2_STREAM7, priority = 2, shared = [irq1])]
+    #[task(binds = DMA2_STREAM7, priority = 2, shared = [usart1])]
     fn usart1_tx(mut cx: usart1_tx::Context) {
-        cx.shared.irq1.lock(|irq| {
-            if let Some(irq) = irq.as_mut() {
-                irq.on_interrupt();
+        cx.shared.usart1.lock(|slot| {
+            if let Some(uart) = slot.as_mut() {
+                tests::serve(uart);
             }
         });
     }
 
-    #[task(priority = 1, local = [run, rcc_refusal], shared = [irq1])]
+    #[task(priority = 1, local = [run, rcc_refusal], shared = [usart1])]
     async fn checks(mut cx: checks::Context) {
         use embedded_hal::digital::InputPin as _;
         use embedded_hal::i2c::I2c as _;
@@ -279,16 +277,19 @@ mod app {
             Err(refused) => {
                 let error = refused.error();
                 let (wiring, buffers) = refused.into_parts();
-                match Uart::new(&mut run.rcc, wiring, &UartConfig::new(Hertz(115_200)), buffers) {
-                    Ok((uart, irq)) => {
-                        cx.shared.irq1.lock(|handle| *handle = Some(irq));
-                        (uart, Some(error))
-                    }
+                match Uart::new(
+                    &mut run.rcc,
+                    wiring,
+                    &UartConfig::new(Hertz(115_200)),
+                    buffers,
+                ) {
+                    Ok(uart) => (uart, Some(error)),
                     Err(refused) => defmt::panic!("USART1: {}", refused.error()),
                 }
             }
         };
-        let mut usart1 = usart1;
+        cx.shared.usart1.lock(|slot| *slot = Some(usart1));
+        let mut usart1 = tests::Locked(tests::Slot::new(&mut cx.shared.usart1));
         report.check(
             "USART1 PA9->PA10",
             "an unreachable baud refuses [API-001]",
@@ -308,7 +309,11 @@ mod app {
             tests::echo(&mut loop1, b"refusal\n"),
         );
         // `free` stops the line and both streams, and hands the token back.
-        let handed_back = usart1.free().is_ok();
+        let handed_back = cx
+            .shared
+            .usart1
+            .lock(|slot| slot.take())
+            .is_some_and(|uart| uart.free().is_ok());
         report.check(
             "USART1 PA9->PA10",
             "free leaves the USART off and both streams stopped [API-002]",
@@ -463,9 +468,9 @@ mod app {
                         if scan.start().is_ok() {
                             let mut spins = cpu.0 / 8;
                             loop {
-                                if let Some(done) = scan.poll() {
-                                    if let Ok(values) = done {
-                                        let [reference, temperature] = values else {
+                                if let Some(done) = scan.on_interrupt() {
+                                    if done.is_ok() {
+                                        let [reference, temperature] = scan.samples() else {
                                             break;
                                         };
                                         result = if (1300..=1700).contains(reference)
@@ -527,25 +532,29 @@ mod app {
         // touches it.
         let ccm: &'static mut [u32] =
             unsafe { core::slice::from_raw_parts_mut(0x1000_0000 as *mut u32, 16) };
-        let (mut lane3, lane_refusal) = match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3_stream).assemble(&pwm3, ccm)
-        {
-            Ok(_) => defmt::panic!("a CCM buffer was accepted"),
-            Err(refused) => {
-                let error = refused.error();
-                let (wiring, _ccm) = refused.into_parts();
-                match wiring.assemble(&pwm3, lane3_buf) {
-                    Ok(lane) => (lane, Some(error)),
-                    Err(refused) => defmt::panic!("the TIM3 lane: {}", refused.error()),
+        let (mut lane3, lane_refusal) =
+            match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3_stream)
+                .assemble(&pwm3, ccm)
+            {
+                Ok(_) => defmt::panic!("a CCM buffer was accepted"),
+                Err(refused) => {
+                    let error = refused.error();
+                    let (wiring, _ccm) = refused.into_parts();
+                    match wiring.assemble(&pwm3, lane3_buf) {
+                        Ok(lane) => (lane, Some(error)),
+                        Err(refused) => defmt::panic!("the TIM3 lane: {}", refused.error()),
+                    }
                 }
-            }
-        };
+            };
         report.check(
             "TIM3 CH3",
             "a CCM buffer refuses; the channel and stream come back [API-001]",
             match lane_refusal {
                 Some(TimerConfigError::Buffer(BufferError::Unreachable)) => Ok(()),
                 Some(other) => Err(Fail::Timer(other)),
-                None => Err(Fail::Timer(TimerConfigError::Buffer(BufferError::Unreachable))),
+                None => Err(Fail::Timer(TimerConfigError::Buffer(
+                    BufferError::Unreachable,
+                ))),
             },
         );
 
@@ -585,8 +594,7 @@ mod app {
             sampler
                 .set_rate(Hertz(pwm3.rate().0 * 12))
                 .map_err(Fail::Timer)?;
-            let per_bit16 =
-                (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
+            let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
             let count = (per_bit16 as usize * (16 + 8)) / 16;
             lane3
                 .arm(&pwm3, &pwm::duties(pattern, pwm3.period()))
@@ -600,8 +608,8 @@ mod app {
             })?;
             pwm3.stage(0b0100);
             pwm3.start();
-            let done = pwm::wait(budget, || lane3.poll());
-            let sampled = pwm::wait(budget, || sampler.poll());
+            let done = pwm::wait(budget, || lane3.on_interrupt());
+            let sampled = pwm::wait(budget, || sampler.on_interrupt());
             pwm3.stop();
             pwm3.close_requests();
             if !matches!(done, Some(Ok(()))) || !matches!(sampled, Some(Ok(_))) {
@@ -624,14 +632,20 @@ mod app {
             Ok(pwm) => pwm,
             Err(refused) => defmt::panic!("TIM4 PWM: {}", refused.error()),
         };
-        let lane4 = match ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pb6, run.lane4_stream).assemble(&pwm4, lane4_buf)
-        {
-            Ok(lane) => lane,
-            Err(refused) => defmt::panic!("the TIM4 lane: {}", refused.error()),
-        };
+        let lane4 =
+            match ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pb6, run.lane4_stream)
+                .assemble(&pwm4, lane4_buf)
+            {
+                Ok(lane) => lane,
+                Err(refused) => defmt::panic!("the TIM4 lane: {}", refused.error()),
+            };
         let (mut awg, awg_refusal) = match Pwm::new(&mut run.rcc, run.tim2, Hertz::khz(100)) {
             Ok(pwm2) => {
-                let lane2 = match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.pb10, run.lane2_stream).assemble(&pwm2, lane2_buf)
+                let lane2 = match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(
+                    run.pb10,
+                    run.lane2_stream,
+                )
+                .assemble(&pwm2, lane2_buf)
                 {
                     Ok(lane) => lane,
                     Err(refused) => defmt::panic!("the TIM2 lane: {}", refused.error()),
@@ -681,13 +695,16 @@ mod app {
                     got: 0,
                 });
             }
-            if !matches!(pwm::wait(budget, || awg.poll(0)), Some(Ok(()))) {
+            if !matches!(
+                pwm::wait(budget, || awg.on_interrupt().map(|r| r.map(|_| ()))),
+                Some(Ok(()))
+            ) {
                 return Err(Fail::Count {
                     expected: count as u32,
                     got: 0,
                 });
             }
-            let sampled = pwm::wait(budget, || sampler.poll());
+            let sampled = pwm::wait(budget, || sampler.on_interrupt());
             if !matches!(sampled, Some(Ok(_))) {
                 return Err(Fail::Count {
                     expected: count as u32,
