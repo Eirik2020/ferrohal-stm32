@@ -29,11 +29,9 @@ use stm32_metapac::timer::{
     vals::Urs,
 };
 
-#[path = "timer_pwm.rs"]
 mod pwm;
 pub use pwm::{CompareLane, Error, Pwm, PwmChannel, Sampler, nearest};
 
-#[path = "timer_awg.rs"]
 mod awg;
 pub use awg::{Awg, Lanes, recover};
 

@@ -16,8 +16,9 @@ env:
   # reqtool after #9 (2026-11-17): board evidence follows files (#4, #5), host
   # evidence covers every cfg alternative (#6), as do imports and `super` (#8),
   # board tiers (#7), and a configuration no longer records which binary cargo
-  # built last (#9). Bump it on purpose.
-  REQTOOL_REV: e68d347b7861ff7f95fe76fa966543f54e5ad7aa
+  # built last (#9), and a `#[path]` file owns its own directory, as rustc
+  # treats it (#10, for ADR-012's `timer/`). Bump it on purpose.
+  REQTOOL_REV: fd264172989820eab7a2a933fcaa9c8ce4cc1803
 
 jobs:
   glue:

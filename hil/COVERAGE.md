@@ -25,27 +25,27 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 |---|---|---|
 | IP `adc_v2` | HIL | nucleo-f401re-loopback |
 | IP `adc_v4` | HIL | nucleo-h753zi-loopback |
-| IP `dma_v1` | HIL | nucleo-h753zi-loopback |
-| IP `dma_v2` | HIL | nucleo-f401re-loopback |
-| IP `exti_h7` | HIL | nucleo-h753zi-loopback |
-| IP `exti_v1` | HIL | nucleo-f401re-loopback |
+| IP `dma_v1` | – |  |
+| IP `dma_v2` | – |  |
+| IP `exti_h7` | – |  |
+| IP `exti_v1` | – |  |
 | IP `i2c_v1` | HIL | nucleo-f401re-loopback |
 | IP `i2c_v2` | HIL | nucleo-h753zi-loopback |
-| IP `iwdg_v1` | HIL | nucleo-f401re-loopback |
-| IP `iwdg_v2` | HIL | nucleo-h753zi-loopback |
-| IP `otg_v1` | HIL | nucleo-h753zi-loopback, stm32f4-discovery |
+| IP `iwdg_v1` | – |  |
+| IP `iwdg_v2` | – |  |
+| IP `otg_v1` | – |  |
 | IP `sdmmc_v2` | FLSH | lucid-h7 |
 | IP `spi_v2_i2s` | HIL | nucleo-f401re-loopback |
 | IP `spi_v4_i2s` | HIL | nucleo-h753zi-loopback |
-| IP `timer_v1` | HIL | nucleo-f401re-loopback, stm32f4-discovery |
-| IP `timer_v3` | HIL | nucleo-h753zi-loopback |
+| IP `timer_v1` | – |  |
+| IP `timer_v3` | – |  |
 | IP `usart_v2` | HIL | nucleo-f401re-loopback |
 | IP `usart_v4` | HIL | nucleo-h753zi-loopback |
-| die `0x413` (glue probe) | HIL | stm32f4-discovery |
-| die `0x433` (glue probe) | HIL | nucleo-f401re-loopback |
-| die `0x450` (glue probe) | HIL | nucleo-h753zi-loopback |
-| series F4 platform | HIL | nucleo-f401re-loopback, stm32f4-discovery |
-| series H7 platform | HIL | nucleo-h753zi-loopback |
+| die `0x413` (glue probe) | – |  |
+| die `0x433` (glue probe) | – |  |
+| die `0x450` (glue probe) | – |  |
+| series F4 platform | – | nucleo-f401re-loopback, stm32f4-discovery |
+| series H7 platform | – | nucleo-h753zi-loopback |
 <!-- end generated -->
 
 ## Per IP version

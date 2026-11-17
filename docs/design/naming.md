@@ -52,18 +52,26 @@ Which IP versions each series carries, as metapac measured them:
 - **[Decided]** A neutral module plus a directory per IP version for every new IP:
   `uart` with `usart_v2`/`usart_v4`, and so `spi`, `i2c`, `adc`.
   A directory holding only `mod.rs` is that rule, not a leftover: it is where the IP
-  version's next file goes. The timer's `timer_pwm.rs` and `timer_awg.rs` stay children
-  of `timer.rs` by `#[path]`, because `timer.rs` is itself compiled as `timer_v1` and
-  `timer_v3` (the shared sources below). API review S2 closed on this (owner,
-  2026-11-17).
-- **[Decided]** Deliberate exceptions: one source compiled under two names
-  (`iwdg.rs` as `iwdg_v1`/`iwdg_v2`, `exti.rs`, `dma_stream.rs`), and the timer split
-  by function, not version (`timer.rs`, `timer_pwm.rs`, `timer_awg.rs`, as
-  `timer_v1`/`timer_v3`). Each is two IP versions, so each needs a chip per version.
-  This list is complete: these four are every `#[path]` alias in `src/lib.rs` and
-  `src/timer.rs` (the chip files' `#[path]`s pull in glue, not drivers). ADR-003 rule 4
-  named only the first and the timer; the 2026-11-13 debt sweep counted five. Both
-  counts are superseded by this one (API review K4, 2026-11-17).
+  version's next file goes.
+- **[Decided]** One folder per IP (ADR-012, owner 2026-11-17): every peripheral IP lives
+  in its own folder, never as a loose file in `src/`, and its submodules live inside it.
+  The folder is the unit that may later become its own crate (`ferrohal-<ip>`, per
+  [structure.md](structure.md)), so it reaches only the crate's core (`resource`, `wait`,
+  `time`, `rcc`, the chip's glue traits) and other IPs' public items, never a
+  neighbour's internals. Loose files in `src/` are that core, not IPs.
+- **[Decided]** Deliberate exceptions: one source compiled under two version names, by
+  `#[path = "<ip>/mod.rs"]` (`dma/` as `dma_v1`/`dma_v2`, `exti/` as `exti_v1`/`exti_h7`,
+  `iwdg/` as `iwdg_v1`/`iwdg_v2`, `timer/` as `timer_v1`/`timer_v3`). Each is two IP
+  versions, so each needs a chip per version. A file mounted by `#[path]` owns its
+  folder, so `timer/mod.rs`'s `mod pwm;` finds `timer/pwm.rs` under both names. This
+  list is complete: these four are every `#[path]` alias in `src/lib.rs` (the chip files'
+  `#[path]`s pull in glue, not drivers). Earlier counts (ADR-003 rule 4, the 2026-11-13
+  debt sweep, API review K4) are superseded by this one.
+- **[Decided]** A die with two DMA IPs (the H7: stream DMA, BDMA, MDMA) gives each its own
+  folder and neutral name, as metapac does (`dma`, `bdma`), not one name for both.
+- **[Decided]** The RCC's shared code is a neutral module like `uart/`: `rcc/` holds what
+  every RCC version shares (`kernel.rs`, `shared.rs`) and re-exports the chip's version
+  (`rcc_f4`, `rcc_h7_rm0433`).
 - **[Decided]** Not an exception: a neutral module's engine serving every IP version
   through that version's register wrapper (`Unit`, the UART's too since N7)
   (`uart/stream_dma/`, `spi/stream_dma.rs`,

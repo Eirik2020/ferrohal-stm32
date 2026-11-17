@@ -36,8 +36,8 @@ use stm32_metapac::{
     rcc::vals::{Hpre, Pllm, Plln, Pllp, Pllq, Pllsrc, Ppre, Sw},
 };
 
-pub use crate::rcc_kernel::Kernel;
-pub use crate::rcc_shared::{
+pub use crate::rcc::kernel::Kernel;
+pub use crate::rcc::shared::{
     AhbPrescaler, ApbPrescaler, ClockError, Hse, HseMode, PllSource, RccBit,
 };
 use crate::{chip::CLOCK_LIMITS, resource::Refused, time::Hertz};

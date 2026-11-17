@@ -32,10 +32,11 @@ root = pathlib.Path(__file__).resolve().parent.parent
 # The one allowed `pub unsafe fn`: file -> item name.
 ALLOWED_UNSAFE = {"src/chips/shared/macros.rs": "steal"}
 
-# Where `stm32_metapac` may appear: the RTIC device module, and the
-# one-file IP modules. The directory set below covers the rest.
-METAPAC_FILES = {"device.rs", "dma_stream.rs", "exti.rs", "iwdg.rs",
-                 "timer.rs", "timer_pwm.rs"}
+# Where `stm32_metapac` may appear: the RTIC device module, the one-file IP
+# modules, and the shared sources' register files. The directory set below
+# covers the rest.
+METAPAC_FILES = {"device.rs", "exti/mod.rs", "iwdg/mod.rs", "dma/mod.rs",
+                 "timer/mod.rs", "timer/pwm.rs"}
 METAPAC_DIRS = {"adc_v2", "adc_v4", "gpio_v2", "i2c_v1", "i2c_v2", "rcc_f4",
                 "rcc_h7_rm0433", "sdmmc_v2", "spi_v2", "spi_v4", "usart_v2",
                 "usart_v4", "chips"}
@@ -111,7 +112,7 @@ for path in sorted(root.glob("src/**/*.rs")):
     parts = path.relative_to(root).parts
     if parts[1] == "chips":
         continue
-    if len(parts) == 2 and parts[1] in METAPAC_FILES:
+    if "/".join(parts[1:]) in METAPAC_FILES:
         continue
     if len(parts) > 2 and parts[1] in METAPAC_DIRS:
         continue
