@@ -51,6 +51,13 @@ python3 -I tools/rig_run.py hil/run-<bench>.sh [runs]  # the same run, timed int
 python3 -I tools/rig_report.py [--since 24h] [--full]  # where the rig's time goes (hil/RIG.md)
 ```
 
+Before every push, match CI: run the full `checks/run.sh` and `tools/glue-gate.sh` without
+`--no-tiers`, both with `REQTOOL` set to a reqtool built at CI's `REQTOOL_REV`
+(`.github/workflows/ci.yml`). `--no-tiers` skips the tier tables CI checks, and run.sh skips
+reqtool when it finds none. A local pass is not "fixed": only green repo CI on the pushed head is.
+When repo CI fails, read the failing jobs' own logs first (`gh run view <id> --log-failed`, or
+the job log) and fix every failure they show before pushing again; never guess from a local run.
+
 CI trap: a gitleaks CDN 504 fails Publication security spuriously; `gh run rerun <id> --failed`,
 never change the workflow. Bench traps: watchdog/bootloader runs need `--no-catch-reset`; run M + DFU use the H753's
 CN13 cable, which stays connected; probes by serial through `hil/probe.sh` (`F401_PROBE`,
