@@ -21,7 +21,8 @@ Two sources, joined:
 Prints one line per debugger bench with the runs owed, in each script's order,
 and notes for what no debugger bench runs: flashed benches (run only when what
 they alone reach changed, requirements-system.md) and host procedures
-(checks/run.sh, tools/glue-gate.sh). --shell prints the bench commands alone.
+(checks/run.sh, tools/glue-gate.sh). --shell prints the bench commands alone,
+each through tools/rig_run.py so the rig's telemetry records it.
 reqtool is ../reqtool's build, as for record_evidence.py, or REQTOOL.
 Nothing is run and nothing is written.
 """
@@ -136,7 +137,7 @@ def main():
         runs += sorted(owed[bench] - set(runs))
         if shell:
             if runs:
-                print(f"hil/run-{bench}.sh {' '.join(runs)}")
+                print(f"python3 -I tools/rig_run.py hil/run-{bench}.sh {' '.join(runs)}")
             continue
         print(f"{bench}: {' '.join(runs) if runs else 'nothing owed'}"
               + (f"  ({len(runs_of[bench])} in a full pass; for {', '.join(sorted(why[bench])[:6])}"
