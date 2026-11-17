@@ -287,8 +287,14 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         .get(part.package)
         .ok_or("package not in the die table")?;
     let key = (part.device.to_string(), part.package.to_string());
-    let enabled = die.cuts.get(&key).ok_or("device and package not in the die table")?;
-    let cut_rows = die.rows.get(&key).ok_or("device and package not in the die table")?;
+    let enabled = die
+        .cuts
+        .get(&key)
+        .ok_or("device and package not in the die table")?;
+    let cut_rows = die
+        .rows
+        .get(&key)
+        .ok_or("device and package not in the die table")?;
     let cut = Cut {
         family,
         part,
@@ -723,8 +729,14 @@ pub fn offer(die: &Die, part: &Part) -> Result<Offer, String> {
         .get(part.package)
         .ok_or("package not in the die table")?;
     let key = (part.device.to_string(), part.package.to_string());
-    let enabled = die.cuts.get(&key).ok_or("device and package not in the die table")?;
-    let cut_rows = die.rows.get(&key).ok_or("device and package not in the die table")?;
+    let enabled = die
+        .cuts
+        .get(&key)
+        .ok_or("device and package not in the die table")?;
+    let cut_rows = die
+        .rows
+        .get(&key)
+        .ok_or("device and package not in the die table")?;
     let cut = Cut {
         family,
         part,

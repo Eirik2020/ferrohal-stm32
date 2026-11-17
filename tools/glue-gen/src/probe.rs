@@ -32,6 +32,9 @@ fn scratch(kind: &str, version: &str) -> Option<(&'static str, u32)> {
     Some(match (kind, version) {
         ("usart", _) => ("brr", 0x1234),
         ("spi", "v2_i2s") => ("crcpr", 0x55),
+        // The same CRC polynomial register, writable while CRC is off
+        // (RM0431 28.9.5).
+        ("spi", "v3_i2s") => ("crcpr", 0x55),
         ("spi", "v4_i2s") => ("crcpoly", 0x55),
         ("i2c", "v1") => ("oar2", 0x54),
         ("i2c", "v2") => ("timingr", 0x1034_5678),
@@ -255,4 +258,41 @@ fn peripheral(
     }
     modify(core, enable, enable_bit, false)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every IP version the glue offers on some series has a scratch register,
+    /// so the probe never stops at an offered peripheral (it stopped at the
+    /// F767ZI's SPI1, spi v3_i2s, on 2026-11-17).
+    #[test]
+    fn every_driven_version_has_a_scratch_register() {
+        let versions = [
+            ("usart", "v2"),
+            ("usart", "v4"),
+            ("spi", "v2_i2s"),
+            ("spi", "v3_i2s"),
+            ("spi", "v4_i2s"),
+            ("i2c", "v1"),
+            ("i2c", "v2"),
+            ("timer", "v1"),
+            ("timer", "v3"),
+            ("adc", "v2"),
+            ("adc", "v4"),
+            ("sdmmc", "v2"),
+            ("otg", "v1"),
+        ];
+        for series in ["F4", "F7", "H7"] {
+            for (kind, version) in versions {
+                if crate::emit::drives(series, kind, version) {
+                    assert!(
+                        scratch(kind, version).is_some(),
+                        "{series} {kind} {version}"
+                    );
+                }
+            }
+        }
+    }
 }
