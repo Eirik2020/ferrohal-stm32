@@ -1,5 +1,9 @@
 //! STM32F767 glue: the chip facts the IP modules leave out, for every
-//! package of the line (die 0x451, RM0410).
+//! package of every line cut from die 0x451 (RM0410): the F765, F767, F768,
+//! F769, F777, F778 and F779. They differ in blocks FerroHAL does not drive
+//! (Ethernet, JPEG, LTDC, DSI, CRYP and HASH) and in the pins a package
+//! bonds; both are in each package's generated glue, and the F769's and
+//! F779's DSI pinouts are packages of their own.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMA
 //! request channels) are generated from stm32-metapac's metadata by
@@ -75,6 +79,21 @@ pub(crate) const I2C_RELOAD_ERRATUM: &crate::errata::Erratum = &ES0334_2_13_5;
 
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
+#[cfg(any(feature = "stm32f765vi", feature = "stm32f765vg"))]
+#[path = "gen/stm32f765vi.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f765zi", feature = "stm32f765zg"))]
+#[path = "gen/stm32f765zi.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f765ii", feature = "stm32f765ig"))]
+#[path = "gen/stm32f765ii.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f765bi", feature = "stm32f765bg"))]
+#[path = "gen/stm32f765bi.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f765ni", feature = "stm32f765ng"))]
+#[path = "gen/stm32f765ni.rs"]
+mod generated;
 #[cfg(any(feature = "stm32f767vi", feature = "stm32f767vg"))]
 #[path = "gen/stm32f767vi.rs"]
 mod generated;
@@ -89,6 +108,51 @@ mod generated;
 mod generated;
 #[cfg(any(feature = "stm32f767ni", feature = "stm32f767ng"))]
 #[path = "gen/stm32f767ni.rs"]
+mod generated;
+#[cfg(feature = "stm32f768ai")]
+#[path = "gen/stm32f768ai.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f769ai", feature = "stm32f769ag"))]
+#[path = "gen/stm32f769ai.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f769bi", feature = "stm32f769bg"))]
+#[path = "gen/stm32f769bi.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f769ii", feature = "stm32f769ig"))]
+#[path = "gen/stm32f769ii.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f769ni", feature = "stm32f769ng"))]
+#[path = "gen/stm32f769ni.rs"]
+mod generated;
+#[cfg(feature = "stm32f777vi")]
+#[path = "gen/stm32f777vi.rs"]
+mod generated;
+#[cfg(feature = "stm32f777zi")]
+#[path = "gen/stm32f777zi.rs"]
+mod generated;
+#[cfg(feature = "stm32f777ii")]
+#[path = "gen/stm32f777ii.rs"]
+mod generated;
+#[cfg(feature = "stm32f777bi")]
+#[path = "gen/stm32f777bi.rs"]
+mod generated;
+#[cfg(feature = "stm32f777ni")]
+#[path = "gen/stm32f777ni.rs"]
+mod generated;
+#[cfg(feature = "stm32f778ai")]
+#[path = "gen/stm32f778ai.rs"]
+mod generated;
+#[cfg(feature = "stm32f779ai")]
+#[path = "gen/stm32f779ai.rs"]
+mod generated;
+#[cfg(feature = "stm32f779bi")]
+#[path = "gen/stm32f779bi.rs"]
+mod generated;
+#[cfg(feature = "stm32f779ii")]
+#[path = "gen/stm32f779ii.rs"]
+mod generated;
+#[cfg(feature = "stm32f779ni")]
+#[path = "gen/stm32f779ni.rs"]
 mod generated;
 pub use generated::*;
 

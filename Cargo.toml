@@ -353,6 +353,30 @@ stm32f745zg = ["stm32-metapac/stm32f745zg", "_line-stm32f745"]
 stm32f745ze = ["stm32-metapac/stm32f745ze", "_line-stm32f745"]
 stm32f745ig = ["stm32-metapac/stm32f745ig", "_line-stm32f745"]
 stm32f745ie = ["stm32-metapac/stm32f745ie", "_line-stm32f745"]
+_line-stm32f765 = [
+    "_family-stm32f7",
+    "usart_v3",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
+    "adc_v2",
+]
+stm32f765vi = ["stm32-metapac/stm32f765vi", "_line-stm32f765"]
+stm32f765vg = ["stm32-metapac/stm32f765vg", "_line-stm32f765"]
+stm32f765zi = ["stm32-metapac/stm32f765zi", "_line-stm32f765"]
+stm32f765zg = ["stm32-metapac/stm32f765zg", "_line-stm32f765"]
+stm32f765ii = ["stm32-metapac/stm32f765ii", "_line-stm32f765"]
+stm32f765ig = ["stm32-metapac/stm32f765ig", "_line-stm32f765"]
+stm32f765bi = ["stm32-metapac/stm32f765bi", "_line-stm32f765"]
+stm32f765bg = ["stm32-metapac/stm32f765bg", "_line-stm32f765"]
+stm32f765ni = ["stm32-metapac/stm32f765ni", "_line-stm32f765"]
+stm32f765ng = ["stm32-metapac/stm32f765ng", "_line-stm32f765"]
 _line-stm32f767 = [
     "_family-stm32f7",
     "usart_v3",
@@ -377,6 +401,95 @@ stm32f767bi = ["stm32-metapac/stm32f767bi", "_line-stm32f767"]
 stm32f767bg = ["stm32-metapac/stm32f767bg", "_line-stm32f767"]
 stm32f767ni = ["stm32-metapac/stm32f767ni", "_line-stm32f767"]
 stm32f767ng = ["stm32-metapac/stm32f767ng", "_line-stm32f767"]
+_line-stm32f768 = [
+    "_family-stm32f7",
+    "usart_v3",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
+    "adc_v2",
+]
+stm32f768ai = ["stm32-metapac/stm32f768ai", "_line-stm32f768"]
+_line-stm32f769 = [
+    "_family-stm32f7",
+    "usart_v3",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
+    "adc_v2",
+]
+stm32f769ai = ["stm32-metapac/stm32f769ai", "_line-stm32f769"]
+stm32f769ag = ["stm32-metapac/stm32f769ag", "_line-stm32f769"]
+stm32f769bi = ["stm32-metapac/stm32f769bi", "_line-stm32f769"]
+stm32f769bg = ["stm32-metapac/stm32f769bg", "_line-stm32f769"]
+stm32f769ii = ["stm32-metapac/stm32f769ii", "_line-stm32f769"]
+stm32f769ig = ["stm32-metapac/stm32f769ig", "_line-stm32f769"]
+stm32f769ni = ["stm32-metapac/stm32f769ni", "_line-stm32f769"]
+stm32f769ng = ["stm32-metapac/stm32f769ng", "_line-stm32f769"]
+_line-stm32f777 = [
+    "_family-stm32f7",
+    "usart_v3",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
+    "adc_v2",
+]
+stm32f777vi = ["stm32-metapac/stm32f777vi", "_line-stm32f777"]
+stm32f777zi = ["stm32-metapac/stm32f777zi", "_line-stm32f777"]
+stm32f777ii = ["stm32-metapac/stm32f777ii", "_line-stm32f777"]
+stm32f777bi = ["stm32-metapac/stm32f777bi", "_line-stm32f777"]
+stm32f777ni = ["stm32-metapac/stm32f777ni", "_line-stm32f777"]
+_line-stm32f778 = [
+    "_family-stm32f7",
+    "usart_v3",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
+    "adc_v2",
+]
+stm32f778ai = ["stm32-metapac/stm32f778ai", "_line-stm32f778"]
+_line-stm32f779 = [
+    "_family-stm32f7",
+    "usart_v3",
+    "spi_v3",
+    "i2c_v2",
+    "exti_v1",
+    "timer_v1",
+    "iwdg_v2",
+    "synopsys-usb-otg?/fs",
+    "dma_v2",
+    "gpio_v2",
+    "rcc_f7",
+    "adc_v2",
+]
+stm32f779ai = ["stm32-metapac/stm32f779ai", "_line-stm32f779"]
+stm32f779bi = ["stm32-metapac/stm32f779bi", "_line-stm32f779"]
+stm32f779ii = ["stm32-metapac/stm32f779ii", "_line-stm32f779"]
+stm32f779ni = ["stm32-metapac/stm32f779ni", "_line-stm32f779"]
 _line-stm32h743 = [
     "_family-stm32h7",
     "usart_v4",

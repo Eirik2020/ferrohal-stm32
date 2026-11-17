@@ -38,7 +38,11 @@ packages=(
     stm32f413ch stm32f413mh stm32f413rh stm32f413vh
     stm32f446me stm32f446ve stm32f446ze
     stm32f722ve stm32f722ze stm32f722ie stm32f745zg stm32f745ig
+    stm32f765vi stm32f765zi stm32f765ii stm32f765bi stm32f765ni
     stm32f767vi stm32f767ii stm32f767bi stm32f767ni
+    stm32f768ai stm32f769ai stm32f769bi stm32f769ii stm32f769ni
+    stm32f777vi stm32f777zi stm32f777ii stm32f777bi stm32f777ni stm32f778ai
+    stm32f779ai stm32f779bi stm32f779ii stm32f779ni
     stm32h743zi stm32h743ii stm32h743bi stm32h743ai stm32h743xi
     stm32h753vi stm32h753ii stm32h753bi stm32h753ai stm32h753xi
 )

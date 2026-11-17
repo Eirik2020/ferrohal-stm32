@@ -354,6 +354,41 @@ pub const PARTS: &[Part] = &[
         package: "LQFP176",
     },
     Part {
+        feature: "stm32f765vi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F765",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f765zi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F765",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32f765ii",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F765",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32f765bi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F765",
+        package: "LQFP208",
+    },
+    Part {
+        feature: "stm32f765ni",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F765",
+        package: "TFBGA216",
+    },
+    Part {
         feature: "stm32f767vi",
         series: "F7",
         die: 0x451,
@@ -387,6 +422,111 @@ pub const PARTS: &[Part] = &[
         die: 0x451,
         device: "STM32F767",
         package: "TFBGA216",
+    },
+    Part {
+        feature: "stm32f768ai",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F768",
+        package: "WLCSP180",
+    },
+    Part {
+        feature: "stm32f769ai",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F769",
+        package: "WLCSP180",
+    },
+    Part {
+        feature: "stm32f769bi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F769",
+        package: "LQFP208-DSI",
+    },
+    Part {
+        feature: "stm32f769ii",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F769",
+        package: "LQFP176-DSI",
+    },
+    Part {
+        feature: "stm32f769ni",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F769",
+        package: "TFBGA216-DSI",
+    },
+    Part {
+        feature: "stm32f777vi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F777",
+        package: "LQFP100",
+    },
+    Part {
+        feature: "stm32f777zi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F777",
+        package: "LQFP144",
+    },
+    Part {
+        feature: "stm32f777ii",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F777",
+        package: "LQFP176",
+    },
+    Part {
+        feature: "stm32f777bi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F777",
+        package: "LQFP208",
+    },
+    Part {
+        feature: "stm32f777ni",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F777",
+        package: "TFBGA216",
+    },
+    Part {
+        feature: "stm32f778ai",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F778",
+        package: "WLCSP180",
+    },
+    Part {
+        feature: "stm32f779ai",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F779",
+        package: "WLCSP180",
+    },
+    Part {
+        feature: "stm32f779bi",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F779",
+        package: "LQFP208-DSI",
+    },
+    Part {
+        feature: "stm32f779ii",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F779",
+        package: "LQFP176-DSI",
+    },
+    Part {
+        feature: "stm32f779ni",
+        series: "F7",
+        die: 0x451,
+        device: "STM32F779",
+        package: "TFBGA216-DSI",
     },
     Part {
         feature: "stm32h743vi",
@@ -541,6 +681,15 @@ pub const VARIANTS: &[(&str, &str)] = &[
     ("stm32f410t8", "stm32f410tb"),
     ("stm32f410c8", "stm32f410cb"),
     ("stm32f410r8", "stm32f410rb"),
+    ("stm32f765vg", "stm32f765vi"),
+    ("stm32f765zg", "stm32f765zi"),
+    ("stm32f765ig", "stm32f765ii"),
+    ("stm32f765bg", "stm32f765bi"),
+    ("stm32f765ng", "stm32f765ni"),
+    ("stm32f769ag", "stm32f769ai"),
+    ("stm32f769bg", "stm32f769bi"),
+    ("stm32f769ig", "stm32f769ii"),
+    ("stm32f769ng", "stm32f769ni"),
 ];
 
 /// The benches evidence is recorded on (`hil/<crate>`), each with the part
@@ -756,7 +905,7 @@ mod tests {
             ["stm32f401ce", "stm32f401re", "stm32f401ve"]
         );
         assert_eq!(features("series F4").len(), 39);
-        assert_eq!(features("series f7").len(), 12);
+        assert_eq!(features("series f7").len(), 32);
         assert_eq!(features("series h7").len(), 12);
         assert_eq!(features("part STM32F405RG"), ["stm32f405rg"]);
     }

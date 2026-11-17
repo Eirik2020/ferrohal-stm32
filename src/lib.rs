@@ -136,6 +136,16 @@ const CHIP_FEATURES: usize = cfg!(feature = "stm32f401ce") as usize
     + cfg!(feature = "stm32f745ze") as usize
     + cfg!(feature = "stm32f745ig") as usize
     + cfg!(feature = "stm32f745ie") as usize
+    + cfg!(feature = "stm32f765vi") as usize
+    + cfg!(feature = "stm32f765vg") as usize
+    + cfg!(feature = "stm32f765zi") as usize
+    + cfg!(feature = "stm32f765zg") as usize
+    + cfg!(feature = "stm32f765ii") as usize
+    + cfg!(feature = "stm32f765ig") as usize
+    + cfg!(feature = "stm32f765bi") as usize
+    + cfg!(feature = "stm32f765bg") as usize
+    + cfg!(feature = "stm32f765ni") as usize
+    + cfg!(feature = "stm32f765ng") as usize
     + cfg!(feature = "stm32f767vi") as usize
     + cfg!(feature = "stm32f767vg") as usize
     + cfg!(feature = "stm32f767zi") as usize
@@ -146,6 +156,25 @@ const CHIP_FEATURES: usize = cfg!(feature = "stm32f401ce") as usize
     + cfg!(feature = "stm32f767bg") as usize
     + cfg!(feature = "stm32f767ni") as usize
     + cfg!(feature = "stm32f767ng") as usize
+    + cfg!(feature = "stm32f768ai") as usize
+    + cfg!(feature = "stm32f769ai") as usize
+    + cfg!(feature = "stm32f769ag") as usize
+    + cfg!(feature = "stm32f769bi") as usize
+    + cfg!(feature = "stm32f769bg") as usize
+    + cfg!(feature = "stm32f769ii") as usize
+    + cfg!(feature = "stm32f769ig") as usize
+    + cfg!(feature = "stm32f769ni") as usize
+    + cfg!(feature = "stm32f769ng") as usize
+    + cfg!(feature = "stm32f777vi") as usize
+    + cfg!(feature = "stm32f777zi") as usize
+    + cfg!(feature = "stm32f777ii") as usize
+    + cfg!(feature = "stm32f777bi") as usize
+    + cfg!(feature = "stm32f777ni") as usize
+    + cfg!(feature = "stm32f778ai") as usize
+    + cfg!(feature = "stm32f779ai") as usize
+    + cfg!(feature = "stm32f779bi") as usize
+    + cfg!(feature = "stm32f779ii") as usize
+    + cfg!(feature = "stm32f779ni") as usize
     + cfg!(feature = "stm32h743vi") as usize
     + cfg!(feature = "stm32h743vg") as usize
     + cfg!(feature = "stm32h743zi") as usize
@@ -326,7 +355,25 @@ pub mod chip;
 #[cfg(feature = "_line-stm32f745")]
 #[path = "chips/stm32f745vg.rs"]
 pub mod chip;
+#[cfg(feature = "_line-stm32f765")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
 #[cfg(feature = "_line-stm32f767")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f768")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f769")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f777")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f778")]
+#[path = "chips/stm32f767zi.rs"]
+pub mod chip;
+#[cfg(feature = "_line-stm32f779")]
 #[path = "chips/stm32f767zi.rs"]
 pub mod chip;
 #[cfg(feature = "_line-stm32h743")]
