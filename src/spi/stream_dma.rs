@@ -35,13 +35,9 @@ use core::sync::atomic::{Ordering, fence};
 
 use crate::{
     chip::Interrupt,
-    dma::{
-        AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, Stream, StreamInterrupt,
-        Transfer, WordSize,
-    },
-    gpio::AltPin,
+    dma::{AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, Transfer, WordSize},
     rcc::Rcc,
-    resource::{Refused, Resource, Signal},
+    resource::Refused,
     spi::{
         Buffers, Config, ConfigError, Error, Health, Info, Instance, MisoPin, MosiPin, Parts,
         SckPin, SpiInterrupts, SpiRxDma, SpiTxDma, Wiring,
@@ -565,38 +561,4 @@ impl<W: Parts> embedded_hal::spi::SpiBus<u8> for Spi<W> {
             Ok(())
         }
     }
-}
-
-impl<U, Sck, Miso, Mosi, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
-    Wiring<U, Sck, Miso, Mosi, Stream<TD, TN>, Stream<RD, RN>>
-where
-    U: Instance,
-    Sck: SckPin<U> + AltPin,
-    Miso: MisoPin<U> + AltPin,
-    Mosi: MosiPin<U> + AltPin,
-    Stream<TD, TN>: SpiTxDma<U>,
-    Stream<RD, RN>: SpiRxDma<U>,
-{
-    /// Everything this wiring uses, as data: the instance, its three pins
-    /// with their alternate functions, both streams with their requests,
-    /// and the receive stream's vector.
-    pub const RESOURCES: [Resource; 7] = [
-        Resource::Peripheral(U::NAME),
-        Resource::pin::<Sck>(Signal::Sck),
-        Resource::pin::<Miso>(Signal::Miso),
-        Resource::pin::<Mosi>(Signal::Mosi),
-        Resource::Dma {
-            signal: Signal::Tx,
-            controller: TD,
-            stream: TN,
-            request: <Stream<TD, TN> as SpiTxDma<U>>::REQUEST,
-        },
-        Resource::Dma {
-            signal: Signal::Rx,
-            controller: RD,
-            stream: RN,
-            request: <Stream<RD, RN> as SpiRxDma<U>>::REQUEST,
-        },
-        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::NAME),
-    ];
 }

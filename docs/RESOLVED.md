@@ -4,6 +4,12 @@ History: items moved out of [DEBT.md](DEBT.md) once done. The chip and feature s
 
 ## Crate-wide
 
+- **API review S4: `RESOURCES` beside its wiring** (2026-11-17). I2C, ADC, SDMMC and
+  USB defined `Wiring::RESOURCES` beside the struct; SPI's two sat in its engines
+  (`spi/stream_dma.rs`, `spi/polled.rs`). Both now sit in `spi/mod.rs` beside `Wiring`
+  and `BlockingWiring`, and `design/api-surface.md` records the placement. The UART's
+  move with its single-owner redesign. Spawned by `2e7f7fe` against `cdfe190`.
+
 - **API review U5: pin rows from one helper** (2026-11-17). Every wiring's
   `RESOURCES` wrote `Resource::Pin { signal, port: P::PORT, pin: P::PIN, af: P::AF }`
   by hand, 21 times by now (UART, SPI stream and polled, I2C, timer lanes, SDMMC, USB).

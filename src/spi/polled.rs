@@ -11,9 +11,8 @@
 //! Requirements: SPIPOLL-001, SPIPOLL-002, API-002
 
 use crate::{
-    gpio::AltPin,
     rcc::Rcc,
-    resource::{Refused, Resource, Signal},
+    resource::Refused,
     spi::{
         BlockingWiring, Config, ConfigError, Error, Info, Instance, MisoPin, MosiPin, Parts, SckPin,
     },
@@ -253,21 +252,4 @@ impl<W: Parts> embedded_hal::spi::SpiBus<u8> for BlockingSpi<W> {
         // Every operation has finished by the time it returns.
         Ok(())
     }
-}
-
-impl<U, Sck, Miso, Mosi> BlockingWiring<U, Sck, Miso, Mosi>
-where
-    U: Instance,
-    Sck: SckPin<U> + AltPin,
-    Miso: MisoPin<U> + AltPin,
-    Mosi: MosiPin<U> + AltPin,
-{
-    /// Everything this wiring uses, as data: the instance and its three pins
-    /// with their alternate functions. No streams, no vectors.
-    pub const RESOURCES: [Resource; 4] = [
-        Resource::Peripheral(U::NAME),
-        Resource::pin::<Sck>(Signal::Sck),
-        Resource::pin::<Miso>(Signal::Miso),
-        Resource::pin::<Mosi>(Signal::Mosi),
-    ];
 }

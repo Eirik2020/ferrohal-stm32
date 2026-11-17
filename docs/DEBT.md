@@ -88,7 +88,6 @@ reruns. The spawn pattern: each driver landed in its own commit between 2026-10-
 | N19 | `code` `api` | L | `Config` builders and `defmt` derives differ. | per driver |
 | S2 | `code` | L | Timer submodules by `#[path]`; twelve lone `mod.rs`. | `ea7a9f8` |
 | S3 | `code` | L | UART engine is one 1,887-line file. | grew from `af65cad` to `4bb8398` |
-| S4 | `code` | L | `RESOURCES` placement differs. | `2e7f7fe` vs `cdfe190` |
 | S5 | `code` | L | Clock-solver tests in chip files, named by board. | `8ad4510` 2026-11-06 |
 | U3 | `code` | M | Four drivers hand-write the one-shot DMA transfer. | `99e6404`, `a8a3a05`, `ea7a9f8` |
 | U6 | `code` | L | DMA and polled SPI repeat clock logic; `spi::Info` = `i2c::Info`. | `66afdaa` copied `99e6404`; `cdfe190` |
