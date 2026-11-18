@@ -1,0 +1,16 @@
+build features: none
+   Compiling nucleo-h753zi-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-h753zi-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.60s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/uart-rx-only`
+     [38;5;10m[1mFinished[0m in 3.65s
+[INFO ] run E, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (uart_rx_only src/bin/uart_rx_only.rs:65)
+[INFO ] PASS USART1: vectors enabled [UART-003 RESOURCE-001] (uart_rx_only ../common/tests.rs:857)
+[INFO ] PASS UART7: vectors enabled [UART-003 RESOURCE-001] (uart_rx_only ../common/tests.rs:857)
+[INFO ] PASS USART1 receive-only PB7, SBUS 100000 8E2 inverted: 25-byte frames, one chunk each [UART-007] (uart_rx_only ../common/tests.rs:857)
+[INFO ] PASS UART7 receive-only PB3, 115200: 40-byte frames, one chunk each [UART-007] (uart_rx_only ../common/tests.rs:857)
+[INFO ] USART1: health Health { overruns: 0, framing_errors: 0, parity_errors: 0, noise_errors: 0, dma_errors: 0, dma_overruns: 0, buffer_overruns: 0, restarts: 0, marks_lost: 0 } (uart_rx_only src/bin/uart_rx_only.rs:152)
+[INFO ] UART7: health Health { overruns: 0, framing_errors: 0, parity_errors: 0, noise_errors: 0, dma_errors: 0, dma_overruns: 0, buffer_overruns: 0, restarts: 0, marks_lost: 0 } (uart_rx_only src/bin/uart_rx_only.rs:153)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (uart_rx_only ../common/tests.rs:2088)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 0 unreviewed (uart_rx_only ../common/tests.rs:2064)
+[INFO ] all checks passed (uart_rx_only ../common/tests.rs:2097)
+Firmware exited successfully
