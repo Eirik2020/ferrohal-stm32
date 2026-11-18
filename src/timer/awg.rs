@@ -367,8 +367,11 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         if self.state.started || self.state.active != 0 || self.state.listening {
             return Err(Error::Busy);
         }
+        super::stamp!(super::profile::ENTRY);
+        super::stamp!(super::profile::ENTRY2);
         self.sample_rate = self.first.rate();
         self.set_outputs(false);
+        super::stamp!(super::profile::OUTPUTS);
         self.state.listening = true;
         let got = match self.retime(rate) {
             Ok(got) => got,
@@ -377,6 +380,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
                 return Err(error);
             }
         };
+        super::stamp!(super::profile::RETIMED);
         // A compare event once a period, wherever in the period it falls.
         let first = self
             .first_lanes
@@ -392,6 +396,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             self.abort();
             return Err(error);
         }
+        super::stamp!(super::profile::LANES);
         let all = self.lanes();
         let mut lane = 0;
         while lane < all {
@@ -399,6 +404,9 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             lane += 1;
         }
         self.begin();
+        super::stamp!(super::profile::BEGUN);
+        #[cfg(feature = "profile-listen")]
+        super::profile::commit_listen();
         Ok(got)
     }
 
@@ -425,14 +433,20 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         if self.state.started {
             return Err(Error::Busy);
         }
+        super::stamp!(super::profile::S_ENTRY);
         self.state.listening = false;
         let rate = self.sample_rate;
         self.first_lanes.park(&self.first);
         if let Some(second) = self.second.as_ref() {
             self.second_lanes.park(second);
         }
+        super::stamp!(super::profile::S_PARKED);
         self.retime(rate)?;
+        super::stamp!(super::profile::S_RETIMED);
         self.set_outputs(true);
+        super::stamp!(super::profile::S_DONE);
+        #[cfg(feature = "profile-listen")]
+        super::profile::commit_speak();
         Ok(())
     }
 

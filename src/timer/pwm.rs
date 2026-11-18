@@ -206,6 +206,7 @@ impl<T: ChannelTimer> Pwm<T> {
     /// the duties to the new [`period`](Self::period).
     pub fn set_rate(&mut self, rate: Hertz) -> Result<Hertz, ConfigError> {
         let (prescaler, reload, rate) = nearest(self.clock, rate, T::BITS)?;
+        super::stamp!(super::profile::NEAREST);
         self.stop();
         reload_counter(self.gp, prescaler, reload);
         self.period = reload as u32;
@@ -820,6 +821,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
     /// one per compare request of the channel, at `duty` in the timer's period.
     /// Nothing runs until the requests open. The caller releases the pin first.
     pub fn listen(&mut self, pwm: &Pwm<T>, count: usize, duty: u32) -> Result<(), Error> {
+        super::stamp!(super::profile::CHANNEL + 3 * usize::from((C - 1) & 3));
         if self.running {
             return Err(Error::Busy);
         }
@@ -843,10 +845,12 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
             Priority::VeryHigh,
         );
         pwm.set_duty::<C>(duty);
+        super::stamp!(super::profile::CHANNEL + 3 * usize::from((C - 1) & 3) + 1);
         // SAFETY: the samples are the lane's own for its life and hold `len`
         // words; the address is a GPIO port's input register, read-only and
         // without side effects, which this channel's compare request paces.
         unsafe { self.dma.start(&transfer) }.map_err(|_| Error::Dma)?;
+        super::stamp!(super::profile::CHANNEL + 3 * usize::from((C - 1) & 3) + 2);
         input.len = len;
         self.running = true;
         Ok(())

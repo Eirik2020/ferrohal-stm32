@@ -28,6 +28,8 @@ synopsys-usb-otg = { git = "https://github.com/Eirik2020/synopsys-usb-otg", rev 
 
 [features]
 default = []
+# PROFILING ONLY, never merged: cycle stamps through `Awg::listen`.
+profile-listen = []
 
 # The full-speed USB OTG port, as a `usb-device` bus.
 usb = ["dep:usb-device", "dep:synopsys-usb-otg"]

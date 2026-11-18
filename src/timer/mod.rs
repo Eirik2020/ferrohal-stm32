@@ -33,7 +33,17 @@ mod pwm;
 pub use pwm::{CompareLane, Error, Pwm, PwmChannel, Sampler, nearest};
 
 mod awg;
+#[cfg(feature = "profile-listen")]
+pub mod profile;
+/// PROFILING ONLY: a cycle stamp with `profile-listen`, nothing without.
+macro_rules! stamp {
+    ($slot:expr) => {
+        #[cfg(feature = "profile-listen")]
+        super::profile::stamp($slot);
+    };
+}
 pub use awg::{Awg, Lanes, recover};
+pub(crate) use stamp;
 
 use crate::{
     chip::Interrupt,
