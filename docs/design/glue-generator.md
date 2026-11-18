@@ -20,8 +20,13 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
   2026-11-17), named by its largest flash size. A part that differs only in flash size is
   a variant (`VARIANTS`): its own Cargo feature, mounting its package's glue. `model`
   dumps variants too, so one that disagrees with its part on any fact fails the
-  generator. A line's hand facts are one chip module, named after its first part
-  (`chips/stm32f401re.rs`), which mounts each part's glue under that part's features.
+  generator. A line's hand facts are one chip module under its family, named by the
+  lines it serves (`chips/f4/stm32f401.rs`, `chips/f7/stm32f76x_f77x.rs`), which mounts
+  each part's glue under that part's features (ADR-012).
+- **[Decided, 2026-11-18]** The chip selection in `src/lib.rs` is generated (`emit all`,
+  ADR-012): the one-chip-feature check from the registry's parts and variants, and each
+  line's `chip` mount from the chip file that mounts its parts' glue. Every part of a line
+  must be mounted by one file; the merge gate checks `src/lib.rs` with the glue.
 - **[Decided, 2026-11-17]** A part's glue is cut by device and package together, not by
   device alone: metapac's peripheral list and pin rows can depend on the package. The
   H743VI's LQFP100 has no SPI5, and only the TFBGA240, which bonds PC2 and PC2_C apart,
@@ -85,7 +90,7 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
   part's chip module mounts beside its hand facts. It is the die table cut to the part's
   device and package; separate die and package files were planned, but Rust builds one
   part at a time, so they would only add a second cut. A die's hand facts are one module
-  its parts share (`shared/die_0x413.rs`; the H7's are `shared/h7.rs`).
+  its parts share (`f4/die_0x413.rs`; the H7's are `h7/common.rs`).
 - **[Measured 2026-11-14]** The migration comparison: every hand-written routing row of the
   four proven parts is generated, none differs; the additions are the policy above (H7
   SDMMC2 and SPI6, the basic timers' update DMA) and two tokens the H753's hand list

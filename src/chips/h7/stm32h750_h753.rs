@@ -5,7 +5,7 @@
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMAMUX
 //! request IDs) are generated from stm32-metapac's metadata into
 //! `gen/<part>.rs` by `tools/glue-gen`, one file per package. Clock limits and the memory map, shared with the H743,
-//! are in `shared/h7.rs`.
+//! are in `h7/common.rs`.
 //!
 //! Requirements: GLUE-001, GLUE-002
 
@@ -26,11 +26,11 @@ use crate::{
     usart_v4::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
-#[path = "shared/h7_macros.rs"]
+#[path = "macros.rs"]
 #[macro_use]
 mod family;
 
@@ -56,37 +56,37 @@ pub(crate) const USB_FS_ENDPOINTS: usize = 9;
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
 #[cfg(feature = "stm32h753vi")]
-#[path = "gen/stm32h753vi.rs"]
+#[path = "../gen/stm32h753vi.rs"]
 mod generated;
 #[cfg(feature = "stm32h753zi")]
-#[path = "gen/stm32h753zi.rs"]
+#[path = "../gen/stm32h753zi.rs"]
 mod generated;
 #[cfg(feature = "stm32h753ii")]
-#[path = "gen/stm32h753ii.rs"]
+#[path = "../gen/stm32h753ii.rs"]
 mod generated;
 #[cfg(feature = "stm32h753bi")]
-#[path = "gen/stm32h753bi.rs"]
+#[path = "../gen/stm32h753bi.rs"]
 mod generated;
 #[cfg(feature = "stm32h753ai")]
-#[path = "gen/stm32h753ai.rs"]
+#[path = "../gen/stm32h753ai.rs"]
 mod generated;
 #[cfg(feature = "stm32h753xi")]
-#[path = "gen/stm32h753xi.rs"]
+#[path = "../gen/stm32h753xi.rs"]
 mod generated;
 #[cfg(feature = "stm32h750vb")]
-#[path = "gen/stm32h750vb.rs"]
+#[path = "../gen/stm32h750vb.rs"]
 mod generated;
 #[cfg(feature = "stm32h750zb")]
-#[path = "gen/stm32h750zb.rs"]
+#[path = "../gen/stm32h750zb.rs"]
 mod generated;
 #[cfg(feature = "stm32h750ib")]
-#[path = "gen/stm32h750ib.rs"]
+#[path = "../gen/stm32h750ib.rs"]
 mod generated;
 #[cfg(feature = "stm32h750xb")]
-#[path = "gen/stm32h750xb.rs"]
+#[path = "../gen/stm32h750xb.rs"]
 mod generated;
 pub use generated::*;
-#[path = "shared/h7.rs"]
+#[path = "common.rs"]
 mod h7;
 
 pub(crate) use h7::{

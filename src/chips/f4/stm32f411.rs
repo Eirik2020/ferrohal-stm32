@@ -1,4 +1,4 @@
-//! STM32F401 glue: the chip facts the IP modules leave out, for every package
+//! STM32F411 glue: the chip facts the IP modules leave out, for every package
 //! of the line.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMA
@@ -25,11 +25,11 @@ use crate::{
     usart_v2::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
-#[path = "shared/f4_macros.rs"]
+#[path = "macros.rs"]
 #[macro_use]
 mod family;
 
@@ -52,29 +52,29 @@ pub(crate) const USB_FS_FIFO_WORDS: usize = 320;
 #[cfg(feature = "usb")]
 pub(crate) const USB_FS_ENDPOINTS: usize = 4;
 
-// The die's errata (ES0299), and the prefetch erratum `freeze` checks: none
+// The die's errata (ES0287), and the prefetch erratum `freeze` checks: none
 // on this die.
-#[path = "shared/errata_es0299.rs"]
+#[path = "errata_es0287.rs"]
 mod errata_table;
 pub use errata_table::*;
 pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
 
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
-#[cfg(any(feature = "stm32f401ce", feature = "stm32f401cd"))]
-#[path = "gen/stm32f401ce.rs"]
+#[cfg(any(feature = "stm32f411ce", feature = "stm32f411cc"))]
+#[path = "../gen/stm32f411ce.rs"]
 mod generated;
-#[cfg(any(feature = "stm32f401re", feature = "stm32f401rd"))]
-#[path = "gen/stm32f401re.rs"]
+#[cfg(any(feature = "stm32f411re", feature = "stm32f411rc"))]
+#[path = "../gen/stm32f411re.rs"]
 mod generated;
-#[cfg(any(feature = "stm32f401ve", feature = "stm32f401vd"))]
-#[path = "gen/stm32f401ve.rs"]
+#[cfg(any(feature = "stm32f411ve", feature = "stm32f411vc"))]
+#[path = "../gen/stm32f411ve.rs"]
 mod generated;
 pub use generated::*;
 
-/// The chip's 96 KiB of SRAM (RM0368 section 2.3), all of it on the DMA's
+/// The chip's 128 KiB of SRAM (RM0383 section 2.3.1), all of it on the DMA's
 /// bus matrix.
-const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 96 * 1024)];
+const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 128 * 1024)];
 
 /// Whether `buffer` can be handed to a DMA stream: whether it lies in SRAM.
 /// A Cortex-M4 has no data cache, so that is all. `Uart::new` checks every
@@ -87,23 +87,27 @@ pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> 
     }
 }
 
-/// DS10086 and RM0368, at 2.7 V to 3.6 V, in voltage scale 2, which covers
-/// 84 MHz on this chip and is VOS's reset value. `freeze` writes it rather
-/// than trust that. RM0368's VOS is two bits (15:14): 01 is scale 3, 10
-/// scale 2, and 00 and 11 are reserved. 11 is metapac's `SCALE1`, which
-/// this chip does not have.
+/// DS10314 and RM0383, at 2.7 V to 3.6 V, in voltage scale 1, which 100 MHz
+/// needs on this chip (DS10314 Table 14; RM0383 3.4.1). `freeze` writes it:
+/// VOS resets to scale 2. RM0383's VOS is two bits (15:14): 01 is scale 3,
+/// 10 scale 2, 11 scale 1 (metapac's `SCALE1`), and 00 is reserved.
+/// HCLK and APB2 up to 100 MHz, APB1 up to 50 MHz (DS10314 Table 14); the
+/// HSE crystal 4 to 26 MHz (Table 37), an external clock 1 to 50 MHz
+/// (Table 35); the PLL input 0.95 to 2.1 MHz and its VCO 100 to 432 MHz
+/// (Table 41); one wait state per 30 MHz up to 3 at 100 MHz (RM0383
+/// Table 5).
 pub(crate) const CLOCK_LIMITS: Limits = Limits {
-    sysclk_max: Hertz::mhz(84),
-    hclk_max: Hertz::mhz(84),
-    pclk1_max: Hertz::mhz(42),
-    pclk2_max: Hertz::mhz(84),
+    sysclk_max: Hertz::mhz(100),
+    hclk_max: Hertz::mhz(100),
+    pclk1_max: Hertz::mhz(50),
+    pclk2_max: Hertz::mhz(100),
     hse_oscillator: (Hertz::mhz(4), Hertz::mhz(26)),
     hse_bypass: (Hertz::mhz(1), Hertz::mhz(50)),
     pll_input: (Hertz::khz(950), Hertz::khz(2_100)),
-    pll_vco: (Hertz::mhz(192), Hertz::mhz(432)),
+    pll_vco: (Hertz::mhz(100), Hertz::mhz(432)),
     flash_step_2v7: Hertz::mhz(30),
-    max_wait_states: 2,
-    vos: pac::pwr::vals::Vos::SCALE2,
+    max_wait_states: 3,
+    vos: pac::pwr::vals::Vos::SCALE1,
     overdrive: None,
 };
 
@@ -123,18 +127,20 @@ pub(crate) fn watchdog_frozen() -> bool {
     pac::DBGMCU.apb1fzr().read().iwdg()
 }
 
-// Timers another timer's trigger output can start.
+// Timers another timer's trigger output can start (RM0383 Table 53).
 
 timer_trigger!(TIM3: TIM1, 0);
 timer_trigger!(TIM2: TIM3, 2);
 
+// The temperature sensor on ADC1_IN18, VREFINT on IN17 (RM0383 11.10).
 adc_internal!(ADC1: 18, 17);
 
+/// The factory calibration values (DS10314 Tables 72 and 75).
 pub(crate) const VREFIN_CAL: *const u16 = 0x1FFF_7A2A as *const u16;
 pub(crate) const TS_CAL1: *const u16 = 0x1FFF_7A2C as *const u16;
 pub(crate) const TS_CAL2: *const u16 = 0x1FFF_7A2E as *const u16;
 
-/// The unique ID's block (RM0090 39.1, RM0368 25.1).
+/// The unique ID's block (RM0383 24.1).
 pub(crate) const UID_BASE: usize = 0x1FFF_7A10;
 
 /// The ROM bootloader's vector table (AN2606).
@@ -151,12 +157,12 @@ pub(crate) fn map_system_memory() {
 pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb2, 14);
 
 // Only DMA2's peripheral port reaches the GPIO ports; DMA1's reaches APB1
-// alone (RM0368 figure 1).
+// alone (RM0383 figure 1, and figure 23's note).
 gpio_dma!(
     2: [0, 1, 2, 3, 4, 5, 6, 7];
 );
 
-/// The die revision code, `DBGMCU_IDCODE.REV_ID` (bits 31:16) on RM0368.
+/// The die revision code, `DBGMCU_IDCODE.REV_ID` (bits 31:16) on RM0383.
 pub(crate) fn revision() -> u16 {
     pac::DBGMCU.idcode().read().rev_id()
 }
@@ -166,10 +172,7 @@ mod tests {
     use super::*;
     use crate::adc;
     use crate::gpio_v2::Analog;
-    use crate::rcc::{
-        AhbPrescaler, ApbPrescaler, ClockError, Config, Hse, HseMode, Pll, PllP, PllSource,
-        Request, Supply, Sysclk,
-    };
+    use crate::rcc::{ClockError, Config, Hse, HseMode, PllP, Request, Supply};
     use crate::time::Hertz;
     use crate::timer::{ComplementaryLaneWiring, LaneWiring};
     use crate::uart::{Resource, RxWiring, Signal, Wiring};
@@ -226,8 +229,8 @@ mod tests {
                 request: 5
             }
         );
-        // The SpeedyBee's motor lanes: TIM3 CH3 on PB0, and a complementary
-        // lane, TIM1 CH1N on PA7.
+        // Two compare lanes: TIM3 CH3 on PB0, and a complementary lane,
+        // TIM1 CH1N on PA7.
         assert_eq!(
             LaneWiring::<TIM3, 3, Pin<'B', 0, Alternate<2>>, Stream<1, 7>>::RESOURCES,
             [
@@ -285,88 +288,44 @@ mod tests {
     }
 
     #[test]
-    fn solve_gives_84_mhz_and_usb_from_an_8_mhz_crystal() {
-        // 8 MHz crystal, 84 MHz system, 48 MHz USB: the tree the benches
-        // freeze from (8 / 8 * 336, P 4, Q 7).
+    fn solve_gives_96_mhz_and_usb_from_an_8_mhz_crystal() {
+        // 8 MHz crystal, 96 MHz system, 48 MHz USB: a 192 MHz VCO, P 2, Q 4.
+        // 100 MHz cannot give USB an exact 48 MHz.
         assert_eq!(
             Config::solve(Request {
                 hse: Hse {
                     freq: Hertz::mhz(8),
                     mode: HseMode::Oscillator,
                 },
-                sysclk: Hertz::mhz(84),
+                sysclk: Hertz::mhz(96),
                 usb: Some(Hertz::mhz(48)),
-            }),
-            Ok(Config {
-                hse: Some(Hse {
-                    freq: Hertz::mhz(8),
-                    mode: HseMode::Oscillator,
-                }),
-                pll: Some(Pll {
-                    source: PllSource::Hse,
-                    prediv: 8,
-                    mul: 336,
-                    divp: PllP::Div4,
-                    divq: Some(7),
-                }),
-                sys: Sysclk::PllP,
-                ahb_pre: AhbPrescaler::Div1,
-                apb1_pre: ApbPrescaler::Div2,
-                apb2_pre: ApbPrescaler::Div1,
-                supply: Supply::V2_7To3_6,
             })
-        );
-        // Without a USB request, Q is left unset.
-        assert_eq!(
-            Config::solve(Request {
-                hse: Hse {
-                    freq: Hertz::mhz(8),
-                    mode: HseMode::Oscillator,
-                },
-                sysclk: Hertz::mhz(84),
-                usb: None,
-            })
-            .unwrap()
-            .pll
-            .unwrap()
-            .divq,
-            None
-        );
-        // A USB clock the PLL cannot give exactly: no solution.
-        assert_eq!(
-            Config::solve(Request {
-                hse: Hse {
-                    freq: Hertz::mhz(8),
-                    mode: HseMode::Oscillator,
-                },
-                sysclk: Hertz::mhz(84),
-                usb: Some(Hertz::mhz(47)),
-            }),
-            Err(ClockError::Unsatisfiable)
-        );
-        // Past the chip's system clock: the request itself is refused.
-        assert_eq!(
-            Config::solve(Request {
-                hse: Hse {
-                    freq: Hertz::mhz(8),
-                    mode: HseMode::Oscillator,
-                },
-                sysclk: Hertz::mhz(120),
-                usb: Some(Hertz::mhz(48)),
-            }),
-            Err(ClockError::Sysclk)
+            .map(|config| (config.pll.map(|pll| (pll.divp, pll.divq)), config.supply)),
+            Ok((Some((PllP::Div2, Some(4))), Supply::V2_7To3_6))
         );
     }
 
     #[test]
-    fn channels_are_named_without_a_converter() {
-        use crate::adc::Channel;
-        // The pin's channel as the routing trait states it, and the internal
-        // pair as the chip's ADC carries them.
-        let of: fn(&Pin<'A', 6, Analog>) -> Channel<ADC1> = Channel::of;
-        let _ = of;
-        assert_eq!(<Pin<'A', 6, Analog> as adc::AdcPin<ADC1>>::CHANNEL, 6);
-        assert_eq!(Channel::<ADC1>::temperature().number(), 18);
-        assert_eq!(Channel::<ADC1>::vrefint().number(), 17);
+    fn solve_reaches_100_mhz_and_refuses_more() {
+        let request = |sysclk, usb| Request {
+            hse: Hse {
+                freq: Hertz::mhz(8),
+                mode: HseMode::Oscillator,
+            },
+            sysclk,
+            usb,
+        };
+        // 100 MHz without USB: the part's ceiling, in scale 1.
+        assert!(Config::solve(request(Hertz::mhz(100), None)).is_ok());
+        // 100 MHz and an exact 48 MHz USB clock: no VCO serves both.
+        assert_eq!(
+            Config::solve(request(Hertz::mhz(100), Some(Hertz::mhz(48)))),
+            Err(ClockError::Unsatisfiable)
+        );
+        // Past the chip's system clock: the request itself is refused.
+        assert_eq!(
+            Config::solve(request(Hertz::mhz(120), None)),
+            Err(ClockError::Sysclk)
+        );
     }
 }

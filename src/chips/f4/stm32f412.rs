@@ -25,11 +25,11 @@ use crate::{
     usart_v2::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
-#[path = "shared/f4_macros.rs"]
+#[path = "macros.rs"]
 #[macro_use]
 mod family;
 
@@ -55,7 +55,7 @@ pub(crate) const USB_FS_ENDPOINTS: usize = 6;
 
 // The die's errata (ES0305), and the prefetch erratum `freeze` checks: none
 // on this die.
-#[path = "shared/errata_es0305.rs"]
+#[path = "errata_es0305.rs"]
 mod errata_table;
 pub use errata_table::*;
 pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
@@ -63,16 +63,16 @@ pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
 #[cfg(any(feature = "stm32f412cg", feature = "stm32f412ce"))]
-#[path = "gen/stm32f412cg.rs"]
+#[path = "../gen/stm32f412cg.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f412rg", feature = "stm32f412re"))]
-#[path = "gen/stm32f412rg.rs"]
+#[path = "../gen/stm32f412rg.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f412vg", feature = "stm32f412ve"))]
-#[path = "gen/stm32f412vg.rs"]
+#[path = "../gen/stm32f412vg.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f412zg", feature = "stm32f412ze"))]
-#[path = "gen/stm32f412zg.rs"]
+#[path = "../gen/stm32f412zg.rs"]
 mod generated;
 pub use generated::*;
 

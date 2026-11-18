@@ -12,7 +12,7 @@ Source: ADR-001, [`../decisions/2026-11-08-g5-safe-by-default.md`](../decisions/
 
 The verdicts below moved into the errata table on 2026-11-15 (ADR-010): every ES0392 Rev 15
 row with its handling, generated into [`../errata/ES0392.md`](../errata/ES0392.md) from
-`src/chips/shared/errata_es0392.rs`. Two verdicts changed on the way: 2.2.3 (CRS) is not
+`src/chips/h7/errata_es0392.rs`. Two verdicts changed on the way: 2.2.3 (CRS) is not
 reached, since FerroHAL never uses the CRS, and 2.2.6/2.2.7 (flash ECC) are firmware rules;
 the DEBT items this review named for them no longer existed.
 

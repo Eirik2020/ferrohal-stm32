@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The generated glue's merge gate (ADR-008, ADR-009): regenerates every part's routing
-# module (src/chips/gen/) and docs/CHIPS.md's tables from the pinned stm32-metapac, and
+# The generated glue's merge gate (ADR-008, ADR-009, ADR-012): regenerates every part's
+# routing module (src/chips/gen/), the chip selection in src/lib.rs, and docs/CHIPS.md's
+# tables from the pinned stm32-metapac, and
 # the tier tables in docs/CHIPS.md and hil/COVERAGE.md from reqtool's evidence, runs the
 # generator's tests, and fails on any difference from what is checked in. CI runs it on
 # pull requests into main; run it on demand anywhere, with reqtool on the PATH or REQTOOL.
@@ -22,11 +23,11 @@ cargo run --release --locked --no-default-features --quiet -- tables all
 # The tiers, from reqtool's evidence (REQTOOL, or reqtool on the PATH).
 [ "$tiers" -eq 1 ] && cargo run --release --locked --no-default-features --quiet -- tiers all
 cd "$root"
-changed=$(git status --porcelain -- src/chips/gen docs/CHIPS.md hil/COVERAGE.md)
+changed=$(git status --porcelain -- src/chips/gen src/lib.rs docs/CHIPS.md hil/COVERAGE.md)
 if [ -n "$changed" ]; then
     echo "FAIL generated glue differs from a regeneration:"
     echo "$changed"
-    git --no-pager diff --stat -- src/chips/gen docs/CHIPS.md hil/COVERAGE.md
+    git --no-pager diff --stat -- src/chips/gen src/lib.rs docs/CHIPS.md hil/COVERAGE.md
     exit 1
 fi
 if [ "$tiers" -eq 1 ]; then

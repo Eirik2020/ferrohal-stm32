@@ -12,7 +12,7 @@ use crate::{
     time::Hertz,
 };
 
-#[path = "m7.rs"]
+#[path = "../m7.rs"]
 mod m7;
 
 /// DS11853 (F722), DS10916 (F745) and DS11532 (F767), at 2.7 V to 3.6 V in

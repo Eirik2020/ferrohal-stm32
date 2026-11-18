@@ -50,9 +50,9 @@ const PLATFORM: &[&str] = &[
 /// Requirements whose ID does not say their scope: the die or series they
 /// hold for, by what their declaring files are.
 const SCOPED: &[(&str, Scope)] = &[
-    // shared/h7.rs: the H7's DMA-unreachable memory.
+    // h7/common.rs: the H7's DMA-unreachable memory.
     ("GLUE-003", Scope::Series("H7")),
-    // shared/die_0x413.rs: the F405 die's CCM RAM.
+    // f4/die_0x413.rs: the F405 die's CCM RAM.
     ("GLUE-004", Scope::Die(0x413)),
 ];
 
