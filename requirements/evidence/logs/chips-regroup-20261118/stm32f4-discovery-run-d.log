@@ -1,0 +1,11 @@
+   Compiling stm32f4-discovery v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/stm32f4-discovery)
+    Finished `release` profile [optimized + debuginfo] target(s) in 1.17s
+     Running `probe-rs run --chip STM32F407VGTx target/thumbv7em-none-eabihf/release/complementary`
+     [38;5;10m[1mFinished[0m in 2.58s
+[INFO ] run D, clocks: Clocks { sysclk: Hertz(168000000), cpu: Hertz(168000000), hclk: Hertz(168000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(168000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 5, overdrive: false } (complementary src/bin/complementary.rs:51)
+[INFO ] PASS TIM1 CH1N PE8, 100 kHz, 1/4 duty: the complementary output carries the duty as set, to 1/16 [PWM-008] (complementary ../common/tests.rs:845)
+[INFO ] PASS TIM1 CH1N PE8, 100 kHz, 1/4 duty: one period, then the counter stops [PWM-007] (complementary ../common/tests.rs:845)
+[INFO ] identity: uid [39, 00, 41, 00, 07, 51, 35, 32, 36, 34, 36, 36], rev 0x101f (complementary ../common/tests.rs:2088)
+[INFO ] errata: ES0182 Rev 19, 89 affect rev 0x101f, 0 unreviewed (complementary ../common/tests.rs:2064)
+[INFO ] all checks passed (complementary ../common/tests.rs:2097)
+Firmware exited successfully
