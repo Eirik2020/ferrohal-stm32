@@ -3,7 +3,7 @@
  "counts": {
   "documents": 87,
   "agent": 54,
-  "bytes": 543735
+  "bytes": 544579
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: every pack",
-   "bytes": 7529
+   "bytes": 7497
   },
   {
    "path": "README.md",
@@ -127,7 +127,7 @@
    "class": "agent",
    "title": "ADR-012: The `src/` layout, clean slate (2026-11-17)",
    "purpose": "ADR-012 - Status: promoted",
-   "bytes": 3310,
+   "bytes": 3570,
    "adr": "ADR-012",
    "status": "promoted"
   },
@@ -182,7 +182,7 @@
    "class": "agent",
    "title": "Errata as data",
    "purpose": "Source: ADR-010, ../decisions/2026-11-15-erra",
-   "bytes": 3693
+   "bytes": 3743
   },
   {
    "path": "docs/design/execution-model.md",
@@ -217,14 +217,14 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 10376
+   "bytes": 10783
   },
   {
    "path": "docs/design/h7-errata.md",
    "class": "agent",
    "title": "ES0392 review: cache, system, flash ECC",
    "purpose": "W11 of the debt sweep. Read against ES0392 Re",
-   "bytes": 1409
+   "bytes": 1405
   },
   {
    "path": "docs/design/layering.md",
@@ -245,7 +245,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 10098
+   "bytes": 10107
   },
   {
    "path": "docs/design/ownership.md",
@@ -266,7 +266,7 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 5091
+   "bytes": 5084
   },
   {
    "path": "docs/design/requirements-tooling.md",
@@ -287,7 +287,7 @@
    "class": "agent",
    "title": "Crate and module structure",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2053
+   "bytes": 2262
   },
   {
    "path": "docs/design/uart-ferrowasp.md",
@@ -308,84 +308,84 @@
    "class": "human",
    "title": "ES0182: errata of die 0x413 (F405, F407)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 14626
+   "bytes": 14622
   },
   {
    "path": "docs/errata/ES0206.md",
    "class": "human",
    "title": "ES0206: errata of die 0x419 (F427/437, F429/439)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 15543
+   "bytes": 15539
   },
   {
    "path": "docs/errata/ES0287.md",
    "class": "human",
    "title": "ES0287: errata of die 0x431 (F411xC/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10701
+   "bytes": 10697
   },
   {
    "path": "docs/errata/ES0290.md",
    "class": "human",
    "title": "ES0290: errata of die 0x449 (F74xxx/F75xxx)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 5788
+   "bytes": 5784
   },
   {
    "path": "docs/errata/ES0298.md",
    "class": "human",
    "title": "ES0298: errata of die 0x421 (F446xC/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 13542
+   "bytes": 13538
   },
   {
    "path": "docs/errata/ES0299.md",
    "class": "human",
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10772
+   "bytes": 10768
   },
   {
    "path": "docs/errata/ES0305.md",
    "class": "human",
    "title": "ES0305: errata of die 0x441 (F412xE/xG)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 11907
+   "bytes": 11903
   },
   {
    "path": "docs/errata/ES0325.md",
    "class": "human",
    "title": "ES0325: errata of die 0x458 (F410x8/xB)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 9958
+   "bytes": 9954
   },
   {
    "path": "docs/errata/ES0334.md",
    "class": "human",
    "title": "ES0334: errata of die 0x451 (F76xxx/F77xxx)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10114
+   "bytes": 10110
   },
   {
    "path": "docs/errata/ES0360.md",
    "class": "human",
    "title": "ES0360: errata of die 0x452 (F72xxx/F73xxx)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 4307
+   "bytes": 4303
   },
   {
    "path": "docs/errata/ES0372.md",
    "class": "human",
    "title": "ES0372: errata of die 0x463 (F413xG/xH, F423xH)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 11724
+   "bytes": 11720
   },
   {
    "path": "docs/errata/ES0392.md",
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 23609
+   "bytes": 23605
   },
   {
    "path": "docs/housekeeping/README.md",

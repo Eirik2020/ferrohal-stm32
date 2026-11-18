@@ -12,8 +12,8 @@ review notes: [h7-errata.md](h7-errata.md).
   codes in time order with their markings) and `Erratum` (sheet, section, title,
   affected `REV_ID`s, the sheet's workaround status, FerroHAL's `Handling`,
   requirements). Each die's entries are one table beside its hand facts:
-  `chips/shared/errata_es0182.rs` (die 0x413), `errata_es0206.rs` (die 0x419), `errata_es0287.rs` (die 0x431), `errata_es0298.rs` (die 0x421), `errata_es0305.rs` (die 0x441), `errata_es0372.rs` (die 0x463), `errata_es0325.rs` (die 0x458), `errata_es0290.rs` (die 0x449),
-  `errata_es0299.rs` (die 0x433), `errata_es0334.rs` (die 0x451), `errata_es0360.rs` (die 0x452), `errata_es0392.rs` (die 0x450), exported as `chip::ERRATA` and `chip::ERRATA_SHEET`.
+  in its family's folder, `chips/f4/`: `errata_es0182.rs` (die 0x413), `errata_es0206.rs` (die 0x419), `errata_es0287.rs` (die 0x431), `errata_es0298.rs` (die 0x421), `errata_es0299.rs` (die 0x433), `errata_es0305.rs` (die 0x441), `errata_es0325.rs` (die 0x458), `errata_es0372.rs` (die 0x463);
+  `chips/f7/`: `errata_es0290.rs` (die 0x449), `errata_es0334.rs` (die 0x451), `errata_es0360.rs` (die 0x452); `chips/h7/`: `errata_es0392.rs` (die 0x450). Exported as `chip::ERRATA` and `chip::ERRATA_SHEET`.
 - **[Decided]** Transcribed once from each sheet's "Summary of device limitations" with
   every row; titles from the section headings. ES0182 Rev 19 (91 rows, revisions A, Z, 1,
   2, Y, 4/5/6), ES0206 Rev 24 (95 rows, A, Y, 1, 3, 4/5/B), ES0287 Rev 6 (65 rows, A/1/2), ES0298 Rev 8 (83 rows, A/1), ES0305 Rev 15 (72 rows, Z, B, 1/C), ES0372 Rev 8 (71 rows, A/1), ES0325 Rev 7 (58 rows, A/1/Z), ES0290 Rev 7 (35 rows, Z/1), ES0299 Rev 6 (66

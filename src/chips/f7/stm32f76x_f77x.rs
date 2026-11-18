@@ -10,7 +10,7 @@
 //! `tools/glue-gen`, one file per package, cut to its bonded pins; this file
 //! holds the facts metapac does not carry, each citing its manual. What the
 //! F7 dies share (clock limits, the DMA's view of memory, the bootloader) is
-//! in `shared/f7.rs`.
+//! in `f7/common.rs`.
 //!
 //! The Nucleo-F767ZI is the F7's proof board; until it runs the benches,
 //! every F7 part is unproven.
@@ -36,7 +36,7 @@ use crate::{
     usart_v4::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
@@ -44,7 +44,7 @@ mod macros;
 // `usarts!` takes each instance's kind: UART4/5/7/8 have no smartcard mode
 // (RM0410 Table 226), and 0.5 and 1.5 stop bits are smartcard settings (RM0410
 // 34.5.2), so the driver refuses them there, as on the F4.
-#[path = "shared/f4_macros.rs"]
+#[path = "../f4/macros.rs"]
 #[macro_use]
 mod family;
 
@@ -70,7 +70,7 @@ pub(crate) const USB_FS_ENDPOINTS: usize = 6;
 
 // The die's errata (ES0334), and the prefetch erratum `freeze` checks: none on
 // this die.
-#[path = "shared/errata_es0334.rs"]
+#[path = "errata_es0334.rs"]
 mod errata_table;
 pub use errata_table::*;
 pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
@@ -80,83 +80,83 @@ pub(crate) const I2C_RELOAD_ERRATUM: &crate::errata::Erratum = &ES0334_2_13_5;
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
 #[cfg(any(feature = "stm32f765vi", feature = "stm32f765vg"))]
-#[path = "gen/stm32f765vi.rs"]
+#[path = "../gen/stm32f765vi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f765zi", feature = "stm32f765zg"))]
-#[path = "gen/stm32f765zi.rs"]
+#[path = "../gen/stm32f765zi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f765ii", feature = "stm32f765ig"))]
-#[path = "gen/stm32f765ii.rs"]
+#[path = "../gen/stm32f765ii.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f765bi", feature = "stm32f765bg"))]
-#[path = "gen/stm32f765bi.rs"]
+#[path = "../gen/stm32f765bi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f765ni", feature = "stm32f765ng"))]
-#[path = "gen/stm32f765ni.rs"]
+#[path = "../gen/stm32f765ni.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f767vi", feature = "stm32f767vg"))]
-#[path = "gen/stm32f767vi.rs"]
+#[path = "../gen/stm32f767vi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f767zi", feature = "stm32f767zg"))]
-#[path = "gen/stm32f767zi.rs"]
+#[path = "../gen/stm32f767zi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f767ii", feature = "stm32f767ig"))]
-#[path = "gen/stm32f767ii.rs"]
+#[path = "../gen/stm32f767ii.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f767bi", feature = "stm32f767bg"))]
-#[path = "gen/stm32f767bi.rs"]
+#[path = "../gen/stm32f767bi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f767ni", feature = "stm32f767ng"))]
-#[path = "gen/stm32f767ni.rs"]
+#[path = "../gen/stm32f767ni.rs"]
 mod generated;
 #[cfg(feature = "stm32f768ai")]
-#[path = "gen/stm32f768ai.rs"]
+#[path = "../gen/stm32f768ai.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f769ai", feature = "stm32f769ag"))]
-#[path = "gen/stm32f769ai.rs"]
+#[path = "../gen/stm32f769ai.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f769bi", feature = "stm32f769bg"))]
-#[path = "gen/stm32f769bi.rs"]
+#[path = "../gen/stm32f769bi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f769ii", feature = "stm32f769ig"))]
-#[path = "gen/stm32f769ii.rs"]
+#[path = "../gen/stm32f769ii.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f769ni", feature = "stm32f769ng"))]
-#[path = "gen/stm32f769ni.rs"]
+#[path = "../gen/stm32f769ni.rs"]
 mod generated;
 #[cfg(feature = "stm32f777vi")]
-#[path = "gen/stm32f777vi.rs"]
+#[path = "../gen/stm32f777vi.rs"]
 mod generated;
 #[cfg(feature = "stm32f777zi")]
-#[path = "gen/stm32f777zi.rs"]
+#[path = "../gen/stm32f777zi.rs"]
 mod generated;
 #[cfg(feature = "stm32f777ii")]
-#[path = "gen/stm32f777ii.rs"]
+#[path = "../gen/stm32f777ii.rs"]
 mod generated;
 #[cfg(feature = "stm32f777bi")]
-#[path = "gen/stm32f777bi.rs"]
+#[path = "../gen/stm32f777bi.rs"]
 mod generated;
 #[cfg(feature = "stm32f777ni")]
-#[path = "gen/stm32f777ni.rs"]
+#[path = "../gen/stm32f777ni.rs"]
 mod generated;
 #[cfg(feature = "stm32f778ai")]
-#[path = "gen/stm32f778ai.rs"]
+#[path = "../gen/stm32f778ai.rs"]
 mod generated;
 #[cfg(feature = "stm32f779ai")]
-#[path = "gen/stm32f779ai.rs"]
+#[path = "../gen/stm32f779ai.rs"]
 mod generated;
 #[cfg(feature = "stm32f779bi")]
-#[path = "gen/stm32f779bi.rs"]
+#[path = "../gen/stm32f779bi.rs"]
 mod generated;
 #[cfg(feature = "stm32f779ii")]
-#[path = "gen/stm32f779ii.rs"]
+#[path = "../gen/stm32f779ii.rs"]
 mod generated;
 #[cfg(feature = "stm32f779ni")]
-#[path = "gen/stm32f779ni.rs"]
+#[path = "../gen/stm32f779ni.rs"]
 mod generated;
 pub use generated::*;
 
-#[path = "shared/f7.rs"]
+#[path = "common.rs"]
 mod f7;
 pub(crate) use f7::{
     CLOCK_LIMITS, SYSCFG_ENABLE, SYSTEM_MEMORY, iwdg_regs, map_system_memory, revision,
@@ -172,7 +172,7 @@ const SRAM: (usize, usize) = (0x2002_0000, 384 * 1024);
 
 /// Whether `buffer` can be handed to a DMA stream: in the DTCM, except on
 /// revision A, or in SRAM1 and SRAM2 and, with the data cache on,
-/// non-cacheable (see `shared/f7.rs`). Every DMA driver checks its buffers
+/// non-cacheable (see `f7/common.rs`). Every DMA driver checks its buffers
 /// with this.
 pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> {
     f7::check_dma_buffer(buffer, DTCM, SRAM, Some(&ES0334_2_2_4))

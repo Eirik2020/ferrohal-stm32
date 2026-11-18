@@ -5,7 +5,7 @@
 //! interface and FSMC enabled (none of which FerroHAL drives). The routing
 //! facts are generated from stm32-metapac's metadata into `gen/<part>.rs`
 //! by `tools/glue-gen`, one file per package; the die's hand
-//! facts are `shared/die_0x413.rs`, which the F405 shares.
+//! facts are `f4/die_0x413.rs`, which the F405 shares.
 //!
 //! The STM32F4 Discovery (MB997) carries this chip: die 0x413's debugger
 //! bench.
@@ -29,15 +29,15 @@ use crate::{
     usart_v2::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
-#[path = "shared/f4_macros.rs"]
+#[path = "macros.rs"]
 #[macro_use]
 mod family;
 
-#[path = "shared/die_0x413.rs"]
+#[path = "die_0x413.rs"]
 #[macro_use]
 mod die;
 pub use die::*;
@@ -45,12 +45,12 @@ pub use die::*;
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
 #[cfg(any(feature = "stm32f407vg", feature = "stm32f407ve"))]
-#[path = "gen/stm32f407vg.rs"]
+#[path = "../gen/stm32f407vg.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f407zg", feature = "stm32f407ze"))]
-#[path = "gen/stm32f407zg.rs"]
+#[path = "../gen/stm32f407zg.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f407ig", feature = "stm32f407ie"))]
-#[path = "gen/stm32f407ig.rs"]
+#[path = "../gen/stm32f407ig.rs"]
 mod generated;
 pub use generated::*;

@@ -123,7 +123,7 @@ Which IP versions each series carries, as metapac measured them:
   The UART's parts trait is `uart::Parts` (ADR-011).
 
 - **[Decided]** A clock tree's host tests sit in the chip file whose limits they need
-  (`src/chips/<part>.rs`), and are named by the tree they pin, not by a board:
+  (`src/chips/<family>/<line>.rs`), and are named by the tree they pin, not by a board:
   `solve_gives_168_mhz_and_usb_from_an_8_mhz_crystal`. A comment may say which bench
   board freezes that tree (API review S5, 2026-11-17).
 

@@ -28,15 +28,15 @@ use crate::{
     usart_v2::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
-#[path = "shared/f4_macros.rs"]
+#[path = "macros.rs"]
 #[macro_use]
 mod family;
 
-#[path = "shared/die_0x413.rs"]
+#[path = "die_0x413.rs"]
 #[macro_use]
 mod die;
 pub use die::*;
@@ -44,16 +44,16 @@ pub use die::*;
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
 #[cfg(any(feature = "stm32f405og", feature = "stm32f405oe"))]
-#[path = "gen/stm32f405og.rs"]
+#[path = "../gen/stm32f405og.rs"]
 mod generated;
 #[cfg(feature = "stm32f405rg")]
-#[path = "gen/stm32f405rg.rs"]
+#[path = "../gen/stm32f405rg.rs"]
 mod generated;
 #[cfg(feature = "stm32f405vg")]
-#[path = "gen/stm32f405vg.rs"]
+#[path = "../gen/stm32f405vg.rs"]
 mod generated;
 #[cfg(feature = "stm32f405zg")]
-#[path = "gen/stm32f405zg.rs"]
+#[path = "../gen/stm32f405zg.rs"]
 mod generated;
 pub use generated::*;
 

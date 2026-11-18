@@ -1,4 +1,4 @@
-//! STM32F745 glue: the chip facts the IP modules leave out, for every package
+//! STM32F722 glue: the chip facts the IP modules leave out, for every package
 //! of the line.
 //!
 //! The routing facts (RCC bits, vectors, pin alternate functions, DMA
@@ -6,7 +6,7 @@
 //! `gen/<part>.rs` by `tools/glue-gen`, one file per package, cut to its
 //! bonded pins; this file holds the facts metapac does not carry, each citing its manual. What
 //! the F7 dies share (clock limits, the DMA's view of memory, the bootloader)
-//! is in `shared/f7.rs`.
+//! is in `f7/common.rs`.
 //!
 //! The chip's U(S)ARTs are usart_v3, which the usart_v4 module serves
 //! (ADR-011).
@@ -29,15 +29,15 @@ use crate::{
     usart_v4::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
 // The F4's macro shapes: fixed-request stream DMA, bus-named RCC registers. Its
 // `usarts!` takes each instance's kind: UART4/5/7/8 have no smartcard mode
-// (RM0385 Table 197), and 0.5 and 1.5 stop bits are smartcard settings (RM0385
-// 31.5.2), so the driver refuses them there, as on the F4.
-#[path = "shared/f4_macros.rs"]
+// (RM0431 Table 164), and 0.5 and 1.5 stop bits are smartcard settings (RM0431
+// 27.5.2), so the driver refuses them there, as on the F4.
+#[path = "../f4/macros.rs"]
 #[macro_use]
 mod family;
 
@@ -52,7 +52,7 @@ macro_rules! internal_adc {
 }
 
 /// The full-speed USB port's core (full-speed only), its FIFO RAM in words
-/// and its endpoints (RM0385 Table 263: 1.25 KiB, six bidirectional
+/// and its endpoints (RM0431 Table 226: 1.25 KiB, six bidirectional
 /// endpoints): facts metapac does not carry.
 #[cfg(feature = "usb")]
 pub(crate) const USB_FS_HS_CORE: bool = false;
@@ -61,68 +61,71 @@ pub(crate) const USB_FS_FIFO_WORDS: usize = 320;
 #[cfg(feature = "usb")]
 pub(crate) const USB_FS_ENDPOINTS: usize = 6;
 
-// The die's errata (ES0290), and the prefetch erratum `freeze` checks: none on
+// The die's errata (ES0360), and the prefetch erratum `freeze` checks: none on
 // this die.
-#[path = "shared/errata_es0290.rs"]
+#[path = "errata_es0360.rs"]
 mod errata_table;
 pub use errata_table::*;
 pub(crate) const PREFETCH_ERRATUM: Option<&crate::errata::Erratum> = None;
 /// The I2C reload erratum `i2c_v2` checks.
-pub(crate) const I2C_RELOAD_ERRATUM: &crate::errata::Erratum = &ES0290_2_9_4;
+pub(crate) const I2C_RELOAD_ERRATUM: &crate::errata::Erratum = &ES0360_2_9_4;
 
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
-#[cfg(any(feature = "stm32f745vg", feature = "stm32f745ve"))]
-#[path = "gen/stm32f745vg.rs"]
+#[cfg(any(feature = "stm32f722re", feature = "stm32f722rc"))]
+#[path = "../gen/stm32f722re.rs"]
 mod generated;
-#[cfg(any(feature = "stm32f745zg", feature = "stm32f745ze"))]
-#[path = "gen/stm32f745zg.rs"]
+#[cfg(any(feature = "stm32f722ve", feature = "stm32f722vc"))]
+#[path = "../gen/stm32f722ve.rs"]
 mod generated;
-#[cfg(any(feature = "stm32f745ig", feature = "stm32f745ie"))]
-#[path = "gen/stm32f745ig.rs"]
+#[cfg(any(feature = "stm32f722ze", feature = "stm32f722zc"))]
+#[path = "../gen/stm32f722ze.rs"]
+mod generated;
+#[cfg(any(feature = "stm32f722ie", feature = "stm32f722ic"))]
+#[path = "../gen/stm32f722ie.rs"]
 mod generated;
 pub use generated::*;
 
-#[path = "shared/f7.rs"]
+#[path = "common.rs"]
 mod f7;
 pub(crate) use f7::{
     CLOCK_LIMITS, SYSCFG_ENABLE, SYSTEM_MEMORY, iwdg_regs, map_system_memory, revision,
     set_watchdog_freeze, watchdog_frozen,
 };
 
-/// The DTCM: 64 KiB at the bottom of the SRAM space (RM0385 2.3).
+/// The DTCM: 64 KiB at the bottom of the SRAM space (RM0431 1.7).
 const DTCM: (usize, usize) = (0x2000_0000, 64 * 1024);
 
-/// SRAM1 and SRAM2, together: 240 KiB of SRAM1 at
-/// 0x2001_0000 and 16 KiB of SRAM2 at 0x2004_C000 (RM0385 2.3).
-const SRAM: (usize, usize) = (0x2001_0000, 256 * 1024);
+/// SRAM1 and SRAM2, together: 176 KiB of SRAM1 at
+/// 0x2001_0000 and 16 KiB of SRAM2 at 0x2003_C000 (RM0431 1.7).
+const SRAM: (usize, usize) = (0x2001_0000, 192 * 1024);
 
 /// Whether `buffer` can be handed to a DMA stream: in the DTCM, or in SRAM1
 /// and SRAM2 and, with the data cache on, non-cacheable (see
-/// `shared/f7.rs`). Every DMA driver checks its buffers with this.
+/// `f7/common.rs`). Every DMA driver checks its buffers with this.
 pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> {
     f7::check_dma_buffer(buffer, DTCM, SRAM, None)
 }
 
-// Timers another timer's trigger output can start (RM0385 Table 154).
+// Timers another timer's trigger output can start (RM0431 Table 121).
 
 timer_trigger!(TIM3: TIM1, 0);
 timer_trigger!(TIM2: TIM3, 2);
 
 // The temperature sensor on ADC1_IN18, which it shares with VBAT (VBATE
-// stays clear), and VREFINT on IN17 (RM0385 15.10).
+// stays clear), and VREFINT on IN17 (RM0431 14.10).
 adc_internal!(ADC1: 18, 17);
 
-/// The factory calibration values (DS10916 Tables 70 and 73).
-pub(crate) const VREFIN_CAL: *const u16 = 0x1FF0_F44A as *const u16;
-pub(crate) const TS_CAL1: *const u16 = 0x1FF0_F44C as *const u16;
-pub(crate) const TS_CAL2: *const u16 = 0x1FF0_F44E as *const u16;
+/// The factory calibration values (DS11853 Tables 74 and 77).
+pub(crate) const VREFIN_CAL: *const u16 = 0x1FF0_7A2A as *const u16;
+pub(crate) const TS_CAL1: *const u16 = 0x1FF0_7A2C as *const u16;
+pub(crate) const TS_CAL2: *const u16 = 0x1FF0_7A2E as *const u16;
 
-/// The unique ID's block (RM0385 41.1).
-pub(crate) const UID_BASE: usize = 0x1FF0_F420;
+/// The unique ID's block (RM0431 35.1).
+pub(crate) const UID_BASE: usize = 0x1FF0_7A10;
 
 // Only DMA2's peripheral port reaches the GPIO ports; DMA1's is not on the
-// bus matrix (RM0385 8.3.2).
+// bus matrix (RM0431 8.3.2).
 gpio_dma!(
     2: [0, 1, 2, 3, 4, 5, 6, 7];
 );
@@ -215,7 +218,7 @@ mod tests {
         // SRAM1 starts where the DTCM's 64 KiB end; SRAM2's 16 KiB end the
         // block.
         assert_eq!(SRAM.0, 0x2000_0000 + 64 * 1024);
-        assert_eq!(SRAM.0 + SRAM.1, 0x2005_0000);
+        assert_eq!(SRAM.0 + SRAM.1, 0x2004_0000);
     }
 
     #[test]

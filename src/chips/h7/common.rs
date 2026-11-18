@@ -8,7 +8,7 @@
 mod errata_table;
 pub use errata_table::*;
 
-#[path = "m7.rs"]
+#[path = "../m7.rs"]
 mod m7;
 
 use crate::{errata::Erratum, rcc_h7_rm0433::Limits, time::Hertz};

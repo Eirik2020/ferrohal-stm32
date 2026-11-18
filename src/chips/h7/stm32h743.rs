@@ -10,7 +10,7 @@
 //! VREF+ pin (double-bonded to VDDA, so VREFBUF stays disabled; DS12117
 //! note 5).
 //! Clock limits and the memory map, shared with the H753, are in
-//! `shared/h7.rs`.
+//! `h7/common.rs`.
 //!
 //! The TBS Lucid H7 flight controller carries this chip. Its die is the
 //! H753's without the crypto block, so the H753ZI Nucleo stands in for it.
@@ -34,11 +34,11 @@ use crate::{
     usart_v4::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
-#[path = "shared/h7_macros.rs"]
+#[path = "macros.rs"]
 #[macro_use]
 mod family;
 
@@ -64,25 +64,25 @@ pub(crate) const USB_FS_ENDPOINTS: usize = 9;
 // The routing rows, generated from stm32-metapac's metadata for the
 // part's device and package; a flash-size variant takes its package's.
 #[cfg(any(feature = "stm32h743vi", feature = "stm32h743vg"))]
-#[path = "gen/stm32h743vi.rs"]
+#[path = "../gen/stm32h743vi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32h743zi", feature = "stm32h743zg"))]
-#[path = "gen/stm32h743zi.rs"]
+#[path = "../gen/stm32h743zi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32h743ii", feature = "stm32h743ig"))]
-#[path = "gen/stm32h743ii.rs"]
+#[path = "../gen/stm32h743ii.rs"]
 mod generated;
 #[cfg(any(feature = "stm32h743bi", feature = "stm32h743bg"))]
-#[path = "gen/stm32h743bi.rs"]
+#[path = "../gen/stm32h743bi.rs"]
 mod generated;
 #[cfg(any(feature = "stm32h743ai", feature = "stm32h743ag"))]
-#[path = "gen/stm32h743ai.rs"]
+#[path = "../gen/stm32h743ai.rs"]
 mod generated;
 #[cfg(any(feature = "stm32h743xi", feature = "stm32h743xg"))]
-#[path = "gen/stm32h743xi.rs"]
+#[path = "../gen/stm32h743xi.rs"]
 mod generated;
 pub use generated::*;
-#[path = "shared/h7.rs"]
+#[path = "common.rs"]
 mod h7;
 
 pub(crate) use h7::{

@@ -5,7 +5,7 @@
 What it enforces (docs/policies/safety.md):
 
 - no `pub unsafe fn` anywhere in `src/` beyond one allowlist entry: the
-  `steal` that `src/chips/shared/macros.rs` defines, which must sit behind
+  `steal` that `src/chips/macros.rs` defines, which must sit behind
   `#[cfg(feature = "rtic")]`;
 - the feature table keeps that exception opt-in: `default = []`,
   `rtic = ["rt"]`, and no other feature implies `rtic`;
@@ -30,7 +30,7 @@ import tomllib
 root = pathlib.Path(__file__).resolve().parent.parent
 
 # The one allowed `pub unsafe fn`: file -> item name.
-ALLOWED_UNSAFE = {"src/chips/shared/macros.rs": "steal"}
+ALLOWED_UNSAFE = {"src/chips/macros.rs": "steal"}
 
 # Where `stm32_metapac` may appear: the RTIC device module, the one-file IP
 # modules, and the shared sources' register files. The directory set below

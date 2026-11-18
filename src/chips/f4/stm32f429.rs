@@ -4,7 +4,7 @@
 //! The F429 is die 0x419, the F427's silicon with LTDC enabled (FerroHAL
 //! drives neither LTDC nor the FMC). The routing facts are generated from
 //! stm32-metapac's metadata into `gen/<part>.rs` by `tools/glue-gen`, one
-//! file per package; the die's hand facts are `shared/die_0x419.rs`, which
+//! file per package; the die's hand facts are `f4/die_0x419.rs`, which
 //! the F427 shares.
 //!
 //! No board carries it on the rig: the line is unproven.
@@ -28,15 +28,15 @@ use crate::{
     usart_v2::Unit,
 };
 
-#[path = "shared/macros.rs"]
+#[path = "../macros.rs"]
 #[macro_use]
 mod macros;
 
-#[path = "shared/f4_macros.rs"]
+#[path = "macros.rs"]
 #[macro_use]
 mod family;
 
-#[path = "shared/die_0x419.rs"]
+#[path = "die_0x419.rs"]
 #[macro_use]
 mod die;
 pub use die::*;
@@ -48,37 +48,37 @@ pub use die::*;
     feature = "stm32f429vg",
     feature = "stm32f429ve"
 ))]
-#[path = "gen/stm32f429vi.rs"]
+#[path = "../gen/stm32f429vi.rs"]
 mod generated;
 #[cfg(any(
     feature = "stm32f429zi",
     feature = "stm32f429zg",
     feature = "stm32f429ze"
 ))]
-#[path = "gen/stm32f429zi.rs"]
+#[path = "../gen/stm32f429zi.rs"]
 mod generated;
 #[cfg(any(
     feature = "stm32f429ii",
     feature = "stm32f429ig",
     feature = "stm32f429ie"
 ))]
-#[path = "gen/stm32f429ii.rs"]
+#[path = "../gen/stm32f429ii.rs"]
 mod generated;
 #[cfg(any(feature = "stm32f429ai", feature = "stm32f429ag"))]
-#[path = "gen/stm32f429ai.rs"]
+#[path = "../gen/stm32f429ai.rs"]
 mod generated;
 #[cfg(any(
     feature = "stm32f429bi",
     feature = "stm32f429bg",
     feature = "stm32f429be"
 ))]
-#[path = "gen/stm32f429bi.rs"]
+#[path = "../gen/stm32f429bi.rs"]
 mod generated;
 #[cfg(any(
     feature = "stm32f429ni",
     feature = "stm32f429ng",
     feature = "stm32f429ne"
 ))]
-#[path = "gen/stm32f429ni.rs"]
+#[path = "../gen/stm32f429ni.rs"]
 mod generated;
 pub use generated::*;

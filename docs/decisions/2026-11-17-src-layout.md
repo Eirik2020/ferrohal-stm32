@@ -38,7 +38,10 @@ not hold up:
 4. `src/chips/` groups by family (`f4/`, `f7/`, `h7/`, later `g4/`): shared facts and
    macros, dies, errata tables and one file per line named by the line. `chips/gen/`
    stays flat. The glue generator emits the chip selection now hand-written in
-   `lib.rs`. This step lands on top of the F7 glue, so that branch is not redone.
+   `lib.rs`. This step lands on top of the F7 glue, so that branch is not redone
+   (2026-11-18: chip files sit in their family and are named by the lines they serve,
+   `stm32f401.rs`, `stm32f76x_f77x.rs`, `stm32h750_h753.rs`, because one file can serve
+   several lines; what spans families, the base macros and `m7.rs`, sits in `chips/`).
 
 ## Rejected
 
