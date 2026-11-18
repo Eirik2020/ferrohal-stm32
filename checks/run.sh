@@ -140,6 +140,7 @@ shared=$(
     step "no-metapac probes" bash "$root/checks/no-metapac/run.sh"
     step "evidence recorder tests" python3 -I "$root/tools/test_record_evidence.py"
     step "rig telemetry tests" python3 -I "$root/tools/test_rig_telemetry.py"
+    step "rig entry point tests" python3 -I "$root/tools/test_rig.py"
     # The requirements against the code (a renamed test a requirement names fails here):
     # reqtool from $REQTOOL, or the sibling checkout CI pins (tools/record_evidence.py too).
     # CI has no sibling checkout here: its Requirements job installs reqtool and runs this.

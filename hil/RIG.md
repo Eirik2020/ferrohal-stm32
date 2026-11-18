@@ -90,6 +90,29 @@ a changed meaning does.
   answers the query `FERRO-ID?` and a newline with the line, adding `dev`, `rev` and
   `uid` it reads itself.
 
+## One entry point: `rig`
+
+`tools/rig.py`, on the rig's `PATH` as `rig` (a link in `~/.local/bin`), runs any bench
+script: `rig run-h753.sh a b`, `rig flash-dfu.sh lucid-h7`, `rig list`, `rig locks`. It finds
+`hil/<script>` from the current directory upwards, so the same command runs ferroforge-stm32's
+benches from that repository. Agents are allowed this one command (`Bash(rig:*)` in the
+workspace's `.claude/settings.json`, the owner's file), so a new script needs no new rule.
+
+- **One holder per board.** rig locks each board the script drives (from its name, its first
+  argument for `flash-dfu.sh` and `run-event-adc.sh`, or `--board`) for as long as the script
+  runs. A second caller is refused at once with exit 75, naming the holder (`RIG_REQUESTER`,
+  else the user), its pid, script and start; `--wait` queues instead. A script run without rig
+  takes no lock, so the lock holds only while everyone uses rig.
+- **Pins for every repository.** It exports `rig.env`'s pins for the probes `probe-rs list`
+  shows attached, where the environment leaves them unset; ferroforge-stm32's scripts, which
+  read only `*_PROBE`, get them too.
+- **Telemetry.** The script runs under `tools/rig_run.py`, which records the commit of the
+  script's own repository.
+
+Measured 2026-11-18: F401 run A through rig passed while a second `rig run-f401.sh a` was
+refused with exit 75 and the holder named; ferroforge-stm32's `run-f401-ab.sh` ran through rig
+from that repository, and its telemetry record carries that repository's commit.
+
 ## Telemetry
 
 Where the rig's time goes, so a slow bench or a flaky run shows before it is guessed at.
