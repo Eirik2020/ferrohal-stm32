@@ -190,6 +190,9 @@ pub struct Awg<A: ChannelTimer, B: ChannelTimer, LA, LB> {
     state: Playing,
     /// The sample rate to go back to after listening.
     sample_rate: Hertz,
+    /// EXPERIMENT ONLY (`listen-clear-polarity`): the polarity to restore.
+    #[cfg(feature = "listen-clear-polarity")]
+    active_low: bool,
 }
 
 impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
@@ -204,6 +207,8 @@ impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
             start: Start::Single,
             state: Playing::default(),
             sample_rate: rate,
+            #[cfg(feature = "listen-clear-polarity")]
+            active_low: false,
         }
     }
 }
@@ -239,6 +244,8 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             start: Start::Linked,
             state: Playing::default(),
             sample_rate: rate,
+            #[cfg(feature = "listen-clear-polarity")]
+            active_low: false,
         })
     }
 
@@ -267,6 +274,8 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             start: Start::Independent,
             state: Playing::default(),
             sample_rate: rate,
+            #[cfg(feature = "listen-clear-polarity")]
+            active_low: false,
         })
     }
 
@@ -297,6 +306,10 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// Makes every lane's output active low, or active high. Active low, a line
     /// idles high: duty 0 holds it high, and a sample's pulse pulls it low.
     pub fn set_active_low(&mut self, low: bool) {
+        #[cfg(feature = "listen-clear-polarity")]
+        {
+            self.active_low = low;
+        }
         LA::set_active_low(&self.first, low);
         if let Some(second) = self.second.as_ref() {
             LB::set_active_low(second, low);
@@ -371,6 +384,15 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         super::stamp!(super::profile::ENTRY2);
         self.sample_rate = self.first.rate();
         self.set_outputs(false);
+        // EXPERIMENT ONLY: RM0090 Table 95 note 1 and RM0433 Table 337 note 1
+        // keep CCxP and CCxNP clear while both outputs are off.
+        #[cfg(feature = "listen-clear-polarity")]
+        {
+            LA::set_active_low(&self.first, false);
+            if let Some(second) = self.second.as_ref() {
+                LB::set_active_low(second, false);
+            }
+        }
         super::stamp!(super::profile::OUTPUTS);
         self.state.listening = true;
         let got = match self.retime(rate) {
@@ -443,6 +465,14 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         super::stamp!(super::profile::S_PARKED);
         self.retime(rate)?;
         super::stamp!(super::profile::S_RETIMED);
+        #[cfg(feature = "listen-clear-polarity")]
+        {
+            let low = self.active_low;
+            LA::set_active_low(&self.first, low);
+            if let Some(second) = self.second.as_ref() {
+                LB::set_active_low(second, low);
+            }
+        }
         self.set_outputs(true);
         super::stamp!(super::profile::S_DONE);
         #[cfg(feature = "profile-listen")]

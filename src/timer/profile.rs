@@ -5,30 +5,70 @@
 use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
 
 /// Stamp slots.
-pub(crate) const ENTRY: usize = 0;
-pub(crate) const OUTPUTS: usize = 1;
-pub(crate) const NEAREST: usize = 2;
-pub(crate) const RETIMED: usize = 3;
-pub(crate) const LANES: usize = 4;
-pub(crate) const BEGUN: usize = 5;
+pub const ENTRY: usize = 0;
+pub const OUTPUTS: usize = 1;
+pub const NEAREST: usize = 2;
+pub const RETIMED: usize = 3;
+pub const LANES: usize = 4;
+pub const BEGUN: usize = 5;
 /// Per channel C (1 to 4): entry of `CompareLane::listen`, before
 /// `dma.start`, after it: 6 + 3 (C - 1) + 0, 1, 2.
-pub(crate) const CHANNEL: usize = 6;
-pub(crate) const S_ENTRY: usize = 18;
-pub(crate) const S_PARKED: usize = 19;
-pub(crate) const S_RETIMED: usize = 20;
-pub(crate) const S_DONE: usize = 21;
-pub(crate) const ENTRY2: usize = 22;
-const SLOTS: usize = 23;
+pub const CHANNEL: usize = 6;
+pub const S_ENTRY: usize = 18;
+pub const S_PARKED: usize = 19;
+pub const S_RETIMED: usize = 20;
+pub const S_DONE: usize = 21;
+pub const ENTRY2: usize = 22;
+pub const SLOTS: usize = 23;
 
 static STAMP: [AtomicU32; SLOTS] = [const { AtomicU32::new(0) }; SLOTS];
 static SEEN: AtomicU32 = AtomicU32::new(0);
+/// A register read at each stamp beside the cycle counter (0: none), so a
+/// bench can place each stamp on its own witness (a stream's NDTR).
+static WATCH: AtomicU32 = AtomicU32::new(0);
+static WATCHED: [AtomicU32; SLOTS] = [const { AtomicU32::new(0) }; SLOTS];
+/// The watched values of the last listen and the last speak, as committed.
+static LAST_LISTEN: [AtomicU32; SLOTS] = [const { AtomicU32::new(0) }; SLOTS];
+static LAST_SPEAK: [AtomicU32; SLOTS] = [const { AtomicU32::new(0) }; SLOTS];
+
+/// Reads the 32-bit register at `address` at every stamp from now on; 0 stops.
+/// The address must be a readable register without read side effects (a DMA
+/// stream's NDTR).
+pub fn watch(address: u32) {
+    WATCH.store(address, Relaxed);
+}
+
+/// What the watched register read at each slot of the last listen and of the
+/// last speak. Slots are the `pub` constants of this module.
+pub fn last() -> ([u32; SLOTS], [u32; SLOTS]) {
+    (
+        core::array::from_fn(|i| LAST_LISTEN[i].load(Relaxed)),
+        core::array::from_fn(|i| LAST_SPEAK[i].load(Relaxed)),
+    )
+}
+
+fn snapshot(into: &[AtomicU32; SLOTS]) {
+    for (to, from) in into.iter().zip(WATCHED.iter()) {
+        to.store(from.load(Relaxed), Relaxed);
+    }
+}
 
 /// Records the cycle counter in `slot`.
 #[inline(always)]
 pub(crate) fn stamp(slot: usize) {
     if let Some(s) = STAMP.get(slot) {
         s.store(cortex_m::peripheral::DWT::cycle_count(), Relaxed);
+        let address = WATCH.load(Relaxed);
+        if address != 0
+            && let Some(w) = WATCHED.get(slot)
+        {
+            // SAFETY: profiling only; `watch`'s caller names a readable
+            // register without read side effects.
+            w.store(
+                unsafe { core::ptr::read_volatile(address as *const u32) },
+                Relaxed,
+            );
+        }
         SEEN.fetch_or(1 << (slot & 31), Relaxed);
     }
 }
@@ -143,6 +183,7 @@ pub(crate) fn commit_listen() {
         }
     }
     STAGES[14].add(d(RETIMED, LANES).wrapping_sub(inside));
+    snapshot(&LAST_LISTEN);
     SEEN.store(0, Relaxed);
 }
 
@@ -153,6 +194,7 @@ pub(crate) fn commit_speak() {
     STAGES[16].add(d(S_ENTRY, S_PARKED));
     STAGES[17].add(d(S_PARKED, S_RETIMED));
     STAGES[18].add(d(S_RETIMED, S_DONE));
+    snapshot(&LAST_SPEAK);
     SEEN.store(0, Relaxed);
 }
 
