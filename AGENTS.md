@@ -48,6 +48,7 @@ hil/run-discovery.sh [runs]      # STM32F4 Discovery
 hil/flash-dfu.sh <board>         # a DFU-flashed board (`FLSH` tier): Foxeer, Lucid
 hil/pico-i2c-sim.sh [flash|run]  # Pico 1 I2C slave, both benches
 python3 -I tools/rig_run.py hil/run-<bench>.sh [runs]  # the same run, timed into the rig telemetry
+rig <script> [args] | rig list | rig locks  # any hil/ script, one holder per board, pins, telemetry
 python3 -I tools/rig_report.py [--since 24h] [--full]  # where the rig's time goes (hil/RIG.md)
 ```
 
