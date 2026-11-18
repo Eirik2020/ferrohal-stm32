@@ -83,6 +83,18 @@ unlocked before the cycle counter runs (measured: without it every timed check r
 First pass 2026-11-17: probe 139, A 44, B 7, C 9 checks, none failed. Pass: every check in
 every run passes and the script exits zero.
 
+## UART and SPI links on the Nucleo-F767ZI
+
+`hil/run-f767.sh d e f`, with links F1 to F6 and S1 to S4 fitted
+(`nucleo-f767zi/src/board.rs`). Run D runs USART2, USART6, UART4, UART5 and UART7 over F1,
+F2, F3, F4 and F6, each the full UART check list, then all five streaming at once. Run E
+runs UART4 over F5 and USART3 through the ST-LINK's virtual COM port with
+`hil/vcp_echo.py` alongside. Run F runs SPI1, SPI2, SPI4 and SPI5 over S1 to S4, each
+SPI's SCK counted on its own EXTI line, with the instruction cache on. First pass
+2026-11-18: D 102 and E 26 checks, none failed; F 38 passed and 2 failed, SPI5 at its
+slowest clock (`docs/DEBT.md`). Pass: every check in every run passes and the script
+exits zero.
+
 ## SPI on the Nucleo-F767ZI
 
 Proposed: no bench code yet, which waits for the owner's go. Link S1 (PB5 to PB4,

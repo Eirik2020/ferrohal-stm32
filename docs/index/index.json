@@ -3,7 +3,7 @@
  "counts": {
   "documents": 87,
   "agent": 54,
-  "bytes": 544936
+  "bytes": 546278
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9562
+   "bytes": 10189
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -630,7 +630,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 21513
+   "bytes": 22228
   },
   {
    "path": "requirements/goals.md",

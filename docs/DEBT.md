@@ -67,6 +67,14 @@ rerun (`tools/stale_runs.py` lists it). No item is High.
   Run B checks 115200 and 1 Mbaud only. *Spawned:* the one-speed item's measurement
   (2026-11-15), which ran the clear at five rates.
 
+- `code` `bench` **Medium: the F767's SPI5 receives 0xF0 at its slowest clock.** F767 run F,
+  link S4 (PF9 to PF8), measured twice on 2026-11-18: at the suite's normal 6.75 MHz every
+  SPI5 check passes, but at its slowest setting (APB2 108 MHz / 256, 421.9 kHz) the first
+  byte comes back 0xF0 whatever was sent (21 and 76), in both the edge-count and the
+  SCK-timing checks. SPI1 and SPI4, on the same APB2 and the same slowest setting, pass.
+  Cause not known: spi_v3 at the largest prescaler on this instance, the FIFO's state after
+  the preceding checks, or the link. *Spawned:* F767 run F's first pass (2026-11-18).
+
 ## 2. API consistency (the 2026-11-11 review)
 
 Recorded by the API review (`cb58dd9`); evidence and fixes in its notes, hub
