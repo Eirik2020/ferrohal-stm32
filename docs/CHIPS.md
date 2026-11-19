@@ -383,6 +383,10 @@ names where the code documents it.
   the firmware's and can panic (`policies/features.md`).
 - A deferred vector (`UsbFs::deferred`) keeps the start-of-frame interrupt on as a
   heartbeat: one vector per millisecond while the bus runs.
+  `UsbFs::deferred_without_heartbeat` masks it, for a wake that is never dropped.
+- A deferred vector's service and every bus call must never preempt one another (the
+  transmit FIFO erratum's rule of use, USB-002): one context, or one lock at the
+  vector's priority.
 
 ## Not supported yet
 

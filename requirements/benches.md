@@ -256,6 +256,16 @@ timer whose update reaches DMA2, the one DMA that reaches the GPIO ports. Checks
 duty on the pin, to 1/16, and one one-pulse period. Pass: both checks pass and the
 script exits zero.
 
+## Deferred USB on the STM32F4 Discovery
+
+`hil/run-discovery.sh e`, with CN5 cabled to the host. The F4's OTG_FS core is built with
+its vector deferred and no start-of-frame heartbeat. The vector's service, the device and
+its CDC class share one RTIC resource, so the vector takes the lock the echo task holds
+for each poll and echo pass: USB-002's rule of use. The vector wakes the task through a
+signal; the task enumerates and echoes every block `hil/usb_cdc_host.py` sends, and the
+log gives the longest the task held the lock. Pass: every check passes and the script
+exits zero.
+
 ## The ROM bootloader on the Nucleo-H753ZI
 
 `hil/run-h753.sh z`, with CN13 cabled to the host as the rig keeps it. The run asks for

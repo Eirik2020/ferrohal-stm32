@@ -5,7 +5,7 @@
 | class | path | size | purpose |
 |---|---|---|---|
 | h | hil/CAPABILITIES.md | 9356 B | The rig turns requirement claims into measure |
-| h | hil/COVERAGE.md | 6869 B | Which bench proves what, per IP version: the  |
+| h | hil/COVERAGE.md | 6905 B | Which bench proves what, per IP version: the  |
 | h | hil/RIG-IMPROVEMENTS.md | 15459 B | The options for growing the rig, each tied to |
 | h | hil/RIG.md | 8460 B | What every bench script and firmware crate re |
 | h | hil/WIRING.md | 5441 B | The two Nucleo benches prove FerroHAL's I2C m |

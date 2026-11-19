@@ -11,9 +11,12 @@
 //! clears the NAK. The transmit FIFO erratum: another core register access
 //! cutting into a FIFO write corrupts the FIFO (ES0182 2.14.1, ES0206 2.14.1,
 //! ES0287 2.12.1, ES0298 2.16.1, ES0299 2.12.1, ES0305 2.16.1,
-//! ES0372 2.16.1, ES0334 2.19.1, and ES0392 2.25.2 on revisions Y and W), and a
-//! deferred vector reads and masks the core's interrupts at its own
-//! priority, so the fork writes each IN packet inside a critical section.
+//! ES0372 2.16.1, ES0334 2.19.1, and ES0392 2.25.2 on revisions Y and W).
+//! ES0182's workaround: "Ensure that the transmit FIFO write sequence is not
+//! interrupted with accesses to the OTG_FS registers." A deferred vector
+//! reads and masks the core's interrupts at its own priority, so it is such
+//! an access. The fork takes no critical section for it; the rule of use is
+//! the firmware's, below.
 //! The `usb-device` stack above the bus (enumeration, the
 //! classes) is the firmware's protocol code, re-exported only so the firmware
 //! builds against the same version; it is not FerroHAL's, and its own code
@@ -24,14 +27,28 @@
 //! Either the vector polls the device itself ([`UsbBus::new`]), or it defers
 //! to a task: [`UsbFs::deferred`] gives the bus and a [`UsbVector`] whose
 //! [`Service::on_interrupt`] masks what is pending and reports it, and the
-//! task's next `UsbDevice::poll` serves it and unmasks it. The core's
-//! start-of-frame interrupt stays on as a heartbeat, every millisecond on a
-//! full-speed bus, repeating the report while anything still waits, so a
-//! wake the scheduler dropped comes again rather than stalling the port.
+//! task's next `UsbDevice::poll` serves it and unmasks it. With
+//! [`UsbFs::deferred`], the core's start-of-frame interrupt stays on as a
+//! heartbeat, every millisecond on a full-speed bus, repeating the report
+//! while anything still waits, so a wake the scheduler dropped comes again
+//! rather than stalling the port; [`UsbFs::deferred_without_heartbeat`]
+//! masks it, for a wake that is never dropped.
+//!
+//! **Rule of use (USB-002).** The [`UsbVector`]'s service and every call on
+//! the bus (`UsbDevice::poll`, a class's reads and writes) never preempt one
+//! another: the firmware makes them from one context, or holds one lock,
+//! taken at the vector's priority, around each. An RTIC firmware puts the
+//! vector beside the device and its classes in one shared resource. Broken,
+//! the F407's IN endpoint stalls for good (STM32F4 Discovery, 0 of 2 runs);
+//! kept, it carries every byte. A critical section around each IN packet
+//! write would also keep it, but held every interrupt off for about 10 us on
+//! the F407 and 9.3 us on the H753, so FerroHAL leaves the exclusion to the
+//! lock, which holds off only the vectors at or below the USB vector's
+//! priority.
 //! The data pins are the chip's own (`chip::UsbDm`, `chip::UsbDp`, from the
 //! glue); set both to very high speed and hand them over in a [`Wiring`].
 //!
-//! Requirements: USB-001, USB-F4-001, API-002
+//! Requirements: USB-001, USB-F4-001, USB-002, API-002
 
 pub use synopsys_usb_otg::Waiting as Events;
 pub use usb_device;
@@ -127,7 +144,7 @@ impl UsbFs {
     /// As [`UsbFs::deferred`], with the start-of-frame heartbeat masked: for
     /// a task woken by something that holds a wake until the task reads it,
     /// so that no report needs repeating. A quiet configured bus then raises
-    /// the vector not at all, instead of once a frame. PROTOTYPE.
+    /// the vector not at all, instead of once a frame.
     pub fn deferred_without_heartbeat(
         self,
         ep_memory: &'static mut [u32],
@@ -140,6 +157,8 @@ impl UsbFs {
 /// The vector's half of a deferred bus, from [`UsbFs::deferred`]. It owns
 /// nothing the bus needs: it reads the core's interrupt status and masks
 /// what it found, and the bus's `poll` unmasks it inside a critical section.
+/// Its service and the bus never preempt one another: the module's rule of
+/// use (USB-002).
 pub struct UsbVector {
     handle: synopsys_usb_otg::InterruptHandle<UsbFs>,
 }

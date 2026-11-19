@@ -84,7 +84,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | `rcc_f4` | F401, F405 | F401: every run, HSE bypass | Foxeer: HSE crystal to 168 MHz | HSE crystal |
 | `rcc_h7_rm0433` | H743, H753 | H753: every run, HSE bypass; I (voltage scale) | Lucid: HSE crystal to 400 MHz | HSE crystal |
 | `sdmmc_v2` | H743, H753 | – | Lucid: a card (SDMMC-004), the empty slot (SDMMC-003) | error paths |
-| USB, F4 OTG_FS core | F401, F405, F407 | Discovery: B (CDC echo on CN5) | Foxeer: CDC echo | – |
+| USB, F4 OTG_FS core | F401, F405, F407 | Discovery: B (CDC echo on CN5), E (deferred vector under its lock) | Foxeer: CDC echo | – |
 | USB, H7 OTG core at FS | H743, H753 | H753: M (CN13) | Lucid: CDC echo | – |
 
 ## Shared engines and system

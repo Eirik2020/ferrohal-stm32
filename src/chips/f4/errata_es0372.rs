@@ -104,6 +104,6 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.14.5", "BSY flag may stay high at the end of a data transfer in Slave mode", [0x1000], Workaround, Avoided("master only: no slave mode"), []),
     erratum!("2.14.6", "CRC corruption in DMA handled full-duplex mode", [0x1000], Workaround, Avoided("CRC off"), []),
     erratum!("2.15.1", "bxCAN time-triggered communication mode not supported", [0x1000], None, NotReached("no bxCAN driver"), []),
-    erratum!("2.16.1", "Transmit data FIFO is corrupted when a write sequence to the FIFO is interrupted with accesses to certain OTG_FS registers", [0x1000], Workaround, Workaround("the synopsys-usb-otg fork writes each IN packet inside a critical section, so neither a deferred vector nor any other context cuts into a FIFO write (usb/mod.rs)"), []),
+    erratum!("2.16.1", "Transmit data FIFO is corrupted when a write sequence to the FIFO is interrupted with accesses to certain OTG_FS registers", [0x1000], Workaround, Workaround("rule of use: the deferred vector's service and every bus call never preempt one another, from one context or under one lock at the vector's priority, so no OTG_FS access cuts into a FIFO write (usb/mod.rs, USB-002)"), []),
     erratum!("2.16.2", "Host packet transmission may hang when connecting through a hub to a low-speed device", [0x1000], None, Avoided("device mode only"), []),
 ];
