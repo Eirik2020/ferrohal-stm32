@@ -268,6 +268,14 @@ to the reader started) must stay within an eighth of its least, since the prepar
 switch only stores what was computed ahead [AWG-013]. Pass: every check passes and the
 script exits zero.
 
+## Timers on the STM32F4 Discovery
+
+`hil/run-discovery.sh e`. No links. Die 0x413's timer trigger routes, each as its glue
+states it (RM0090 table 98): TIM8 and TIM3 started by TIM1 (ITR0), TIM2 by TIM3 (ITR2)
+and TIM5 by TIM3 (ITR1), every timer at 600 kHz. For each, the slave must not count
+while its master is stopped, then start with it in 100 of 100 starts, within 32 counts
+[GLUE-010]. Pass: every check passes and the script exits zero.
+
 ## The ROM bootloader on the Nucleo-H753ZI
 
 `hil/run-h753.sh z`, with CN13 cabled to the host as the rig keeps it. The run asks for

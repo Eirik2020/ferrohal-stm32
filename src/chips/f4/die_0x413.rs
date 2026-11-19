@@ -2,7 +2,7 @@
 //! not carry, each citing its manual. Every part cut from this die mounts
 //! this module beside its generated routing module (`gen/<part>.rs`).
 //!
-//! Requirements: GLUE-004
+//! Requirements: GLUE-004, GLUE-010
 
 use super::*;
 
@@ -88,7 +88,7 @@ pub(crate) fn watchdog_frozen() -> bool {
     pac::DBGMCU.apb1fzr().read().iwdg()
 }
 
-// Timers another timer's trigger output can start.
+// Timers another timer's trigger output can start (GLUE-010).
 
 timer_trigger!(TIM8: TIM1, 0);
 timer_trigger!(TIM3: TIM1, 0);
