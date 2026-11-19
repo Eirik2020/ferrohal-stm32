@@ -1,0 +1,161 @@
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/uart-lucid`
+     [38;5;10m[1mFinished[0m in 4.82s
+[INFO ] run A, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (uart_lucid src/bin/uart_lucid.rs:96)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: vectors enabled [UART-003 RESOURCE-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: vectors enabled [UART-003 RESOURCE-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: vectors enabled [UART-003 RESOURCE-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: vectors enabled [UART-003 RESOURCE-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: echo [UART-001 UART-002 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: echo, buffer-sized [UART-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: stream 8 KiB [UART-002 DMA-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: ring overrun reported [UART-009] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART6 PC6->PC7, CRSF 420000: cycles per pass: read 2390 (floor 378), transmit 683 (floor 48); read_within(100) waited 74/10 of the frame time counted, 16/10 clocked (uart_lucid ../common/tests.rs:2031)
+[ERROR] FAIL USART6 PC6->PC7, CRSF 420000: counted and clocked waits within their bounds [UART-006 WAIT-001]: Bound { waited: 1597715, floor: 952000 } (uart_lucid ../common/tests.rs:907)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: receive interrupt late by most of a lap [UARTDMA-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: break reported [UART-005 UART-013 UART-017 UART-018] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: chunks end where the line goes idle [UART-007 UART-017] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: a full buffer ends a chunk [UART-007] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: a break ends its chunk with a gap [UART-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: a ring overrun is a gap [UART-009] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: queued frames arrive whole and in order [UART-010] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: each frame's outcome comes back once, in order [UARTDMA-013 UARTDMA-014] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART6 PC6->PC7, CRSF 420000: 2 of 16 bytes not yet received when the transmit DMA finished (uart_lucid ../common/tests.rs:1440)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: quiet reported after the last stop bit, by the USART's interrupt [UART-023] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: the interrupt chains queued frames [UART-003 UARTDMA-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: frames go out by polling with the vectors masked [UARTDMA-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: an oversized frame is refused [UART-011] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: RX and TX inversion [USART-V4-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: 1 Mbaud [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: 57600 8E2 [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: back to its own frame [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART6 PC6->PC7, CRSF 420000: health Health { overruns: 0, framing_errors: 6, parity_errors: 0, noise_errors: 0, dma_errors: 0, dma_overruns: 0, buffer_overruns: 2, restarts: 0, marks_lost: 0 }, transmit TxHealth { sent: 392, dma_errors: 0, timeouts: 0 } (uart_lucid ../common/tests.rs:1957)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: echo [UART-001 UART-002 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: echo, buffer-sized [UART-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: stream 8 KiB [UART-002 DMA-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: ring overrun reported [UART-009] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART1 PB6->PB7, SBUS 100000 8E2: cycles per pass: read 2368 (floor 378), transmit 669 (floor 48); read_within(100) waited 69/10 of the frame time counted, 12/10 clocked (uart_lucid ../common/tests.rs:2031)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: counted and clocked waits within their bounds [UART-006 WAIT-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: receive interrupt late by most of a lap [UARTDMA-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: break reported [UART-005 UART-013 UART-017 UART-018] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: chunks end where the line goes idle [UART-007 UART-017] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: a full buffer ends a chunk [UART-007] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: a break ends its chunk with a gap [UART-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: a ring overrun is a gap [UART-009] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: queued frames arrive whole and in order [UART-010] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: each frame's outcome comes back once, in order [UARTDMA-013 UARTDMA-014] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART1 PB6->PB7, SBUS 100000 8E2: 2 of 16 bytes not yet received when the transmit DMA finished (uart_lucid ../common/tests.rs:1440)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: quiet reported after the last stop bit, by the USART's interrupt [UART-023] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: the interrupt chains queued frames [UART-003 UARTDMA-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: frames go out by polling with the vectors masked [UARTDMA-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: an oversized frame is refused [UART-011] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: RX and TX inversion [USART-V4-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: 1 Mbaud [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: 57600 8E2 [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: back to its own frame [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART1 PB6->PB7, SBUS 100000 8E2: health Health { overruns: 0, framing_errors: 8, parity_errors: 7, noise_errors: 0, dma_errors: 0, dma_overruns: 0, buffer_overruns: 2, restarts: 0, marks_lost: 0 }, transmit TxHealth { sent: 392, dma_errors: 0, timeouts: 0 } (uart_lucid ../common/tests.rs:1957)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: a masked line keeps its events out until unmasking [UART-020] (uart_lucid ../common/tests.rs:904)
+[INFO ] lock delay, held Unlocked: 192 cycles, 0 us (margin 5120000 cycles) (uart_lucid ../common/tests.rs:477)
+[INFO ] lock delay, held Empty: 295 cycles, 0 us (margin 5120000 cycles) (uart_lucid ../common/tests.rs:477)
+[INFO ] lock delay, held SendWhole: 2857 cycles, 7 us (margin 5120000 cycles) (uart_lucid ../common/tests.rs:477)
+[INFO ] lock delay, held ReadRing: 9858 cycles, 24 us (margin 5120000 cycles) (uart_lucid ../common/tests.rs:477)
+[INFO ] lock delay, held ChunkRing: 1855 cycles, 4 us (margin 5120000 cycles) (uart_lucid ../common/tests.rs:477)
+[INFO ] lock delay, held Service: 1267 cycles, 3 us (margin 5120000 cycles) (uart_lucid ../common/tests.rs:477)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: a handler held off by the task's lock runs within half a ring [UARTDMA-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: echo [UART-001 UART-002 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: echo, buffer-sized [UART-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: stream 8 KiB [UART-002 DMA-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: ring overrun reported [UART-009] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART3 PB10->PB11, MSP 115200: cycles per pass: read 2366 (floor 378), transmit 659 (floor 48); read_within(100) waited 72/10 of the frame time counted, 12/10 clocked (uart_lucid ../common/tests.rs:2031)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: counted and clocked waits within their bounds [UART-006 WAIT-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: receive interrupt late by most of a lap [UARTDMA-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: break reported [UART-005 UART-013 UART-017 UART-018] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: chunks end where the line goes idle [UART-007 UART-017] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: a full buffer ends a chunk [UART-007] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: a break ends its chunk with a gap [UART-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: a ring overrun is a gap [UART-009] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: queued frames arrive whole and in order [UART-010] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: each frame's outcome comes back once, in order [UARTDMA-013 UARTDMA-014] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART3 PB10->PB11, MSP 115200: 2 of 16 bytes not yet received when the transmit DMA finished (uart_lucid ../common/tests.rs:1440)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: quiet reported after the last stop bit, by the USART's interrupt [UART-023] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: the interrupt chains queued frames [UART-003 UARTDMA-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: frames go out by polling with the vectors masked [UARTDMA-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: an oversized frame is refused [UART-011] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: RX and TX inversion [USART-V4-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: 1 Mbaud [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: 57600 8E2 [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: back to its own frame [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART3 PB10->PB11, MSP 115200: health Health { overruns: 0, framing_errors: 6, parity_errors: 0, noise_errors: 0, dma_errors: 0, dma_overruns: 0, buffer_overruns: 2, restarts: 0, marks_lost: 0 }, transmit TxHealth { sent: 392, dma_errors: 0, timeouts: 0 } (uart_lucid ../common/tests.rs:1957)
+[INFO ] PASS USART2 PD5->PD6, control: echo [UART-001 UART-002 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: echo, buffer-sized [UART-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: stream 8 KiB [UART-002 DMA-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: ring overrun reported [UART-009] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART2 PD5->PD6, control: cycles per pass: read 2505 (floor 378), transmit 631 (floor 48); read_within(100) waited 75/10 of the frame time counted, 13/10 clocked (uart_lucid ../common/tests.rs:2031)
+[INFO ] PASS USART2 PD5->PD6, control: counted and clocked waits within their bounds [UART-006 WAIT-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: receive interrupt late by most of a lap [UARTDMA-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: break reported [UART-005 UART-013 UART-017 UART-018] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: chunks end where the line goes idle [UART-007 UART-017] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: a full buffer ends a chunk [UART-007] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: a break ends its chunk with a gap [UART-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: a ring overrun is a gap [UART-009] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: queued frames arrive whole and in order [UART-010] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: each frame's outcome comes back once, in order [UARTDMA-013 UARTDMA-014] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART2 PD5->PD6, control: 2 of 16 bytes not yet received when the transmit DMA finished (uart_lucid ../common/tests.rs:1440)
+[INFO ] PASS USART2 PD5->PD6, control: quiet reported after the last stop bit, by the USART's interrupt [UART-023] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: the interrupt chains queued frames [UART-003 UARTDMA-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: frames go out by polling with the vectors masked [UARTDMA-008] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: an oversized frame is refused [UART-011] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: RX and TX inversion [USART-V4-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: 1 Mbaud [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: 57600 8E2 [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART2 PD5->PD6, control: back to its own frame [UART-012 UART-016] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART2 PD5->PD6, control: health Health { overruns: 0, framing_errors: 6, parity_errors: 0, noise_errors: 0, dma_errors: 0, dma_overruns: 0, buffer_overruns: 2, restarts: 0, marks_lost: 0 }, transmit TxHealth { sent: 392, dma_errors: 0, timeouts: 0 } (uart_lucid ../common/tests.rs:1957)
+[INFO ] PASS USART6 + USART1 + USART3 + USART2: 8 KiB each, all at once [UART-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] I-cache true, D-cache true (uart_lucid src/bin/uart_lucid.rs:369)
+[INFO ] PASS D-cache on: buffer in cached RAM refused [GLUE-003] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS D-cache on: buffer in DTCM refused [GLUE-003] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 + USART1 + USART3 + USART2: 8 KiB each, all at once, caches on [UART-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART6 PC6->PC7, CRSF 420000: cycles per pass: read 766 (floor 378), transmit 210 (floor 48); read_within(100) waited 23/10 of the frame time counted, 12/10 clocked (uart_lucid ../common/tests.rs:2031)
+[INFO ] PASS USART6 PC6->PC7, CRSF 420000: counted and clocked waits within their bounds, caches on [UART-006 WAIT-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART1 PB6->PB7, SBUS 100000 8E2: cycles per pass: read 782 (floor 378), transmit 212 (floor 48); read_within(100) waited 22/10 of the frame time counted, 12/10 clocked (uart_lucid ../common/tests.rs:2031)
+[INFO ] PASS USART1 PB6->PB7, SBUS 100000 8E2: counted and clocked waits within their bounds, caches on [UART-006 WAIT-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART3 PB10->PB11, MSP 115200: cycles per pass: read 780 (floor 378), transmit 208 (floor 48); read_within(100) waited 23/10 of the frame time counted, 12/10 clocked (uart_lucid ../common/tests.rs:2031)
+[INFO ] PASS USART3 PB10->PB11, MSP 115200: counted and clocked waits within their bounds, caches on [UART-006 WAIT-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] USART2 PD5->PD6, control: cycles per pass: read 760 (floor 378), transmit 210 (floor 48); read_within(100) waited 22/10 of the frame time counted, 12/10 clocked (uart_lucid ../common/tests.rs:2031)
+[INFO ] PASS USART2 PD5->PD6, control: counted and clocked waits within their bounds, caches on [UART-006 WAIT-001] (uart_lucid ../common/tests.rs:904)
+[INFO ] PASS USART6 + USART1 + USART3 + USART2: every handler serves its UART through Service [RESOURCE-002] (uart_lucid ../common/tests.rs:904)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (uart_lucid ../common/tests.rs:2255)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 0 unreviewed (uart_lucid ../common/tests.rs:2231)
+[ERROR] 1 checks failed (uart_lucid ../common/tests.rs:2266)
+Firmware exited with: Unknown runtime error
+Core 0
+    Frame 0: [38;5;14m[1msyscall1[0m @ [38;5;11m0x8000bf8[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/lib.rs:201:13[0m
+    Frame 1: [38;5;14m[1mreport_exception[0m @ [38;5;11m0x8000bf2[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/macros.rs:28:9[0m
+    Frame 2: [38;5;14m[1mexit[0m @ [38;5;11m0x8000bf2[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/debug.rs:74:25[0m
+    Frame 3: [38;5;14m[1mfinish<uart_lucid::app::checks::{async_fn#0}::{closure_env#0}>[0m @ [38;5;11m0x8000bf2[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-ports-needs-pr/hil/nucleo-h753zi-loopback/src/bin/../../../common/tests.rs:0[0m
+    Frame 4: [38;5;14m[1m{async_fn#0}[0m @ [38;5;11m0x8002f00[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-ports-needs-pr/hil/nucleo-h753zi-loopback/src/bin/uart_lucid.rs:476:9[0m
+    Frame 5: [38;5;14m[1mAsyncTaskExecutor<uart_lucid::app::checks::{async_fn_env#0}>::poll[0m @ [38;5;11m0x80006b2[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rtic-2.4.0/src/export/executor.rs:284:26[0m
+    Frame 6: [38;5;14m[1m{closure#0}[0m @ [38;5;11m0x800068a[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-ports-needs-pr/hil/nucleo-h753zi-loopback/src/bin/uart_lucid.rs:39:1[0m
+    Frame 7: [38;5;14m[1mrun<uart_lucid::app::SPI1::{closure_env#0}>[0m @ [38;5;11m0x800068a[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rtic-2.4.0/src/export/cortex_basepri.rs:18:9[0m
+    Frame 8: [38;5;14m[1mSPI1[0m @ [38;5;11m0x800068a[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-ports-needs-pr/hil/nucleo-h753zi-loopback/src/bin/uart_lucid.rs:39:1[0m
+    Frame 9: [38;5;14m[1mExternal interrupt #35[0m @ [38;5;11m0x80023b1[39m
+    Frame 10: [38;5;14m[1menable[0m @ [38;5;11m0x80023b1[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-0.7.10/src/interrupt.rs:65:14[0m
+    Frame 11: [38;5;14m[1m{closure#0}[0m @ [38;5;11m0x80023b0[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-ports-needs-pr/hil/nucleo-h753zi-loopback/src/bin/uart_lucid.rs:39:1[0m
+    Frame 12: [38;5;14m[1m__rtic_init_resources<uart_lucid::app::main::{closure_env#0}>[0m @ [38;5;11m0x8000de4[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-ports-needs-pr/hil/nucleo-h753zi-loopback/src/bin/uart_lucid.rs:39:1[0m
+    Frame 13: [38;5;14m[1mmain[0m @ [38;5;11m0x8008f72[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/ferrohal-ports-needs-pr/hil/nucleo-h753zi-loopback/src/bin/uart_lucid.rs:39:1[0m
+    Frame 14: [38;5;14m[1mReset[0m @ [38;5;11m0x8000540[39m
+Error: Unknown runtime error
