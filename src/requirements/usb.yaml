@@ -33,3 +33,22 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#USB on the STM32F4 Discovery
+
+  - id: USB-002
+    title: A deferred USB vector carries CDC serial under its rule of use
+    statement: >-
+      With its vector deferred, and the vector's service and every bus call
+      kept from preempting one another, the OTG_FS port shall enumerate as a
+      CDC serial device and echo what the host sends.
+    rationale: >-
+      A firmware serves the USB core from a task. The transmit FIFO erratum
+      (ES0182 2.14.1 and its twins) corrupts the FIFO when another core
+      access cuts into a write to it, and the deferred vector's service is
+      one. Excluding them by a lock costs less than masking every interrupt.
+    derived_from: [USB-F4-001]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Deferred USB on the STM32F4 Discovery

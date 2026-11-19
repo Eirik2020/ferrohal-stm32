@@ -2,21 +2,57 @@
 //! crates on top of it (`usbd-serial` for CDC): [`UsbFs`] gives
 //! `synopsys-usb-otg` the chip's facts. Behind the `usb` feature.
 //!
-//! The controller's driver is third-party, and it can panic: USB sits
-//! outside FerroHAL's no-panic proof, apart from [`UsbFs::new`]. It is
-//! `synopsys-usb-otg` 0.4.0 from a fork pinned by revision, which adds one
-//! erratum: ES0392 2.25.7, a zero-length IN packet enabled with CNAK set can
-//! send a wrong packet on the H7's core, so the fork sets SNAK, waits, enables
-//! the endpoint, waits, and only then clears the NAK.
+//! The controller's driver is `synopsys-usb-otg` 0.4.0 from a fork pinned by
+//! revision. The fork makes it panic-free, with every wait on the core
+//! bounded, so the bus and its vector service sit inside FerroHAL's no-panic
+//! proof. It also carries two errata. ES0392 2.25.7: a zero-length IN
+//! packet enabled with CNAK set can send a wrong packet on the H7's core, so
+//! the fork sets SNAK, waits, enables the endpoint, waits, and only then
+//! clears the NAK. The transmit FIFO erratum: another core register access
+//! cutting into a FIFO write corrupts the FIFO (ES0182 2.14.1, ES0206 2.14.1,
+//! ES0287 2.12.1, ES0298 2.16.1, ES0299 2.12.1, ES0305 2.16.1,
+//! ES0372 2.16.1, ES0334 2.19.1, and ES0392 2.25.2 on revisions Y and W).
+//! ES0182's workaround: "Ensure that the transmit FIFO write sequence is not
+//! interrupted with accesses to the OTG_FS registers." A deferred vector
+//! reads and masks the core's interrupts at its own priority, so it is such
+//! an access. The fork takes no critical section for it; the rule of use is
+//! the firmware's, below.
+//! The `usb-device` stack above the bus (enumeration, the
+//! classes) is the firmware's protocol code, re-exported only so the firmware
+//! builds against the same version; it is not FerroHAL's, and its own code
+//! can panic.
 //!
 //! The firmware binds the vector in [`UsbFs::vectors`], or polls, and calls
 //! `UsbDevice::poll` from one context; FerroHAL enables nothing in the NVIC.
+//! Either the vector polls the device itself ([`UsbBus::new`]), or it defers
+//! to a task: [`UsbFs::deferred`] gives the bus and a [`UsbVector`] whose
+//! [`Service::on_interrupt`] masks what is pending and reports it, and the
+//! task's next `UsbDevice::poll` serves it and unmasks it. With
+//! [`UsbFs::deferred`], the core's start-of-frame interrupt stays on as a
+//! heartbeat, every millisecond on a full-speed bus, repeating the report
+//! while anything still waits, so a wake the scheduler dropped comes again
+//! rather than stalling the port; [`UsbFs::deferred_without_heartbeat`]
+//! masks it, for a wake that is never dropped.
+//!
+//! **Rule of use (USB-002).** The [`UsbVector`]'s service and every call on
+//! the bus (`UsbDevice::poll`, a class's reads and writes) never preempt one
+//! another: the firmware makes them from one context, or holds one lock,
+//! taken at the vector's priority, around each. An RTIC firmware puts the
+//! vector beside the device and its classes in one shared resource. Broken,
+//! the F407's IN endpoint stalls for good (STM32F4 Discovery, 0 of 2 runs);
+//! kept, it carries every byte. A critical section around each IN packet
+//! write would also keep it, but held every interrupt off for about 10 us on
+//! the F407 and 9.3 us on the H753, so FerroHAL leaves the exclusion to the
+//! lock, which holds off only the vectors at or below the USB vector's
+//! priority.
 //! The data pins are the chip's own (`chip::UsbDm`, `chip::UsbDp`, from the
 //! glue); set both to very high speed and hand them over in a [`Wiring`].
 //!
-//! Requirements: USB-001, USB-F4-001, API-002
+//! Requirements: USB-001, USB-F4-001, USB-002, API-002
 
+pub use synopsys_usb_otg::Waiting as Events;
 pub use usb_device;
+use usb_device::bus::UsbBusAllocator;
 
 use crate::{
     chip::{
@@ -24,8 +60,12 @@ use crate::{
         UsbDm, UsbDp,
     },
     rcc::{ClockError, Rcc},
-    resource::{Refused, Resource, Signal},
+    resource::{Refused, Resource, Service, Signal},
 };
+
+/// The lowest AHB clock the OTG core works at: "the AHB frequency should be
+/// higher than 14.2 MHz" (RM0368 22.3 and RM0090 34.3, cautions).
+const MIN_HCLK: u32 = 14_200_000;
 
 /// The port's bus type, for `UsbDeviceBuilder` and the class crates.
 pub type UsbBus = synopsys_usb_otg::UsbBus<UsbFs>;
@@ -62,8 +102,12 @@ pub type UsbRefused = Refused<ClockError, Wiring>;
 impl UsbFs {
     /// Starts the port's 48 MHz clock (the F4's PLLQ must already give it;
     /// the H7 turns on HSI48 and the USB supply) and enables the controller.
-    /// Refuses with the wiring handed back.
+    /// Refuses with the wiring handed back: `ClockError::Hclk` for an AHB
+    /// clock at or below 14.2 MHz, which the core does not work at.
     pub fn new(rcc: &mut Rcc, wiring: Wiring) -> Result<Self, UsbRefused> {
+        if rcc.clocks().hclk.0 <= MIN_HCLK {
+            return Err(Refused::new(ClockError::Hclk, wiring));
+        }
         if let Err(error) = rcc.usb_clock() {
             return Err(Refused::new(error, wiring));
         }
@@ -83,9 +127,50 @@ impl UsbFs {
         self.wiring
     }
 
-    /// The vector to bind to the handler that polls the device.
+    /// The vector to bind to the handler that polls the device, or to the
+    /// one that calls a [`UsbVector`]'s service.
     pub const fn vectors() -> crate::resource::Vectors {
         crate::resource::Vectors::one(USB_FS_INTERRUPT)
+    }
+
+    /// Builds the bus for a vector that defers to a task: the bus, for
+    /// `usb-device`, and the [`UsbVector`] the vector serves. `ep_memory`
+    /// holds the OUT endpoints' packets, as for [`UsbBus::new`].
+    pub fn deferred(self, ep_memory: &'static mut [u32]) -> (UsbBusAllocator<UsbBus>, UsbVector) {
+        let (bus, handle) = UsbBus::new_deferred(self, ep_memory);
+        (bus, UsbVector { handle })
+    }
+
+    /// As [`UsbFs::deferred`], with the start-of-frame heartbeat masked: for
+    /// a task woken by something that holds a wake until the task reads it,
+    /// so that no report needs repeating. A quiet configured bus then raises
+    /// the vector not at all, instead of once a frame.
+    pub fn deferred_without_heartbeat(
+        self,
+        ep_memory: &'static mut [u32],
+    ) -> (UsbBusAllocator<UsbBus>, UsbVector) {
+        let (bus, handle) = UsbBus::deferred_bus_without_heartbeat(self, ep_memory);
+        (UsbBusAllocator::new(bus), UsbVector { handle })
+    }
+}
+
+/// The vector's half of a deferred bus, from [`UsbFs::deferred`]. It owns
+/// nothing the bus needs: it reads the core's interrupt status and masks
+/// what it found, and the bus's `poll` unmasks it inside a critical section.
+/// Its service and the bus never preempt one another: the module's rule of
+/// use (USB-002).
+pub struct UsbVector {
+    handle: synopsys_usb_otg::InterruptHandle<UsbFs>,
+}
+
+impl Service for UsbVector {
+    type Event = Events;
+
+    /// Masks what is pending until the next `UsbDevice::poll`, clears a
+    /// start of frame, and reports everything waiting for that poll, masked
+    /// or not. A report with [`Events::any`] is the task's cue to poll.
+    fn on_interrupt(&mut self) -> Events {
+        self.handle.on_interrupt()
     }
 }
 

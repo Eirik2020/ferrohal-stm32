@@ -382,9 +382,12 @@ names where the code documents it.
 - Polled through the FIFO, up to 25 MHz, 4-bit, 3.3 V, high-capacity v2 cards.
 
 **USB**
-- The `usb` feature can panic: `synopsys-usb-otg` has about 30 panic and unwrap sites and
-  unbounded register spins. It is G2's listed exception, off by default
-  (`policies/features.md`).
+- The bus is FerroHAL's no-panic guarantee; the `usb-device` stack and classes above it are
+  the firmware's and can panic (`policies/features.md`).
+- A deferred vector (`UsbFs::deferred`) keeps the start-of-frame interrupt on as a
+  heartbeat: one vector per millisecond while the bus runs.
+  `deferred_without_heartbeat` masks it. Rule of use (USB-002): the vector service
+  and the bus never preempt one another.
 
 ## Not supported yet
 
@@ -405,8 +408,7 @@ The roadmap: features FerroHAL does not offer. None is debt; the owner sets the 
 - **DMA:** BDMA, MDMA.
 - **ADC:** timer triggers, injected channels, analog watchdogs, oversampling,
   differential inputs, ADC2, the H7's `_C` pads, per-channel sample times.
-- **USB:** OTG_HS at high speed, host mode; a panic-free device core, retiring the `usb`
-  feature's G2 exception.
+- **USB:** OTG_HS at high speed, host mode.
 - **SDMMC:** DMA, card detect, above 25 MHz, 1.8 V; SDIO on the F4.
 - **Clocks and power:** other supply ranges on the F401; the H7's VOS0 (480 MHz, rev V),
   the SMPS, PLL2/PLL3, fractional mode, CSI, HSIDIV other than 1, TIMPRE, other kernel

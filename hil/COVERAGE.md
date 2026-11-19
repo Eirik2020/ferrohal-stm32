@@ -84,7 +84,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | `rcc_f4` | F401, F405 | F401: every run, HSE bypass | Foxeer: HSE crystal to 168 MHz | HSE crystal |
 | `rcc_h7_rm0433` | H743, H753 | H753: every run, HSE bypass; I (voltage scale) | Lucid: HSE crystal to 400 MHz | HSE crystal |
 | `sdmmc_v2` | H743, H753 | – | Lucid: a card (SDMMC-004), the empty slot (SDMMC-003) | error paths |
-| USB, F4 OTG_FS core | F401, F405, F407 | Discovery: B (CDC echo on CN5) | Foxeer: CDC echo | – |
+| USB, F4 OTG_FS core | F401, F405, F407 | Discovery: B (CDC echo on CN5), E (deferred vector under its lock) | Foxeer: CDC echo | – |
 | USB, H7 OTG core at FS | H743, H753 | H753: M (CN13) | Lucid: CDC echo | – |
 
 ## Shared engines and system
@@ -99,7 +99,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | Caches and MPU shapes (H7) | H753: X; A to E with caches on | the SPI runs with caches on |
 | Constructor refusals | F401: V; H753: U; both smoke benches | – |
 | Injected faults | F401: W; H753: W, T (streams that will not stop, `fault-injection`) | – |
-| No reachable panic, glue against metapac, host tests | `checks/run.sh`, no board | the `usb` dependency (a listed G2 exception) |
+| No reachable panic, glue against metapac, host tests | `checks/run.sh`, no board | the `usb-device` stack above the bus (the firmware's) |
 
 ## Chip glue
 
