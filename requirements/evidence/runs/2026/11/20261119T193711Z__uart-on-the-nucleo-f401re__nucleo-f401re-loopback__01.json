@@ -1,0 +1,520 @@
+{
+  "schema_version": 5,
+  "run_id": "20261119T193711Z__uart-on-the-nucleo-f401re__nucleo-f401re-loopback__01",
+  "recorded_at_utc": "2026-11-19T19:37:11Z",
+  "board": "nucleo-f401re-loopback",
+  "tier": "HIL",
+  "revision": "88e4bf2c19e115033cfed6e23d9829c218a80afa",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "nucleo-f401re-loopback",
+    "features": [],
+    "files": {
+      "hil/nucleo-f401re-loopback/../../Cargo.toml": "9394b05a212c2e2eb9f6d62bce3e0ccab97fa9a7230cc42718b41ec7f80afbf3",
+      "hil/nucleo-f401re-loopback/.cargo/config.toml": "2fb6c8648a6ca90449e9b35fb962adec336a248a30bd53ae7fa67fcbb13ab0fd",
+      "hil/nucleo-f401re-loopback/Cargo.toml": "517bd41cbc8c082cf3eba7f2cf19a6ef9ea93270f01ccfd4488fd71b33b13226",
+      "hil/nucleo-f401re-loopback/memory.x": "5222acc476a2bdc4d1b7e211144e621c3d8e496be636a60152716aa7c5750668",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/adc.rs": "63d4e8e4a69e1c6cc7af23eec5e885da1e1256f9b73da27ba879c559f6562a8e",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/bootloader.rs": "9ed4481a69f48069bf9be506d58755dc32d43b2ea36dacc544f14fc55bd5555c",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/i2c.rs": "79e163403e4d0f754bb83ec5cdde81f0d5797f23b8510875dae703535e323995",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/i2c_interrupt.rs": "3443cbd79c7a45b309fc0b12b9057ab5d2ecc04b86070750147c7686896e902a",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/i2c_live.rs": "52369a4b3a62c24331214c76d1ce25906ea28b55cd3503e3d8a9797a8e9c86a6",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/ident.rs": "75e05b29ee2cab428023f841cd1b3229f726e01d1342a167c1efffb7b433d68a",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/pwm.rs": "089ce70aa3283f0a4c410edbbce3c2736e6b6a5b0033e6ba5fb614ee0710a73e",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/spi_exti.rs": "aac89031e786303689d62bc7ade732ed8dd790eabfa7cb4842ec3138a0a357a9",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/tests.rs": "a5e160dcf11b06449b70699892be7f427020aa685770c464d8540013a565af6c",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/timers.rs": "347542d4c29b18e0421b3ac03bb282e1b1fe9c4ef1ef6b782ef474b9e689814b",
+      "hil/nucleo-f401re-loopback/src/bin/../../../common/watchdog.rs": "41ef77ec384c0d8dd7799de1506920704c79644308c0c883e9b4fd71d12db4dd",
+      "hil/nucleo-f401re-loopback/src/bin/../board.rs": "dce167debc948183dbca70b91de3fa371823d329b91dc32609667ccd06de0d37",
+      "hil/nucleo-f401re-loopback/src/bin/adc.rs": "33e725f59cb902e6409db3ee6b261afdda0800334e92e5bc3921321c639a3756",
+      "hil/nucleo-f401re-loopback/src/bin/awg_out.rs": "e9c67fc5dfc4415b10f470591b96fb2f4fdad6023cf935d4cf701c2cadd27682",
+      "hil/nucleo-f401re-loopback/src/bin/bootloader_request.rs": "351ff9712b316e2f362766efb006e548c152a7428650bd64c9ab6a51984f5643",
+      "hil/nucleo-f401re-loopback/src/bin/dshot_lanes.rs": "20acf1375074a8351d04eebe3cb4d133cee4e9c5aa7f420b19b97b7fa2c8955c",
+      "hil/nucleo-f401re-loopback/src/bin/faults.rs": "fdc16fff622f4d5b90a7a8797e72a83303eff146233b77d6cbb0b9c98f3f64b5",
+      "hil/nucleo-f401re-loopback/src/bin/i2c_interrupt.rs": "1d230fb0675ea2f50c87de3a486d9b0eea994c23ffefb22971082a341000cfc5",
+      "hil/nucleo-f401re-loopback/src/bin/i2c_master.rs": "92c4cbdd076989d315a6774484041157097f1909126c1cf639a77a857359b39d",
+      "hil/nucleo-f401re-loopback/src/bin/i2c_pico.rs": "15bee6d2bc9e4678f65127e6ba75e2d55ee87cb75fa7ec0249c811d48b64feaf",
+      "hil/nucleo-f401re-loopback/src/bin/lane_in.rs": "190307f7fc7ef62ca34600fe24da0686e191214feadf4fa4b81c9bfddff44309",
+      "hil/nucleo-f401re-loopback/src/bin/motor_lanes.rs": "e8d4bec1ab6e835e1c77a2003bd0f62c764027ed47ea52fa83a899c130dfdcd4",
+      "hil/nucleo-f401re-loopback/src/bin/pico_reboot.rs": "7a377f3866984c4cac52009304d9c8a1cae3f24bfa372fec3d3d27b702a87e21",
+      "hil/nucleo-f401re-loopback/src/bin/refusals.rs": "f88776b1ef0c29e533dc67a6c1624725668959ba3fac7ad0ee4c11a360147b33",
+      "hil/nucleo-f401re-loopback/src/bin/spi3_port_b.rs": "f55ea02f4d2615a7859cab55c11c6dec9aa9b0ebe1178f01cf3289d58746f27c",
+      "hil/nucleo-f401re-loopback/src/bin/spi_exti.rs": "d06e5bd1484e1f453d4909bc2ed99bdb9997224a6b26b22a52acfdb6cc538cee",
+      "hil/nucleo-f401re-loopback/src/bin/spi_other_pins.rs": "db28b500fa24e0dc6258a51ed9b2f8981ae28c1bcc67aace7a4b8b23a27af17d",
+      "hil/nucleo-f401re-loopback/src/bin/spi_polled.rs": "365877de8f7041fccecbd5882e1663e3df0114e45b703fbf60374059b1139451",
+      "hil/nucleo-f401re-loopback/src/bin/timer_trigger.rs": "6da3341fbc0edc7cbce062e52f997ed57f3c0def5cda39272f44c9b94b702af9",
+      "hil/nucleo-f401re-loopback/src/bin/timers_against_dwt.rs": "6ade81d1ee8d8c2250a98b61a29ed88e66ad96b3d681750f385ff8aad863b9a1",
+      "hil/nucleo-f401re-loopback/src/bin/uart_cross.rs": "73792451800c0fee020d5b9c3562104059a5f1089055d416dc8678f4f62ecf18",
+      "hil/nucleo-f401re-loopback/src/bin/uart_each.rs": "eb2276c2e710c62bccad701d17bfd54a1c39eb7150c7296bb4fc2d0d7306265e",
+      "hil/nucleo-f401re-loopback/src/bin/uart_other_stream.rs": "55d683b682ce93ea71c7dda6c5d73adc896a05d4cdc60ab24a212a3b3cbc565c",
+      "hil/nucleo-f401re-loopback/src/bin/uart_rx_only.rs": "6238da7193775b929b244dd8ee28396faa84a276131c023d6409142d7db7f980",
+      "hil/nucleo-f401re-loopback/src/bin/watchdog.rs": "304c18321578be1ef554e29917b9929a0e6fe5bb1b929936d07ade2c2720bf47",
+      "src/adc/mod.rs": "5a6d37374fda9db53bb3eb9460c5958d0626ae052ab65b2ab9c7675ed1784608",
+      "src/adc_v2/mod.rs": "cd24f788efd1e08d81eb1c9356854edca48f705415ee0d3721d3e1c9ea2fb9dd",
+      "src/chips/f4/../gen/stm32f401re.rs": "d97b490357debcbe2f89fb7dd6ce7ae111bd4a8a5acc472f5ca973567fcd1410",
+      "src/chips/f4/../macros.rs": "3ee8c5120ebbd9f130c38094ef6c512d83649b4fe7f07dd1117e9a4d231a725e",
+      "src/chips/f4/errata_es0299.rs": "67c6b299e17baf64c9f76822dbb3e2f1529369f9aae66518dcb38d5c4be8555e",
+      "src/chips/f4/macros.rs": "c5f48ab3c2b1c41017e2c92ef1d878e19f9de2449b30c46e38b47b3eb7e8811f",
+      "src/chips/f4/stm32f401.rs": "abfd61f03b7716d524877323c8c5d2f946f3ede2cb219884d67e37b5f0a13dde",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma/mod.rs": "ce50530fd1530f985ae4472095e6766e8d6bb69bfcc17e517f33440d09a47f2f",
+      "src/errata.rs": "800114cb735e801adcccb9e66f348538e0b18201134356bb97e7a9b5288f7da3",
+      "src/exti/mod.rs": "d48fcd0d6ecac92aa0c8dcb88814797ad470ca08b6ea6ad5c162383e6ccec1e4",
+      "src/gpio_v2/mod.rs": "8d9ecf0fd728b67e41245c0486a1fba54922f372e7cafccf4d3f345c81cfb71b",
+      "src/i2c/interrupt.rs": "678fa6db90233a7ff62ea0213b5c1eaec386006be9d108eb3723afb1629ff31a",
+      "src/i2c/mod.rs": "828f5d219b47652164b1104666b5dbebd29849087f40e2c8b8b1fc2e130a865c",
+      "src/i2c_v1/interrupt.rs": "148bc6b4fa0985321116c458601495cf04045fc1cdd63ac94e621747ad140595",
+      "src/i2c_v1/mod.rs": "689e0581c0a6cba697c8f407bc01e627cc654e4f0dba35f06dda44f3d34b8146",
+      "src/iwdg/mod.rs": "513442c57ee11182d607e6f87246d6af4c87f4e0a639b478b8f5eb7fbfdb6eb9",
+      "src/lib.rs": "8baba1c600913a4bd714552ba1111c43bf4212c19308f4e7d7b7de8314154c52",
+      "src/rcc/kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+      "src/rcc/mod.rs": "7d4fddca77d583c4efeef771573c405dc2cc0d586f95f2cfa4d8977500534402",
+      "src/rcc/shared.rs": "1970583e9a43552b522baa2af840c8c5686605f290cfd298d2326adbe3876f04",
+      "src/rcc_f4/mod.rs": "71b7d9832310374a7e2dad688c656a1935ac6a11362900b5a794ec4fba505193",
+      "src/rcc_f4/tree.rs": "326fea704c401fe4b334277de7ce577ce32234b8a9dd9693391fa3849623880f",
+      "src/reset.rs": "1607d70a1aca0a2e4f1717f82c7e167b4805d8714b4efeecc84b676f3a6c5763",
+      "src/resource.rs": "358384a14d3ff19ff37b6d686b6f2991053963f2910d865373c8f64a19da0a91",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/instance.rs": "c74841baa531e4c781a005d813a38022df9d034d656c384fb92704dab4607fee",
+      "src/spi/mod.rs": "a8e8739059c0856c22056b5403f029c6247215808c46bd05b32922f106baf4e3",
+      "src/spi/polled.rs": "bd072765c9b2b88b99084b2f3a5991fcf9f8a39ef12fa401ca75b2efea23700f",
+      "src/spi/stream_dma.rs": "1b5f6e3c1603a9cf38b21823a713a3b99c8002ea0eecb3eb21b1c17744277b9a",
+      "src/spi_v2/mod.rs": "ff115f48fe6da14472ab9e6e87e9ad7460138fd9dac51df039e02ce48862c8d5",
+      "src/syscfg/mod.rs": "2ae9fa779ef1bb55a892668b55205479745af74f7bb4ae79881a0130ec55739a",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer/awg.rs": "10b7411c12861ad671d3b61cb5b4fc5e374badcc5dfb67c00b3dc4bd32aad8b9",
+      "src/timer/mod.rs": "f34edb26dde11edc61c00cb51322c4b1cd6bd2cee518ddc9d437d6ac9bc7c871",
+      "src/timer/pwm.rs": "4bdd54f089b2bc2b67386a0f2f808ba109e88e37e5e1dfa19201341c19b70b30",
+      "src/uart/mod.rs": "30720c30c483f4b3b0abe2440c29881dfa7adce3e76dcdb720487383d4f2fde6",
+      "src/uart/ring.rs": "1c568c6bf674451a80a21a9fcf875f92ed32358bab235adc3628b708b2901ded",
+      "src/uart/stream_dma/io.rs": "c54f20abad23d0efc8691765b5e59fa395824b104dc6b3993258af9bde573ad6",
+      "src/uart/stream_dma/mod.rs": "e5acfddcd36bb120ee9e345134e6165fa703632726b198af1572cafd84876e94",
+      "src/uart/stream_dma/rx.rs": "58a0f3760ad6971793685b8c8217fd5feaa2a5405b95cc456ba1b96539e9d586",
+      "src/uart/stream_dma/tx.rs": "7a7816f7aef28b58bb7d7155fcae2629880e67f77cd8077758f27b649db130e9",
+      "src/uart/tx_ring.rs": "707679ec4393f3a4bdc691fe76d8ccde40d67aa961b330dad951bca815279e0b",
+      "src/usart_v2/mod.rs": "ba583a1dc4581d4b599f6edd79f12e9311d9604f8fa16fb7fd4fd05ad9cf48c8",
+      "src/usb/mod.rs": "a497f6d78bc4c0a7d19961edda34a5380e760ef46a5383cae6a9f17b9131449e",
+      "src/wait.rs": "e81144f39b38427ba861350232161bd56ef497b997b87e44045afe49895d0c70"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "bitflags": "1.3.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "cortex-m-semihosting": "0.5.0",
+      "critical-section": "1.2.0",
+      "defmt": "0.3.101, 1.2.0",
+      "defmt-macros": "1.2.0",
+      "defmt-parser": "1.1.0",
+      "defmt-rtt": "1.3.1",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "panic-probe": "1.0.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.9",
+      "synopsys-usb-otg": "0.4.0+902ebe9494899ef13d1a9e7b757fb86b6f308727",
+      "thiserror": "2.0.21",
+      "thiserror-impl": "2.0.21",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "CARGO_PKG_NAME": "nucleo-f401re-loopback",
+      "DEFMT_LOG": "info"
+    }
+  },
+  "results": [
+    {
+      "requirement": "DMA-001",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "f70b2015704bd4659da776041afb6079d8fa3e57e0352696108b495fc7828535",
+      "result": "pass"
+    },
+    {
+      "requirement": "RESOURCE-001",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "bb349a8e20a50016b06a41e1133056e1971c1cc61bd53ec489ff0c2ae9bd74a7",
+      "result": "pass"
+    },
+    {
+      "requirement": "RESOURCE-002",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "529220b51d50bbf95fedcc1c843f1b4d97cb30d1ed8104c52a7bf04dc7c37884",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-001",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "e9d6ffdcf57ef61117fd3dbbd53bdd0b6074777ac530ef7e13aff6cbc1b83f40",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-002",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "a8c89e09a15b2bc2fccb3f62cf2f8bb2ae94a5205773e36bb049f2e8c1a8fa6f",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-003",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "866516f9541bedbf45a823a79b6cc0916242b52aa44a5eb20ce4c61c98cd17af",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-004",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "9e5b84a1b76a592b9c8805749a51defc124178a65dbb6a4474ca1cd38fe614f5",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-005",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "0631661bbe417e4d443720a0de366839a4a0c5f1707edcf08364822739340bf1",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-006",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "0380797a42766398c695958948be33d5a5b9e8e0bf362c641f346a97531b84a4",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-007",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "2003044caed3529500de76d05071c052a26ffa9861b74d91226f6880cddb8972",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-008",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "4696bcc4b5c0774c03b3611ddb06ec2f7873f7a17979fd435f64d72344e3c021",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-009",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "0904ab6bdf3fef928341d38788e594bee48877bc9f13276d8b52aafc362250ea",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-010",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "db48b68257e6596a532468fe0e89a57d905802447abfac6389592bc8aa962dfb",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-011",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "75d5cabf9219b2d8a453f7f070d46ad053e6ca57ebe842044b5f127db3dd850c",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-012",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "44739f7be230dc078a27d7f220d3441dc7b717c55f3d36114626e7610a2a8fd1",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-013",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "e71585a9514bf73eb03e7b154f4e4b7ed761bece2b79e1f0eb375e38ce297626",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-014",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "7820cbfefbe5eb9cc653dc6d675fd5fa1e5eb3783c78b1c31dd208f5552738b5",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-016",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "22aa484cedee69c0100dd5bf44e579b9796235efa36c53b0aa15813254ec191d",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-017",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "e9a377b1663c2e640d747f007237659645ec2ee9d4039bd1d16eb45e9139d0f2",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-018",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "b4f5e403747144fee5b2c9a40e73ae5e2902976ea8d892cdc343a9050c09ddb9",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-020",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "7023335c87b173b50acd444b924677e2e426adea550098a6d2bde17fef54c817",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-021",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "a5d4f1abd42a6313ecc0aa585aab1f805c73c092834587fa48a3fd3064d44323",
+      "result": "pass"
+    },
+    {
+      "requirement": "UART-023",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "91ead44efc8e80dc1d006555e7b167d7d5375bbbf6d266cb42af80f5a397a87b",
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-002",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "230803871b27c749f559b63c611af7804ce518c08616804de18596ade9112511",
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-008",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "7c39bc47c0124fa9bff81f97c80073eb3c2ece22bbd0aa02383461d2a6f4b81b",
+      "result": "pass"
+    },
+    {
+      "requirement": "UARTDMA-013",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "6ce28a059afd1e152cf7cc1f8ffcbef1e1478e43b61f46adcd9cd2624ffa4812",
+      "result": "pass"
+    },
+    {
+      "requirement": "USART-V2-001",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "4888d75b8b34636901940ccac3be476bd7fb039bc314d8b37a8ee2c29895984f",
+      "result": "pass"
+    },
+    {
+      "requirement": "WAIT-001",
+      "method": {
+        "procedure": "requirements/benches.md#UART on the Nucleo-F401RE"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "29ab0bdaff7efca68eb2634a8748639799cfa32bc204d0ac7f9d1843ccf2593b",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "4c9a44e7d6eacaa38a473a967345b82fd87daf0e6d5eb976d3b3e47994a4a0e8",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-f401.sh a b c d",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "nucleo-f401re-loopback-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/ports-needs-20261119/nucleo-f401re-loopback-images.sha256",
+        "bytes": 1706,
+        "sha256": "4c9a44e7d6eacaa38a473a967345b82fd87daf0e6d5eb976d3b3e47994a4a0e8"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-a",
+        "kind": "log",
+        "path": "requirements/evidence/logs/ports-needs-20261119/nucleo-f401re-loopback-run-a.log",
+        "bytes": 8591,
+        "sha256": "d55864258bf56b8f265986f3c04b60d7e318116b51e05381caf5b1d987cffc47"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-b",
+        "kind": "log",
+        "path": "requirements/evidence/logs/ports-needs-20261119/nucleo-f401re-loopback-run-b.log",
+        "bytes": 5793,
+        "sha256": "f60967936e18ecb03ce84eef8b2c25814dc9804d4d7448103a9f9c3e06fcf16e"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-c",
+        "kind": "log",
+        "path": "requirements/evidence/logs/ports-needs-20261119/nucleo-f401re-loopback-run-c.log",
+        "bytes": 4575,
+        "sha256": "9dcd873076d836ccdd0b56b1a5e295873daf815a423fdaf5065edda937eae1fb"
+      },
+      {
+        "id": "nucleo-f401re-loopback-run-d",
+        "kind": "log",
+        "path": "requirements/evidence/logs/ports-needs-20261119/nucleo-f401re-loopback-run-d.log",
+        "bytes": 1352,
+        "sha256": "a0b2268476ba115e2db18cb98e938baf6c0b2f697d86005d8820ef05935d52f1"
+      }
+    ],
+    "observations": [
+      "Every check in every run of the subset passed (PASS lines in the logs; no FAIL)."
+    ]
+  }
+}

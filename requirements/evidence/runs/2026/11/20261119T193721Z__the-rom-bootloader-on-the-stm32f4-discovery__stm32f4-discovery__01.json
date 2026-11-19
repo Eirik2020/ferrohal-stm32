@@ -1,0 +1,177 @@
+{
+  "schema_version": 5,
+  "run_id": "20261119T193721Z__the-rom-bootloader-on-the-stm32f4-discovery__stm32f4-discovery__01",
+  "recorded_at_utc": "2026-11-19T19:37:21Z",
+  "board": "stm32f4-discovery",
+  "tier": "HIL",
+  "revision": "88e4bf2c19e115033cfed6e23d9829c218a80afa",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "stm32f4-discovery",
+    "features": [],
+    "files": {
+      "hil/stm32f4-discovery/../../Cargo.toml": "9394b05a212c2e2eb9f6d62bce3e0ccab97fa9a7230cc42718b41ec7f80afbf3",
+      "hil/stm32f4-discovery/.cargo/config.toml": "670d352a14855eca575d92053c6519ebd5e439d6fd60558be0bff3a138302890",
+      "hil/stm32f4-discovery/Cargo.toml": "b596f02a9ee3baea8af10b48b10c3e4c0f45e3b4839e0c9af18373d1032ef910",
+      "hil/stm32f4-discovery/memory.x": "d6bd2dfac07b4373bac59c61aa60350725042de98b72944e535a50d0f23685e1",
+      "hil/stm32f4-discovery/src/bin/../../../common/ident.rs": "75e05b29ee2cab428023f841cd1b3229f726e01d1342a167c1efffb7b433d68a",
+      "hil/stm32f4-discovery/src/bin/../../../common/pwm.rs": "089ce70aa3283f0a4c410edbbce3c2736e6b6a5b0033e6ba5fb614ee0710a73e",
+      "hil/stm32f4-discovery/src/bin/../../../common/tests.rs": "a5e160dcf11b06449b70699892be7f427020aa685770c464d8540013a565af6c",
+      "hil/stm32f4-discovery/src/bin/../board.rs": "c5c670d9f272ef32586dda66182456c2b63dea4df12a86b2884f295db20fa19a",
+      "hil/stm32f4-discovery/src/bin/complementary.rs": "2633520929cbc6cdf617cc1b298b546ac23897d943262d74e36ef089c8089e7d",
+      "hil/stm32f4-discovery/src/bin/die_0x413.rs": "0d8a851d2a7d880d758c627fd1411a198e4d5d23f9143d0d9cd7cd45d6e7c35b",
+      "hil/stm32f4-discovery/src/bin/rom_bootloader.rs": "8b2ca5b8ec55c5b5da9adfc8dc04c43f26a253386201c433e440801f14494ee3",
+      "hil/stm32f4-discovery/src/bin/usb_cdc.rs": "f708390468fd424d0e2d79aab85c55149dbe97dd0de2d7a2fe19322017205bf5",
+      "src/adc/mod.rs": "5a6d37374fda9db53bb3eb9460c5958d0626ae052ab65b2ab9c7675ed1784608",
+      "src/adc_v2/mod.rs": "cd24f788efd1e08d81eb1c9356854edca48f705415ee0d3721d3e1c9ea2fb9dd",
+      "src/chips/f4/../gen/stm32f407vg.rs": "e01c48afd6205466279111064d2575f54a820a2105ec0570d3ce1bfec8e562bf",
+      "src/chips/f4/../macros.rs": "3ee8c5120ebbd9f130c38094ef6c512d83649b4fe7f07dd1117e9a4d231a725e",
+      "src/chips/f4/die_0x413.rs": "b5aff98f37b3c558192a605729ca5494c50de41f91ef736e4f78eeb8046ff9de",
+      "src/chips/f4/errata_es0182.rs": "e6055ad68ac95ad394867120e848d308fd08c01146165124d549938448d91387",
+      "src/chips/f4/macros.rs": "c5f48ab3c2b1c41017e2c92ef1d878e19f9de2449b30c46e38b47b3eb7e8811f",
+      "src/chips/f4/stm32f407.rs": "43f8f418fb02552e68eb3f12b07bdf39d59efc5d3e5fd8134d7aeb921bfe5e5d",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma/mod.rs": "ce50530fd1530f985ae4472095e6766e8d6bb69bfcc17e517f33440d09a47f2f",
+      "src/errata.rs": "800114cb735e801adcccb9e66f348538e0b18201134356bb97e7a9b5288f7da3",
+      "src/exti/mod.rs": "d48fcd0d6ecac92aa0c8dcb88814797ad470ca08b6ea6ad5c162383e6ccec1e4",
+      "src/gpio_v2/mod.rs": "8d9ecf0fd728b67e41245c0486a1fba54922f372e7cafccf4d3f345c81cfb71b",
+      "src/i2c/interrupt.rs": "678fa6db90233a7ff62ea0213b5c1eaec386006be9d108eb3723afb1629ff31a",
+      "src/i2c/mod.rs": "828f5d219b47652164b1104666b5dbebd29849087f40e2c8b8b1fc2e130a865c",
+      "src/i2c_v1/interrupt.rs": "148bc6b4fa0985321116c458601495cf04045fc1cdd63ac94e621747ad140595",
+      "src/i2c_v1/mod.rs": "689e0581c0a6cba697c8f407bc01e627cc654e4f0dba35f06dda44f3d34b8146",
+      "src/iwdg/mod.rs": "513442c57ee11182d607e6f87246d6af4c87f4e0a639b478b8f5eb7fbfdb6eb9",
+      "src/lib.rs": "8baba1c600913a4bd714552ba1111c43bf4212c19308f4e7d7b7de8314154c52",
+      "src/rcc/kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+      "src/rcc/mod.rs": "7d4fddca77d583c4efeef771573c405dc2cc0d586f95f2cfa4d8977500534402",
+      "src/rcc/shared.rs": "1970583e9a43552b522baa2af840c8c5686605f290cfd298d2326adbe3876f04",
+      "src/rcc_f4/mod.rs": "71b7d9832310374a7e2dad688c656a1935ac6a11362900b5a794ec4fba505193",
+      "src/rcc_f4/tree.rs": "326fea704c401fe4b334277de7ce577ce32234b8a9dd9693391fa3849623880f",
+      "src/reset.rs": "1607d70a1aca0a2e4f1717f82c7e167b4805d8714b4efeecc84b676f3a6c5763",
+      "src/resource.rs": "358384a14d3ff19ff37b6d686b6f2991053963f2910d865373c8f64a19da0a91",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/instance.rs": "c74841baa531e4c781a005d813a38022df9d034d656c384fb92704dab4607fee",
+      "src/spi/mod.rs": "a8e8739059c0856c22056b5403f029c6247215808c46bd05b32922f106baf4e3",
+      "src/spi/polled.rs": "bd072765c9b2b88b99084b2f3a5991fcf9f8a39ef12fa401ca75b2efea23700f",
+      "src/spi/stream_dma.rs": "1b5f6e3c1603a9cf38b21823a713a3b99c8002ea0eecb3eb21b1c17744277b9a",
+      "src/spi_v2/mod.rs": "ff115f48fe6da14472ab9e6e87e9ad7460138fd9dac51df039e02ce48862c8d5",
+      "src/syscfg/mod.rs": "2ae9fa779ef1bb55a892668b55205479745af74f7bb4ae79881a0130ec55739a",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer/awg.rs": "10b7411c12861ad671d3b61cb5b4fc5e374badcc5dfb67c00b3dc4bd32aad8b9",
+      "src/timer/mod.rs": "f34edb26dde11edc61c00cb51322c4b1cd6bd2cee518ddc9d437d6ac9bc7c871",
+      "src/timer/pwm.rs": "4bdd54f089b2bc2b67386a0f2f808ba109e88e37e5e1dfa19201341c19b70b30",
+      "src/uart/mod.rs": "30720c30c483f4b3b0abe2440c29881dfa7adce3e76dcdb720487383d4f2fde6",
+      "src/uart/ring.rs": "1c568c6bf674451a80a21a9fcf875f92ed32358bab235adc3628b708b2901ded",
+      "src/uart/stream_dma/io.rs": "c54f20abad23d0efc8691765b5e59fa395824b104dc6b3993258af9bde573ad6",
+      "src/uart/stream_dma/mod.rs": "e5acfddcd36bb120ee9e345134e6165fa703632726b198af1572cafd84876e94",
+      "src/uart/stream_dma/rx.rs": "58a0f3760ad6971793685b8c8217fd5feaa2a5405b95cc456ba1b96539e9d586",
+      "src/uart/stream_dma/tx.rs": "7a7816f7aef28b58bb7d7155fcae2629880e67f77cd8077758f27b649db130e9",
+      "src/uart/tx_ring.rs": "707679ec4393f3a4bdc691fe76d8ccde40d67aa961b330dad951bca815279e0b",
+      "src/usart_v2/mod.rs": "ba583a1dc4581d4b599f6edd79f12e9311d9604f8fa16fb7fd4fd05ad9cf48c8",
+      "src/usb/mod.rs": "a497f6d78bc4c0a7d19961edda34a5380e760ef46a5383cae6a9f17b9131449e",
+      "src/wait.rs": "e81144f39b38427ba861350232161bd56ef497b997b87e44045afe49895d0c70"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "bitflags": "1.3.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "cortex-m-semihosting": "0.5.0",
+      "critical-section": "1.2.0",
+      "defmt": "0.3.101, 1.2.0",
+      "defmt-macros": "1.2.0",
+      "defmt-parser": "1.1.0",
+      "defmt-rtt": "1.3.1",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.6.1, 0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "panic-probe": "1.0.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.10",
+      "synopsys-usb-otg": "0.4.0+902ebe9494899ef13d1a9e7b757fb86b6f308727",
+      "thiserror": "2.0.21",
+      "thiserror-impl": "2.0.21",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "usbd-serial": "0.2.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "CARGO_PKG_NAME": "stm32f4-discovery",
+      "DEFMT_LOG": "info"
+    }
+  },
+  "results": [
+    {
+      "requirement": "RESET-004",
+      "method": {
+        "procedure": "requirements/benches.md#The ROM bootloader on the STM32F4 Discovery"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "6398dc3f1de22754da96f8d35b26dc3e6f72b6ce256642fc6b28063c57e362a1",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "4c99e8ee32cff85a14b38009c85b55d57c299e82bc7ec305284ab0586f7d31a0",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-discovery.sh c",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "stm32f4-discovery-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/ports-needs-20261119/stm32f4-discovery-images.sha256",
+        "bytes": 311,
+        "sha256": "4c99e8ee32cff85a14b38009c85b55d57c299e82bc7ec305284ab0586f7d31a0"
+      },
+      {
+        "id": "stm32f4-discovery-run-c",
+        "kind": "log",
+        "path": "requirements/evidence/logs/ports-needs-20261119/stm32f4-discovery-run-c.log",
+        "bytes": 796,
+        "sha256": "a8849a06827b632e5cc12c17ce76a1f78ea344b453b60ec1c4315af7fd0b86f2"
+      }
+    ],
+    "observations": [
+      "Every check in every run of the subset passed (PASS lines in the logs; no FAIL)."
+    ]
+  }
+}
