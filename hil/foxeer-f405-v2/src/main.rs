@@ -662,7 +662,13 @@ fn main() -> ! {
     if !lent {
         usb_bench::stop(line!())
     }
-    let lane_refused = match ferrohal_stm32::timer::Frame::new(ccm, 3, tim1.frame_limits()) {
+    let lane_refused = match ferrohal_stm32::timer::Frame::new({
+            let duty = tim1.period() / 2;
+            for word in ccm.iter_mut().take(3) {
+                *word = duty;
+            }
+            ccm
+        }, 3, tim1.frame_limits()) {
         Ok(frame) => matches!(
             lane1.arm(&tim1, frame).map_err(|refused| refused.error()),
             Err(ferrohal_stm32::timer::Error::Dma)

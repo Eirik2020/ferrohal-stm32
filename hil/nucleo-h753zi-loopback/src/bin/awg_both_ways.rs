@@ -167,6 +167,11 @@ mod app {
         let name = "TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2";
         let mut frame = Some(core::mem::take(cx.local.frame));
         let mut lent = Some(core::mem::take(cx.local.lent));
+        // The rounds lend the near lane its frame and receive memory
+        // themselves, one exchange at a time: what the checks above lent it
+        // comes back first.
+        pwm::reclaim(near.take_frame(0));
+        let _ = near.take_samples(0);
         // 1. The lane's own stream, turning to read after the frame's end.
         if let Some(seen) = reader_round(&mut report, name,
             "the reply read whole on the lane's own stream [AWG-016]",

@@ -523,14 +523,10 @@ mod app {
             },
         );
 
-        // Lane: a frame in CCM RAM, which no DMA controller reaches
-        // (RM0090), refuses at arm and comes back; the lane then plays from
-        // the bench's frame memory. A lane takes no memory at assembly.
-        // SAFETY: the F401's CCM RAM at 0x10000000 is real memory the CPU
-        // can use, but no DMA controller reaches it, and `arm` refuses it
-        // before programming anything. Nothing else touches it.
-        let ccm: &'static mut [u32] =
-            unsafe { core::slice::from_raw_parts_mut(0x1000_0000 as *mut u32, 16) };
+        // Lane: assembly takes no memory, so there is no buffer to refuse
+        // here. A frame no DMA reaches is refused at `arm`, but the F401 has
+        // no such RAM: it has no CCM, and DMA2 reaches all its SRAM
+        // (RM0368). The H753's run U checks that refusal on DTCM.
         let mut lane3 =
             match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3_stream)
                 .assemble(&pwm3)
@@ -541,24 +537,6 @@ mod app {
         pwm::lend_frames(lane3_buf);
         pwm::lend_frames(lane4_buf);
         pwm::lend_frames(lane2_buf);
-        let ccm_refusal = match ferrohal_stm32::timer::Frame::new(ccm, 3, pwm3.frame_limits()) {
-            Ok(frame) => match lane3.arm(&pwm3, frame) {
-                Ok(()) => defmt::panic!("a CCM frame was accepted"),
-                Err(refused) => Some(refused.error()),
-            },
-            Err(refused) => Some(refused.error()),
-        };
-        report.check(
-            "TIM3 CH3",
-            "a frame in CCM refuses; it comes back and the lane plays on [API-001]",
-            match ccm_refusal {
-                Some(ferrohal_stm32::timer::Error::Dma) => Ok(()),
-                _ => Err(Fail::Count {
-                    expected: 1,
-                    got: 0,
-                }),
-            },
-        );
 
         // Sampler: a 0 rate refuses; the timer, stream and buffer come back.
         let (mut sampler, sampler_refusal) = match Sampler::new::<'B'>(

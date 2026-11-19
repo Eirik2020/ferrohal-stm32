@@ -503,7 +503,13 @@ mod app {
                 Err(refused) => defmt::panic!("the TIM3 lane: {}", refused.error()),
             };
         crate::pwm::lend_frames(lane3_buf);
-        let dtcm_refusal = match ferrohal_stm32::timer::Frame::new(dtcm, 3, pwm3.frame_limits()) {
+        let dtcm_refusal = match ferrohal_stm32::timer::Frame::new({
+            let duty = pwm3.period() / 2;
+            for word in dtcm.iter_mut().take(3) {
+                *word = duty;
+            }
+            dtcm
+        }, 3, pwm3.frame_limits()) {
             Ok(frame) => match lane3.arm(&pwm3, frame) {
                 Ok(()) => defmt::panic!("a DTCM frame was accepted"),
                 Err(refused) => Some(refused.error()),

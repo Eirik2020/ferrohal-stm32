@@ -424,7 +424,13 @@ fn main() -> ! {
     if !lent {
         reboot_to_dfu()
     }
-    let lane_refused = match ferrohal_stm32::timer::Frame::new(dtcm, 3, tim3.frame_limits()) {
+    let lane_refused = match ferrohal_stm32::timer::Frame::new({
+            let duty = tim3.period() / 2;
+            for word in dtcm.iter_mut().take(3) {
+                *word = duty;
+            }
+            dtcm
+        }, 3, tim3.frame_limits()) {
         Ok(frame) => matches!(
             lane1.arm(&tim3, frame).map_err(|refused| refused.error()),
             Err(ferrohal_stm32::timer::Error::Dma)
