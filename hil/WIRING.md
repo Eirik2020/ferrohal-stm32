@@ -66,6 +66,27 @@ kernel clock is the APB4/pclk4 path no other bench covers.
 - **F401 I2C1 (PB8/PB9)**: kept slave-free on purpose — run Q's NACK suite
   must stay byte-for-byte what it is.
 
+## The second Pico 1: Nucleo-F767ZI I2C1 and Nucleo-G474RE I2C3
+
+A second Pico 1 runs the same simulator built with `--features second`, so its buses answer
+with tags 3 and 4, and a run's ID check tells the two Picos apart. Its identity line says
+`tags=3+4` (USB serial e66540f0a3812b2b). It is on its own USB cable to the host.
+Flash it by its own UF2: `cargo build --release --features second` in `pico-i2c-sim`, then
+the UF2 onto its RPI-RP2 drive; `pico-i2c-sim.sh flash` builds the first Pico's image.
+
+| Pico 2 pin | Board | Signal |
+| --- | --- | --- |
+| GP0 (physical 1) | F767 CN7-4 (PB9) | I2C1 SDA, tag 3 |
+| GP1 (physical 2) | F767 CN7-2 (PB8) | I2C1 SCL |
+| GND | F767 CN7-8 | ground |
+| GP2 (physical 4) | G474 CN10-1 (PC9) | I2C3 SDA, tag 4 |
+| GP3 (physical 5) | G474 CN10-2 (PC8) | I2C3 SCL |
+| GND | G474 CN10-9 | ground |
+
+F767 run D (`hil/run-f767.sh d`) drives the F767's bus, on run C's pins: with this Pico
+fitted, those pins are no longer slave-free. The G474 has no FerroHAL support yet, so
+nothing drives tag 4. The G474 uses I2C3 rather than D14/D15 because its PB8 can be BOOT0.
+
 ## Flashing and checking the Pico
 
 The Pico 1 W has no on-board debug probe, and this bench wires none:
