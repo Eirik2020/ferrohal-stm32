@@ -654,7 +654,7 @@ pub fn awg_free_check<
     );
 
     let started = start(&mut awg);
-    let (pwm, _, (lane_a, lane_b), ()) = awg.free();
+    let (pwm, _, (lane_a, lane_b), (), _) = awg.free();
     report.check(
         name,
         "AWG: free mid-waveform holds both lines low [API-002]",

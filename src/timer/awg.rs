@@ -309,6 +309,9 @@ enum Opening {
 /// reads.
 struct AheadReader {
     dma: crate::dma::AnyStream,
+    /// The stream's controller and number: its token, which
+    /// [`Awg::free`] gives back through [`ReaderStreams`].
+    id: (u8, u8),
     request: u8,
     /// The port's input register.
     port: u32,
@@ -325,23 +328,26 @@ struct AheadReader {
 }
 
 impl AheadReader {
+    /// Stops `stream` and keeps it as its registers and its id. Refuses with
+    /// the stream if it does not stop.
     fn new<S: crate::dma::StreamInstance>(
         stream: S,
         request: u8,
         port: u32,
         second: bool,
         opening: Opening,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, Refused<Error, S>> {
         let mut dma = crate::dma::claim(&stream);
         if dma.stop(crate::dma::STOP_SPINS).is_err() {
-            return Err(Error::Dma);
+            return Err(Refused::new(Error::Dma, stream));
         }
         dma.clear_flags(crate::dma::Flags::ALL);
-        // The token is dropped: `free` does not return a reader's stream
-        // (docs/DEBT.md).
+        // The token becomes its id: `Awg::free` mints it back once, through
+        // `ReaderStreams::take`, so the stream has one owner throughout.
         drop(stream);
         Ok(Self {
             dma,
+            id: S::ID,
             request,
             port,
             second,
@@ -363,6 +369,31 @@ impl AheadReader {
 }
 
 const AHEAD: usize = 4;
+
+/// The DMA streams a generator's readers held, handed back by
+/// [`Awg::free`]: each one taken out once, as the token it was given as.
+#[derive(Debug, PartialEq, Eq)]
+pub struct ReaderStreams {
+    ids: [Option<(u8, u8)>; AHEAD],
+}
+
+impl ReaderStreams {
+    /// Stream `N` of DMA controller `D`, if a reader held it and it has not
+    /// been taken yet.
+    pub fn take<const D: u8, const N: u8>(&mut self) -> Option<crate::dma::Stream<D, N>>
+    where
+        crate::dma::Dma<D>: crate::dma::DmaInstance,
+    {
+        let slot = self.ids.iter_mut().find(|id| **id == Some((D, N)))?;
+        *slot = None;
+        Some(crate::dma::Stream::new())
+    }
+
+    /// Whether every stream has been taken.
+    pub fn is_empty(&self) -> bool {
+        self.ids.iter().all(Option::is_none)
+    }
+}
 
 /// How a two-timer generator starts its second timer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -622,36 +653,30 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// through `stream`, paced by the first timer's update request, armed
     /// while the frame plays. Refused if a reader already reads that port on
     /// that timer, or with no room.
-    pub fn read_ahead_first_update<S, const P: char>(&mut self, stream: S) -> Result<(), Error>
+    pub fn read_ahead_first_update<S, const P: char>(
+        &mut self,
+        stream: S,
+    ) -> Result<(), Refused<Error, S>>
     where
         S: super::UpdateDma<A> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         let port = Self::idr::<P>();
-        self.add_ahead(AheadReader::new(
-            stream,
-            S::REQUEST,
-            port,
-            false,
-            Opening::Update,
-        )?)
+        self.add_ahead(stream, S::REQUEST, port, false, Opening::Update)
     }
 
     /// As [`read_ahead_first_update`](Self::read_ahead_first_update),
     /// on the second timer.
-    pub fn read_ahead_second_update<S, const P: char>(&mut self, stream: S) -> Result<(), Error>
+    pub fn read_ahead_second_update<S, const P: char>(
+        &mut self,
+        stream: S,
+    ) -> Result<(), Refused<Error, S>>
     where
         S: super::UpdateDma<B> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         let port = Self::idr::<P>();
-        self.add_ahead(AheadReader::new(
-            stream,
-            S::REQUEST,
-            port,
-            true,
-            Opening::Update,
-        )?)
+        self.add_ahead(stream, S::REQUEST, port, true, Opening::Update)
     }
 
     /// As [`read_ahead_first_update`](Self::read_ahead_first_update),
@@ -661,22 +686,16 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     pub fn read_ahead_first_compare<const C: u8, S, const P: char>(
         &mut self,
         stream: S,
-    ) -> Result<(), Error>
+    ) -> Result<(), Refused<Error, S>>
     where
         S: super::CompareDma<A, C> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         if (0..LA::COUNT).any(|lane| LA::channel(lane) == C) {
-            return Err(Error::Busy);
+            return Err(Refused::new(Error::Busy, stream));
         }
         let port = Self::idr::<P>();
-        self.add_ahead(AheadReader::new(
-            stream,
-            S::REQUEST,
-            port,
-            false,
-            Opening::Compare(C),
-        )?)
+        self.add_ahead(stream, S::REQUEST, port, false, Opening::Compare(C))
     }
 
     /// As [`read_ahead_first_compare`](Self::read_ahead_first_compare),
@@ -684,22 +703,16 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     pub fn read_ahead_second_compare<const C: u8, S, const P: char>(
         &mut self,
         stream: S,
-    ) -> Result<(), Error>
+    ) -> Result<(), Refused<Error, S>>
     where
         S: super::CompareDma<B, C> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         if (0..LB::COUNT).any(|lane| LB::channel(lane) == C) {
-            return Err(Error::Busy);
+            return Err(Refused::new(Error::Busy, stream));
         }
         let port = Self::idr::<P>();
-        self.add_ahead(AheadReader::new(
-            stream,
-            S::REQUEST,
-            port,
-            true,
-            Opening::Compare(C),
-        )?)
+        self.add_ahead(stream, S::REQUEST, port, true, Opening::Compare(C))
     }
 
     fn idr<const P: char>() -> u32
@@ -721,22 +734,16 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         &mut self,
         pacer: &Pwm<T>,
         stream: S,
-    ) -> Result<(), Error>
+    ) -> Result<(), Refused<Error, S>>
     where
         S: super::UpdateDma<T> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         if self.pacer.is_some() {
-            return Err(Error::Busy);
+            return Err(Refused::new(Error::Busy, stream));
         }
         let port = Self::idr::<P>();
-        self.add_ahead(AheadReader::new(
-            stream,
-            S::REQUEST,
-            port,
-            false,
-            Opening::Paced,
-        )?)?;
+        self.add_ahead(stream, S::REQUEST, port, false, Opening::Paced)?;
         let handle = pacer.pacer();
         handle.close();
         self.pacer = Some((handle, pacer.rate()));
@@ -760,29 +767,35 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
     }
 
-    fn add_ahead(&mut self, reader: AheadReader) -> Result<(), Error> {
+    /// Registers a reader on `stream`, refusing with the stream while a
+    /// waveform plays or is read, if a reader already reads that port on
+    /// that timer (or that timer's update request), with no room, or if the
+    /// stream does not stop.
+    fn add_ahead<S: crate::dma::StreamInstance>(
+        &mut self,
+        stream: S,
+        request: u8,
+        port: u32,
+        second: bool,
+        opening: Opening,
+    ) -> Result<(), Refused<Error, S>> {
         if self.state.started || self.state.listening {
-            return Err(Error::Busy);
+            return Err(Refused::new(Error::Busy, stream));
         }
         let taken = self.ahead.iter().flatten().any(|r| {
-            r.second == reader.second
-                && (r.port == reader.port
-                    || matches!(
-                        (r.opening, reader.opening),
-                        (Opening::Update, Opening::Update)
-                    ))
+            r.second == second
+                && (r.port == port
+                    || matches!((r.opening, opening), (Opening::Update, Opening::Update)))
         });
         if taken {
-            return Err(Error::Busy);
+            return Err(Refused::new(Error::Busy, stream));
         }
-        match self.ahead.iter_mut().find(|slot| slot.is_none()) {
-            Some(slot) => {
-                *slot = Some(reader);
-                self.plan = None;
-                Ok(())
-            }
-            None => Err(Error::TooLarge),
-        }
+        let Some(slot) = self.ahead.iter_mut().find(|slot| slot.is_none()) else {
+            return Err(Refused::new(Error::TooLarge, stream));
+        };
+        *slot = Some(AheadReader::new(stream, request, port, second, opening)?);
+        self.plan = None;
+        Ok(())
     }
 
     /// The reader on its own stream for `port` on the
@@ -1578,11 +1591,19 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// their compare requests closed). Each lane then frees to its wiring and
     /// buffers ([`CompareLane::free`]), and each timer to its token
     /// ([`Pwm::free`]). The second timer is `None` on a generator built with
-    /// [`single`](Awg::single).
+    /// [`single`](Awg::single). Every reader's stream comes back in the
+    /// [`ReaderStreams`], stopped; a paced reader's timer stayed the caller's.
     #[allow(clippy::type_complexity)]
-    pub fn free(self) -> (Pwm<A>, Option<Pwm<B>>, LA, LB) {
+    pub fn free(self) -> (Pwm<A>, Option<Pwm<B>>, LA, LB, ReaderStreams) {
         let mut awg = self;
         awg.abort();
+        let mut streams = ReaderStreams { ids: [None; AHEAD] };
+        for (slot, reader) in streams.ids.iter_mut().zip(awg.ahead.iter_mut()) {
+            if let Some(mut reader) = reader.take() {
+                reader.disarm();
+                *slot = Some(reader.id);
+            }
+        }
         let Self {
             first,
             second,
@@ -1590,7 +1611,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             second_lanes,
             ..
         } = awg;
-        (first, second, first_lanes, second_lanes)
+        (first, second, first_lanes, second_lanes, streams)
     }
 
     fn halt(&mut self) {

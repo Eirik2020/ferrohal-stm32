@@ -201,7 +201,9 @@ mod app {
         }
         // 4. A reader armed ahead on TIM3's update, on a generator rebuilt
         // without the paced reader.
-        let (tim3, _, lanes, ()) = near.free();
+        let (tim3, _, lanes, (), mut streams) = near.free();
+        report.check(name, "free gives back the paced reader's stream, DMA2 stream 7, once [API-002]",
+            holds(streams.take::<2, 7>().is_some() && streams.take::<2, 7>().is_none() && streams.is_empty()));
         let mut near = Awg::single(tim3, lanes);
         near.set_active_low(true);
         near.set_outputs(true);

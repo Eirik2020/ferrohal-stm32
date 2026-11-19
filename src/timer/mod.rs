@@ -45,7 +45,7 @@ macro_rules! stamp {
         super::profile::stamp($slot);
     };
 }
-pub use awg::{Awg, Lanes, recover};
+pub use awg::{Awg, Lanes, ReaderStreams, recover};
 pub(crate) use stamp;
 
 /// PROFILING ONLY: a mark of an exchange's start (`profile-start`).

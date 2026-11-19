@@ -152,7 +152,10 @@ pub struct Stream<const D: u8, const N: u8> {
 }
 
 impl<const D: u8, const N: u8> Stream<D, N> {
-    const fn new() -> Self {
+    /// The token. Made only where one is owed: by `Dma::split`, once per
+    /// stream, and by `timer::ReaderStreams::take`, for a token a reader was
+    /// given and has been freed of.
+    pub(crate) const fn new() -> Self {
         Self { _private: () }
     }
 }
@@ -203,6 +206,8 @@ pub trait StreamInterrupt {
 /// }
 /// ```
 pub trait StreamInstance: crate::Sealed + claim::Claim {
+    /// The controller's number and the stream's on it.
+    const ID: (u8, u8);
     fn into_any(self) -> AnyStream;
 }
 
@@ -235,6 +240,7 @@ impl<const D: u8, const N: u8> StreamInstance for Stream<D, N>
 where
     Dma<D>: DmaInstance,
 {
+    const ID: (u8, u8) = (D, N);
     fn into_any(self) -> AnyStream {
         claim::channel(&self)
     }

@@ -738,16 +738,20 @@ pub fn exercise_readers<T, P, U, const CD: u8, const SN: u8, SA, SC, SP, S2, S3,
         park()
     };
     let mut awg = ferrohal_stm32::timer::Awg::single(pwm, (lane,));
-    keep(awg.read_ahead_first_update::<_, PORT>(ahead));
-    keep(awg.read_ahead_first_compare::<2, _, PORT>(compare));
-    keep(awg.read_ahead_paced::<_, _, PORT>(&pace, paced));
+    keep(awg.read_ahead_first_update::<_, PORT>(ahead).map_err(|r| r.error()));
+    keep(awg.read_ahead_first_compare::<2, _, PORT>(compare).map_err(|r| r.error()));
+    keep(awg.read_ahead_paced::<_, _, PORT>(&pace, paced).map_err(|r| r.error()));
     // A one-timer generator has no second timer: both are refused, linked.
-    keep(awg.read_ahead_second_update::<_, PORT>(second.0));
-    keep(awg.read_ahead_second_compare::<3, _, PORT>(second.1));
+    keep(awg.read_ahead_second_update::<_, PORT>(second.0).map_err(|r| r.error()));
+    keep(awg.read_ahead_second_compare::<3, _, PORT>(second.1).map_err(|r| r.error()));
     keep(awg.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
     keep(awg.listen());
     keep(awg.speak());
     awg.abort();
+    // Every reader's stream comes back, each once.
+    let (_, _, _, (), mut streams) = awg.free();
+    keep(streams.take::<1, 0>());
+    keep(streams.is_empty());
 }
 
 /// A complementary output (CH1N) of a timer with a break unit, assembled
@@ -2034,7 +2038,7 @@ where
     };
     keep(awg.play());
     awg.abort();
-    let (master, Some(slave), a, b) = awg.free() else {
+    let (master, Some(slave), a, b, _) = awg.free() else {
         park()
     };
     let mut awg = match Awg::independent(master, slave, a, b) {
