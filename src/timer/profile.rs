@@ -48,52 +48,12 @@ pub(crate) fn lane(k: usize) -> usize {
 static STAMP: [AtomicU32; SLOTS] = [const { AtomicU32::new(0) }; SLOTS];
 /// Slots stamped since the last commit, a bit each, in two words.
 static SEEN: [AtomicU32; 2] = [const { AtomicU32::new(0) }; 2];
-/// A register read at each stamp beside the cycle counter (0: none), so a
-/// bench can place each stamp on its own witness (a stream's NDTR).
-static WATCH: AtomicU32 = AtomicU32::new(0);
-static WATCHED: [AtomicU32; SLOTS] = [const { AtomicU32::new(0) }; SLOTS];
-/// The watched values of the last listen and the last speak, as committed.
-static LAST_LISTEN: [AtomicU32; SLOTS] = [const { AtomicU32::new(0) }; SLOTS];
-static LAST_SPEAK: [AtomicU32; SLOTS] = [const { AtomicU32::new(0) }; SLOTS];
-
-/// Reads the 32-bit register at `address` at every stamp from now on; 0 stops.
-/// The address must be a readable register without read side effects (a DMA
-/// stream's NDTR).
-pub fn watch(address: u32) {
-    WATCH.store(address, Relaxed);
-}
-
-/// What the watched register read at each slot of the last listen and of the
-/// last speak. Slots are the `pub` constants of this module.
-pub fn last() -> ([u32; SLOTS], [u32; SLOTS]) {
-    (
-        core::array::from_fn(|i| LAST_LISTEN[i].load(Relaxed)),
-        core::array::from_fn(|i| LAST_SPEAK[i].load(Relaxed)),
-    )
-}
-
-fn snapshot(into: &[AtomicU32; SLOTS]) {
-    for (to, from) in into.iter().zip(WATCHED.iter()) {
-        to.store(from.load(Relaxed), Relaxed);
-    }
-}
 
 /// Records the cycle counter in `slot`.
 #[inline(always)]
 pub(crate) fn stamp(slot: usize) {
     if let Some(s) = STAMP.get(slot) {
         s.store(cortex_m::peripheral::DWT::cycle_count(), Relaxed);
-        let address = WATCH.load(Relaxed);
-        if address != 0
-            && let Some(w) = WATCHED.get(slot)
-        {
-            // SAFETY: profiling only; `watch`'s caller names a readable
-            // register without read side effects.
-            w.store(
-                unsafe { core::ptr::read_volatile(address as *const u32) },
-                Relaxed,
-            );
-        }
         if let Some(word) = SEEN.get(slot / 32) {
             word.fetch_or(1 << (slot & 31), Relaxed);
         }
@@ -216,7 +176,6 @@ pub(crate) fn commit_listen() {
         }
     }
     STAGES[6].add(d(RETIMED, LANES).wrapping_sub(inside));
-    snapshot(&LAST_LISTEN);
     SEEN.iter().for_each(|word| word.store(0, Relaxed));
 }
 
@@ -227,7 +186,6 @@ pub(crate) fn commit_speak() {
     STAGES[8].add(d(S_ENTRY, S_PARKED));
     STAGES[9].add(d(S_PARKED, S_RETIMED));
     STAGES[10].add(d(S_RETIMED, S_DONE));
-    snapshot(&LAST_SPEAK);
     SEEN.iter().for_each(|word| word.store(0, Relaxed));
 }
 
