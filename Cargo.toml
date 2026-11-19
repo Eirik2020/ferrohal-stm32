@@ -25,7 +25,7 @@ usb-device = { version = "=0.3.2", optional = true }
 # H7's), no panics, bounded waits and a deferred interrupt handle, from a fork
 # pinned by exact revision: branch ferrohal-no-panic of
 # github.com/Eirik2020/synopsys-usb-otg, two commits on upstream's v0.4.0 tag.
-synopsys-usb-otg = { git = "https://github.com/Eirik2020/synopsys-usb-otg", rev = "b889b49e05d1c594483ddf8ddbc413151c7ac2b5", default-features = false, features = ["cortex-m"], optional = true }
+synopsys-usb-otg = { git = "https://github.com/Eirik2020/synopsys-usb-otg", rev = "0c895b3fb81da82b75aa6a38c7f2f197618a8a55", default-features = false, features = ["cortex-m"], optional = true }
 
 [features]
 default = []
