@@ -24,7 +24,7 @@ use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::i2c::InterruptHandler;
-use embassy_rp::i2c_slave::{Command, Config, I2cSlave};
+use embassy_rp::i2c_slave::{Command, Config, I2cSlave, ReadStatus};
 use embassy_rp::peripherals::{I2C0, I2C1, USB};
 use embassy_rp::usb::{Driver, InterruptHandler as UsbInterruptHandler};
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
@@ -402,13 +402,27 @@ fn reboot_to_bootsel() -> ! {
 
 /// Answers a read phase: the queued stretch first — the FIFO is empty
 /// while the timer runs, and an empty FIFO is what holds SCL — then the
-/// register the last write pointed at. One `respond_to_read` call is
-/// enough and is the only safe count: it returns either when the master
-/// NACKs the last byte or when the STOP's abort clears the leftover
-/// bytes, and on that abort it reads `IC_CLR_TX_ABRT`, which is what
-/// releases the DW's forced flushed state — a second call would push
+/// register the last write pointed at, one FIFO's worth (16 bytes) per
+/// `respond_to_read` call.
+///
+/// One call over the whole 64-byte buffer lost bytes. embassy-rp 0.10's
+/// `respond_to_read` writes its next 16-byte chunk on every poll of its
+/// future, without checking that the FIFO has room. A poll that comes
+/// while the FIFO still holds part of the last chunk overfills it, and the
+/// DW drops the writes that do not fit. A 32-byte read then came back with
+/// bytes 0 to 15 right, part of 16 to 31, and from there bytes 32 onward.
+/// Every first wrong byte the F767 and H753 benches logged sat at index 17
+/// to 31 and held the stream's byte 32.
+///
+/// A call given one chunk writes it on its first poll and never again, and
+/// it returns `NeedMoreBytes` only once the master asks for more with the
+/// FIFO empty. The next call then writes into an empty FIFO. Any other
+/// status ends the read: `Done` when the master NACKed the last byte it
+/// wanted, or `LeftoverBytes` when the STOP's abort flushed the rest. On
+/// that abort the call reads `IC_CLR_TX_ABRT`, which releases the DW's
+/// forced flushed state, so no call follows it: a further one would push
 /// into a bus that has already stopped. A master that walks away leaves
-/// the block waiting, and the next transaction's read request aborts it,
+/// the call waiting, and the next transaction's read request aborts it,
 /// which is the resync the hardware provides.
 async fn respond<T: embassy_rp::i2c::Instance>(
     slave: &mut I2cSlave<'static, T>,
@@ -419,7 +433,12 @@ async fn respond<T: embassy_rp::i2c::Instance>(
         Timer::after(Duration::from_micros(u64::from(us))).await;
     }
     state.fill(out);
-    let _ = slave.respond_to_read(out).await;
+    for chunk in out.chunks(16) {
+        match slave.respond_to_read(chunk).await {
+            Ok(ReadStatus::NeedMoreBytes) => continue,
+            _ => break,
+        }
+    }
 }
 
 /// Arms or clears the DW block's data-phase refusal for I2C0. The write
