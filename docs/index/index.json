@@ -3,7 +3,7 @@
  "counts": {
   "documents": 88,
   "agent": 55,
-  "bytes": 551084
+  "bytes": 553338
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 39842
+   "bytes": 39839
   },
   {
    "path": "docs/DEBT.md",
@@ -604,7 +604,7 @@
    "class": "human",
    "title": "Bench wiring: the Pico 1 I2C simulator",
    "purpose": "The two Nucleo benches prove FerroHAL's I2C m",
-   "bytes": 5441
+   "bytes": 6549
   },
   {
    "path": "hil/pico-i2c-sim/README.md",
@@ -639,7 +639,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 22682
+   "bytes": 23831
   },
   {
    "path": "requirements/goals.md",
