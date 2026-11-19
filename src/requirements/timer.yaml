@@ -525,6 +525,10 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#The lane switch on the Nucleo-F401RE
 
   - id: AWG-014
     title: One reader per timer and port

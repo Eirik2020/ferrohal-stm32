@@ -256,6 +256,18 @@ timer whose update reaches DMA2, the one DMA that reaches the GPIO ports. Checks
 duty on the pin, to 1/16, and one one-pulse period. Pass: both checks pass and the
 script exits zero.
 
+## The lane switch on the Nucleo-F401RE
+
+`hil/run-f401.sh x`, built with `profile-listen` (the script passes it). No links. Run
+R's four lanes as one generator, TIM3 starting TIM2, read through one reader of port B
+paced by TIM1 on DMA2 stream 5. Two listens are prepared, of 32 then 64 samples:
+`prepared` must name the second, at the rate it returned, and each of 200 exchanges,
+listening in the run that sees the frames end, must read 64 samples on every lane
+[AWG-013]. Over those exchanges the listen's cycle count (`timer::profile`, from entry
+to the reader started) must stay within an eighth of its least, since the prepared
+switch only stores what was computed ahead [AWG-013]. Pass: every check passes and the
+script exits zero.
+
 ## The ROM bootloader on the Nucleo-H753ZI
 
 `hil/run-h753.sh z`, with CN13 cabled to the host as the rig keeps it. The run asks for
