@@ -274,11 +274,13 @@ mod app {
             tests::echo(&mut loop6, b"refusal\n"),
         );
         // `free` stops the line and both streams, and hands the token back.
+        // It runs under the lock: the UART's tasks, which serve it from the
+        // slot, cannot run between taking it and turning its interrupts off,
+        // where an interrupt finding the slot empty would pend for ever.
         let handed_back = cx
             .shared
             .usart6
-            .lock(|slot| slot.take())
-            .is_some_and(|uart| uart.free().is_ok());
+            .lock(|slot| slot.take().is_some_and(|uart| uart.free().is_ok()));
         report.check(
             "USART6 PC6->PC7",
             "free leaves the USART off and both streams stopped [API-002]",
