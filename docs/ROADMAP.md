@@ -8,8 +8,7 @@ The roadmap: features FerroHAL does not offer. None is debt; the owner sets the 
 - **UART:** 7- and 9-bit data, RTS/CTS, half-duplex, RS-485 DE, LIN; LPUART1; the
   H7's hardware FIFOs.
 - **SPI:** slave, simplex, half-duplex, 16-bit frames, hardware NSS, CRC; SPI6.
-- **I2C:** slave, 10-bit addresses, SMBus; `InterruptI2c` on `i2c_v2` (F7, H7); DMA on the
-  H7's I2C4 (BDMA only).
+- **I2C:** slave, 10-bit addresses, SMBus; DMA on the H7's I2C4 (BDMA only).
 - **Timers:** input capture, dead time, the break input, trigger routes beyond those in
   use: among them TIM5 from TIM3 on the H743 and H753 (RM0433 table 341, ITR2), so a
   generator on TIM3 and TIM5 starts both in software there. A lane reader paced by a

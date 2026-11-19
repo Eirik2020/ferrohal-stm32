@@ -314,6 +314,25 @@ and TIM5 by TIM3 (ITR1), every timer at 600 kHz. For each, the slave must not co
 while its master is stopped, then start with it in 100 of 100 starts, within 32 counts
 [GLUE-010]. Pass: every check passes and the script exits zero.
 
+## Interrupt-driven I2C on the Nucleo-F767ZI
+
+`hil/run-f767.sh d`. Run D drives `InterruptI2c` on I2C1 over PB8 and PB9 against the
+second Pico simulator (`hil/pico-i2c-sim` with its `second` feature, wired per
+`hil/WIRING.md`), twice, as the F401's run X does: opened from the plain wiring, every
+byte moved by the event interrupt, then from a DMA wiring of DMA1 stream 6 (TX) and
+stream 0 (RX), channel 1 (RM0410 Table 27). Each mode runs run X's checks, on the TIMINGR
+IP version: each phase one CR2 program ended at TC or STOPF, never at a stream, and the
+stretch abort ended with CR2.STOP, the bus running again. Pass: every check passes and
+the script exits zero.
+
+## Interrupt-driven I2C on the Nucleo-H753ZI
+
+`hil/run-h753.sh v`. Run V drives `InterruptI2c` on I2C4 over PD12 and PD13 against the
+Pico 1 simulator, wired as run S, with every byte moved by the event interrupt: I2C4's
+requests reach the BDMA alone (RM0433 Table 128), which FerroHAL does not drive, so this
+bus opens from the plain wiring only. It runs run X's checks for that mode, the stretch
+abort ended with CR2.STOP. Pass: every check passes and the script exits zero.
+
 ## The ROM bootloader on the Nucleo-H753ZI
 
 `hil/run-h753.sh z`, with CN13 cabled to the host as the rig keeps it. The run asks for

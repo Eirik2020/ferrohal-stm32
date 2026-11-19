@@ -2,7 +2,9 @@
 # Runs the Nucleo-F767ZI bench (die 0x451, `nucleo-f767zi/src/board.rs`): the
 # glue probe, run A the clock tree with over-drive and every timer, run B the
 # watchdog across the reset it causes, run C the I2C master with no slave
-# fitted. None needs a link. Exits non-zero if any run failed.
+# fitted, run D the interrupt-driven I2C master against the second Pico
+# simulator on run C's pins. Only run D needs the Pico. Exits non-zero if
+# any run failed.
 #
 # Logs go to hil/logs/f767-run-<run>.log. Arguments pick runs, say `a c`; none
 # runs all. With several probes attached, set F767_PROBE.
@@ -16,7 +18,7 @@ probe_for F767_PROBE 0x451 || exit 1
 mkdir -p "$here/logs"
 
 status=0
-for run in ${*:-probe a b c}; do
+for run in ${*:-probe a b c d}; do
     log="$here/logs/f767-run-$run.log"
     runner=()
     # The watchdog run resets the chip on purpose: the debugger must not catch

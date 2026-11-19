@@ -255,7 +255,7 @@ module serves (ADR-011).
 | LPUART | n/a | n/a | n/a | – | – |
 | SPI6 over DMA (BDMA) | n/a | n/a | n/a | – | – |
 | I2C master, 7-bit, polled | ✓ | ✓ | ✓ | ✓ | ✓ |
-| I2C master, interrupt-driven, DMA or interrupt data (`InterruptI2c`) | ✓ | ✓ | – | – | – |
+| I2C master, interrupt-driven, DMA or interrupt data (`InterruptI2c`; I2C4 on the H7 interrupt data only) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | timers: one-pulse, trigger start, compare lanes and samplers over DMA, the waveform generator | ✓ | ✓ | ✓ | ✓ | ✓ |
 | LPTIM, HRTIM | n/a | n/a | – | – | – |
 | **EXTI**, GPIO lines 0-15 | ✓ | ✓ | ✓ | ✓ | ✓ |

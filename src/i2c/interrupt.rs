@@ -337,7 +337,11 @@ where
     /// transaction still running is abandoned. A stream that does not stop
     /// in time could still use a lent buffer, so the refusal returns the
     /// driver, still holding it; `free` may be tried again.
-    #[allow(clippy::type_complexity)]
+    // The refusal hands back the driver itself, which still holds buffers a
+    // stream may write: it cannot be boxed without an allocator, and a
+    // caller holds one either way. On the H7 its streams are DMAMUX routes,
+    // which makes it large.
+    #[allow(clippy::type_complexity, clippy::result_large_err)]
     pub fn free(
         mut self,
     ) -> Result<DmaWiring<U, Scl, Sda, TxD, RxD>, Refused<crate::dma::StopTimeout, Self>> {

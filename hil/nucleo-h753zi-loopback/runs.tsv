@@ -21,6 +21,7 @@ r	i2c-master
 s	i2c-pico
 t	stuck-streams
 u	refusals
+v	i2c-interrupt
 w	faults
 x	cache-mpu
 y	uart-cross

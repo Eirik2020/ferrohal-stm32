@@ -264,52 +264,17 @@ fn main() -> ! {
     keep(uart.free());
     keep(rx_only.free());
     let i2c_wiring = i2c.free();
-    #[cfg(not(any(
-        feature = "stm32f722re",
-        feature = "stm32f745vg",
-        feature = "stm32f767zi",
-        feature = "stm32h743vi",
-        feature = "stm32h753zi"
-    )))]
     exercise_interrupt_i2c(&mut rcc, i2c_wiring);
-    #[cfg(any(
-        feature = "stm32f722re",
-        feature = "stm32f745vg",
-        feature = "stm32f767zi",
-        feature = "stm32h743vi",
-        feature = "stm32h753zi"
-    ))]
-    keep(i2c_wiring);
     park()
 }
 
-#[cfg(not(any(
-    feature = "stm32f722re",
-    feature = "stm32f745vg",
-    feature = "stm32f767zi",
-    feature = "stm32h743vi",
-    feature = "stm32h753zi"
-)))]
 static mut I2C_TX: [u8; 8] = [0; 8];
-#[cfg(not(any(
-    feature = "stm32f722re",
-    feature = "stm32f745vg",
-    feature = "stm32f767zi",
-    feature = "stm32h743vi",
-    feature = "stm32h753zi"
-)))]
 static mut I2C_RX: [u8; 8] = [0; 8];
 
-/// The interrupt-driven I2C (`i2c_v1` only): both opens with their
+/// The interrupt-driven I2C, on both IP versions: both opens with their
 /// refusals, a transaction started, served, aborted and refused, and both
-/// teardowns. I2C1's streams on every F4: DMA1 stream 6 (TX) and 0 (RX).
-#[cfg(not(any(
-    feature = "stm32f722re",
-    feature = "stm32f745vg",
-    feature = "stm32f767zi",
-    feature = "stm32h743vi",
-    feature = "stm32h753zi"
-)))]
+/// teardowns. I2C1's streams: DMA1 stream 6 (TX) and 0 (RX) on every F4 and
+/// F7 (RM0410 Table 27), and any stream through DMAMUX1 on the H7.
 fn exercise_interrupt_i2c(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: chip::I2cWiring) {
     use ferrohal_stm32::i2c::{DmaWiring, InterruptI2c, Part, Transaction};
 

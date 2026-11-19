@@ -5,9 +5,10 @@
 //! Runs A to C need no links: A the clock tree (voltage scale and over-drive)
 //! and every timer against the DWT, B the independent watchdog across the reset
 //! it causes, C the I2C master on I2C1 (PB8 and PB9, Zio CN7-2 and CN7-4, the
-//! Arduino SCL and SDA), pulled up internally, no slave fitted. The SPI links
-//! and the second Pico are in `docs/plans/2026-11-17-f411-f722-f745.md` until
-//! their runs exist.
+//! Arduino SCL and SDA), pulled up internally, no slave fitted. Run D uses the
+//! same pins with the second Pico simulator fitted (`hil/WIRING.md`), plus
+//! DMA1 for the interrupt-driven I2C master. The SPI links are in
+//! `docs/plans/2026-11-17-f411-f722-f745.md` until their runs exist.
 //!
 //! The F7's UARTs (usart_v3) have no driver yet, so every run reports over the
 //! debugger alone. Each run starts from reset, so the pins a run does not use
@@ -36,6 +37,7 @@ use ferrohal_stm32::{
         I2C1, Peripherals, TIM1, TIM2, TIM3, TIM4, TIM5, TIM8, TIM9, TIM10, TIM11, TIM12, TIM13,
         TIM14,
     },
+    dma::Stream,
     gpio::{Alternate, OpenDrain, Output, Pin, Pull},
     i2c,
     rcc::{
@@ -183,5 +185,40 @@ pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
             scl,
             sda,
         },
+    })
+}
+
+// Run D: run C's pins with the second Pico simulator fitted, and DMA1 for the
+// interrupt-driven master: I2C1_TX on stream 6, I2C1_RX on stream 0, both
+// channel 1 (RM0410 Table 27).
+
+pub struct RunD {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub i2c: I2c1Bus,
+    pub tx: Stream<1, 6>,
+    pub rx: Stream<1, 0>,
+}
+
+pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
+    let mut rcc = freeze(p.RCC)?;
+    let dma1 = p.DMA1.split(&mut rcc);
+    let mut b = p.GPIOB.split(&mut rcc);
+    let led = b.p7.into_push_pull_output(&mut b.ctrl);
+    // Pulled up here and at the Pico's end, as the H753's run S.
+    let mut scl: Pin<'B', 8, Alternate<4, OpenDrain>> = b.p8.into_alternate_open_drain(&mut b.ctrl);
+    scl.set_pull(&mut b.ctrl, Pull::Up);
+    let mut sda: Pin<'B', 9, Alternate<4, OpenDrain>> = b.p9.into_alternate_open_drain(&mut b.ctrl);
+    sda.set_pull(&mut b.ctrl, Pull::Up);
+    Ok(RunD {
+        rcc,
+        led,
+        i2c: i2c::Wiring {
+            i2c: p.I2C1,
+            scl,
+            sda,
+        },
+        tx: dma1.s6,
+        rx: dma1.s0,
     })
 }

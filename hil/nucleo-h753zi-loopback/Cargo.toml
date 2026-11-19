@@ -118,6 +118,12 @@ path = "src/bin/i2c_pico.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "i2c-interrupt"
+path = "src/bin/i2c_interrupt.rs"
+test = false
+bench = false
+
 # Run T needs the library's bench fault injection, so it builds only with
 # `--features fault-injection` (hil/run-h753.sh passes it); every other run's
 # image is built without it.

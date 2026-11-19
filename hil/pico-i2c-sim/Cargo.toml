@@ -6,6 +6,10 @@ publish = false
 
 # The library is the register map, which the host unit tests exercise; the
 # binary is the firmware, which only builds for the RP2040.
+# The second Pico (hil/WIRING.md): its buses answer with tags 3 and 4.
+[features]
+second = []
+
 [lib]
 test = true
 

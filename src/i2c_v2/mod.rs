@@ -17,6 +17,9 @@
 //!
 //! Requirements: I2C-005, I2C-V2-001, I2C-002, I2C-003, I2C-004, I2C-006
 
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+mod interrupt;
+
 use stm32_metapac::i2c::I2c as Regs;
 
 pub use crate::i2c::{ConfigError, Error};
@@ -68,9 +71,13 @@ impl Unit {
         if kernel_clock.0 == 0 {
             return Err(ConfigError::KernelClock);
         }
-        // One kernel clock tick, in nanoseconds, rounded up so no
-        // computed time is short.
-        let tick = 1_000_000_000u32.div_ceil(kernel_clock.0);
+        // Times are counted in kernel ticks from the exact clock: a time of
+        // `t` ns is `t * kernel_clock / 1e9` ticks. A tick rounded to whole
+        // nanoseconds would be long whenever 1e9 / kernel_clock is not a
+        // whole number (18.5 ns at 54 MHz, 8.3 at 120), so its counts would
+        // come out short on the wire: tLOW under the mode's minimum and
+        // SCL above the frequency asked for.
+        let k = kernel_clock.0 as u64;
         // The mode's specification values (RM0433 Table 388, and the I2C
         // specification's SCL times): minimum low and high, rise and
         // fall, data setup, and the maximum data hold.
@@ -102,19 +109,14 @@ impl Unit {
             return Err(ConfigError::Frequency);
         }
         // The smallest prescaler that fits every field (RM0433 §47.4.5).
+        // One prescaled tick is (PRESC + 1) / kernel_clock s, so `t` ns
+        // spans t * kernel_clock / (1e9 * (PRESC + 1)) of them.
         let mut presc = 0;
         while presc < 16 {
-            let tp = tick * (presc + 1);
-            // The guard keeps the divisions below from carrying a
-            // division-by-zero edge into the link: `tick` is at least one
-            // (`div_ceil` of a smaller number), so this never fires.
-            if tp == 0 {
-                presc += 1;
-                continue;
-            }
-            let scll = low.div_ceil(tp) - 1;
-            let sclh = high.div_ceil(tp) - 1;
-            let scldel = (rise + setup).div_ceil(tp) - 1;
+            let per = 1_000_000_000u64 * (presc as u64 + 1);
+            let scll = (low as u64 * k).div_ceil(per) - 1;
+            let sclh = (high as u64 * k).div_ceil(per) - 1;
+            let scldel = ((rise + setup) as u64 * k).div_ceil(per) - 1;
             if scll > 255 || sclh > 255 || scldel > 15 {
                 presc += 1;
                 continue;
@@ -125,9 +127,9 @@ impl Unit {
             // longest delay and four ticks. The lower bound rounds up
             // and the upper down, so the window only narrows. The
             // analog filter's delays are DS12117 Table 94's: 50 ns at
-            // the least, 260 at the most.
-            let low_num = fall as i32 - 50 - 3 * tick as i32;
-            let high_num = hold_max as i32 - 260 - 4 * tick as i32;
+            // the least, 260 at the most. In kernel ticks x 1e9.
+            let low_num = (fall as i64 - 50) * k as i64 - 3 * 1_000_000_000;
+            let high_num = (hold_max as i64 - 260) * k as i64 - 4 * 1_000_000_000;
             if high_num < 0 {
                 presc += 1;
                 continue;
@@ -135,25 +137,31 @@ impl Unit {
             let lower = if low_num <= 0 {
                 0
             } else {
-                (low_num as u32).div_ceil(tp)
+                (low_num as u64).div_ceil(per)
             };
-            let upper = high_num as u32 / tp;
+            let upper = high_num as u64 / per;
             if lower > 15 || lower > upper {
                 presc += 1;
                 continue;
             }
-            let sdadel = lower;
-            // All fields fit: the period from the same counts, at or
-            // below the frequency asked for. The guard keeps the division's
-            // edge out of the link: the period is two counts at the
-            // least, so it never fires.
-            let achieved = tp * (scll + 1) + tp * (sclh + 1);
-            if achieved == 0 {
+            let sdadel = lower as u32;
+            // All fields fit: the SCL these counts make is
+            // kernel_clock / ((PRESC + 1) x (SCLL + 1 + SCLH + 1)), rounded
+            // up so the rate reported is never under the one on the wire.
+            // The period is two counts at the least, so the guard never
+            // fires; it keeps the division's zero edge out of the link.
+            let counts = (presc as u64 + 1) * (scll + 1 + sclh + 1);
+            if counts == 0 {
                 return Err(ConfigError::Frequency);
             }
+            let made = k.div_ceil(counts);
             return Ok(Timing {
-                timingr: (presc << 28) | (scldel << 20) | (sdadel << 16) | (sclh << 8) | scll,
-                frequency: Hertz(1_000_000_000 / achieved),
+                timingr: (presc << 28)
+                    | ((scldel as u32) << 20)
+                    | (sdadel << 16)
+                    | ((sclh as u32) << 8)
+                    | scll as u32,
+                frequency: Hertz(made as u32),
             });
         }
         Err(ConfigError::Frequency)
@@ -407,22 +415,61 @@ mod tests {
         }
     }
 
-    /// The counts the recipe promises: the low and high times over the
-    /// mode's minimums, the setup over its bound, and the period at or
-    /// above the asked one, at 120 MHz standard mode.
+    /// The counts the recipe promises, timed from the exact kernel clock
+    /// rather than a tick rounded to whole nanoseconds: the low and high
+    /// times over the mode's minimums, the setup over its bound, the period
+    /// at or above the asked one, and the rate reported the one the counts
+    /// make. The clocks: 54 MHz, the Nucleo-F767ZI's PCLK1, whose 18.5 ns
+    /// tick rounded to 19 once ran tLOW at 4.63 us (TIMINGR 0x40d3a131,
+    /// read on the bench); 120 MHz, whose 8.3 ns tick rounded to 9 would
+    /// run it at 4.43 us; and 100 and 48 MHz, whose ticks are whole.
     #[test]
     fn the_counts_meet_the_specification() {
-        let timing =
-            Unit::timing(Hertz::mhz(120), Hertz::khz(100)).expect("120 MHz to 100 kHz runs");
-        let tick = 1_000_000_000u32.div_ceil(120_000_000);
-        let tp = tick * ((timing.timingr >> 28) + 1);
-        let low = tp * ((timing.timingr & 0xFF) + 1);
-        let high = tp * (((timing.timingr >> 8) & 0xFF) + 1);
-        let setup = tp * (((timing.timingr >> 20) & 0xF) + 1);
-        assert!(low >= 4_700, "tLOW {low}");
-        assert!(high >= 4_000, "tHIGH {high}");
-        assert!(setup >= 1_250, "tSCLDEL {setup}");
-        assert!(low + high >= 10_000, "period {}", low + high);
+        for kernel in [54_000_000u64, 120_000_000, 100_000_000, 48_000_000] {
+            for (asked, low_min, high_min, setup_min) in [
+                (50_000u64, 4_700u64, 4_000u64, 1_250u64),
+                (100_000, 4_700, 4_000, 1_250),
+                (400_000, 1_300, 600, 400),
+                (1_000_000, 500, 260, 170),
+            ] {
+                let timing = Unit::timing(Hertz(kernel as u32), Hertz(asked as u32))
+                    .unwrap_or_else(|_| panic!("{kernel} Hz to {asked} Hz runs"));
+                let r = timing.timingr as u64;
+                let presc = (r >> 28) + 1;
+                // Times in picoseconds, rounded down so a pass is not
+                // flattered: counts x (PRESC + 1) x 1e12 / kernel.
+                let ps = |counts: u64| counts * presc * 1_000_000_000_000 / kernel;
+                let low = ps((r & 0xFF) + 1);
+                let high = ps(((r >> 8) & 0xFF) + 1);
+                let setup = ps(((r >> 20) & 0xF) + 1);
+                assert!(
+                    low >= low_min * 1_000,
+                    "{kernel} Hz to {asked} Hz: tLOW {low} ps"
+                );
+                assert!(
+                    high >= high_min * 1_000,
+                    "{kernel} Hz to {asked} Hz: tHIGH {high} ps"
+                );
+                assert!(
+                    setup >= setup_min * 1_000,
+                    "{kernel} Hz to {asked} Hz: tSCLDEL {setup} ps"
+                );
+                let counts = presc * ((r & 0xFF) + 1 + ((r >> 8) & 0xFF) + 1);
+                assert!(
+                    counts * asked >= kernel,
+                    "{kernel} Hz to {asked} Hz: SCL above the asked rate"
+                );
+                assert_eq!(
+                    timing.frequency().0 as u64,
+                    kernel.div_ceil(counts),
+                    "{kernel} Hz to {asked} Hz: the rate reported"
+                );
+                assert!(
+                    timing.frequency().0 as u64 <= asked,
+                    "{kernel} Hz to {asked} Hz: reported above asked"
+                );
+            }
+        }
     }
 
     /// ES0392 2.19.3: the kernel clock at least as fast as each mode's data

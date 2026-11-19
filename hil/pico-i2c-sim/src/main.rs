@@ -24,7 +24,7 @@ use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::i2c::InterruptHandler;
-use embassy_rp::i2c_slave::{Command, Config, I2cSlave};
+use embassy_rp::i2c_slave::{Command, Config, I2cSlave, ReadStatus};
 use embassy_rp::peripherals::{I2C0, I2C1, USB};
 use embassy_rp::usb::{Driver, InterruptHandler as UsbInterruptHandler};
 use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
@@ -82,9 +82,11 @@ async fn main(spawner: Spawner) {
     // idle high with no external resistor fitted.
     config.scl_pullup = true;
     config.sda_pullup = true;
-    // I2C0: SDA on GP0, SCL on GP1 — the F401 bench, bus tag 1.
+    // I2C0: SDA on GP0, SCL on GP1 — the F401 bench, bus tag 1 (the second
+    // Pico: the F767 bench, tag 3).
     let bus0 = I2cSlave::new(p.I2C0, p.PIN_1, p.PIN_0, Irqs, config);
-    // I2C1: SDA on GP2, SCL on GP3 — the H753 bench, bus tag 2.
+    // I2C1: SDA on GP2, SCL on GP3 — the H753 bench, bus tag 2 (the second
+    // Pico: the G474 bench, tag 4).
     let bus1 = I2cSlave::new(p.I2C1, p.PIN_3, p.PIN_2, Irqs, config);
     spawner.spawn(bus0_task(bus0).expect("the I2C0 task"));
     spawner.spawn(bus1_task(bus1).expect("the I2C1 task"));
@@ -140,7 +142,9 @@ fn identity(spawner: &Spawner, usb: embassy_rp::Peri<'static, USB>, flash: embas
     let mut line = Line { buf, len: 0 };
     let _ = write!(
         line,
-        "FERRO-ID v=1 board=pico part=RP2040 crate=pico-i2c-sim run=pico-i2c-sim git={} dev=0x{:04x} rev=0x{:x} uid={}\r\n",
+        "FERRO-ID v=1 board=pico part=RP2040 crate=pico-i2c-sim run=pico-i2c-sim tags={}+{} git={} dev=0x{:04x} rev=0x{:x} uid={}\r\n",
+        TAGS[0],
+        TAGS[1],
         env!("FERRO_GIT"),
         chip.part(),
         chip.revision(),
@@ -233,14 +237,22 @@ fn feed_watchdog() {
         .write_value(embassy_rp::pac::watchdog::regs::Load(0));
 }
 
+/// Each bus's tag in its ID register: 1 and 2 on the first Pico, 3 and 4 on
+/// the second (`--features second`, hil/WIRING.md), so a bench run's ID check
+/// tells the two Picos apart.
+#[cfg(not(feature = "second"))]
+const TAGS: [u8; 2] = [1, 2];
+#[cfg(feature = "second")]
+const TAGS: [u8; 2] = [3, 4];
+
 #[embassy_executor::task]
 async fn bus0_task(slave: I2cSlave<'static, I2C0>) {
-    serve(slave, 1, poke_i2c0).await
+    serve(slave, TAGS[0], 0, poke_i2c0).await
 }
 
 #[embassy_executor::task]
 async fn bus1_task(slave: I2cSlave<'static, I2C1>) {
-    serve(slave, 2, poke_i2c1).await
+    serve(slave, TAGS[1], 1, poke_i2c1).await
 }
 
 /// Spends NACK arms that have sat for their settle. The refusal itself
@@ -288,13 +300,13 @@ async fn warden_task() {
 async fn serve<T: embassy_rp::i2c::Instance>(
     mut slave: I2cSlave<'static, T>,
     tag: u8,
+    slot: usize,
     poke: fn(bool),
 ) {
     let mut state = sim::State::new(tag);
     let mut in_buf = [0u8; 64];
     let mut out = [0u8; 64];
     let mut armed = false;
-    let slot = usize::from(tag - 1);
     loop {
         ALIVE[slot].store(now_word(), Ordering::Relaxed);
         let command = match with_timeout(QUIET, slave.listen(&mut in_buf)).await {
@@ -402,13 +414,27 @@ fn reboot_to_bootsel() -> ! {
 
 /// Answers a read phase: the queued stretch first — the FIFO is empty
 /// while the timer runs, and an empty FIFO is what holds SCL — then the
-/// register the last write pointed at. One `respond_to_read` call is
-/// enough and is the only safe count: it returns either when the master
-/// NACKs the last byte or when the STOP's abort clears the leftover
-/// bytes, and on that abort it reads `IC_CLR_TX_ABRT`, which is what
-/// releases the DW's forced flushed state — a second call would push
+/// register the last write pointed at, one FIFO's worth (16 bytes) per
+/// `respond_to_read` call.
+///
+/// One call over the whole 64-byte buffer lost bytes. embassy-rp 0.10's
+/// `respond_to_read` writes its next 16-byte chunk on every poll of its
+/// future, without checking that the FIFO has room. A poll that comes
+/// while the FIFO still holds part of the last chunk overfills it, and the
+/// DW drops the writes that do not fit. A 32-byte read then came back with
+/// bytes 0 to 15 right, part of 16 to 31, and from there bytes 32 onward.
+/// Every first wrong byte the F767 and H753 benches logged sat at index 17
+/// to 31 and held the stream's byte 32.
+///
+/// A call given one chunk writes it on its first poll and never again, and
+/// it returns `NeedMoreBytes` only once the master asks for more with the
+/// FIFO empty. The next call then writes into an empty FIFO. Any other
+/// status ends the read: `Done` when the master NACKed the last byte it
+/// wanted, or `LeftoverBytes` when the STOP's abort flushed the rest. On
+/// that abort the call reads `IC_CLR_TX_ABRT`, which releases the DW's
+/// forced flushed state, so no call follows it: a further one would push
 /// into a bus that has already stopped. A master that walks away leaves
-/// the block waiting, and the next transaction's read request aborts it,
+/// the call waiting, and the next transaction's read request aborts it,
 /// which is the resync the hardware provides.
 async fn respond<T: embassy_rp::i2c::Instance>(
     slave: &mut I2cSlave<'static, T>,
@@ -419,7 +445,12 @@ async fn respond<T: embassy_rp::i2c::Instance>(
         Timer::after(Duration::from_micros(u64::from(us))).await;
     }
     state.fill(out);
-    let _ = slave.respond_to_read(out).await;
+    for chunk in out.chunks(16) {
+        match slave.respond_to_read(chunk).await {
+            Ok(ReadStatus::NeedMoreBytes) => continue,
+            _ => break,
+        }
+    }
 }
 
 /// Arms or clears the DW block's data-phase refusal for I2C0. The write
