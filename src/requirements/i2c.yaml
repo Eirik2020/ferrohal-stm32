@@ -146,6 +146,14 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI
 
   - id: I2C-008
     title: Each phase moves by DMA from the IP version's threshold up
@@ -163,6 +171,14 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI
 
   - id: I2C-009
     title: A transaction that cannot run is refused before the bus moves
@@ -181,6 +197,14 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI
 
   - id: I2C-010
     title: A failed transaction ends with its fault and the bus put back
@@ -198,6 +222,14 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI
 
   - id: I2C-011
     title: An aborted transaction hands its buffers back and the bus recovers
@@ -215,6 +247,14 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI
 
   - id: I2C-012
     title: An interrupt-driven open that cannot run is refused
@@ -232,6 +272,14 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI
 
   - id: I2C-013
     title: The interrupt-driven driver counts what happened
@@ -249,6 +297,14 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI
 
   - id: I2C-V1-001
     title: I2C v1 clears its event flags in the manual's sequences
@@ -320,3 +376,48 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
+
+  - id: I2C-V2-002
+    title: I2C v2 carries an interrupt-driven phase in one CR2 program
+    statement: >-
+      I2C v2 shall carry each phase of an interrupt-driven transaction in one
+      CR2 program, NBYTES the whole phase with RELOAD clear and AUTOEND on the
+      last phase, ending a write phase that a read follows at TC and the
+      transaction at STOPF, its bytes moved by TXDMAEN and RXDMAEN or from
+      TXIS and RXNE.
+    rationale: >-
+      Reload mode is never used (ES0392 2.19.5), so a phase stays within
+      one program of at most 255 bytes; the end comes from the I2C, so the
+      streams need no vector of their own.
+    derived_from: [I2C-008]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI
+
+  - id: I2C-V2-003
+    title: I2C v2 ends an aborted transaction with a STOP
+    statement: >-
+      I2C v2 shall end an aborted transaction by turning its interrupts and
+      DMA requests off and setting CR2.STOP, with PE left set.
+    rationale: >-
+      Cycling PE leaves a slave mid-transfer with nothing on the wire to end
+      it, and the bench's next transfer was then NACKed; the STOP ends the
+      transfer for the slave as well.
+    derived_from: [I2C-011]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-H753ZI

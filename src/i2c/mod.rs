@@ -31,7 +31,7 @@
 //! - **scope**: master only, 7-bit addresses, no SMBus, no clock
 //!   stretching on our side (a slow device may stretch SCL; the bound
 //!   covers only a device that answers within it).
-//! - **without blocking**: `InterruptI2c` (ADR-013), on `i2c_v1`:
+//! - **without blocking**: `InterruptI2c` (ADR-013), on both IP versions:
 //!   `start` returns at once, the event and error vectors carry the
 //!   transaction, and its bytes move by DMA from a `DmaWiring` or from the
 //!   event interrupt, on buffers the caller lends. The routing traits
@@ -50,9 +50,9 @@ use crate::{
 
 use crate::i2c_ip::Unit;
 
-#[cfg(all(feature = "i2c_v1", any(feature = "dma_v1", feature = "dma_v2")))]
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub(crate) mod interrupt;
-#[cfg(all(feature = "i2c_v1", any(feature = "dma_v1", feature = "dma_v2")))]
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 pub use interrupt::{
     DmaRefused, DmaWiring, Fault, InterruptHealth, InterruptI2c, MAX_PHASE, OpenError, Outcome,
     Part, StartError, Transaction,
