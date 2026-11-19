@@ -193,6 +193,27 @@ requirements:
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
 
+  - id: SPI-011
+    title: A settings change applies between transfers
+    statement: >-
+      The driver shall apply a settings change made between transfers to the
+      next transfer, and refuse one made while a transfer runs.
+    rationale: >-
+      Devices sharing a bus differ in clock mode and rate, so a scheduler
+      switches the settings between one device's transfer and the next; a
+      change in the middle of a transfer would garble it.
+    derived_from: [G3]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
+
   - id: SPIPOLL-001
     title: Polled SPI carries the bus operations
     statement: >-
