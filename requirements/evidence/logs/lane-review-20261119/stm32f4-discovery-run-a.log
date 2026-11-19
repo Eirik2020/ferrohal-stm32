@@ -1,0 +1,22 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F407VGTx target/thumbv7em-none-eabihf/release/die-0x413`
+     [38;5;10m[1mFinished[0m in 2.98s
+[INFO ] run A, clocks: Clocks { sysclk: Hertz(168000000), cpu: Hertz(168000000), hclk: Hertz(168000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(168000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 5, overdrive: false } (die_0x413 src/bin/die_0x413.rs:68)
+[INFO ] PASS die 0x413: DEV_ID is 0x413 [GLUE-001] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS die 0x413: freeze gives the solved clocks [RCC-001] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS die 0x413: voltage scale 1 (VOS bit 14 set), VOSRDY [RCC-003] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS die 0x413: five flash wait states at 168 MHz [RCC-001] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS die 0x413: a buffer in CCM RAM is refused [GLUE-004] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS die 0x413: a buffer in SRAM is accepted [GLUE-004] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS USART3 PC10->PC11 (DMA1 S3/S1): echo [UART-001 UART-002 GLUE-001] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS USART3 PC10->PC11 (DMA1 S3/S1): stream 4 KiB over its DMA route [UART-002 GLUE-002] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS UART4 PC10->PC11 (DMA1 S4/S2): echo [UART-001 UART-002 GLUE-001] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS UART4 PC10->PC11 (DMA1 S4/S2): stream 4 KiB over its DMA route [UART-002 GLUE-002] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS USART3 PD8->PD9 (DMA1 S4 ch7/S1): echo [UART-001 UART-002 GLUE-001] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS USART3 PD8->PD9 (DMA1 S4 ch7/S1): stream 4 KiB over its DMA route [UART-002 GLUE-002] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS UART5 PC12->PD2 (DMA1 S7/S0): echo [UART-001 UART-002 GLUE-001] (die_0x413 ../common/tests.rs:859)
+[INFO ] PASS UART5 PC12->PD2 (DMA1 S7/S0): stream 4 KiB over its DMA route [UART-002 GLUE-002] (die_0x413 ../common/tests.rs:859)
+[INFO ] identity: uid [39, 00, 41, 00, 07, 51, 35, 32, 36, 34, 36, 36], rev 0x101f (die_0x413 ../common/tests.rs:2090)
+[INFO ] errata: ES0182 Rev 19, 89 affect rev 0x101f, 0 unreviewed (die_0x413 ../common/tests.rs:2066)
+[INFO ] all checks passed (die_0x413 ../common/tests.rs:2099)
+Firmware exited successfully

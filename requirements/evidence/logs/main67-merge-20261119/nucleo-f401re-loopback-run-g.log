@@ -1,0 +1,21 @@
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/spi3-port-b`
+     [38;5;10m[1mFinished[0m in 2.19s
+[INFO ] run G, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2, overdrive: false } (spi3_port_b src/bin/spi3_port_b.rs:68)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: receive-stream vector enabled [RESOURCE-001] (spi3_port_b ../common/tests.rs:847)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: 1, 15 and 256 bytes by interrupt [SPI-001 SPI-002 GPIO-001] (spi3_port_b ../common/tests.rs:847)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (spi3_port_b ../common/tests.rs:847)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: busy, empty and oversized starts refused [SPI-003] (spi3_port_b ../common/tests.rs:847)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001] (spi3_port_b ../common/tests.rs:847)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: SCK: 8 rising edges per byte, modes 0 and 3 [SPI-004 EXTI-001 EXTI-004] (spi3_port_b ../common/tests.rs:847)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: SCK as reported: 64 bytes take 512 periods [SPI-005] (spi3_port_b ../common/tests.rs:847)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: abort mid-transfer, then a clean transfer [SPI-006] (spi3_port_b ../common/tests.rs:847)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: polling with the vector masked [SPI-002] (spi3_port_b ../common/tests.rs:847)
+[INFO ] SPI3 PB3/PB4/PB5, DMA1 S5/S0: fastest polling pass 311 cycles over 811 passes (spi3_port_b ../common/spi_exti.rs:443)
+[INFO ] PASS SPI3 PB3/PB4/PB5, DMA1 S5/S0: a polling pass takes no less than the driver's floor [SPI-008] (spi3_port_b ../common/tests.rs:847)
+[INFO ] SPI3 PB3/PB4/PB5, DMA1 S5/S0: SCK Some(Hertz(5250000)), health Health { transfers: 22, dma_errors: 0, overruns: 0, mode_faults: 0, timeouts: 0, aborts: 1 } (spi3_port_b ../common/spi_exti.rs:460)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (spi3_port_b ../common/tests.rs:2090)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (spi3_port_b ../common/tests.rs:2066)
+[INFO ] all checks passed (spi3_port_b ../common/tests.rs:2099)
+Firmware exited successfully

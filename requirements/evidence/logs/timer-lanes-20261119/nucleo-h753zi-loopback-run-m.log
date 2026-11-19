@@ -1,0 +1,41 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/usb-cdc`
+     [38;5;10m[1mFinished[0m in 3.83s
+[INFO ] run M, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (usb_cdc src/bin/usb_cdc.rs:57)
+[INFO ] PASS USB CDC CN13: a freed port reopens from its token and pins, and the echo runs on it [API-002] (usb_cdc ../common/tests.rs:845)
+[INFO ] USB CDC CN13: VBUS on PA9: true (usb_cdc src/bin/usb_cdc.rs:111)
+[INFO ] PASS USB CDC CN13: the host configured the device (usb_cdc ../common/tests.rs:845)
+[INFO ] PASS USB CDC CN13: the host finished, every byte echoed but the marker (usb_cdc ../common/tests.rs:845)
+[INFO ] USB CDC CN13: configured after 390 ms, 70473 bytes received, 70473 echoed (usb_cdc src/bin/usb_cdc.rs:171)
+[INFO ] 396973921 CPU cycles per 1000 host frames, want 400000000 (usb_cdc ../common/tests.rs:2156)
+[ERROR] FAIL USB CDC CN13: the CPU clock against the host's 1 kHz frames, within 0.5 % [RCC-001]: Count { expected: 400000000, got: 396973921 } (usb_cdc ../common/tests.rs:848)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (usb_cdc ../common/tests.rs:2088)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 0 unreviewed (usb_cdc ../common/tests.rs:2064)
+[ERROR] 1 checks failed (usb_cdc ../common/tests.rs:2099)
+Firmware exited with: Unknown runtime error
+Core 0
+    Frame 0: [38;5;14m[1msyscall1[0m @ [38;5;11m0x8000ba8[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/lib.rs:201:13[0m
+    Frame 1: [38;5;14m[1mreport_exception[0m @ [38;5;11m0x8000ba2[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/macros.rs:28:9[0m
+    Frame 2: [38;5;14m[1mexit[0m @ [38;5;11m0x8000ba2[39m [38;5;3m[3minline[0m
+        [38;5;7m[2m/home/kaldstrand/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cortex-m-semihosting-0.5.0/src/debug.rs:74:25[0m
+    Frame 3: [38;5;14m[1mfinish<usb_cdc::__cortex_m_rt_main::{closure_env#3}>[0m @ [38;5;11m0x8000ba2[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/lane-product/ferrohal-stm32/hil/nucleo-h753zi-loopback/src/bin/../../../common/tests.rs:0[0m
+    Frame 4: [38;5;14m[1m__cortex_m_rt_main[0m @ [38;5;11m0x8001a44[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/lane-product/ferrohal-stm32/hil/nucleo-h753zi-loopback/src/bin/usb_cdc.rs:192:5[0m
+    Frame 5: [38;5;14m[1m__cortex_m_rt_main_trampoline[0m @ [38;5;11m0x8003cb6[39m
+        [38;5;7m[2m/home/kaldstrand/ws/ferro/lane-product/ferrohal-stm32/hil/nucleo-h753zi-loopback/src/bin/usb_cdc.rs:46:1[0m
+    Frame 6: [38;5;14m[1mReset[0m @ [38;5;11m0x8000540[39m
+Error: Unknown runtime error
+PASS host: port usb-FerroHAL_FerroHAL_CDC_bench_h753zi-if00
+PASS host: 1 bytes echoed
+PASS host: 63 bytes echoed
+PASS host: 64 bytes echoed
+PASS host: 65 bytes echoed
+PASS host: 128 bytes echoed
+PASS host: 512 bytes echoed
+PASS host: 4096 bytes echoed
+PASS host: 64 KiB echoed at 558 KiB/s

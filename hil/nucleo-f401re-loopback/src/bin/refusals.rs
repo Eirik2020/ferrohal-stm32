@@ -74,7 +74,6 @@ fn freed(
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SDIO])]
 mod app {
     use ferrohal_stm32::{
-        dma::BufferError,
         rcc::ClockError,
         uart::{
             Buffers as UartBuffers, Config as UartConfig, ConfigError as UartConfigError, Uart,
@@ -524,39 +523,20 @@ mod app {
             },
         );
 
-        // Lane: a buffer in CCM RAM, which no DMA controller reaches
-        // (RM0090), refuses; the channel and stream come back and play.
-        // SAFETY: the F401's CCM RAM at 0x10000000 is real memory the CPU
-        // can use, but no DMA controller reaches it, and the constructor
-        // refuses the buffer before programming anything. Nothing else
-        // touches it.
-        let ccm: &'static mut [u32] =
-            unsafe { core::slice::from_raw_parts_mut(0x1000_0000 as *mut u32, 16) };
-        let (mut lane3, lane_refusal) =
+        // Lane: assembly takes no memory, so there is no buffer to refuse
+        // here. A frame no DMA reaches is refused at `arm`, but the F401 has
+        // no such RAM: it has no CCM, and DMA2 reaches all its SRAM
+        // (RM0368). The H753's run U checks that refusal on DTCM.
+        let mut lane3 =
             match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3_stream)
-                .assemble(&pwm3, ccm)
+                .assemble(&pwm3)
             {
-                Ok(_) => defmt::panic!("a CCM buffer was accepted"),
-                Err(refused) => {
-                    let error = refused.error();
-                    let (wiring, _ccm) = refused.into_parts();
-                    match wiring.assemble(&pwm3, lane3_buf) {
-                        Ok(lane) => (lane, Some(error)),
-                        Err(refused) => defmt::panic!("the TIM3 lane: {}", refused.error()),
-                    }
-                }
+                Ok(lane) => lane,
+                Err(refused) => defmt::panic!("the TIM3 lane: {}", refused.error()),
             };
-        report.check(
-            "TIM3 CH3",
-            "a CCM buffer refuses; the channel and stream come back [API-001]",
-            match lane_refusal {
-                Some(TimerConfigError::Buffer(BufferError::Unreachable)) => Ok(()),
-                Some(other) => Err(Fail::Timer(other)),
-                None => Err(Fail::Timer(TimerConfigError::Buffer(
-                    BufferError::Unreachable,
-                ))),
-            },
-        );
+        pwm::lend_frames(lane3_buf);
+        pwm::lend_frames(lane4_buf);
+        pwm::lend_frames(lane2_buf);
 
         // Sampler: a 0 rate refuses; the timer, stream and buffer come back.
         let (mut sampler, sampler_refusal) = match Sampler::new::<'B'>(
@@ -596,8 +576,7 @@ mod app {
                 .map_err(Fail::Timer)?;
             let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
             let count = (per_bit16 as usize * (16 + 8)) / 16;
-            lane3
-                .arm(&pwm3, &pwm::duties(pattern, pwm3.period()))
+            pwm::arm(&mut lane3, &pwm3, &pwm::duties(pattern, pwm3.period()))
                 .map_err(|_| Fail::Count {
                     expected: 16,
                     got: 0,
@@ -634,7 +613,7 @@ mod app {
         };
         let lane4 =
             match ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pb6, run.lane4_stream)
-                .assemble(&pwm4, lane4_buf)
+                .assemble(&pwm4)
             {
                 Ok(lane) => lane,
                 Err(refused) => defmt::panic!("the TIM4 lane: {}", refused.error()),
@@ -645,7 +624,7 @@ mod app {
                     run.pb10,
                     run.lane2_stream,
                 )
-                .assemble(&pwm2, lane2_buf)
+                .assemble(&pwm2)
                 {
                     Ok(lane) => lane,
                     Err(refused) => defmt::panic!("the TIM2 lane: {}", refused.error()),
@@ -676,7 +655,7 @@ mod app {
                 .set_rate(Hertz(awg.sample_rate().0 * 12))
                 .map_err(Fail::Timer)?;
             let period = awg.period();
-            if awg.load(0, &pwm::duties(awg_pattern, period)).is_err() {
+            if pwm::load(&mut awg, 0, &pwm::duties(awg_pattern, period)).is_err() {
                 return Err(Fail::Count {
                     expected: 16,
                     got: 0,

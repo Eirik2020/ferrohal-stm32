@@ -1,0 +1,10 @@
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/awg-out`
+     [38;5;10m[1mFinished[0m in 1.71s
+[INFO ] PASS TIM4 CH1 PB6 -> J3 -> PC7: AWG out over the wire: samples read back at the far end [AWG-008] (awg_out ../common/tests.rs:847)
+[INFO ] PASS TIM4 CH1 PB6 -> J3 -> PC7: AWG: with the output off, nothing crosses the wire [AWG-011] (awg_out ../common/tests.rs:847)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (awg_out ../common/tests.rs:2090)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (awg_out ../common/tests.rs:2066)
+[INFO ] all checks passed (awg_out ../common/tests.rs:2099)
+Firmware exited successfully

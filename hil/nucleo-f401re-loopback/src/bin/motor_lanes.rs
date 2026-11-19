@@ -16,6 +16,11 @@
 //! stream: DMA1's AHB peripheral port is not connected to the bus matrix
 //! (RM0090).
 //!
+//! Then the four lanes as one generator turn to read port B through one
+//! reader paced by TIM1's update on DMA2 stream 5 (`docs/design/lanes.md`): every lane on
+//! the port shares that reader, only the last lane raises its end-of-transfer
+//! interrupt, and the read runs at the pacer's rate.
+//!
 //! Everything is polled: no vectors are bound.
 
 #![no_std]
@@ -38,6 +43,7 @@ mod app {
         time::Hertz,
         timer::{CompareLane, Pwm, Sampler},
     };
+    use stm32_metapac as pac;
 
     use crate::{
         board, pwm,
@@ -58,6 +64,7 @@ mod app {
         lane23: &'static mut [u32],
         lane22: &'static mut [u32],
         samples: &'static mut [u16],
+        reads: [&'static mut [u16]; 4],
     }
 
     #[init(local = [
@@ -66,6 +73,10 @@ mod app {
         lane23_buf: [u32; 20] = [0; 20],
         lane22_buf: [u32; 20] = [0; 20],
         samples_buf: [u16; 1024] = [0; 1024],
+        read3_buf: [u16; 64] = [0; 64],
+        read4_buf: [u16; 64] = [0; 64],
+        read23_buf: [u16; 64] = [0; 64],
+        read22_buf: [u16; 64] = [0; 64],
     ])]
     fn init(cx: init::Context) -> (Shared, Local) {
         let mut core = cx.core;
@@ -87,6 +98,12 @@ mod app {
                 lane23: cx.local.lane23_buf,
                 lane22: cx.local.lane22_buf,
                 samples: cx.local.samples_buf,
+                reads: [
+                    cx.local.read3_buf,
+                    cx.local.read4_buf,
+                    cx.local.read23_buf,
+                    cx.local.read22_buf,
+                ],
             },
         )
     }
@@ -114,26 +131,22 @@ mod app {
         let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
         let count = (per_bit16 as usize * (BITS + 8)) / 16;
         let result = (|| -> Result<(), Fail> {
-            lane3
-                .arm(pwm3, &pwm::duties(patterns.0, period))
+            crate::pwm::arm(lane3, pwm3, &pwm::duties(patterns.0, period))
                 .map_err(|_| Fail::Count {
                     expected: BITS as u32,
                     got: 0,
                 })?;
-            lane4
-                .arm(pwm3, &pwm::duties(patterns.1, period))
+            crate::pwm::arm(lane4, pwm3, &pwm::duties(patterns.1, period))
                 .map_err(|_| Fail::Count {
                     expected: BITS as u32,
                     got: 0,
                 })?;
-            lane23
-                .arm(pwm2, &pwm::duties(patterns.2, period))
+            crate::pwm::arm(lane23, pwm2, &pwm::duties(patterns.2, period))
                 .map_err(|_| Fail::Count {
                     expected: BITS as u32,
                     got: 0,
                 })?;
-            lane22
-                .arm(pwm2, &pwm::duties(patterns.3, period))
+            crate::pwm::arm(lane22, pwm2, &pwm::duties(patterns.3, period))
                 .map_err(|_| Fail::Count {
                     expected: BITS as u32,
                     got: 0,
@@ -212,7 +225,16 @@ mod app {
         );
     }
 
-    #[task(priority = 1, local = [run, lane3, lane4, lane23, lane22, samples])]
+    /// A pass, or a count of what was wrong.
+    fn holds(ok: bool) -> Result<(), Fail> {
+        if ok {
+            Ok(())
+        } else {
+            Err(Fail::Count { expected: 1, got: 0 })
+        }
+    }
+
+    #[task(priority = 1, local = [run, lane3, lane4, lane23, lane22, samples, reads])]
     async fn checks(cx: checks::Context) {
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
         let mut report = Report::new();
@@ -226,15 +248,35 @@ mod app {
         ) else {
             defmt::panic!("motor timers")
         };
+        // Paced lanes: they send on their own DMA1 streams, which cannot
+        // reach GPIO (RM0090 figure 33), and read port B only through a
+        // reader paced by another timer.
+        let [r3, r4, r23, r22] = core::mem::replace(cx.local.reads, [&mut [], &mut [], &mut [], &mut []]);
         let (Ok(mut lane3), Ok(mut lane4), Ok(mut lane23), Ok(mut lane22)) = (
             ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3)
-                .assemble(&pwm3, core::mem::take(cx.local.lane3)),
+                .assemble_paced::<'B'>(&pwm3).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane3));
+            let _ = lane.lend_samples(r3);
+            lane
+        }),
             ferrohal_stm32::timer::LaneWiring::<_, 4, _, _>::new(run.ch4, run.lane4)
-                .assemble(&pwm3, core::mem::take(cx.local.lane4)),
+                .assemble_paced::<'B'>(&pwm3).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane4));
+            let _ = lane.lend_samples(r4);
+            lane
+        }),
             ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch23, run.lane23)
-                .assemble(&pwm2, core::mem::take(cx.local.lane23)),
+                .assemble_paced::<'B'>(&pwm2).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane23));
+            let _ = lane.lend_samples(r23);
+            lane
+        }),
             ferrohal_stm32::timer::LaneWiring::<_, 2, _, _>::new(run.ch22, run.lane22)
-                .assemble(&pwm2, core::mem::take(cx.local.lane22)),
+                .assemble_paced::<'B'>(&pwm2).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane22));
+            let _ = lane.lend_samples(r22);
+            lane
+        }),
         ) else {
             defmt::panic!("motor lanes")
         };
@@ -323,7 +365,55 @@ mod app {
             // trigger: every lane of both finishes.
             match ferrohal_stm32::timer::Awg::linked(pwm3, pwm2, (lane3, lane4), (lane23, lane22)) {
                 Ok(mut awg) => {
-                    pwm::awg_pair_check(&mut report, "TIM3 starts TIM2, linked", &mut awg, cpu)
+                    pwm::awg_pair_check(&mut report, "TIM3 starts TIM2, linked", &mut awg, cpu);
+                    // TIM1 leaves the sampler to pace the lanes' one reader.
+                    let paced = match sampler.free() {
+                        Ok((tim1, stream, _)) => Pwm::new(&mut run.rcc, tim1, Hertz::mhz(4))
+                            .map(|pacer| (pacer, stream))
+                            .map_err(|refused| Fail::Timer(refused.error())),
+                        Err(_) => Err(Fail::Count { expected: 1, got: 0 }),
+                    };
+                    let name = "four lanes on TIM3 and TIM2, port B, paced by TIM1";
+                    match paced {
+                        Ok((pacer, stream)) => {
+                            let registered = awg.read_ahead_paced::<_, _, 'B'>(&pacer, stream);
+                            pacer.start();
+                            report.check(name, "a reader paced by TIM1 registers [AWG-017]", holds(registered.is_ok()));
+                            let rate = awg.prepare_listen(pacer.rate(), 64);
+                            report.check(name, "the paced reader reads at its pacer's rate [AWG-017]",
+                                holds(rate.ok() == Some(pacer.rate())));
+                            report.check(name, "every lane on port B shares the one reader [AWG-014]",
+                                holds((0..4).all(|lane| awg.reader_of(lane) == 0)));
+                            let period = awg.period();
+                            let frames = [
+                                [period / 4, period / 2, period / 4],
+                                [period / 2, period / 4, period / 2],
+                                [period / 4, period / 4, period / 2],
+                                [period / 2, period / 2, period / 4],
+                            ];
+                            let loaded = (0..4).all(|lane| crate::pwm::load(&mut awg, lane, &frames[lane]).is_ok());
+                            awg.listen_on_end();
+                            let played = loaded && awg.play().is_ok();
+                            // Only the last lane (TIM2 CH2, DMA1 stream 6)
+                            // raises its end: streams 7, 2 and 1 are quiet.
+                            let tcie = [7usize, 2, 1, 6].map(|n| pac::DMA1.st(n).cr().read().tcie());
+                            report.check(name, "only the last lane raises its end-of-transfer interrupt [AWG-020]",
+                                holds(played && tcie == [false, false, false, true]));
+                            let budget = cpu.0 / 100;
+                            let ended = played && matches!(pwm::wait(budget, || awg.on_interrupt()), Some(Ok(_)));
+                            let read = ended && matches!(pwm::wait(budget, || awg.on_interrupt()), Some(Ok(_)));
+                            let first = awg.samples(0);
+                            let shared = read
+                                && first.len() == 64
+                                && (1..4).all(|lane| awg.samples(lane).as_ptr() == first.as_ptr()
+                                    && awg.samples(lane).len() == first.len());
+                            report.check(name, "every lane's frame ends, and every lane's samples are the one reader's 64 port words [AWG-014 AWG-020]",
+                                holds(shared));
+                            let _ = awg.speak();
+                            pacer.stop();
+                        }
+                        Err(fail) => report.check(name, "the TIM1 pacer [AWG-017]", Err(fail)),
+                    }
                 }
                 Err(refused) => report.check(
                     "TIM3 starts TIM2, linked",

@@ -401,44 +401,48 @@ fn main() -> ! {
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
     let [read1, read2, read3, read4] = unsafe { &mut *addr_of_mut!(LANE_READS) };
     let dma2 = p.DMA2.split(&mut rcc);
+    // A frame in DTCM, which no DMA controller reaches, refuses at arm and
+    // comes back; the lane then carries the motor frames. A lane takes no
+    // memory at assembly: frames and reads are lent to it.
     // SAFETY: the H7's DTCM at 0x20010000 is real memory the CPU can use,
-    // but no DMA controller reaches it, and the constructor refuses the
-    // buffer before programming anything. Nothing else touches it.
+    // but no DMA controller reaches it, and `arm` refuses it before
+    // programming anything. Nothing else touches it.
     let dtcm: &'static mut [u32] =
         unsafe { core::slice::from_raw_parts_mut(0x2001_0000 as *mut u32, 16) };
-    let (lane_refused, wiring3, lane_read1) = match LaneWiring::<_, 3, _, _>::new(channel3, dma2.s0)
-        .assemble_two_way::<'B'>(&tim3, dtcm, &mut read1[..])
-    {
-        Err(refused) => {
-            let refused_dtcm = matches!(
-                refused.error(),
-                ferrohal_stm32::timer::ConfigError::Buffer(ferrohal_stm32::dma::BufferError::Unreachable)
-            );
-            let (wiring, (_dtcm, read)) = refused.into_parts();
-            (refused_dtcm, wiring, read)
-        }
-        Ok(_) => reboot_to_dfu(),
-    };
-    let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
-        wiring3.assemble_two_way::<'B'>(&tim3, &mut one[..], lane_read1),
-        LaneWiring::<_, 4, _, _>::new(channel4, dma2.s1).assemble_two_way::<'B'>(
-            &tim3,
-            &mut two[..],
-            &mut read2[..],
-        ),
-        LaneWiring::<_, 1, _, _>::new(channel1, dma2.s2).assemble_two_way::<'A'>(
-            &tim5,
-            &mut three[..],
-            &mut read3[..],
-        ),
-        LaneWiring::<_, 2, _, _>::new(channel2, dma2.s3).assemble_two_way::<'A'>(
-            &tim5,
-            &mut four[..],
-            &mut read4[..],
-        ),
+    let (Ok(mut lane1), Ok(mut lane2), Ok(mut lane3), Ok(mut lane4)) = (
+        LaneWiring::<_, 3, _, _>::new(channel3, dma2.s0).assemble_two_way::<'B'>(&tim3),
+        LaneWiring::<_, 4, _, _>::new(channel4, dma2.s1).assemble_two_way::<'B'>(&tim3),
+        LaneWiring::<_, 1, _, _>::new(channel1, dma2.s2).assemble_two_way::<'A'>(&tim5),
+        LaneWiring::<_, 2, _, _>::new(channel2, dma2.s3).assemble_two_way::<'A'>(&tim5),
     ) else {
         reboot_to_dfu()
     };
+    let lent = lane1.lend_samples(&mut read1[..]).is_ok()
+        && lane2.lend_samples(&mut read2[..]).is_ok()
+        && lane3.lend_samples(&mut read3[..]).is_ok()
+        && lane4.lend_samples(&mut read4[..]).is_ok();
+    if !lent {
+        reboot_to_dfu()
+    }
+    let lane_refused = match ferrohal_stm32::timer::Frame::new({
+            let duty = tim3.period() / 2;
+            for word in dtcm.iter_mut().take(3) {
+                *word = duty;
+            }
+            dtcm
+        }, 3, tim3.frame_limits()) {
+        Ok(frame) => matches!(
+            lane1.arm(&tim3, frame).map_err(|refused| refused.error()),
+            Err(ferrohal_stm32::timer::Error::Dma)
+        ),
+        Err(_) => false,
+    };
+    let mut lane_memory: motor_lanes::Memory = [
+        Some(&mut one[..]),
+        Some(&mut two[..]),
+        Some(&mut three[..]),
+        Some(&mut four[..]),
+    ];
     // Assembly opens each channel's output; the motor pins lose theirs at
     // once, before any counter runs, as before.
     tim3.set_output::<3>(false);
@@ -602,7 +606,7 @@ fn main() -> ! {
             report,
             link,
             lane_refused,
-            "refusals: a DTCM lane buffer no DMA reaches refuses, and the lane carried the frames [API-001]"
+            "refusals: a DTCM frame no DMA reaches refuses, and the lane carried the frames [API-001]"
         );
         check!(
             report,
@@ -650,7 +654,7 @@ fn main() -> ! {
             vdda,
         );
         sd_suite(report, link, &mut sd);
-        motor_lanes::suite(report, link, &mut motors);
+        motor_lanes::suite(report, link, &mut motors, &mut lane_memory);
         motor_lanes::listen_suite(report, link, &mut motors);
     })
 }

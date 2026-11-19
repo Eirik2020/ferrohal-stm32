@@ -93,11 +93,11 @@ sampled between them [SPI-V3-001]. Pass: every check passes and the script exits
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run I stops its TIM3 generator mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the generator's period [AWG-007 API-002]. Run I then runs one pulse on TIM4 channel 1 (PB6), read by the same sampler [PWM-007]. Run R ends with its four lanes as one generator, TIM3 starting TIM2 through its trigger, and every lane of both must finish [AWG-005]. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run I stops its TIM3 generator mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the generator's period [AWG-007 API-002]. Run I then runs one pulse on TIM4 channel 1 (PB6), read by the same sampler [PWM-007]. Run R ends with its four lanes as one generator, TIM3 starting TIM2 through its trigger, and every lane of both must finish [AWG-005]. Then TIM1 leaves the sampler and paces one reader of port B on DMA2 stream 5 for that generator: the reader must register and `prepare_listen` return TIM1's rate [AWG-017]; every lane must name lane 0's reader, and after a play with a listen at the end each lane's samples must be that reader's 64 port words [AWG-014]; right after the play only TIM2 CH2's stream (DMA1 stream 6) may have TCIE set, and every lane's frame must still end [AWG-020]. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 
-`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Run I first reads back PWR: the voltage scale `freeze` wrote must be the configuration's scale 1 (D3CR VOS 0b11, from the reset's 0b01) with VOSRDY set [RCC-003]. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 generator as run I does on the F401 [AWG-007 API-002]. Run J's TIM3 CH3 lane refuses a waveform stepping from the period's top (ARR) to 0 with `TopToZero`, and the same waveform just clear of `Pwm::top_margin` plays every later duty in its own period, against CH4's steady reference [PWM-009]. Run P ends with a generator over TIM1 and TIM8, linked, a lane on each with its output off, and every lane of both must finish [AWG-005]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Run I first reads back PWR: the voltage scale `freeze` wrote must be the configuration's scale 1 (D3CR VOS 0b11, from the reset's 0b01) with VOSRDY set [RCC-003]. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 generator as run I does on the F401 [AWG-007 API-002]. Run J's TIM3 CH3 lane refuses a waveform stepping from the period's top (ARR) to 0 with `TopToZero`, and the same waveform just clear of `Pwm::top_margin` plays every later duty in its own period, against CH4's steady reference [PWM-009]. Run P ends with a generator over TIM1 and TIM8, linked, a lane on each with its output off, and every lane of both must finish [AWG-005]. Run Q then runs four reader rounds over Z2: TIM3's lane plays an 8-duty frame from lent memory, TIM8's lane answers once it has ended, and the reply must be recovered from memory TIM3's lane was lent, each sample within a sixteenth. Round 1 reads on the lane's own stream after the frame's end [AWG-016]: the frame and the lent memory must come back and the reply must lie in the lent memory [AWG-012]; `prepared` must name the rate `prepare_listen` returned [AWG-013]; right after the frame's end TIM3's counter must still be enabled with compare 1 at 0 [AWG-018]; CC1E must be set before the listen, CC1E, CC1P and CC1NP clear while listening, and CC1E and CC1P set again after `speak` [AWG-021]. Round 2 listens in the run that sees the frame end, and that run must have turned to listening [AWG-019]. Round 3 reads through a reader paced by TIM5 at 6 MHz on DMA2 stream 7, at TIM5's rate [AWG-017]. Round 4, on the generator rebuilt, reads through a reader armed ahead on TIM3's update on DMA2 stream 6 [AWG-015]. Pass: every check in every run passes and the script exits zero.
 
 ## Watchdog on the Nucleo-F401RE
 
@@ -284,6 +284,26 @@ with its buffers, and the bus running again; and the driver's health
 against the run's own counts. A DMA buffer the stream cannot reach is not
 exercised: every F401 RAM is reachable. Pass: every check passes and the
 script exits zero.
+
+## The lane switch on the Nucleo-F401RE
+
+`hil/run-f401.sh y`, built with `profile-listen` (the script passes it). No links. Run
+R's four lanes as one generator, TIM3 starting TIM2, read through one reader of port B
+paced by TIM1 on DMA2 stream 5. Two listens are prepared, of 32 then 64 samples:
+`prepared` must name the second, at the rate it returned, and each of 200 exchanges,
+listening in the run that sees the frames end, must read 64 samples on every lane
+[AWG-013]. Over those exchanges the listen's cycle count (`timer::profile`, from entry
+to the reader started) must stay within an eighth of its least, since the prepared
+switch only stores what was computed ahead [AWG-013]. Pass: every check passes and the
+script exits zero.
+
+## Timers on the STM32F4 Discovery
+
+`hil/run-discovery.sh f`. No links. Die 0x413's timer trigger routes, each as its glue
+states it (RM0090 table 98): TIM8 and TIM3 started by TIM1 (ITR0), TIM2 by TIM3 (ITR2)
+and TIM5 by TIM3 (ITR1), every timer at 600 kHz. For each, the slave must not count
+while its master is stopped, then start with it in 100 of 100 starts, within 32 counts
+[GLUE-010]. Pass: every check passes and the script exits zero.
 
 ## The ROM bootloader on the Nucleo-H753ZI
 

@@ -166,3 +166,20 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::errata::tests::the_chip_table_matches_its_documentation_and_the_source
+
+  - id: GLUE-010
+    title: Die 0x413's trigger routes start their slaves
+    statement: >-
+      Each timer trigger route die 0x413's glue states shall start its slave
+      timer from its master's trigger output.
+    rationale: >-
+      A route is a chip fact (RM0090 table 98) the glue writes by hand; a
+      wrong ITR number leaves the slave waiting forever, which no host test
+      can see.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the STM32F4 Discovery

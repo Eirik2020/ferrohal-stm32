@@ -23,3 +23,4 @@ t	pico-reboot
 v	refusals
 w	faults
 x	i2c-interrupt
+y	switch-cycles

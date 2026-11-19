@@ -1,0 +1,117 @@
+{
+  "schema_version": 5,
+  "run_id": "20261119T202653Z__one-i2c-api-on-every-chip__host__01",
+  "recorded_at_utc": "2026-11-19T20:26:53Z",
+  "board": null,
+  "revision": "e979e01ded8136d9588de8916f4da25ad41af2fa",
+  "working_tree": "clean",
+  "modules": {
+    "src/i2c/mod.rs": [
+      "extern:defmt@1.2.0",
+      "extern:embedded-hal@1.0.0",
+      "src/adc/mod.rs",
+      "src/adc_v2/mod.rs",
+      "src/adc_v4/mod.rs",
+      "src/dma/mod.rs",
+      "src/gpio_v2/mod.rs",
+      "src/i2c/interrupt.rs",
+      "src/i2c_v1/interrupt.rs",
+      "src/i2c_v1/mod.rs",
+      "src/i2c_v2/mod.rs",
+      "src/lib.rs",
+      "src/rcc/kernel.rs",
+      "src/rcc/shared.rs",
+      "src/rcc_f4/mod.rs",
+      "src/rcc_f4/tree.rs",
+      "src/rcc_f7/../rcc_f4/tree.rs",
+      "src/rcc_f7/mod.rs",
+      "src/rcc_h7_rm0433/mod.rs",
+      "src/resource.rs",
+      "src/sdmmc_v2/mod.rs",
+      "src/spi/instance.rs",
+      "src/spi_v2/mod.rs",
+      "src/spi_v3/mod.rs",
+      "src/spi_v4/mod.rs",
+      "src/time.rs",
+      "src/timer/mod.rs",
+      "src/uart/stream_dma/mod.rs",
+      "src/usart_v2/mod.rs",
+      "src/usart_v4/mod.rs",
+      "src/wait.rs"
+    ]
+  },
+  "identities": {
+    "extern:defmt@1.2.0": "1.2.0",
+    "extern:embedded-hal@1.0.0": "1.0.0",
+    "src/adc/mod.rs": "5a6d37374fda9db53bb3eb9460c5958d0626ae052ab65b2ab9c7675ed1784608",
+    "src/adc_v2/mod.rs": "cd24f788efd1e08d81eb1c9356854edca48f705415ee0d3721d3e1c9ea2fb9dd",
+    "src/adc_v4/mod.rs": "7bc34b1214cf9afddcd01b4c6a3b26f07c13986e68ee4c8b48eeef748d71961d",
+    "src/dma/mod.rs": "ceabdf2f0478e8bf4d87f008882cc4ad24065032324db7a9b96198c71218ca15",
+    "src/gpio_v2/mod.rs": "8d9ecf0fd728b67e41245c0486a1fba54922f372e7cafccf4d3f345c81cfb71b",
+    "src/i2c/interrupt.rs": "678fa6db90233a7ff62ea0213b5c1eaec386006be9d108eb3723afb1629ff31a",
+    "src/i2c/mod.rs": "828f5d219b47652164b1104666b5dbebd29849087f40e2c8b8b1fc2e130a865c",
+    "src/i2c_v1/interrupt.rs": "148bc6b4fa0985321116c458601495cf04045fc1cdd63ac94e621747ad140595",
+    "src/i2c_v1/mod.rs": "689e0581c0a6cba697c8f407bc01e627cc654e4f0dba35f06dda44f3d34b8146",
+    "src/i2c_v2/mod.rs": "83bca05925022d9e3f8e89e2b157bfeaa9d0ce4bbcd7ee94e7b2575fe6547794",
+    "src/lib.rs": "8baba1c600913a4bd714552ba1111c43bf4212c19308f4e7d7b7de8314154c52",
+    "src/rcc/kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+    "src/rcc/shared.rs": "1970583e9a43552b522baa2af840c8c5686605f290cfd298d2326adbe3876f04",
+    "src/rcc_f4/mod.rs": "71b7d9832310374a7e2dad688c656a1935ac6a11362900b5a794ec4fba505193",
+    "src/rcc_f4/tree.rs": "326fea704c401fe4b334277de7ce577ce32234b8a9dd9693391fa3849623880f",
+    "src/rcc_f7/../rcc_f4/tree.rs": "326fea704c401fe4b334277de7ce577ce32234b8a9dd9693391fa3849623880f",
+    "src/rcc_f7/mod.rs": "7fd382a114a87f8f88513b57078ae320fce1905906ab6f072a8c84c8a17cd452",
+    "src/rcc_h7_rm0433/mod.rs": "f91e70aae86f0fa6630235b935c4b7ba297a36501a88d47d1dcd95a81db315d6",
+    "src/resource.rs": "358384a14d3ff19ff37b6d686b6f2991053963f2910d865373c8f64a19da0a91",
+    "src/sdmmc_v2/mod.rs": "8a8f3a02f0bc5e3cc7ca19cf16ab19342899d101fdb2241c5f5366555689cbce",
+    "src/spi/instance.rs": "c74841baa531e4c781a005d813a38022df9d034d656c384fb92704dab4607fee",
+    "src/spi_v2/mod.rs": "ff115f48fe6da14472ab9e6e87e9ad7460138fd9dac51df039e02ce48862c8d5",
+    "src/spi_v3/mod.rs": "d8e7431618e7133636c7e7ee9fb8b2d801818b0febfa47847ae7b9a0b1460a7f",
+    "src/spi_v4/mod.rs": "c19c87204132a242214040afc36c83b5e7d4db17353b2be4cc4440359a86e8e3",
+    "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+    "src/timer/mod.rs": "293b16647b41463e680924aedd78e06eda7e082ca799317b9faa4ac278f4dfe0",
+    "src/uart/stream_dma/mod.rs": "ac30dfa3a461c3901aaf90e5cf97b73cf78a34470a8ed2668be1f01cbccc4e49",
+    "src/usart_v2/mod.rs": "2890aa2cb8d2aaadca545d2599cd59876db9b56628dc606ef096f4e87c27646b",
+    "src/usart_v4/mod.rs": "077f270f928bae61f4bb52c6f53cb993ddd7e19d66d60cc999130dab34147de6",
+    "src/wait.rs": "e81144f39b38427ba861350232161bd56ef497b997b87e44045afe49895d0c70"
+  },
+  "results": [
+    {
+      "requirement": "I2C-001",
+      "method": {
+        "procedure": "requirements/benches-analysis.md#One I2C API on every chip"
+      },
+      "level": "analysis",
+      "environment": "host",
+      "hazard": "none",
+      "claim": "fcc19b17c7da1f422ead037143a0954d0f2771fb080b282a2d933760b0af54b4",
+      "exercised": [
+        "src/i2c/mod.rs"
+      ],
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "commands": [
+      {
+        "command": "checks/run.sh",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "checks-run",
+        "kind": "log",
+        "path": "requirements/evidence/logs/main67-merge-20261119/checks-run.log",
+        "bytes": 5042,
+        "sha256": "43788ce35c457a6ec05a25d4ac7d75bf25795507567662f2fed1a9ee99f0644c"
+      }
+    ]
+  }
+}

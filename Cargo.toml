@@ -30,6 +30,17 @@ synopsys-usb-otg = { git = "https://github.com/Eirik2020/synopsys-usb-otg", rev 
 
 [features]
 default = []
+# Benches only (docs/policies/features.md): DWT cycle stamps through the lane
+# switch (`Awg::listen`, `speak`), for the switch-path cycle counts
+# docs/design/lanes.md requires after a change to that path. Product figures
+# are taken without it.
+profile-listen = []
+# Benches only: also stamp each lane inside its listen (costs the listen
+# time it measures; off to measure the listen without it).
+profile-lanes = ["profile-listen"]
+# Benches only: an exchange's start by part (each load, play), behind
+# its own stamps.
+profile-start = ["profile-listen"]
 
 # The full-speed USB OTG port, as a `usb-device` bus.
 usb = ["dep:usb-device", "dep:synopsys-usb-otg"]

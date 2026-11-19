@@ -397,9 +397,15 @@ mod app {
         let Ok(pwm3) = Pwm::new(&mut run.rcc, run.tim3, Hertz::khz(500)) else {
             defmt::panic!("TIM3 PWM")
         };
-        match LaneWiring::<_, 3, _, _>::new(run.pb0, run.lane3_stream).assemble(&pwm3, lane_buf) {
+        match LaneWiring::<_, 3, _, _>::new(run.pb0, run.lane3_stream).assemble(&pwm3) {
             Ok(mut lane) => {
-                let armed = lane.arm(&pwm3, &[1, 2, 3, 4]).is_ok();
+                if let Some(words) = lane_buf.get_mut(..4) {
+                    words.copy_from_slice(&[1, 2, 3, 4]);
+                }
+                let armed = match ferrohal_stm32::timer::Frame::new(lane_buf, 4, pwm3.frame_limits()) {
+                    Ok(frame) => lane.arm(&pwm3, frame).is_ok(),
+                    Err(_) => false,
+                };
                 fault::stick(2, 0);
                 match lane.free(&pwm3) {
                     Ok(_) => {

@@ -1,0 +1,11 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/timer-trigger`
+     [38;5;10m[1mFinished[0m in 1.50s
+[INFO ] PASS TIM1 starts TIM3: the slave waits for the master [PWM-004] (timer_trigger ../common/tests.rs:845)
+[INFO ] PASS TIM1 starts TIM3: 100 starts: the master's starts the slave [PWM-005] (timer_trigger ../common/tests.rs:845)
+[INFO ] PASS TIM1 starts TIM3: 100 starts: they begin together [PWM-005] (timer_trigger ../common/tests.rs:845)
+[INFO ] TIM1 starts TIM3: at most 4 counts apart, read one after the other (timer_trigger ../common/pwm.rs:1376)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (timer_trigger ../common/tests.rs:2088)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (timer_trigger ../common/tests.rs:2064)
+[INFO ] all checks passed (timer_trigger ../common/tests.rs:2097)
+Firmware exited successfully

@@ -5,3 +5,4 @@ b	usb-cdc
 c	rom-bootloader
 d	complementary
 e	usb-deferred
+f	timer-trigger
