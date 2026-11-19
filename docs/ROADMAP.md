@@ -22,8 +22,7 @@ The roadmap: features FerroHAL does not offer. None is debt; the owner sets the 
 - **DMA:** BDMA, MDMA.
 - **ADC:** timer triggers, injected channels, analog watchdogs, oversampling,
   differential inputs, ADC2, the H7's `_C` pads, per-channel sample times.
-- **USB:** OTG_HS at high speed, host mode; a panic-free device core, retiring the `usb`
-  feature's G2 exception.
+- **USB:** OTG_HS at high speed, host mode.
 - **SDMMC:** DMA, card detect, above 25 MHz, 1.8 V; SDIO on the F4.
 - **Clocks and power:** other supply ranges on the F401; the H7's VOS0 (480 MHz, rev V),
   the SMPS, PLL2/PLL3, fractional mode, CSI, HSIDIV other than 1, TIMPRE, other kernel

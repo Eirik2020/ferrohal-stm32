@@ -2,8 +2,9 @@
 # Runs the STM32F4 Discovery bench (die 0x413, `stm32f4-discovery/src/board.rs`):
 # run A the die and its own UART routes over links D1 to D3, run B the F4's USB
 # core on CN5 with `usb_cdc_host.py` alongside, run C the ROM bootloader, which
-# `dfu-util` must then list on CN5, run D the F4 timer's complementary output, run E
-# TIM5 started from TIM3's trigger (die 0x413's route).
+# `dfu-util` must then list on CN5, run D the F4 timer's complementary output,
+# run E the USB core with its vector deferred under USB-002's rule of use, run F
+# die 0x413's timer trigger routes.
 # Exits non-zero if any run failed.
 #
 # Logs go to hil/logs/discovery-run-<run>.log. Arguments pick runs, say `a c`;
@@ -42,17 +43,19 @@ print(f"{(w[0] + w[2]) & 0xFFFFFFFF:08X}{w[1] >> 16:04X}")'
 }
 
 status=0
-for run in ${*:-probe a b c d e}; do
+for run in ${*:-probe a b c d e f}; do
     log="$here/logs/discovery-run-$run.log"
     : > "$log"
     code=0
-    if [ "$run" = b ]; then
-        (cd "$crate" && timeout 300 cargo build --release --bin "$(bin_of b)") >> "$log" 2>&1 || code=$?
+    if [ "$run" = b ] || [ "$run" = e ]; then
+        (cd "$crate" && timeout 300 cargo build --release --bin "$(bin_of "$run")") >> "$log" 2>&1 || code=$?
         host=""
         if [ "$code" -eq 0 ]; then
-            python3 -I "$here/usb_cdc_host.py" --fresh 30 f407vg > "$log.host" 2>&1 &
+            serial=f407vg
+            [ "$run" = e ] && serial=f407vg-deferred
+            python3 -I "$here/usb_cdc_host.py" --fresh 30 "$serial" > "$log.host" 2>&1 &
             host=$!
-            (cd "$crate" && timeout 300 cargo run --release --bin "$(bin_of b)") >> "$log" 2>&1 || code=$?
+            (cd "$crate" && timeout 300 cargo run --release --bin "$(bin_of "$run")") >> "$log" 2>&1 || code=$?
             wait "$host" || code=1
             cat "$log.host" >> "$log"
             rm -f "$log.host"

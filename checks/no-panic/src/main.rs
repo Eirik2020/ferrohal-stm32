@@ -44,6 +44,24 @@ static mut LENT: [u16; 8] = [0; 8];
 #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
 static mut READER_READS: [u16; 8] = [0; 8];
 static mut SPI_RX: [u8; 32] = [0; 32];
+#[cfg(not(any(
+    feature = "stm32f401re",
+    feature = "stm32f410rb",
+    feature = "stm32f411ce",
+    feature = "stm32f412zg",
+    feature = "stm32f413zh",
+    feature = "stm32f446re"
+)))]
+static mut USB_MEMORY: [u32; 64] = [0; 64];
+#[cfg(not(any(
+    feature = "stm32f401re",
+    feature = "stm32f410rb",
+    feature = "stm32f411ce",
+    feature = "stm32f412zg",
+    feature = "stm32f413zh",
+    feature = "stm32f446re"
+)))]
+static mut USB_MEMORY2: [u32; 64] = [0; 64];
 
 #[entry]
 fn main() -> ! {
@@ -1115,8 +1133,9 @@ fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
     keep(rcc.usb_clock());
 }
 
-/// USB's own part: the clock and the constructor. The controller's driver is
-/// third-party and sits outside this check.
+/// USB: the clock, the constructor, the bus `usb-device` drives (every
+/// method of its `UsbBus` trait) and the deferred vector's service. The
+/// `usb-device` stack above the bus is the firmware's and is not called.
 #[cfg(not(any(
     feature = "stm32f401re",
     feature = "stm32f410rb",
@@ -1126,7 +1145,17 @@ fn keep_usb_clock(rcc: &mut ferrohal_stm32::rcc::Rcc) {
     feature = "stm32f446re"
 )))]
 pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::usb::Wiring) {
-    use ferrohal_stm32::usb::{UsbFs, Wiring};
+    use ferrohal_stm32::{
+        Service,
+        usb::{
+            UsbBus, UsbFs, Wiring,
+            usb_device::{
+                UsbDirection,
+                bus::UsbBus as _,
+                endpoint::{EndpointAddress, EndpointType},
+            },
+        },
+    };
 
     keep(UsbFs::vectors().verify());
     black_box(&Wiring::RESOURCES).iter().for_each(keep);
@@ -1146,7 +1175,48 @@ pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::
         Ok(usb) => usb,
         Err(_) => park(),
     };
-    keep(usb);
+    // SAFETY: the one reference to this static, taken once.
+    let memory: &'static mut [u32; 64] = unsafe { &mut *addr_of_mut!(USB_MEMORY) };
+    let (bus, mut vector) = UsbBus::deferred_bus(usb, memory);
+    let mut bus = black_box(bus);
+    for direction in [UsbDirection::Out, UsbDirection::In] {
+        let address = black_box(Some(EndpointAddress::from_parts(black_box(0), direction)));
+        keep(bus.alloc_ep(direction, address, EndpointType::Control, black_box(64), 0));
+        keep(bus.alloc_ep(direction, None, EndpointType::Bulk, black_box(64), 0));
+    }
+    bus.enable();
+    bus.reset();
+    bus.set_device_address(black_box(5));
+    let endpoint = EndpointAddress::from(black_box(0x81));
+    keep(bus.write(endpoint, black_box(&[1, 2, 3])));
+    let mut packet = [0u8; 64];
+    keep(bus.read(
+        EndpointAddress::from(black_box(0x01)),
+        black_box(&mut packet),
+    ));
+    bus.set_stalled(endpoint, black_box(true));
+    keep(bus.is_stalled(endpoint));
+    bus.suspend();
+    bus.resume();
+    keep(bus.poll());
+    let events = vector.on_interrupt();
+    keep((
+        events.any(),
+        events.reset(),
+        events.suspend(),
+        events.resume(),
+    ));
+    keep((events.received(), events.sent(), events.bits()));
+    // The allocator-wrapped constructors `usb-device` takes.
+    let usb = bus.free();
+    // SAFETY: the one reference to this static, taken once.
+    let memory: &'static mut [u32; 64] = unsafe { &mut *addr_of_mut!(USB_MEMORY2) };
+    // Either constructor, so both are linked.
+    if black_box(true) {
+        keep(black_box(usb).deferred(memory));
+    } else {
+        keep(black_box(usb).deferred_without_heartbeat(memory));
+    }
 }
 
 fn exercise_spi<W: ferrohal_stm32::spi::Parts>(bus: &mut Spi<W>) {

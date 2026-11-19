@@ -256,6 +256,16 @@ timer whose update reaches DMA2, the one DMA that reaches the GPIO ports. Checks
 duty on the pin, to 1/16, and one one-pulse period. Pass: both checks pass and the
 script exits zero.
 
+## Deferred USB on the STM32F4 Discovery
+
+`hil/run-discovery.sh e`, with CN5 cabled to the host. The F4's OTG_FS core is built with
+its vector deferred and no start-of-frame heartbeat. The vector's service, the device and
+its CDC class share one RTIC resource, so the vector takes the lock the echo task holds
+for each poll and echo pass: USB-002's rule of use. The vector wakes the task through a
+signal; the task enumerates and echoes every block `hil/usb_cdc_host.py` sends, and the
+log gives the longest the task held the lock. Pass: every check passes and the script
+exits zero.
+
 ## Interrupt-driven I2C on the Nucleo-F401RE
 
 `hil/run-f401.sh x`. Run X drives `InterruptI2c` on I2C3 over
@@ -289,7 +299,7 @@ script exits zero.
 
 ## Timers on the STM32F4 Discovery
 
-`hil/run-discovery.sh e`. No links. Die 0x413's timer trigger routes, each as its glue
+`hil/run-discovery.sh f`. No links. Die 0x413's timer trigger routes, each as its glue
 states it (RM0090 table 98): TIM8 and TIM3 started by TIM1 (ITR0), TIM2 by TIM3 (ITR2)
 and TIM5 by TIM3 (ITR1), every timer at 600 kHz. For each, the slave must not count
 while its master is stopped, then start with it in 100 of 100 starts, within 32 counts

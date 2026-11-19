@@ -1,4 +1,4 @@
-//! Run E: die 0x413's timer trigger routes (RM0090 table 98), each as the
+//! Run F: die 0x413's timer trigger routes (RM0090 table 98), each as the
 //! glue states it: TIM8 and TIM3 from TIM1 (ITR0), TIM2 from TIM3 (ITR2) and
 //! TIM5 from TIM3 (ITR1). For each, the slave must wait while its master is
 //! stopped, then start with it, 100 starts over, within 32 counts (GLUE-010,
@@ -33,7 +33,7 @@ mod app {
 
     #[local]
     struct Local {
-        run: Option<board::RunE>,
+        run: Option<board::RunF>,
     }
 
     #[init]
@@ -41,12 +41,12 @@ mod app {
         let mut core = cx.core;
         core.DCB.enable_trace();
         core.DWT.enable_cycle_counter();
-        let run = match board::run_e(cx.device) {
+        let run = match board::run_f(cx.device) {
             Ok(run) => run,
             Err(error) => defmt::panic!("clocks: {}", error),
         };
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
-        defmt::info!("run E, clocks: {}", board::CLOCKS);
+        defmt::info!("run F, clocks: {}", board::CLOCKS);
         checks::spawn().ok();
         (Shared {}, Local { run: Some(run) })
     }

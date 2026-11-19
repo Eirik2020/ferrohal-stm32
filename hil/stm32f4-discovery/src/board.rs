@@ -218,9 +218,9 @@ pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
 }
 
 
-/// Run E: die 0x413's timer trigger routes (RM0090 table 98): TIM8 and TIM3
+/// Run F: die 0x413's timer trigger routes (RM0090 table 98): TIM8 and TIM3
 /// from TIM1, TIM2 and TIM5 from TIM3. Counters only, no pins.
-pub struct RunE {
+pub struct RunF {
     pub rcc: Rcc,
     pub tim1: TIM1,
     pub tim2: TIM2,
@@ -229,12 +229,12 @@ pub struct RunE {
     pub tim8: TIM8,
 }
 
-pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
+pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
     let rcc = p
         .RCC
         .freeze(&CLOCK_CONFIG)
         .map_err(|refused| refused.error())?;
-    Ok(RunE {
+    Ok(RunF {
         tim1: p.TIM1,
         tim2: p.TIM2,
         tim3: p.TIM3,

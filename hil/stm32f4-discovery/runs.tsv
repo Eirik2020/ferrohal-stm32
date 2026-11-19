@@ -4,4 +4,5 @@ a	die-0x413
 b	usb-cdc
 c	rom-bootloader
 d	complementary
-e	timer-trigger
+e	usb-deferred
+f	timer-trigger

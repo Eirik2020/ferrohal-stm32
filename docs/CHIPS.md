@@ -382,9 +382,12 @@ names where the code documents it.
 - Polled through the FIFO, up to 25 MHz, 4-bit, 3.3 V, high-capacity v2 cards.
 
 **USB**
-- The `usb` feature can panic: `synopsys-usb-otg` has about 30 panic and unwrap sites and
-  unbounded register spins. It is G2's listed exception, off by default
-  (`policies/features.md`).
+- The bus is FerroHAL's no-panic guarantee; the `usb-device` stack and classes above it are
+  the firmware's and can panic (`policies/features.md`).
+- A deferred vector (`UsbFs::deferred`) keeps the start-of-frame interrupt on as a
+  heartbeat: one vector per millisecond while the bus runs.
+  `deferred_without_heartbeat` masks it. Rule of use (USB-002): the vector service
+  and the bus never preempt one another.
 
 ## Not supported yet
 
