@@ -279,10 +279,13 @@ mod app {
         // The UART leaves the slot, so from here no handler serves it: the
         // read below serves the receive stream itself.
         fault::stick(1, 1);
-        let Some(usart6) = cx.shared.usart6.lock(|slot| slot.take()) else {
+        // Freed inside the lock (`Uart::free`): an idle line landing after
+        // the echo would otherwise raise USART6's vector with no Uart in the
+        // slot to clear it. The refusal comes back closed, its line masked.
+        let Some(freed) = cx.shared.usart6.lock(|slot| slot.take().map(|uart| uart.free())) else {
             defmt::panic!("USART6 left its slot")
         };
-        let Err(refused) = usart6.free() else {
+        let Err(refused) = freed else {
             fault::release(1, 1);
             report.check_for(UART, "API-003", "free refuses while the receive stream will not stop", Err(Fail::Count { expected: 1, got: 0 }));
             tests::finish(&report, || {})
