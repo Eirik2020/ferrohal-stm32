@@ -118,22 +118,22 @@ the markers; the merge gate regenerates them.
 <!-- generated: glue-gen tiers -->
 | part | platform | UART | SPI | I2C | Timers | ADC | USB | SDMMC | Watchdog | EXTI | DMA |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| STM32F401CE | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
-| STM32F401RE | – | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
-| STM32F401VE | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F401CE | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F401RE | – | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F401VE | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
 | STM32F410TB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F410CB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F410RB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F411CE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F411RE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F411VE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
-| STM32F405OG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
-| STM32F405RG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
-| STM32F405VG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
-| STM32F405ZG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
-| STM32F407VG | – | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
-| STM32F407ZG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
-| STM32F407IG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F405OG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F405RG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F405VG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F405ZG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F407VG | – | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F407ZG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F407IG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
 | STM32F427VI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F427ZI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F427II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
@@ -189,22 +189,22 @@ the markers; the merge gate regenerates them.
 | STM32F779BI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F779II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F779NI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
-| STM32H743VI | – | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H743ZI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H743II | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H743BI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H743AI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H743XI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H750VB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H750ZB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H750IB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H750XB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H753VI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H753ZI | – | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H753II | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H753BI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H753AI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
-| STM32H753XI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H743VI | – | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H743ZI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H743II | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H743BI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H743AI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H743XI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H750VB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H750ZB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H750IB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H750XB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H753VI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H753ZI | – | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H753II | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H753BI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H753AI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H753XI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
 <!-- end generated -->
 
 The rig's parts, measured on each bench's identity line:
@@ -255,6 +255,7 @@ module serves (ADR-011).
 | LPUART | n/a | n/a | n/a | – | – |
 | SPI6 over DMA (BDMA) | n/a | n/a | n/a | – | – |
 | I2C master, 7-bit, polled | ✓ | ✓ | ✓ | ✓ | ✓ |
+| I2C master, interrupt-driven, DMA or interrupt data (`InterruptI2c`) | ✓ | ✓ | – | – | – |
 | timers: one-pulse, trigger start, compare lanes and samplers over DMA, the waveform generator | ✓ | ✓ | ✓ | ✓ | ✓ |
 | LPTIM, HRTIM | n/a | n/a | – | – | – |
 | **EXTI**, GPIO lines 0-15 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -309,6 +310,8 @@ names where the code documents it.
 
 **I2C**
 - A line held low is `Error::Busy`, not repaired: nine-clock recovery is the caller's.
+- `InterruptI2c` has no timer: the caller bounds each transaction and calls `abort`. A
+  phase is at most 255 bytes.
 
 **Timers**
 - A `Tick` or `Timebase` rate must divide the timer clock exactly (`ConfigError::Inexact`).
@@ -391,7 +394,8 @@ The roadmap: features FerroHAL does not offer. None is debt; the owner sets the 
 - **UART:** 7- and 9-bit data, RTS/CTS, half-duplex, RS-485 DE, LIN; LPUART1; the
   H7's hardware FIFOs.
 - **SPI:** slave, simplex, half-duplex, 16-bit frames, hardware NSS, CRC; SPI6.
-- **I2C:** slave, 10-bit addresses, SMBus, DMA.
+- **I2C:** slave, 10-bit addresses, SMBus; `InterruptI2c` on `i2c_v2` (F7, H7); DMA on the
+  H7's I2C4 (BDMA only).
 - **Timers:** input capture, dead time, the break input, trigger routes beyond those in
   use.
 - **Time adapters** (allowed by G1, behind features; `policies/features.md`): a FerroHAL

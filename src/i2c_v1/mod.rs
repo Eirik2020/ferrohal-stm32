@@ -32,6 +32,9 @@ use stm32_metapac::i2c::I2c as Regs;
 pub use crate::i2c::{ConfigError, Error};
 use crate::time::Hertz;
 
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+mod interrupt;
+
 /// Register reads a recovery waits for the stop it armed to reach the
 /// wire, bounded.
 const SPINS: u32 = 10_000;

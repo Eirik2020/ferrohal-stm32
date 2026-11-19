@@ -238,6 +238,13 @@ pins!(SdaPin<I2C2>, OpenDrain: ('B', 11, 4));
 pins!(SclPin<I2C3>, OpenDrain: ('A', 8, 4));
 pins!(SdaPin<I2C3>, OpenDrain: ('C', 9, 4));
 
+dma!(I2cTxDma<I2C1>: (1, 6, 1), (1, 7, 1));
+dma!(I2cRxDma<I2C1>: (1, 0, 1), (1, 5, 1));
+dma!(I2cTxDma<I2C2>: (1, 7, 7));
+dma!(I2cRxDma<I2C2>: (1, 2, 7), (1, 3, 7));
+dma!(I2cTxDma<I2C3>: (1, 4, 3));
+dma!(I2cRxDma<I2C3>: (1, 2, 3));
+
 timers!(
     TIM1 => Apb2, 0, TIM1_UP_TIM10, 16;
     TIM2 => Apb1, 0, TIM2, 32;
