@@ -18,13 +18,14 @@ embedded-io = "=0.7.1"
 defmt = { version = "=1.2.0", optional = true }
 # Conversions only; FerroHAL's own API never takes fugit types.
 fugit = { version = "=0.6.0", optional = true }
-# The USB device stack FerroWasp already uses. Third-party, and not free of
-# panics, so it stays behind a feature.
+# The USB device stack's bus trait, which the bus implements. Its own stack and
+# classes are the firmware's and can panic; FerroHAL calls none of them.
 usb-device = { version = "=0.3.2", optional = true }
 # 0.4.0 plus ES0392 2.25.7's zero-length-packet sequence on the hs cores (the
-# H7's), from a fork pinned by exact revision: branch ferrohal-es0392-2.25.7 of
-# github.com/Eirik2020/synopsys-usb-otg, one commit on upstream's v0.4.0 tag.
-synopsys-usb-otg = { git = "https://github.com/Eirik2020/synopsys-usb-otg", rev = "902ebe9494899ef13d1a9e7b757fb86b6f308727", default-features = false, features = ["cortex-m"], optional = true }
+# H7's), no panics, bounded waits and a deferred interrupt handle, from a fork
+# pinned by exact revision: branch ferrohal-no-panic of
+# github.com/Eirik2020/synopsys-usb-otg, two commits on upstream's v0.4.0 tag.
+synopsys-usb-otg = { git = "https://github.com/Eirik2020/synopsys-usb-otg", rev = "99ce43fcb29c420d413a4c6e154e4aadaab62ae3", default-features = false, features = ["cortex-m"], optional = true }
 
 [features]
 default = []
