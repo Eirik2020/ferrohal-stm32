@@ -3,7 +3,7 @@
  "counts": {
   "documents": 88,
   "agent": 55,
-  "bytes": 553186
+  "bytes": 553041
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 40142
+   "bytes": 39997
   },
   {
    "path": "docs/DEBT.md",
