@@ -311,14 +311,21 @@ mod app {
         let handed_back = cx
             .shared
             .usart1
-            .lock(|slot| slot.take())
-            .is_some_and(|uart| uart.free().is_ok());
+            // Freed inside the lock: once out of the slot no handler can
+            // serve it, so an event landing before free masks the line
+            // would raise the vector with nothing to clear it.
+            .lock(|slot| slot.take().is_some_and(|uart| uart.free().is_ok()));
         report.check(
             "USART1 PA9->PA10",
-            "free leaves the USART off and both streams stopped [API-002]",
+            "free leaves the USART off, TCIE off and both streams stopped [API-002]",
             crate::freed(
                 handed_back,
-                !stm32_metapac::USART1.cr1().read().ue(),
+                {
+                    let cr1 = stm32_metapac::USART1.cr1().read();
+                    // TCIE off too: a drain left armed would raise the vector
+                    // for ever once nothing serves it.
+                    !cr1.ue() && !cr1.tcie()
+                },
                 &[(stm32_metapac::DMA2, 7), (stm32_metapac::DMA2, 2)],
             ),
         );

@@ -30,7 +30,9 @@
 //! # Interrupts
 //!
 //! FerroHAL enables the peripheral's own interrupt bits (USART: idle,
-//! parity, errors; receive stream: half, complete, errors; transmit stream:
+//! parity, errors, and, when asked with `set_tx_idle_interrupt`,
+//! transmission complete while the end of the last queued frame is
+//! awaited; receive stream: half, complete, errors; transmit stream:
 //! complete, errors) and nothing else. The scheduler binds the vectors in
 //! [`Uart::vectors`] and calls [`Uart::on_interrupt`] from each.
 //!
@@ -60,7 +62,7 @@
 //! (`bdma_v1` behind DMAMUX) slots in by offering the same operations
 //! (ADR-011, forward compatibility).
 //!
-//! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UART-014, UART-015, UART-020, UARTDMA-002, UARTDMA-008, UARTDMA-009, API-002, API-003, UARTDMA-011, UARTDMA-012, RESOURCE-002, UART-022
+//! Requirements: UART-002, UART-003, UART-004, UART-005, UART-006, UART-007, UART-008, UART-009, UART-010, UART-011, UART-012, UART-013, UART-014, UART-015, UART-020, UARTDMA-002, UARTDMA-008, UARTDMA-009, API-002, API-003, UARTDMA-011, UARTDMA-012, RESOURCE-002, UART-022, UART-023
 
 mod io;
 mod rx;
@@ -214,12 +216,16 @@ pub struct Events {
     pub sent: bool,
     /// A line or DMA fault was recorded; the next read reports it.
     pub fault: bool,
+    /// The transmit queue emptied and the USART's transmission complete
+    /// (TC) followed: the last stop bit of the last frame has left the
+    /// wire. Reported once per emptying, however many frames came before.
+    pub tx_idle: bool,
 }
 
 impl Events {
     /// Whether anything happened.
     pub fn any(&self) -> bool {
-        self.idle || self.filled || self.sent || self.fault
+        self.idle || self.filled || self.sent || self.fault || self.tx_idle
     }
 }
 
@@ -416,6 +422,11 @@ where
     /// stream tokens) and the buffers. What a `Drop` would do, made
     /// explicit so the parts can move out. The transmit queue is dropped.
     /// A reopen runs `Uart::new` again on the same parts.
+    ///
+    /// Free it inside the lock its handlers share: the line's interrupt
+    /// enables stay on until `free` clears them, and an event landing after
+    /// the `Uart` has left the handlers' reach raises its vector with
+    /// nothing left to clear it.
     ///
     /// A stream that does not stop in time could still write the buffers,
     /// so they are not handed out: the refusal returns the UART, closed and
@@ -621,12 +632,19 @@ impl<W: Parts> Uart<W> {
     /// Stops both streams and the line, and drops the transmit queue: what
     /// `free` runs. Both directions are halted if a stream does not stop.
     fn close(&mut self) -> Result<(), StopTimeout> {
+        // The line's enables go first. An event that lands while the
+        // streams stop (an idle line right after the last byte, TC after
+        // the last frame) would otherwise raise the USART's vector, and a
+        // caller that has already moved this `Uart` out of its handlers'
+        // reach has nothing left to clear it: the vector would fire for
+        // ever and the stop below would never finish.
+        self.unit.set_event_enables(false);
+        self.unit.set_tc_interrupt(false);
         let tx_stopped = match self.tx.as_mut() {
             Some(tx) => tx.halt(),
             None => Ok(()),
         };
         let rx_stopped = self.rx.halt();
-        self.unit.set_event_enables(false);
         self.unit.disable();
         tx_stopped.and(rx_stopped)
     }
@@ -647,6 +665,7 @@ impl<W: Parts> Uart<W> {
             let (sent, fault) = tx.service(self.unit);
             events.sent = sent;
             events.fault |= fault;
+            events.tx_idle = tx.take_idle();
         }
         events
     }
@@ -659,18 +678,25 @@ impl<W: Parts> Uart<W> {
         self.vectors
     }
 
-    /// Stops the line raising its own interrupt: clears the idle, parity and
-    /// error enables. The vectors stay enabled in the NVIC, so
+    /// Stops the line raising its own interrupt: clears the idle, parity,
+    /// error and transmission-complete enables. The vectors stay enabled in the NVIC, so
     /// [`Vectors::verify`] still passes, and an event that arrives while
     /// masked stays pending in the USART and is reported after
     /// [`unmask`](Self::unmask).
     pub fn mask(&mut self) {
         self.unit.set_event_enables(false);
+        if let Some(tx) = self.tx.as_mut() {
+            tx.set_masked(self.unit, true);
+        }
     }
 
-    /// Restores the idle, parity and error enables.
+    /// Restores the idle, parity and error enables, and the
+    /// transmission-complete enable if the last frame's end is awaited.
     pub fn unmask(&mut self) {
         self.unit.set_event_enables(true);
+        if let Some(tx) = self.tx.as_mut() {
+            tx.set_masked(self.unit, false);
+        }
     }
 
     /// Measures every wait with `clock` instead of counting passes, so a

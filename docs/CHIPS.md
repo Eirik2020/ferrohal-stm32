@@ -118,22 +118,22 @@ the markers; the merge gate regenerates them.
 <!-- generated: glue-gen tiers -->
 | part | platform | UART | SPI | I2C | Timers | ADC | USB | SDMMC | Watchdog | EXTI | DMA |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| STM32F401CE | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F401RE | – | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F401VE | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F401CE | – `INH` | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F401RE | – | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F401VE | – `INH` | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
 | STM32F410TB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F410CB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F410RB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F411CE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F411RE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F411VE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
-| STM32F405OG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F405RG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F405VG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F405ZG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F407VG | – | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F407ZG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
-| STM32F407IG | – `INH` | HIL | – | HIL | HIL | HIL | HIL | n/a | HIL | HIL | HIL |
+| STM32F405OG | – `INH` | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F405RG | – `INH` | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F405VG | – `INH` | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F405ZG | – `INH` | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F407VG | – | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F407ZG | – `INH` | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
+| STM32F407IG | – `INH` | – | – | HIL | – | HIL | HIL | n/a | HIL | HIL | – |
 | STM32F427VI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F427ZI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F427II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
@@ -189,22 +189,22 @@ the markers; the merge gate regenerates them.
 | STM32F779BI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F779II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F779NI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
-| STM32H743VI | – | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H743ZI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H743II | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H743BI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H743AI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H743XI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H750VB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H750ZB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H750IB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H750XB | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H753VI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H753ZI | – | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H753II | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H753BI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H753AI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
-| STM32H753XI | – `INH` | HIL | – | HIL | HIL | HIL | HIL | FLSH | HIL | HIL | HIL |
+| STM32H743VI | – | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H743ZI | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H743II | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H743BI | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H743AI | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H743XI | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H750VB | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H750ZB | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H750IB | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H750XB | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H753VI | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H753ZI | – | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H753II | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H753BI | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H753AI | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
+| STM32H753XI | – `INH` | – | – | HIL | – | HIL | HIL | FLSH | HIL | HIL | – |
 <!-- end generated -->
 
 The rig's parts, measured on each bench's identity line:

@@ -1,7 +1,11 @@
 //! The transmit engine: a queue of whole frames in the transmit buffer, one
 //! DMA transfer per frame, chained by the service.
 //!
-//! Requirements: UART-006, UART-010, UART-011, UART-013, UARTDMA-008, UARTDMA-009, UARTDMA-012
+//! Every queued frame's outcome is kept for [`Uart::take_outcome`], and the
+//! USART's transmission complete after the last frame is reported once as
+//! [`Events::tx_idle`](super::Events::tx_idle).
+//!
+//! Requirements: UART-006, UART-010, UART-011, UART-013, UARTDMA-008, UARTDMA-009, UARTDMA-012, UARTDMA-013, UART-023
 
 use core::{
     ptr,
@@ -14,7 +18,7 @@ use crate::{
     uart::{
         Error, SendError, TxHealth, Wiring,
         stream_dma::{Instance, RxDma, RxPin, TxDma, TxPin},
-        tx_ring::{self, FRAMES, Frame, FrameQueue},
+        tx_ring::{self, FRAMES, Frame, FrameQueue, Outcomes, TxOutcome},
     },
     usart_ip::Unit,
     wait::{Deadline, wait},
@@ -42,6 +46,20 @@ pub(super) struct Tx {
     halted: bool,
     errors: u8,
     health: TxHealth,
+    /// Finished frames' outcomes, for `take_outcome`.
+    outcomes: Outcomes,
+    /// The queue emptied and the USART's transmission complete is awaited:
+    /// TCIE is on (unless masked) and every service polls TC.
+    draining: bool,
+    /// TC came after the last frame and is not yet reported.
+    idle: bool,
+    /// The queue is empty and TC has come since its last frame.
+    drained: bool,
+    /// The line's interrupts are masked (`Uart::mask`): TCIE stays off.
+    masked: bool,
+    /// The caller asked for TC to raise the USART's vector
+    /// (`set_tx_idle_interrupt`); without it a drain is only polled.
+    notify: bool,
 }
 
 impl Tx {
@@ -57,6 +75,12 @@ impl Tx {
             halted: false,
             errors: 0,
             health: TxHealth::default(),
+            outcomes: Outcomes::new(),
+            draining: false,
+            idle: false,
+            drained: true,
+            masked: false,
+            notify: false,
         }
     }
 
@@ -75,12 +99,60 @@ impl Tx {
     /// off for good: what `free` runs.
     pub(super) fn halt(&mut self) -> Result<(), StopTimeout> {
         self.halted = true;
+        self.draining = false;
         self.dma.set_interrupts(Interrupts::default());
         let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
-        self.frames.clear();
+        self.drop_queue();
         self.running = false;
         stopped
+    }
+
+    /// Drops every queued frame, each with the outcome `Dropped`.
+    fn drop_queue(&mut self) {
+        for _ in 0..self.frames.len() {
+            self.outcomes.push(TxOutcome::Dropped);
+        }
+        self.frames.clear();
+    }
+
+    /// Waits for the USART's transmission complete: the queue just emptied.
+    fn arm_drain(&mut self, unit: Unit) {
+        self.draining = true;
+        unit.set_tc_interrupt(self.notify && !self.masked);
+    }
+
+    /// Reports TC once after the last frame: polled by every service, and
+    /// raised on the USART's vector by TCIE while armed.
+    fn serve_drain(&mut self, unit: Unit) {
+        if self.draining && unit.tc() {
+            self.draining = false;
+            self.idle = true;
+            self.drained = true;
+            unit.set_tc_interrupt(false);
+        }
+    }
+
+    /// Whether TC came after the last frame since the last call.
+    pub(super) fn take_idle(&mut self) -> bool {
+        core::mem::take(&mut self.idle)
+    }
+
+    /// Holds TCIE off while the line is masked, and restores it.
+    pub(super) fn set_masked(&mut self, unit: Unit, masked: bool) {
+        self.masked = masked;
+        unit.set_tc_interrupt(self.draining && self.notify && !masked);
+    }
+
+    /// Whether TC raises the USART's vector while a drain is awaited.
+    pub(super) fn set_notify(&mut self, unit: Unit, on: bool) {
+        self.notify = on;
+        unit.set_tc_interrupt(self.draining && on && !self.masked);
+    }
+
+    /// The oldest outcome not yet taken.
+    pub(super) fn take_outcome(&mut self) -> Option<TxOutcome> {
+        self.outcomes.take()
     }
 
     /// Finishes the frame in flight if it is done, and starts the next.
@@ -97,6 +169,7 @@ impl Tx {
                 }
                 self.dma.clear_flags(Flags::ALL);
                 self.frames.pop();
+                self.outcomes.push(TxOutcome::Failed);
                 self.running = false;
                 self.health.dma_errors = self.health.dma_errors.saturating_add(1);
                 self.errors |= if flags.transfer_error {
@@ -108,6 +181,7 @@ impl Tx {
             } else if flags.complete && !self.dma.is_running() {
                 self.dma.clear_flags(Flags::ALL);
                 self.frames.pop();
+                self.outcomes.push(TxOutcome::Sent);
                 self.running = false;
                 self.health.sent = self.health.sent.saturating_add(1);
                 finished = (true, false);
@@ -122,11 +196,25 @@ impl Tx {
             }
         }
         if self.halted {
+            // A halted transmitter sends nothing more: its frames are
+            // dropped, each with its outcome.
+            self.drop_queue();
             return finished;
         }
         let Some(frame) = self.frames.peek() else {
+            if finished.0 {
+                self.arm_drain(unit);
+            }
+            self.serve_drain(unit);
             return finished;
         };
+        // A new frame: the drain before it is moot, and its own end arms
+        // the next.
+        if self.draining {
+            self.draining = false;
+            unit.set_tc_interrupt(false);
+        }
+        self.drained = false;
         unit.clear_tc();
         let transfer = Transfer::one_shot(
             self.request,
@@ -150,6 +238,7 @@ impl Tx {
             Err(_) => {
                 self.dma.set_interrupts(Interrupts::default());
                 self.halted = true;
+                self.drop_queue();
             }
         }
         finished
@@ -186,7 +275,7 @@ impl Tx {
         self.dma.set_interrupts(Interrupts::default());
         let stopped = self.dma.stop(crate::dma::STOP_SPINS).is_ok();
         self.dma.clear_flags(Flags::ALL);
-        self.frames.clear();
+        self.drop_queue();
         self.running = false;
         if stopped {
             Err(Error::Timeout)
@@ -330,6 +419,46 @@ where
     /// Frames queued, the one in flight included.
     pub fn queued(&self) -> usize {
         self.tx.as_ref().map_or(0, |tx| tx.frames.len())
+    }
+
+    /// The oldest finished frame's outcome not yet taken, in the order the
+    /// frames were queued: one per frame [`try_send`](Self::try_send) or
+    /// [`write`](Self::write) queued, `None` until the next finishes.
+    /// [`TX_FRAMES`](crate::uart::TX_FRAMES) are kept; older ones are
+    /// overwritten and come back as one [`TxOutcome::Lost`] in their place.
+    pub fn take_outcome(&mut self) -> Option<TxOutcome> {
+        let unit = self.unit;
+        let tx = self.tx.as_mut()?;
+        tx.service(unit);
+        tx.take_outcome()
+    }
+
+    /// Whether the line has gone quiet: the transmit queue is empty and the
+    /// USART's transmission complete has come since its last frame, so the
+    /// last stop bit has left the wire. A state read, as of the last service:
+    /// with [`set_tx_idle_interrupt`](Self::set_tx_idle_interrupt) on and the
+    /// USART's vector bound, its interrupt sets it; otherwise a call of
+    /// [`on_interrupt`](Self::on_interrupt) first serves the line.
+    pub fn tx_drained(&self) -> bool {
+        self.tx
+            .as_ref()
+            .is_some_and(|tx| tx.drained && tx.frames.len() == 0 && !tx.halted)
+    }
+
+    /// Whether the USART's transmission complete (TC) raises its vector
+    /// once the transmit queue empties, so [`Events::tx_idle`](super::Events::tx_idle) and
+    /// [`tx_drained`](Self::tx_drained) come by interrupt. Off when the UART
+    /// is opened: a drain is then seen only when the UART is served.
+    ///
+    /// While on, TC stays pending after the last frame until a service
+    /// sees it: a handler bound to the USART's vector must reach this
+    /// `Uart` until then. Turn it off, or free the UART from inside the
+    /// lock that holds it, before moving it out of the handlers' reach.
+    pub fn set_tx_idle_interrupt(&mut self, on: bool) {
+        let unit = self.unit;
+        if let Some(tx) = self.tx.as_mut() {
+            tx.set_notify(unit, on);
+        }
     }
 
     /// Frames sent, DMA errors and timeouts since the UART was opened.

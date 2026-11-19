@@ -36,6 +36,14 @@ saw PE, and how many bytes the receive DMA had taken by then. Run B also puts US
 half-duplex [UART-021]: a frame it sends from PC6 must reach USART1 and come back
 into USART6's own ring, though USART1 sends nothing meanwhile, and a frame USART1
 sends into PC7, the RX pin half-duplex leaves unused, must not arrive.
+Every link of runs A and C also queues frames until `try_send` refuses one, at most
+`TX_FRAMES` plus the one already gone, and each must come back from `take_outcome`
+once, in order, as `Sent`, with nothing after [UARTDMA-013 UARTDMA-014]; then sends one
+16-byte frame with `set_tx_idle_interrupt` on and calls nothing on the transmit side:
+`tx_drained` must turn true by
+the USART's interrupt, and on a jumpered link only once every byte has come back
+[UART-023]. The log states how many bytes the receiver lacked when the transmit DMA
+finished.
 
 ## UART on the Nucleo-H753ZI
 
@@ -51,7 +59,8 @@ in half-duplex must put a frame on PC10 that reaches UART4 and comes back into i
 own ring, and back in full duplex its ring (on the unwired PB11) must stay silent.
 TX and RX swap [USART-V4-002]: run B runs USART3's PC10/PC11 loop
 swapped, which must still carry a line and a stream, and run Y swaps USART3 alone,
-so it sends on PB11 and UART4 on PC11 must hear nothing.
+so it sends on PB11 and UART4 on PC11 must hear nothing. The outcome and quiet-line checks run in
+every suite as on the F401; on `usart_v4` they prove UART-023 [UART-023].
 
 ## USB on the Nucleo-H753ZI
 
@@ -93,7 +102,7 @@ sampled between them [SPI-V3-001]. Pass: every check passes and the script exits
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run I stops its TIM3 generator mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the generator's period [AWG-007 API-002]. Run I then runs one pulse on TIM4 channel 1 (PB6), read by the same sampler [PWM-007]. Run R ends with its four lanes as one generator, TIM3 starting TIM2 through its trigger, and every lane of both must finish [AWG-005]. Then TIM1 leaves the sampler and paces one reader of port B on DMA2 stream 5 for that generator: the reader must register and `prepare_listen` return TIM1's rate [AWG-017]; every lane must name lane 0's reader, and after a play with a listen at the end each lane's samples must be that reader's 64 port words [AWG-014]; right after the play only TIM2 CH2's stream (DMA1 stream 6) may have TCIE set, and every lane's frame must still end [AWG-020]. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Every tick in run H, TIM10's on the `TIM1_UP_TIM10` vector it shares with TIM1 among them, is then served twice for one update with its vector held off, which must report true and then false, and once stopped has its vector pended by hand, as another timer sharing it would raise it: the handler must run and the tick must not count the pass [TIMER-006]. Run I stops its TIM3 generator mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the generator's period [AWG-007 API-002]. Run I then runs one pulse on TIM4 channel 1 (PB6), read by the same sampler [PWM-007]. Run R ends with its four lanes as one generator, TIM3 starting TIM2 through its trigger, and every lane of both must finish [AWG-005]. Then TIM1 leaves the sampler and paces one reader of port B on DMA2 stream 5 for that generator: the reader must register and `prepare_listen` return TIM1's rate [AWG-017]; every lane must name lane 0's reader, and after a play with a listen at the end each lane's samples must be that reader's 64 port words [AWG-014]; right after the play only TIM2 CH2's stream (DMA1 stream 6) may have TCIE set, and every lane's frame must still end [AWG-020]. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 

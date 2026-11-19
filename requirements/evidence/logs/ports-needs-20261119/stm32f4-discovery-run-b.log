@@ -1,0 +1,25 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F407VGTx target/thumbv7em-none-eabihf/release/usb-cdc`
+     [38;5;10m[1mFinished[0m in 3.51s
+[INFO ] run B, clocks: Clocks { sysclk: Hertz(168000000), cpu: Hertz(168000000), hclk: Hertz(168000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(168000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 5, overdrive: false } (usb_cdc src/bin/usb_cdc.rs:54)
+[INFO ] PASS USB CDC CN5: a freed port reopens from its token and pins, and the echo runs on it [API-002] (usb_cdc ../common/tests.rs:892)
+[INFO ] USB CDC CN5: VBUS on PA9: true (usb_cdc src/bin/usb_cdc.rs:108)
+[INFO ] PASS USB CDC CN5: the host configured the device (usb_cdc ../common/tests.rs:892)
+[INFO ] PASS USB CDC CN5: the host finished, every byte echoed but the marker (usb_cdc ../common/tests.rs:892)
+[INFO ] USB CDC CN5: configured after 329 ms, 70473 bytes received, 70473 echoed (usb_cdc src/bin/usb_cdc.rs:168)
+[INFO ] 168037064 CPU cycles per 1000 host frames, want 168000000 (usb_cdc ../common/tests.rs:2323)
+[INFO ] PASS USB CDC CN5: the CPU clock against the host's 1 kHz frames, within 0.1 % [RCC-001] (usb_cdc ../common/tests.rs:892)
+[INFO ] identity: uid [39, 00, 41, 00, 07, 51, 35, 32, 36, 34, 36, 36], rev 0x101f (usb_cdc ../common/tests.rs:2255)
+[INFO ] errata: ES0182 Rev 19, 89 affect rev 0x101f, 0 unreviewed (usb_cdc ../common/tests.rs:2231)
+[INFO ] all checks passed (usb_cdc ../common/tests.rs:2264)
+Firmware exited successfully
+PASS host: port usb-FerroHAL_FerroHAL_CDC_bench_f407vg-if00
+PASS host: 1 bytes echoed
+PASS host: 63 bytes echoed
+PASS host: 64 bytes echoed
+PASS host: 65 bytes echoed
+PASS host: 128 bytes echoed
+PASS host: 512 bytes echoed
+PASS host: 4096 bytes echoed
+PASS host: 64 KiB echoed at 302 KiB/s
