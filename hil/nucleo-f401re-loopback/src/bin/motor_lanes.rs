@@ -131,26 +131,22 @@ mod app {
         let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
         let count = (per_bit16 as usize * (BITS + 8)) / 16;
         let result = (|| -> Result<(), Fail> {
-            lane3
-                .arm(pwm3, &pwm::duties(patterns.0, period))
+            crate::pwm::arm(lane3, pwm3, &pwm::duties(patterns.0, period))
                 .map_err(|_| Fail::Count {
                     expected: BITS as u32,
                     got: 0,
                 })?;
-            lane4
-                .arm(pwm3, &pwm::duties(patterns.1, period))
+            crate::pwm::arm(lane4, pwm3, &pwm::duties(patterns.1, period))
                 .map_err(|_| Fail::Count {
                     expected: BITS as u32,
                     got: 0,
                 })?;
-            lane23
-                .arm(pwm2, &pwm::duties(patterns.2, period))
+            crate::pwm::arm(lane23, pwm2, &pwm::duties(patterns.2, period))
                 .map_err(|_| Fail::Count {
                     expected: BITS as u32,
                     got: 0,
                 })?;
-            lane22
-                .arm(pwm2, &pwm::duties(patterns.3, period))
+            crate::pwm::arm(lane22, pwm2, &pwm::duties(patterns.3, period))
                 .map_err(|_| Fail::Count {
                     expected: BITS as u32,
                     got: 0,
@@ -258,13 +254,29 @@ mod app {
         let [r3, r4, r23, r22] = core::mem::replace(cx.local.reads, [&mut [], &mut [], &mut [], &mut []]);
         let (Ok(mut lane3), Ok(mut lane4), Ok(mut lane23), Ok(mut lane22)) = (
             ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3)
-                .assemble_paced::<'B'>(&pwm3, core::mem::take(cx.local.lane3), r3),
+                .assemble_paced::<'B'>(&pwm3).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane3));
+            let _ = lane.lend_samples(r3);
+            lane
+        }),
             ferrohal_stm32::timer::LaneWiring::<_, 4, _, _>::new(run.ch4, run.lane4)
-                .assemble_paced::<'B'>(&pwm3, core::mem::take(cx.local.lane4), r4),
+                .assemble_paced::<'B'>(&pwm3).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane4));
+            let _ = lane.lend_samples(r4);
+            lane
+        }),
             ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch23, run.lane23)
-                .assemble_paced::<'B'>(&pwm2, core::mem::take(cx.local.lane23), r23),
+                .assemble_paced::<'B'>(&pwm2).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane23));
+            let _ = lane.lend_samples(r23);
+            lane
+        }),
             ferrohal_stm32::timer::LaneWiring::<_, 2, _, _>::new(run.ch22, run.lane22)
-                .assemble_paced::<'B'>(&pwm2, core::mem::take(cx.local.lane22), r22),
+                .assemble_paced::<'B'>(&pwm2).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane22));
+            let _ = lane.lend_samples(r22);
+            lane
+        }),
         ) else {
             defmt::panic!("motor lanes")
         };
@@ -379,7 +391,7 @@ mod app {
                                 [period / 4, period / 4, period / 2],
                                 [period / 2, period / 2, period / 4],
                             ];
-                            let loaded = (0..4).all(|lane| awg.load(lane, &frames[lane]).is_ok());
+                            let loaded = (0..4).all(|lane| crate::pwm::load(&mut awg, lane, &frames[lane]).is_ok());
                             awg.listen_on_end();
                             let played = loaded && awg.play().is_ok();
                             // Only the last lane (TIM2 CH2, DMA1 stream 6)

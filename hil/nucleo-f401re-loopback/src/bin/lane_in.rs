@@ -80,8 +80,15 @@ mod app {
         ) else {
             defmt::panic!("TIM1 or TIM3 PWM")
         };
-        let near = ferrohal_stm32::timer::ComplementaryLaneWiring::<_, 1, _, _>::new(run.pa7, run.near_lane).assemble_two_way::<'A'>(&tim1, core::mem::take(cx.local.near), core::mem::take(cx.local.reads));
-        let far = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pa6, run.far_lane).assemble(&tim3, core::mem::take(cx.local.far));
+        let near = ferrohal_stm32::timer::ComplementaryLaneWiring::<_, 1, _, _>::new(run.pa7, run.near_lane).assemble_two_way::<'A'>(&tim1).map(|mut lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.near));
+            let _ = lane.lend_samples(core::mem::take(cx.local.reads));
+            lane
+        });
+        let far = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pa6, run.far_lane).assemble(&tim3).map(|lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.far));
+            lane
+        });
         let (Ok(near), Ok(far)) = (near, far) else {
             defmt::panic!("the lanes")
         };

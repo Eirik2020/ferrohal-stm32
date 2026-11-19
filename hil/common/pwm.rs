@@ -9,13 +9,112 @@
 // Each run binary compiles this file and uses the checks it needs.
 #![allow(dead_code)]
 
-use cortex_m::peripheral::DWT;
+use core::cell::RefCell;
+
+use cortex_m::{
+    interrupt::{self, Mutex},
+    peripheral::DWT,
+};
 use ferrohal_stm32::{
     time::Hertz,
-    timer::{Awg, ChannelTimer, CompareLane, Lanes, Pwm, Sampler},
+    timer::{
+        Awg, ChannelTimer, CompareLane, Error as PwmError, Frame, FrameLimits, Lanes, Pwm, Sampler,
+    },
 };
 
 use crate::tests::{Fail, Report};
+
+/// The bench's frame memory: a lane keeps none of its own (FerroHAL
+/// ADR-013), so every play lends it a [`Frame`] written here. Copying the
+/// duties in is the bench's work, as a user's; the lane plays what it is lent
+/// in place. A bench seeds the pool once with [`lend_frames`], one block per
+/// lane it plays at a time.
+static FRAMES: Mutex<RefCell<[Option<&'static mut [u32]>; 16]>> =
+    Mutex::new(RefCell::new([const { None }; 16]));
+
+/// Adds `memory` to the bench's frame memory.
+pub fn lend_frames(memory: &'static mut [u32]) {
+    put(memory);
+}
+
+fn put(memory: &'static mut [u32]) {
+    interrupt::free(|cs| {
+        let mut pool = FRAMES.borrow(cs).borrow_mut();
+        if let Some(slot) = pool.iter_mut().find(|slot| slot.is_none()) {
+            *slot = Some(memory);
+        }
+    });
+}
+
+/// A block that holds `len` duties and the closing 0.
+fn pick(len: usize) -> Option<&'static mut [u32]> {
+    interrupt::free(|cs| {
+        let mut pool = FRAMES.borrow(cs).borrow_mut();
+        pool.iter_mut()
+            .find(|slot| slot.as_ref().is_some_and(|memory| memory.len() > len))
+            .and_then(Option::take)
+    })
+}
+
+/// `duties` written into a block of the pool and closed as a frame for
+/// `limits`, refusing as `Frame::new` does (or `TooLarge` with no block
+/// long enough), the block back in the pool.
+fn frame(duties: &[u32], limits: FrameLimits) -> Result<Frame, PwmError> {
+    let words = pick(duties.len()).ok_or(PwmError::TooLarge)?;
+    if let Some(head) = words.get_mut(..duties.len()) {
+        head.copy_from_slice(duties);
+    }
+    Frame::new(words, duties.len(), limits).map_err(|refused| {
+        let (error, words) = refused.into_inner();
+        put(words);
+        error
+    })
+}
+
+/// Returns a frame's memory to the pool, as a lane's `free` hands it back.
+pub fn reclaim(frame: Option<Frame>) {
+    if let Some(frame) = frame {
+        put(frame.into_words());
+    }
+}
+
+/// Plays `duties` on `lane` from the timer's next start, from the bench's
+/// frame memory; the lane's last frame goes back to it first.
+pub fn arm<T: ChannelTimer, const C: u8, W>(
+    lane: &mut CompareLane<T, C, W>,
+    pwm: &Pwm<T>,
+    duties: &[u32],
+) -> Result<(), PwmError> {
+    reclaim(lane.take_frame());
+    let frame = frame(duties, pwm.frame_limits())?;
+    lane.arm(pwm, frame).map_err(|refused| {
+        let (error, frame) = refused.into_inner();
+        reclaim(Some(frame));
+        error
+    })
+}
+
+/// Loads `duties` on the generator's `lane`, as [`arm`] does on a lane.
+pub fn load<A, B, LA, LB>(
+    awg: &mut Awg<A, B, LA, LB>,
+    lane: usize,
+    duties: &[u32],
+) -> Result<(), PwmError>
+where
+    A: ChannelTimer,
+    B: ChannelTimer,
+    LA: Lanes<A>,
+    LB: Lanes<B>,
+{
+    reclaim(awg.take_frame(lane));
+    let limits = awg.frame_limits(lane).ok_or(PwmError::Empty)?;
+    let frame = frame(duties, limits)?;
+    awg.load(lane, frame).map_err(|refused| {
+        let (error, frame) = refused.into_inner();
+        reclaim(Some(frame));
+        error
+    })
+}
 
 /// A 1 bit's pulse, as a fraction of the period, in sixteenths.
 const ONE: u32 = 12;
@@ -158,16 +257,12 @@ pub fn lane_pair_check<
     // Eight spare bits around the frame.
     let count = (per_bit16 as usize * (BITS + 8)) / 16;
     let result = (|| {
-        lanes
-            .0
-            .arm(pwm, &duties(patterns.0, period))
+        arm(lanes.0, pwm, &duties(patterns.0, period))
             .map_err(|_| Fail::Count {
                 expected: BITS as u32,
                 got: 0,
             })?;
-        lanes
-            .1
-            .arm(pwm, &duties(patterns.1, period))
+        arm(lanes.1, pwm, &duties(patterns.1, period))
             .map_err(|_| Fail::Count {
                 expected: BITS as u32,
                 got: 0,
@@ -258,7 +353,7 @@ pub fn top_to_zero_check<
             _ => period / 2,
         })
     };
-    let refused = lanes.0.arm(pwm, &wave(period - 1));
+    let refused = arm(lanes.0, pwm, &wave(period - 1));
     report.check(
         name,
         "a duty at the top followed by 0 is refused [PWM-009]",
@@ -279,8 +374,8 @@ pub fn top_to_zero_check<
     let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm.rate().0)) as u32;
     let count = (per_bit16 as usize * (BITS + 8)) / 16;
     let finished = (|| {
-        lanes.0.arm(pwm, &step).ok()?;
-        lanes.1.arm(pwm, &reference).ok()?;
+        arm(lanes.0, pwm, &step).ok()?;
+        arm(lanes.1, pwm, &reference).ok()?;
         pwm.stage((1 << (A - 1)) | (1 << (B - 1)));
         sampler.start(count).ok()?;
         pwm.start();
@@ -415,8 +510,8 @@ pub fn awg_check<
     };
 
     // Each lane its own waveform, from one start.
-    let loaded = awg.load(0, &duties(patterns.0, period)).is_ok()
-        && awg.load(1, &duties(patterns.1, period)).is_ok();
+    let loaded = load(awg, 0, &duties(patterns.0, period)).is_ok()
+        && load(awg, 1, &duties(patterns.1, period)).is_ok();
     let played = if loaded {
         play(awg, sampler, 0b11)
     } else {
@@ -436,7 +531,7 @@ pub fn awg_check<
 
     // Samples hold their duty for one period each: a ramp reads back rising.
     let ramp: [u32; 7] = core::array::from_fn(|i| period * (2 + 2 * i as u32) / 16);
-    let played = match awg.load(0, &ramp) {
+    let played = match load(awg, 0, &ramp) {
         Ok(()) => play(awg, sampler, 0b01),
         Err(_) => Err(Fail::Count {
             expected: 1,
@@ -475,7 +570,7 @@ pub fn awg_check<
     );
 
     // One lane alone leaves the other low.
-    let played = match awg.load(1, &duties(patterns.1, period)) {
+    let played = match load(awg, 1, &duties(patterns.1, period)) {
         Ok(()) => play(awg, sampler, 0b10),
         Err(_) => Err(Fail::Count {
             expected: 1,
@@ -503,10 +598,10 @@ pub fn awg_check<
 
     // Refusals, and a clean run after an abort.
     let nothing = awg.play().is_err();
-    let past_end = awg.load(2, &[1, 2]).is_err();
-    let _ = awg.load(0, &duties(patterns.0, period));
+    let past_end = load(awg, 2, &[1, 2]).is_err();
+    let _ = load(awg, 0, &duties(patterns.0, period));
     let started = awg.play().is_ok();
-    let while_playing = awg.load(1, &[1, 2]).is_err() && awg.play().is_err();
+    let while_playing = load(awg, 1, &[1, 2]).is_err() && awg.play().is_err();
     awg.abort();
     let idle = !awg.is_busy();
     report.check(
@@ -543,7 +638,7 @@ pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<
     let mut done = 0;
     for round in 0..ROUNDS {
         let samples = duties(0x8421u16.rotate_left(round), awg.period());
-        let loaded = (0..lanes).all(|lane| awg.load(lane, &samples).is_ok());
+        let loaded = (0..lanes).all(|lane| load(awg, lane, &samples).is_ok());
         if !loaded || awg.play().is_err() {
             awg.abort();
             continue;
@@ -613,8 +708,8 @@ pub fn awg_free_check<
     let mask = (1u16 << pins.0) | (1u16 << pins.1);
     // Every bit a 1, so each period is mostly high: a stop lands mid-pulse.
     let start = |awg: &mut Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>| {
-        awg.load(0, &duties(0xffff, period)).is_ok()
-            && awg.load(1, &duties(0xffff, period)).is_ok()
+        load(awg, 0, &duties(0xffff, period)).is_ok()
+            && load(awg, 1, &duties(0xffff, period)).is_ok()
             && awg.play().is_ok()
     };
     let quiet = |sampler: &mut Sampler<U, SU>, started: bool| -> Result<(), Fail> {
@@ -660,9 +755,14 @@ pub fn awg_free_check<
         "AWG: free mid-waveform holds both lines low [API-002]",
         quiet(sampler, started),
     );
-    // The lanes free to their wirings and buffers, the timer to its token.
-    let _ = lane_a.free(&pwm);
-    let _ = lane_b.free(&pwm);
+    // The lanes free to their wirings and lent frames, the timer to its
+    // token; the frames go back to the bench's memory.
+    for frame in [
+        lane_a.free(&pwm).ok().and_then(|(_, frame, _)| frame),
+        lane_b.free(&pwm).ok().and_then(|(_, frame, _)| frame),
+    ] {
+        reclaim(frame);
+    }
     let token = pwm.free();
     report.check(
         name,
@@ -748,7 +848,7 @@ fn play_one<T: ChannelTimer, const C: u8, WC>(
         expected: 1,
         got: 0,
     };
-    if awg.load(0, samples).is_err() || awg.play().is_err() {
+    if load(awg, 0, samples).is_err() || awg.play().is_err() {
         awg.abort();
         return Err(failed);
     }
@@ -1114,13 +1214,16 @@ pub fn awg_reader_round<N: ChannelTimer, const NC: u8, WNC, F: ChannelTimer, con
     let result = (|| -> Result<(), Fail> {
         seen.rate = near.prepare_listen(CAPTURE_RATE, CAPTURES).map_err(|_| short(4))?;
         seen.prepared_names_it = near.prepared() == Some((CAPTURE_RATE, CAPTURES, seen.rate));
-        if far.load(0, &answer).is_err() {
+        if load(far, 0, &answer).is_err() {
             return Err(short(5));
         }
         if at_end {
             near.listen_on_end();
         }
-        near.load_frame(0, frame).map_err(|_| short(6))?;
+        if let Err(refused) = near.load(0, frame) {
+            *frame_slot = Some(refused.into_parts().into_words());
+            return Err(short(6));
+        }
         near.play().map_err(|_| short(7))?;
         if !matches!(wait(budget, || near.on_interrupt().map(|r| r.map(|_| ()))), Some(Ok(()))) {
             return Err(short(8));

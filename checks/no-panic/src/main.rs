@@ -37,14 +37,10 @@ static mut RX2: [u8; 256] = [0; 256];
 static mut SPI_TX: [u8; 32] = [0; 32];
 static mut LANE: [u32; 20] = [0; 20];
 static mut LANE2: [u32; 20] = [0; 20];
-static mut COMPLEMENT: [u32; 20] = [0; 20];
-static mut TWO_WAY: [u32; 8] = [0; 8];
 static mut TWO_WAY_READS: [u16; 8] = [0; 8];
 static mut SAMPLES: [u16; 64] = [0; 64];
 static mut FRAME: [u32; 8] = [0; 8];
 static mut LENT: [u16; 8] = [0; 8];
-#[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
-static mut READER_LANE: [u32; 8] = [0; 8];
 #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
 static mut READER_READS: [u16; 8] = [0; 8];
 static mut SPI_RX: [u8; 32] = [0; 32];
@@ -453,8 +449,8 @@ fn retried_pwm<T: ferrohal_stm32::timer::ChannelTimer>(
 }
 
 /// A channel freed back to its pin; a lane assembled from that pin, its
-/// refusal retried; the lane freed to its wiring and buffer and assembled
-/// again from them.
+/// refusal retried; the lane freed to its wiring and lent frame and
+/// assembled again from the wiring.
 pub fn exercise_lane_free<T, P, const CD: u8, const SN: u8>(
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     timer: T,
@@ -470,25 +466,29 @@ pub fn exercise_lane_free<T, P, const CD: u8, const SN: u8>(
     let pwm = retried_pwm(rcc, timer, Hertz::khz(600));
     let channel = pwm.channel::<1, P>(pin);
     let pin = channel.free();
-    // SAFETY: as TX and RX in `main`.
-    let buffer = black_box(unsafe { &mut *addr_of_mut!(LANE2) });
-    let mut lane = match LaneWiring::<T, 1, P, _>::new(pin, stream).assemble(&pwm, buffer) {
+    let mut lane = match LaneWiring::<T, 1, P, _>::new(pin, stream).assemble(&pwm) {
         Ok(lane) => lane,
         Err(refused) => {
             keep(refused.error());
-            let (wiring, buffer) = refused.into_parts();
-            match wiring.assemble(&pwm, buffer) {
+            match refused.into_parts().assemble(&pwm) {
                 Ok(lane) => lane,
                 Err(_) => park(),
             }
         }
     };
-    keep(lane.arm(&pwm, black_box(&[1, 2, 3][..])));
+    // SAFETY: as TX and RX in `main`.
+    let words = black_box(unsafe { &mut *addr_of_mut!(LANE2) });
+    match ferrohal_stm32::timer::Frame::new(words, black_box(3), pwm.frame_limits()) {
+        Ok(frame) => keep(lane.arm(&pwm, frame).map_err(|r| r.error())),
+        Err(refused) => keep(refused.error()),
+    }
     lane.abort(&pwm);
-    let Ok((wiring, buffer, _)) = lane.free(&pwm) else {
+    let Ok((wiring, frame, samples)) = lane.free(&pwm) else {
         park()
     };
-    match wiring.assemble(&pwm, buffer) {
+    keep(frame.map(ferrohal_stm32::timer::Frame::into_words));
+    keep(samples);
+    match wiring.assemble(&pwm) {
         Ok(lane) => keep(lane.free(&pwm)),
         Err(_) => park(),
     }
@@ -528,14 +528,11 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
         ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
             pin, stream,
         );
-    // SAFETY: as TX and RX in `main`.
-    let buffer = black_box(unsafe { &mut *addr_of_mut!(LANE) });
-    let mut lane = match wiring.assemble(&pwm, buffer) {
+    let mut lane = match wiring.assemble(&pwm) {
         Ok(lane) => lane,
         Err(refused) => {
             keep(refused.error());
-            let (wiring, buffer) = refused.into_parts();
-            match wiring.assemble(&pwm, buffer) {
+            match refused.into_parts().assemble(&pwm) {
                 Ok(lane) => lane,
                 Err(_) => park(),
             }
@@ -543,7 +540,12 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     };
     lane.set_duty(&pwm, black_box(70));
     keep(lane.duty(&pwm));
-    keep(lane.arm(&pwm, black_box(&[1, 2, 3][..])));
+    // SAFETY: as TX and RX in `main`.
+    let words = black_box(unsafe { &mut *addr_of_mut!(LANE) });
+    match ferrohal_stm32::timer::Frame::new(words, black_box(3), pwm.frame_limits()) {
+        Ok(frame) => keep(lane.arm(&pwm, frame).map_err(|r| r.error())),
+        Err(refused) => keep(refused.error()),
+    }
     pwm.stage(black_box(1));
     pwm.start();
     keep(lane.on_interrupt());
@@ -561,7 +563,16 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     keep(awg.period());
     keep(awg.sample_rate());
     awg.set_outputs(black_box(true));
-    keep(awg.load(black_box(0), black_box(&[1, 2, 3][..])));
+    awg.abort();
+    keep(awg.take_frame(black_box(0)).map(ferrohal_stm32::timer::Frame::into_words));
+    // SAFETY: as TX and RX in `main`; the lane's frame came back above.
+    let words = black_box(unsafe { &mut *addr_of_mut!(LANE) });
+    if let Some(limits) = awg.frame_limits(0) {
+        match ferrohal_stm32::timer::Frame::new(words, black_box(3), limits) {
+            Ok(frame) => keep(awg.load(black_box(0), frame).map_err(|r| r.error())),
+            Err(refused) => keep(refused.error()),
+        }
+    }
     keep(awg.is_busy());
     keep(awg.play());
     keep(awg.on_interrupt());
@@ -604,24 +615,21 @@ pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
         ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
             pin, stream,
         );
-    // SAFETY: as TX and RX in `main`.
-    let (buffer, reads) = black_box(unsafe {
-        (
-            &mut *addr_of_mut!(TWO_WAY),
-            &mut *addr_of_mut!(TWO_WAY_READS),
-        )
-    });
-    let mut lane = match wiring.assemble_two_way::<PORT>(&pwm, buffer, reads) {
+    let mut lane = match wiring.assemble_two_way::<PORT>(&pwm) {
         Ok(lane) => lane,
         Err(refused) => {
             keep(refused.error());
-            let (wiring, (buffer, reads)) = refused.into_parts();
-            match wiring.assemble_two_way::<PORT>(&pwm, buffer, reads) {
+            match refused.into_parts().assemble_two_way::<PORT>(&pwm) {
                 Ok(lane) => lane,
                 Err(_) => park(),
             }
         }
     };
+    // A listen with nothing lent is refused; then one into lent memory.
+    keep(lane.prepare_listen(black_box(4)));
+    // SAFETY: as TX and RX in `main`.
+    let reads = black_box(unsafe { &mut *addr_of_mut!(TWO_WAY_READS) });
+    keep(lane.lend_samples(reads).map_err(|r| r.error()));
     keep(lane.prepare_listen(black_box(4)));
     keep(lane.listen(&pwm, black_box(10)));
     keep(lane.samples().len());
@@ -642,7 +650,7 @@ pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
     match ferrohal_stm32::timer::Frame::new(words, black_box(3), pwm.frame_limits()) {
         Ok(frame) => {
             keep(frame.duties().len());
-            match lane.arm_frame(&pwm, frame) {
+            match lane.arm(&pwm, frame) {
                 Ok(()) => {
                     lane.abort(&pwm);
                     keep(lane.take_frame().map(ferrohal_stm32::timer::Frame::into_words));
@@ -652,13 +660,8 @@ pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
         }
         Err(refused) => keep(refused.error()),
     }
-    // Samples memory lent and taken back.
-    // SAFETY: as TX and RX in `main`.
-    let lent = black_box(unsafe { &mut *addr_of_mut!(LENT) });
-    match lane.lend_samples(lent) {
-        Ok(()) => keep(lane.take_samples()),
-        Err(refused) => keep(refused.error()),
-    }
+    // Samples memory taken back.
+    keep(lane.take_samples());
     // A rate computed ahead, then applied, as the switch does.
     let mut pwm = pwm;
     keep(pwm.current_rate());
@@ -673,7 +676,7 @@ pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
     let words = black_box(unsafe { &mut *addr_of_mut!(FRAME) });
     if let Some(limits) = awg.frame_limits(0) {
         match ferrohal_stm32::timer::Frame::new(words, black_box(3), limits) {
-            Ok(frame) => keep(awg.load_frame(black_box(0), frame).map_err(|r| r.error())),
+            Ok(frame) => keep(awg.load(black_box(0), frame).map_err(|r| r.error())),
             Err(refused) => keep(refused.error()),
         }
     }
@@ -727,16 +730,12 @@ pub fn exercise_readers<T, P, U, const CD: u8, const SN: u8, SA, SC, SP, S2, S3,
         ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
             pin, stream,
         );
-    // SAFETY: as TX and RX in `main`.
-    let (buffer, reads) = black_box(unsafe {
-        (
-            &mut *addr_of_mut!(READER_LANE),
-            &mut *addr_of_mut!(READER_READS),
-        )
-    });
-    let Ok(lane) = wiring.assemble_two_way::<PORT>(&pwm, buffer, reads) else {
+    let Ok(mut lane) = wiring.assemble_two_way::<PORT>(&pwm) else {
         park()
     };
+    // SAFETY: as TX and RX in `main`.
+    let reads = black_box(unsafe { &mut *addr_of_mut!(READER_READS) });
+    keep(lane.lend_samples(reads).map_err(|r| r.error()));
     let mut awg = ferrohal_stm32::timer::Awg::single(pwm, (lane,));
     keep(awg.read_ahead_first_update::<_, PORT>(ahead).map_err(|r| r.error()));
     keep(awg.read_ahead_first_compare::<2, _, PORT>(compare).map_err(|r| r.error()));
@@ -777,14 +776,11 @@ pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
         N,
         ferrohal_stm32::dma::Stream<CD, SN>,
     >::new(pin, stream);
-    // SAFETY: as TX and RX in `main`.
-    let buffer = black_box(unsafe { &mut *addr_of_mut!(COMPLEMENT) });
-    let mut lane = match wiring.assemble(&mut pwm, buffer) {
+    let mut lane = match wiring.assemble(&pwm) {
         Ok(lane) => lane,
         Err(refused) => {
             keep(refused.error());
-            let (wiring, buffer) = refused.into_parts();
-            match wiring.assemble(&mut pwm, buffer) {
+            match refused.into_parts().assemble(&pwm) {
                 Ok(lane) => lane,
                 Err(_) => park(),
             }

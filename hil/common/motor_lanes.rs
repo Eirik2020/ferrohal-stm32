@@ -3,7 +3,7 @@
 //! and the streams feed their compare registers, and nothing reaches a motor pad. Whether a real frame is
 //! right on the wire is the Nucleo benches' check, whose samplers read it.
 
-use ferrohal_stm32::timer::{Awg, ChannelTimer, Lanes};
+use ferrohal_stm32::timer::{Awg, ChannelTimer, Frame, Lanes};
 
 use crate::usb_bench::{Link, Report};
 
@@ -22,6 +22,50 @@ fn frame(pattern: u16, period: u32) -> [u32; 16] {
             }
             / 16
     })
+}
+
+/// Frame memory, one block per lane: a lane keeps none of its own (FerroHAL
+/// ADR-013), so the suite writes each frame here and lends it.
+pub type Memory = [Option<&'static mut [u32]>; 4];
+
+/// Loads `duties` on `lane` from its block, the lane's last frame back first.
+fn load<T1, T2, L1, L2>(
+    awg: &mut Awg<T1, T2, L1, L2>,
+    memory: &mut Memory,
+    lane: usize,
+    duties: &[u32],
+) -> bool
+where
+    T1: ChannelTimer,
+    T2: ChannelTimer,
+    L1: Lanes<T1>,
+    L2: Lanes<T2>,
+{
+    let Some(slot) = memory.get_mut(lane) else {
+        return false;
+    };
+    if let Some(frame) = awg.take_frame(lane) {
+        *slot = Some(frame.into_words());
+    }
+    let (Some(words), Some(limits)) = (slot.take(), awg.frame_limits(lane)) else {
+        return false;
+    };
+    if let Some(head) = words.get_mut(..duties.len()) {
+        head.copy_from_slice(duties);
+    }
+    match Frame::new(words, duties.len(), limits) {
+        Ok(frame) => match awg.load(lane, frame) {
+            Ok(()) => true,
+            Err(refused) => {
+                *slot = Some(refused.into_parts().into_words());
+                false
+            }
+        },
+        Err(refused) => {
+            *slot = Some(refused.into_parts());
+            false
+        }
+    }
 }
 
 /// One service of every lane (`Awg::on_interrupt`): marks the lanes that
@@ -51,8 +95,12 @@ where
 
 /// The waveform generator over four lanes on two timers, however the board
 /// starts them, with its outputs as the board set them.
-pub fn suite<T1, T2, L1, L2>(report: &mut Report, link: &mut Link, awg: &mut Awg<T1, T2, L1, L2>)
-where
+pub fn suite<T1, T2, L1, L2>(
+    report: &mut Report,
+    link: &mut Link,
+    awg: &mut Awg<T1, T2, L1, L2>,
+    memory: &mut Memory,
+) where
     T1: ChannelTimer,
     T2: ChannelTimer,
     L1: Lanes<T1>,
@@ -64,10 +112,8 @@ where
         link.service();
         let first = frame(0x8421u16.rotate_left(round), awg.period());
         let second = frame(0x5AA5u16.rotate_left(round), awg.period());
-        let loaded = (0..awg.lanes()).all(|lane| {
-            awg.load(lane, if lane < 2 { &first } else { &second })
-                .is_ok()
-        });
+        let loaded = (0..awg.lanes())
+            .all(|lane| load(awg, memory, lane, if lane < 2 { &first } else { &second }));
         if !loaded || awg.play().is_err() {
             awg.abort();
             continue;

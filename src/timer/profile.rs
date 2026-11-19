@@ -207,11 +207,11 @@ static START_ON: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool
 
 #[cfg(feature = "profile-start")]
 pub static START_STAGES: [Stage; 10] = [
-    Stage::new("load: into arm_frame (Awg and the lanes' dispatch)"),
-    Stage::new("arm_frame: checks (busy, limits, DMA reach)"),
-    Stage::new("arm_frame: first duty, transfer built"),
-    Stage::new("arm_frame: dma.start"),
-    Stage::new("load: out of arm_frame and Awg::load_frame"),
+    Stage::new("load: into arm (Awg and the lanes' dispatch)"),
+    Stage::new("arm: checks (busy, limits, DMA reach)"),
+    Stage::new("arm: first duty, transfer built"),
+    Stage::new("arm: dma.start"),
+    Stage::new("load: out of arm and Awg::load"),
     Stage::new("play: arm readers ahead"),
     Stage::new("play: masks"),
     Stage::new("play: stage first timer"),

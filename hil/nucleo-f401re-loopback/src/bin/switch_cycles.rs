@@ -124,16 +124,31 @@ mod app {
         let [l3, l4, l23, l22] = core::mem::replace(cx.local.lanes, [&mut [], &mut [], &mut [], &mut []]);
         let [r3, r4, r23, r22] = core::mem::replace(cx.local.reads, [&mut [], &mut [], &mut [], &mut []]);
         let (Ok(lane3), Ok(lane4), Ok(lane23), Ok(lane22)) = (
-            LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3).assemble_paced::<'B'>(&pwm3, l3, r3),
-            LaneWiring::<_, 4, _, _>::new(run.ch4, run.lane4).assemble_paced::<'B'>(&pwm3, l4, r4),
-            LaneWiring::<_, 3, _, _>::new(run.ch23, run.lane23).assemble_paced::<'B'>(&pwm2, l23, r23),
-            LaneWiring::<_, 2, _, _>::new(run.ch22, run.lane22).assemble_paced::<'B'>(&pwm2, l22, r22),
+            LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3).assemble_paced::<'B'>(&pwm3).map(|mut lane| {
+            crate::pwm::lend_frames(l3);
+            let _ = lane.lend_samples(r3);
+            lane
+        }),
+            LaneWiring::<_, 4, _, _>::new(run.ch4, run.lane4).assemble_paced::<'B'>(&pwm3).map(|mut lane| {
+            crate::pwm::lend_frames(l4);
+            let _ = lane.lend_samples(r4);
+            lane
+        }),
+            LaneWiring::<_, 3, _, _>::new(run.ch23, run.lane23).assemble_paced::<'B'>(&pwm2).map(|mut lane| {
+            crate::pwm::lend_frames(l23);
+            let _ = lane.lend_samples(r23);
+            lane
+        }),
+            LaneWiring::<_, 2, _, _>::new(run.ch22, run.lane22).assemble_paced::<'B'>(&pwm2).map(|mut lane| {
+            crate::pwm::lend_frames(l22);
+            let _ = lane.lend_samples(r22);
+            lane
+        }),
         ) else {
             defmt::panic!("motor lanes")
         };
         pwm3.lead();
 
-        let mut pwm2 = pwm2;
         pwm2.follow(&pwm3);
         let mut awg = match Awg::linked(pwm3, pwm2, (lane3, lane4), (lane23, lane22)) {
             Ok(awg) => awg,
@@ -161,7 +176,7 @@ mod app {
         let budget = cpu.0 / 100;
         let mut whole = 0;
         for _ in 0..EXCHANGES {
-            let loaded = (0..4).all(|lane| awg.load(lane, &frames[lane]).is_ok());
+            let loaded = (0..4).all(|lane| crate::pwm::load(&mut awg, lane, &frames[lane]).is_ok());
             awg.listen_on_end();
             let played = loaded && awg.play().is_ok();
             // The switch runs inside the call that sees the last lane end,

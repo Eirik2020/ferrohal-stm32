@@ -214,19 +214,14 @@ impl<T, const C: u8, Pin, Stream> ComplementaryLaneWiring<T, C, Pin, Stream> {
     }
 }
 
-/// What a lane's assembly hands back when it refuses: the reason, the wiring,
-/// and the buffers it took, in a tuple with the wiring first.
-pub type LaneRefused<T, const C: u8, Pin, Stream, Buffers> =
-    crate::resource::Refused<ConfigError, (LaneWiring<T, C, Pin, Stream>, Buffers)>;
+/// What a lane's assembly hands back when it refuses: the reason and the
+/// wiring. A lane takes no memory at assembly, so there is none to give back.
+pub type LaneRefused<T, const C: u8, Pin, Stream> =
+    crate::resource::Refused<ConfigError, LaneWiring<T, C, Pin, Stream>>;
 
 /// As [`LaneRefused`], for a complementary lane's assembly.
-pub type ComplementaryLaneRefused<T, const C: u8, Pin, Stream, Buffers> =
-    crate::resource::Refused<ConfigError, (ComplementaryLaneWiring<T, C, Pin, Stream>, Buffers)>;
-
-/// What a two-way lane's assembly hands back when it refuses: the reason,
-/// the wiring, and both buffers it took.
-pub type TwoWayLaneRefused<T, const C: u8, Pin, Stream> =
-    LaneRefused<T, C, Pin, Stream, (&'static mut [u32], &'static mut [u16])>;
+pub type ComplementaryLaneRefused<T, const C: u8, Pin, Stream> =
+    crate::resource::Refused<ConfigError, ComplementaryLaneWiring<T, C, Pin, Stream>>;
 
 impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
     LaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>

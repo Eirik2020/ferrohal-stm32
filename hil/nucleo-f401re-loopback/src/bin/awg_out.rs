@@ -73,7 +73,10 @@ mod app {
         let Ok(pwm) = Pwm::new(&mut run.rcc, run.tim4, Hertz::khz(150)) else {
             defmt::panic!("TIM4 PWM")
         };
-        let lane = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pb6, run.lane).assemble(&pwm, core::mem::take(cx.local.lane));
+        let lane = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pb6, run.lane).assemble(&pwm).map(|lane| {
+            crate::pwm::lend_frames(core::mem::take(cx.local.lane));
+            lane
+        });
         let sampler = Sampler::new::<'C'>(
             &mut run.rcc,
             run.tim1,

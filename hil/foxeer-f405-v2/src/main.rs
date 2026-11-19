@@ -638,47 +638,43 @@ fn main() -> ! {
     // SAFETY: `main` runs once, and these are the only references.
     let [one, two, three, four] = unsafe { &mut *addr_of_mut!(LANES) };
     let [read1, read2, read3, read4] = unsafe { &mut *addr_of_mut!(LANE_READS) };
-    // A lane buffer in CCM RAM, which no DMA controller reaches (RM0090),
-    // refuses; the channel, stream and both buffers come back. The
-    // constructor checks the buffer before programming anything, so the CCM
-    // is never touched.
+    // A frame in CCM RAM, which no DMA controller reaches (RM0090), refuses
+    // at arm and comes back; the lane then carries the motor frames. A lane
+    // takes no memory at assembly: frames and reads are lent to it. `arm`
+    // checks the memory before programming anything, so the CCM is never
+    // touched.
     // SAFETY: the F405's CCM RAM at 0x10000000 is real memory, but no DMA
     // controller reaches it.
     let ccm: &'static mut [u32] =
         unsafe { core::slice::from_raw_parts_mut(0x1000_0000 as *mut u32, 16) };
-    let (lane_refused, wiring1, lane_read1) = match LaneWiring::<_, 1, _, _>::new(pad1, dma2.s1)
-        .assemble_two_way::<'A'>(&tim1, ccm, &mut read1[..])
-    {
-        Err(refused) => {
-            let refused_ccm = matches!(
-                refused.error(),
-                ferrohal_stm32::timer::ConfigError::Buffer(ferrohal_stm32::dma::BufferError::Unreachable)
-            );
-            let (wiring, (_ccm, read)) = refused.into_parts();
-            (refused_ccm, wiring, read)
-        }
-        Ok(_) => usb_bench::stop(line!()),
-    };
-    let (Ok(lane1), Ok(lane2), Ok(lane3), Ok(lane4)) = (
-        wiring1.assemble_two_way::<'A'>(&tim1, &mut one[..], lane_read1),
-        ComplementaryLaneWiring::<_, 3, _, _>::new(pad4, dma2.s6).assemble_two_way::<'B'>(
-            &tim1,
-            &mut two[..],
-            &mut read2[..],
-        ),
-        LaneWiring::<_, 3, _, _>::new(pad3, dma2.s2).assemble_two_way::<'C'>(
-            &tim8,
-            &mut three[..],
-            &mut read3[..],
-        ),
-        LaneWiring::<_, 4, _, _>::new(pad2, dma2.s7).assemble_two_way::<'C'>(
-            &tim8,
-            &mut four[..],
-            &mut read4[..],
-        ),
+    let (Ok(mut lane1), Ok(mut lane2), Ok(mut lane3), Ok(mut lane4)) = (
+        LaneWiring::<_, 1, _, _>::new(pad1, dma2.s1).assemble_two_way::<'A'>(&tim1),
+        ComplementaryLaneWiring::<_, 3, _, _>::new(pad4, dma2.s6).assemble_two_way::<'B'>(&tim1),
+        LaneWiring::<_, 3, _, _>::new(pad3, dma2.s2).assemble_two_way::<'C'>(&tim8),
+        LaneWiring::<_, 4, _, _>::new(pad2, dma2.s7).assemble_two_way::<'C'>(&tim8),
     ) else {
         usb_bench::stop(line!())
     };
+    let lent = lane1.lend_samples(&mut read1[..]).is_ok()
+        && lane2.lend_samples(&mut read2[..]).is_ok()
+        && lane3.lend_samples(&mut read3[..]).is_ok()
+        && lane4.lend_samples(&mut read4[..]).is_ok();
+    if !lent {
+        usb_bench::stop(line!())
+    }
+    let lane_refused = match ferrohal_stm32::timer::Frame::new(ccm, 3, tim1.frame_limits()) {
+        Ok(frame) => matches!(
+            lane1.arm(&tim1, frame).map_err(|refused| refused.error()),
+            Err(ferrohal_stm32::timer::Error::Dma)
+        ),
+        Err(_) => false,
+    };
+    let mut lane_memory: motor_lanes::Memory = [
+        Some(&mut one[..]),
+        Some(&mut two[..]),
+        Some(&mut three[..]),
+        Some(&mut four[..]),
+    ];
     // Assembly opens each channel's output; the motor pads lose theirs at
     // once, before any counter runs, as before.
     tim1.set_output::<1>(false);
@@ -775,7 +771,7 @@ fn main() -> ! {
             report,
             link,
             lane_refused,
-            "refusals: a CCM lane buffer no DMA reaches refuses, and the lane carried the frames [API-001]"
+            "refusals: a CCM frame no DMA reaches refuses, and the lane carried the frames [API-001]"
         );
         check!(
             report,
@@ -798,7 +794,7 @@ fn main() -> ! {
             timer_missed,
             timer_apart
         );
-        motor_lanes::suite(report, link, &mut motors);
+        motor_lanes::suite(report, link, &mut motors, &mut lane_memory);
         motor_lanes::listen_suite(report, link, &mut motors);
         let vdda = vdda_mv.unwrap_or(0);
         check!(

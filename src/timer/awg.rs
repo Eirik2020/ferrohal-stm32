@@ -17,9 +17,6 @@ pub trait Lanes<T: ChannelTimer> {
     const COUNT: usize;
     /// Lane `index`'s channel, numbered from 1. 0 past the last lane.
     fn channel(index: usize) -> u8;
-    /// Loads lane `index`; see [`CompareLane::arm`]. The timer handle goes
-    /// along, for the compare write.
-    fn arm(&mut self, index: usize, pwm: &Pwm<T>, samples: &[u32]) -> Result<(), Error>;
     /// Serves lane `index`'s stream; see [`CompareLane::on_interrupt`].
     fn serve(&mut self, index: usize) -> Option<Result<(), Error>>;
     /// Stops every lane, with its output at duty 0.
@@ -38,8 +35,8 @@ pub trait Lanes<T: ChannelTimer> {
     fn samples(&self, index: usize) -> &[u16];
     /// Sets every lane's duty to 0, its inactive level.
     fn park(&mut self, pwm: &Pwm<T>);
-    /// See [`CompareLane::arm_frame`].
-    fn arm_frame(
+    /// See [`CompareLane::arm`].
+    fn arm(
         &mut self,
         index: usize,
         pwm: &Pwm<T>,
@@ -71,9 +68,6 @@ impl<T: ChannelTimer> Lanes<T> for () {
     fn channel(_index: usize) -> u8 {
         0
     }
-    fn arm(&mut self, _index: usize, _pwm: &Pwm<T>, _samples: &[u32]) -> Result<(), Error> {
-        Err(Error::Empty)
-    }
     fn serve(&mut self, _index: usize) -> Option<Result<(), Error>> {
         None
     }
@@ -97,7 +91,7 @@ impl<T: ChannelTimer> Lanes<T> for () {
         &[]
     }
     fn park(&mut self, _pwm: &Pwm<T>) {}
-    fn arm_frame(
+    fn arm(
         &mut self,
         _index: usize,
         _pwm: &Pwm<T>,
@@ -138,12 +132,6 @@ macro_rules! lanes {
                 match index {
                     $($index => $C,)+
                     _ => 0,
-                }
-            }
-            fn arm(&mut self, index: usize, pwm: &Pwm<T>, samples: &[u32]) -> Result<(), Error> {
-                match index {
-                    $($index => self.$index.arm(pwm, samples),)+
-                    _ => Err(Error::Empty),
                 }
             }
             fn serve(&mut self, index: usize) -> Option<Result<(), Error>> {
@@ -197,9 +185,9 @@ macro_rules! lanes {
             fn park(&mut self, pwm: &Pwm<T>) {
                 $(pwm.set_duty::<$C>(0);)+
             }
-            fn arm_frame(&mut self, index: usize, pwm: &Pwm<T>, frame: Frame) -> Result<(), Refused<Error, Frame>> {
+            fn arm(&mut self, index: usize, pwm: &Pwm<T>, frame: Frame) -> Result<(), Refused<Error, Frame>> {
                 match index {
-                    $($index => self.$index.arm_frame(pwm, frame),)+
+                    $($index => self.$index.arm(pwm, frame),)+
                     _ => Err(Refused::new(Error::Empty, frame)),
                 }
             }
@@ -624,31 +612,6 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         self.state.active != 0 || self.state.ahead_active != 0
     }
 
-    /// Loads `samples` on `lane`, for the next [`play`](Self::play). The lane's
-    /// first sample is its duty from the first period on.
-    pub fn load(&mut self, lane: usize, samples: &[u32]) -> Result<(), Error> {
-        if self.state.started || self.state.listening {
-            return Err(Error::Busy);
-        }
-        // Idling timers would latch a loaded first duty before `play`.
-        if self.state.idling {
-            self.halt();
-        }
-        let bit = match u32::try_from(lane) {
-            Ok(index) if lane < self.lanes() => 1u8 << (index & 7),
-            _ => return Err(Error::Empty),
-        };
-        if lane < LA::COUNT {
-            self.first_lanes.arm(lane, &self.first, samples)?;
-        } else if let Some(second) = self.second.as_ref() {
-            self.second_lanes.arm(lane - LA::COUNT, second, samples)?;
-        } else {
-            return Err(Error::Empty);
-        }
-        self.state.active |= bit;
-        Ok(())
-    }
-
     /// Reads port `P` for the first timer's lanes on it
     /// through `stream`, paced by the first timer's update request, armed
     /// while the frame plays. Refused if a reader already reads that port on
@@ -865,10 +828,11 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
     }
 
-    /// Loads a checked frame on `lane`, played in
-    /// place, for the next [`play`](Self::play). As [`load`](Self::load),
-    /// refusing with the frame.
-    pub fn load_frame(&mut self, lane: usize, frame: Frame) -> Result<(), Refused<Error, Frame>> {
+    /// Loads a checked frame on `lane`, played in place, for the next
+    /// [`play`](Self::play): its first duty is the lane's from the first
+    /// period on. Refuses with the frame while a waveform plays or is read,
+    /// or for a lane the generator does not have.
+    pub fn load(&mut self, lane: usize, frame: Frame) -> Result<(), Refused<Error, Frame>> {
         super::start_mark!(begin);
         if self.state.started || self.state.listening {
             return Err(Refused::new(Error::Busy, frame));
@@ -882,10 +846,9 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             _ => return Err(Refused::new(Error::Empty, frame)),
         };
         if lane < LA::COUNT {
-            self.first_lanes.arm_frame(lane, &self.first, frame)?;
+            self.first_lanes.arm(lane, &self.first, frame)?;
         } else if let Some(second) = self.second.as_ref() {
-            self.second_lanes
-                .arm_frame(lane - LA::COUNT, second, frame)?;
+            self.second_lanes.arm(lane - LA::COUNT, second, frame)?;
         } else {
             return Err(Refused::new(Error::Empty, frame));
         }
