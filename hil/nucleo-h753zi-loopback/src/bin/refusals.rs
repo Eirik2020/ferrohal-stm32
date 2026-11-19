@@ -78,7 +78,6 @@ fn freed(
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [CEC])]
 mod app {
     use ferrohal_stm32::{
-        dma::BufferError,
         rcc::ClockError,
         uart::{
             Buffers as UartBuffers, Config as UartConfig, ConfigError as UartConfigError, Uart,
@@ -274,17 +273,27 @@ mod app {
             tests::echo(&mut loop6, b"refusal\n"),
         );
         // `free` stops the line and both streams, and hands the token back.
+        // It runs under the lock: the UART's tasks, which serve it from the
+        // slot, cannot run between taking it and turning its interrupts off,
+        // where an interrupt finding the slot empty would pend for ever.
         let handed_back = cx
             .shared
             .usart6
-            .lock(|slot| slot.take())
-            .is_some_and(|uart| uart.free().is_ok());
+            // Freed inside the lock: once out of the slot no handler can
+            // serve it, so an event landing before free masks the line
+            // would raise the vector with nothing to clear it.
+            .lock(|slot| slot.take().is_some_and(|uart| uart.free().is_ok()));
         report.check(
             "USART6 PC6->PC7",
-            "free leaves the USART off and both streams stopped [API-002]",
+            "free leaves the USART off, TCIE off and both streams stopped [API-002]",
             crate::freed(
                 handed_back,
-                !stm32_metapac::USART6.cr1().read().ue(),
+                {
+                    let cr1 = stm32_metapac::USART6.cr1().read();
+                    // TCIE off too: a drain left armed would raise the vector
+                    // for ever once nothing serves it.
+                    !cr1.ue() && !cr1.tcie()
+                },
                 &[(stm32_metapac::DMA1, 6), (stm32_metapac::DMA1, 1)],
             ),
         );
@@ -485,37 +494,45 @@ mod app {
             },
         );
 
-        // Lane: a buffer in DTCM, which no DMA controller reaches (the H7's
-        // DMA_RAM holds only the AXI and SRAM1 to 4 blocks), refuses; the
-        // channel and stream come back and play.
+        // Lane: a frame in DTCM, which no DMA controller reaches (the H7's
+        // DMA_RAM holds only the AXI and SRAM1 to 4 blocks), refuses at arm
+        // and comes back; the lane then plays from the bench's frame memory.
+        // A lane takes no memory at assembly.
         // SAFETY: the DTCM at 0x20010000 is real memory the CPU can use,
-        // but no DMA controller reaches it, and the constructor refuses
-        // the buffer before programming anything. Nothing else touches it.
+        // but no DMA controller reaches it, and `arm` refuses it before
+        // programming anything. Nothing else touches it.
         let dtcm: &'static mut [u32] =
             unsafe { core::slice::from_raw_parts_mut(0x2001_0000 as *mut u32, 16) };
-        let (mut lane3, lane_refusal) =
+        let mut lane3 =
             match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.pb0, run.lane3_stream)
-                .assemble(&pwm3, dtcm)
+                .assemble(&pwm3)
             {
-                Ok(_) => defmt::panic!("a DTCM buffer was accepted"),
-                Err(refused) => {
-                    let error = refused.error();
-                    let (wiring, _dtcm) = refused.into_parts();
-                    match wiring.assemble(&pwm3, lane3_buf) {
-                        Ok(lane) => (lane, Some(error)),
-                        Err(refused) => defmt::panic!("the TIM3 lane: {}", refused.error()),
-                    }
-                }
+                Ok(lane) => lane,
+                Err(refused) => defmt::panic!("the TIM3 lane: {}", refused.error()),
             };
+        crate::pwm::lend_frames(lane3_buf);
+        let dtcm_refusal = match ferrohal_stm32::timer::Frame::new({
+            let duty = pwm3.period() / 2;
+            for word in dtcm.iter_mut().take(3) {
+                *word = duty;
+            }
+            dtcm
+        }, 3, pwm3.frame_limits()) {
+            Ok(frame) => match lane3.arm(&pwm3, frame) {
+                Ok(()) => defmt::panic!("a DTCM frame was accepted"),
+                Err(refused) => Some(refused.error()),
+            },
+            Err(refused) => Some(refused.error()),
+        };
         report.check(
             "TIM3 CH3",
-            "a DTCM buffer refuses; the channel and stream come back [API-001]",
-            match lane_refusal {
-                Some(TimerConfigError::Buffer(BufferError::Unreachable)) => Ok(()),
-                Some(other) => Err(Fail::Timer(other)),
-                None => Err(Fail::Timer(TimerConfigError::Buffer(
-                    BufferError::Unreachable,
-                ))),
+            "a frame in DTCM refuses; it comes back and the lane plays on [API-001]",
+            match dtcm_refusal {
+                Some(ferrohal_stm32::timer::Error::Dma) => Ok(()),
+                _ => Err(Fail::Count {
+                    expected: 1,
+                    got: 0,
+                }),
             },
         );
 
@@ -557,8 +574,7 @@ mod app {
                 .map_err(Fail::Timer)?;
             let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(pwm3.rate().0)) as u32;
             let count = (per_bit16 as usize * (16 + 8)) / 16;
-            lane3
-                .arm(&pwm3, &pwm::duties(pattern, pwm3.period()))
+            crate::pwm::arm(&mut lane3, &pwm3, &pwm::duties(pattern, pwm3.period()))
                 .map_err(|_| Fail::Count {
                     expected: 16,
                     got: 0,
@@ -595,7 +611,10 @@ mod app {
         };
         let lane5 =
             match ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pa0, run.lane5_stream)
-                .assemble(&pwm5, lane5_buf)
+                .assemble(&pwm5).map(|lane| {
+            crate::pwm::lend_frames(lane5_buf);
+            lane
+        })
             {
                 Ok(lane) => lane,
                 Err(refused) => defmt::panic!("the TIM5 lane: {}", refused.error()),
@@ -623,7 +642,7 @@ mod app {
                 .set_rate(Hertz(awg.sample_rate().0 * 12))
                 .map_err(Fail::Timer)?;
             let period = awg.period();
-            if awg.load(0, &pwm::duties(awg_pattern, period)).is_err() {
+            if crate::pwm::load(&mut awg, 0, &pwm::duties(awg_pattern, period)).is_err() {
                 return Err(Fail::Count {
                     expected: 16,
                     got: 0,

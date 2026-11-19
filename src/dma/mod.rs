@@ -152,7 +152,10 @@ pub struct Stream<const D: u8, const N: u8> {
 }
 
 impl<const D: u8, const N: u8> Stream<D, N> {
-    const fn new() -> Self {
+    /// The token. Made only where one is owed: by `Dma::split`, once per
+    /// stream, and by `timer::ReaderStreams::take`, for a token a reader was
+    /// given and has been freed of.
+    pub(crate) const fn new() -> Self {
         Self { _private: () }
     }
 }
@@ -203,6 +206,8 @@ pub trait StreamInterrupt {
 /// }
 /// ```
 pub trait StreamInstance: crate::Sealed + claim::Claim {
+    /// The controller's number and the stream's on it.
+    const ID: (u8, u8);
     fn into_any(self) -> AnyStream;
 }
 
@@ -235,6 +240,7 @@ impl<const D: u8, const N: u8> StreamInstance for Stream<D, N>
 where
     Dma<D>: DmaInstance,
 {
+    const ID: (u8, u8) = (D, N);
     fn into_any(self) -> AnyStream {
         claim::channel(&self)
     }
@@ -559,6 +565,64 @@ impl AnyStream {
     /// peripheral-to-memory transfer). `peripheral` must be the data
     /// register of the peripheral `request` selects on this stream.
     pub(crate) unsafe fn start(&mut self, transfer: &Transfer) -> Result<(), StartError> {
+        let prepared = Prepared::new(transfer)?;
+        // SAFETY: the caller's contract, unchanged.
+        unsafe { self.start_prepared(&prepared) }
+    }
+
+    /// Starts a transfer from register words computed beforehand
+    /// ([`Prepared::new`]): the flags cleared, five stores, the enable. No
+    /// arithmetic, so a driver can switch a stream in a fixed, short time,
+    /// as RM0090 10.3.17 (p. 324) and RM0433 15.3.19 (p. 656) allow once EN
+    /// reads 0.
+    ///
+    /// # Safety
+    ///
+    /// As [`start`](Self::start), for the transfer `prepared` was made from.
+    pub(crate) unsafe fn start_prepared(&mut self, prepared: &Prepared) -> Result<(), StartError> {
+        if self.is_running() {
+            return Err(StartError::Busy);
+        }
+        let st = self.regs.st(stream_index(self.index));
+        self.clear_flags(Flags::ALL);
+        // No synchronisation, no event generation: the request passes
+        // straight through to the stream.
+        #[cfg(feature = "dma_v1")]
+        self.mux
+            .ccr(usize::from(self.mux_channel & 15))
+            .write(|w| w.set_dmareq_id(prepared.request));
+        st.par().write_value(prepared.par);
+        st.m0ar().write_value(prepared.m0ar);
+        st.ndtr()
+            .write_value(stm32_metapac::dma::regs::Ndtr(u32::from(prepared.ndt)));
+        st.fcr().write_value(prepared.fcr);
+        st.cr().write_value(prepared.cr);
+        // Everything the CPU wrote to the buffers lands before DMA owns them.
+        fence(Ordering::SeqCst);
+        let mut cr = prepared.cr;
+        cr.set_en(true);
+        st.cr().write_value(cr);
+        Ok(())
+    }
+}
+
+/// A transfer's register words, computed once by [`Prepared::new`] and
+/// started any number of times by [`AnyStream::start_prepared`].
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Prepared {
+    #[cfg(feature = "dma_v1")]
+    request: u8,
+    par: u32,
+    m0ar: u32,
+    ndt: u16,
+    fcr: stm32_metapac::dma::regs::Fcr,
+    cr: stm32_metapac::dma::regs::Cr,
+}
+
+impl Prepared {
+    /// The register words for `transfer`, EN clear. Refuses what `start`
+    /// refuses: a length of 0 or a request out of range.
+    pub(crate) fn new(transfer: &Transfer) -> Result<Self, StartError> {
         #[cfg(feature = "dma_v2")]
         let request_valid = transfer.request <= 7;
         #[cfg(feature = "dma_v1")]
@@ -566,56 +630,72 @@ impl AnyStream {
         if transfer.len == 0 || !request_valid {
             return Err(StartError::Invalid);
         }
-        if self.is_running() {
-            return Err(StartError::Busy);
-        }
-        let st = self.regs.st(stream_index(self.index));
-        self.clear_flags(Flags::ALL);
+        Ok(Self::words(transfer))
+    }
 
-        // No synchronisation, no event generation: the request passes
-        // straight through to the stream.
-        #[cfg(feature = "dma_v1")]
-        self.mux
-            .ccr(usize::from(self.mux_channel & 15))
-            .write(|w| w.set_dmareq_id(transfer.request));
+    /// The register words of a word-sized, memory-to-peripheral transfer
+    /// at very high priority for `request` into `peripheral`, with no
+    /// memory yet: a compare lane's send, prepared once at assembly so a
+    /// start only sets the memory ([`with_memory`](Self::with_memory)).
+    /// `request` comes from a glue trait, so it is valid by construction.
+    pub(crate) fn send_words(request: u8, peripheral: u32) -> Self {
+        Self::words(&Transfer::one_shot(
+            request,
+            Direction::MemoryToPeripheral,
+            peripheral,
+            0,
+            1,
+            WordSize::Word,
+            Priority::VeryHigh,
+        ))
+    }
 
-        st.par().write_value(transfer.peripheral);
-        st.m0ar().write_value(transfer.memory);
-        st.ndtr().write(|w| w.set_ndt(transfer.len));
+    /// These words with `len` items from `memory`. `len` must not be 0,
+    /// which the caller's own check guarantees (a lane's `Frame`).
+    pub(crate) const fn with_memory(mut self, memory: u32, len: u16) -> Self {
+        self.m0ar = memory;
+        self.ndt = len;
+        self
+    }
+
+    fn words(transfer: &Transfer) -> Self {
         // Direct mode: each word goes straight through, so peripheral and
         // memory word sizes match (one `size` sets both).
-        st.fcr().write(|w| {
-            w.set_dmdis(Dmdis::ENABLED);
-            w.set_feie(transfer.interrupts.fifo_error);
+        let mut fcr = stm32_metapac::dma::regs::Fcr(0);
+        fcr.set_dmdis(Dmdis::ENABLED);
+        fcr.set_feie(transfer.interrupts.fifo_error);
+        let mut cr = stm32_metapac::dma::regs::Cr(0);
+        #[cfg(feature = "dma_v2")]
+        cr.set_chsel(transfer.request);
+        #[cfg(feature = "dma_v1")]
+        cr.set_trbuff(transfer.bufferable);
+        cr.set_dir(match transfer.direction {
+            Direction::PeripheralToMemory => Dir::PERIPHERAL_TO_MEMORY,
+            Direction::MemoryToPeripheral => Dir::MEMORY_TO_PERIPHERAL,
         });
-        st.cr().write(|w| {
-            #[cfg(feature = "dma_v2")]
-            w.set_chsel(transfer.request);
+        cr.set_psize(transfer.size.bits());
+        cr.set_msize(transfer.size.bits());
+        cr.set_minc(transfer.memory_increment);
+        cr.set_circ(transfer.circular);
+        cr.set_pl(match transfer.priority {
+            Priority::Low => Pl::LOW,
+            Priority::Medium => Pl::MEDIUM,
+            Priority::High => Pl::HIGH,
+            Priority::VeryHigh => Pl::VERY_HIGH,
+        });
+        cr.set_tcie(transfer.interrupts.complete);
+        cr.set_htie(transfer.interrupts.half);
+        cr.set_teie(transfer.interrupts.error);
+        cr.set_dmeie(transfer.interrupts.error);
+        Self {
             #[cfg(feature = "dma_v1")]
-            w.set_trbuff(transfer.bufferable);
-            w.set_dir(match transfer.direction {
-                Direction::PeripheralToMemory => Dir::PERIPHERAL_TO_MEMORY,
-                Direction::MemoryToPeripheral => Dir::MEMORY_TO_PERIPHERAL,
-            });
-            w.set_psize(transfer.size.bits());
-            w.set_msize(transfer.size.bits());
-            w.set_minc(transfer.memory_increment);
-            w.set_circ(transfer.circular);
-            w.set_pl(match transfer.priority {
-                Priority::Low => Pl::LOW,
-                Priority::Medium => Pl::MEDIUM,
-                Priority::High => Pl::HIGH,
-                Priority::VeryHigh => Pl::VERY_HIGH,
-            });
-            w.set_tcie(transfer.interrupts.complete);
-            w.set_htie(transfer.interrupts.half);
-            w.set_teie(transfer.interrupts.error);
-            w.set_dmeie(transfer.interrupts.error);
-        });
-        // Everything the CPU wrote to the buffers lands before DMA owns them.
-        fence(Ordering::SeqCst);
-        st.cr().modify(|w| w.set_en(true));
-        Ok(())
+            request: transfer.request,
+            par: transfer.peripheral,
+            m0ar: transfer.memory,
+            ndt: transfer.len,
+            fcr,
+            cr,
+        }
     }
 }
 

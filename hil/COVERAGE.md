@@ -25,8 +25,8 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 |---|---|---|
 | IP `adc_v2` | HIL | nucleo-f401re-loopback |
 | IP `adc_v4` | HIL | nucleo-h753zi-loopback |
-| IP `dma_v1` | HIL | nucleo-h753zi-loopback |
-| IP `dma_v2` | HIL | nucleo-f401re-loopback |
+| IP `dma_v1` | – |  |
+| IP `dma_v2` | – |  |
 | IP `exti_h7` | HIL | nucleo-h753zi-loopback |
 | IP `exti_v1` | HIL | nucleo-f401re-loopback |
 | IP `i2c_v1` | HIL | nucleo-f401re-loopback |
@@ -38,11 +38,11 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `spi_v2_i2s` | – | nucleo-f401re-loopback |
 | IP `spi_v3_i2s` | – |  |
 | IP `spi_v4_i2s` | – | nucleo-h753zi-loopback |
-| IP `timer_v1` | HIL | nucleo-f401re-loopback, stm32f4-discovery |
-| IP `timer_v3` | HIL | nucleo-h753zi-loopback |
-| IP `usart_v2` | HIL | nucleo-f401re-loopback |
+| IP `timer_v1` | – | nucleo-f401re-loopback, stm32f4-discovery |
+| IP `timer_v3` | – | nucleo-h753zi-loopback |
+| IP `usart_v2` | – | nucleo-f401re-loopback |
 | IP `usart_v3` | – |  |
-| IP `usart_v4` | HIL | nucleo-h753zi-loopback |
+| IP `usart_v4` | – | nucleo-h753zi-loopback |
 | die `0x413` (glue probe) | HIL | stm32f4-discovery |
 | die `0x419` (glue probe) | – |  |
 | die `0x421` (glue probe) | – |  |
@@ -84,7 +84,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | `rcc_f4` | F401, F405 | F401: every run, HSE bypass | Foxeer: HSE crystal to 168 MHz | HSE crystal |
 | `rcc_h7_rm0433` | H743, H753 | H753: every run, HSE bypass; I (voltage scale) | Lucid: HSE crystal to 400 MHz | HSE crystal |
 | `sdmmc_v2` | H743, H753 | – | Lucid: a card (SDMMC-004), the empty slot (SDMMC-003) | error paths |
-| USB, F4 OTG_FS core | F401, F405, F407 | Discovery: B (CDC echo on CN5) | Foxeer: CDC echo | – |
+| USB, F4 OTG_FS core | F401, F405, F407 | Discovery: B (CDC echo on CN5), E (deferred vector under its lock) | Foxeer: CDC echo | – |
 | USB, H7 OTG core at FS | H743, H753 | H753: M (CN13) | Lucid: CDC echo | – |
 
 ## Shared engines and system
@@ -99,7 +99,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | Caches and MPU shapes (H7) | H753: X; A to E with caches on | the SPI runs with caches on |
 | Constructor refusals | F401: V; H753: U; both smoke benches | – |
 | Injected faults | F401: W; H753: W, T (streams that will not stop, `fault-injection`) | – |
-| No reachable panic, glue against metapac, host tests | `checks/run.sh`, no board | the `usb` dependency (a listed G2 exception) |
+| No reachable panic, glue against metapac, host tests | `checks/run.sh`, no board | the `usb-device` stack above the bus (the firmware's) |
 
 ## Chip glue
 

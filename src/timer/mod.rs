@@ -21,7 +21,7 @@
 //! A timer's counter clock is its bus's timer clock (`Clocks::timer`): twice
 //! the bus clock when the bus prescaler divides.
 //!
-//! Requirements: TIMER-001, TIMER-002, TIMER-003, TIMER-004, TIMER-005, API-002, RESOURCE-002
+//! Requirements: TIMER-001, TIMER-002, TIMER-003, TIMER-004, TIMER-005, TIMER-006, API-002, RESOURCE-002
 
 use stm32_metapac::timer::{
     TimCore, TimGp32,
@@ -30,10 +30,40 @@ use stm32_metapac::timer::{
 };
 
 mod pwm;
-pub use pwm::{CompareLane, Error, Pwm, PwmChannel, Sampler, nearest};
+pub use pwm::{
+    CompareLane, Error, Frame, FrameLimits, PreparedRate, Pwm, PwmChannel, Sampler, lane_ccer_bits,
+    nearest,
+};
 
 mod awg;
-pub use awg::{Awg, Lanes, recover};
+#[cfg(feature = "profile-listen")]
+pub mod profile;
+/// PROFILING ONLY: a cycle stamp with `profile-listen`, nothing without.
+macro_rules! stamp {
+    ($slot:expr) => {
+        #[cfg(feature = "profile-listen")]
+        super::profile::stamp($slot);
+    };
+}
+pub use awg::{Awg, Lanes, ReaderStreams, recover};
+pub(crate) use stamp;
+
+/// PROFILING ONLY: a mark of an exchange's start (`profile-start`).
+macro_rules! start_mark {
+    (begin) => {
+        #[cfg(feature = "profile-start")]
+        super::profile::start_begin();
+    };
+    (end) => {
+        #[cfg(feature = "profile-start")]
+        super::profile::start_end();
+    };
+    ($stage:expr) => {
+        #[cfg(feature = "profile-start")]
+        super::profile::start_mark($stage);
+    };
+}
+pub(crate) use start_mark;
 
 use crate::{
     chip::Interrupt,
@@ -184,19 +214,14 @@ impl<T, const C: u8, Pin, Stream> ComplementaryLaneWiring<T, C, Pin, Stream> {
     }
 }
 
-/// What a lane's assembly hands back when it refuses: the reason, the wiring,
-/// and the buffers it took, in a tuple with the wiring first.
-pub type LaneRefused<T, const C: u8, Pin, Stream, Buffers> =
-    crate::resource::Refused<ConfigError, (LaneWiring<T, C, Pin, Stream>, Buffers)>;
+/// What a lane's assembly hands back when it refuses: the reason and the
+/// wiring. A lane takes no memory at assembly, so there is none to give back.
+pub type LaneRefused<T, const C: u8, Pin, Stream> =
+    crate::resource::Refused<ConfigError, LaneWiring<T, C, Pin, Stream>>;
 
 /// As [`LaneRefused`], for a complementary lane's assembly.
-pub type ComplementaryLaneRefused<T, const C: u8, Pin, Stream, Buffers> =
-    crate::resource::Refused<ConfigError, (ComplementaryLaneWiring<T, C, Pin, Stream>, Buffers)>;
-
-/// What a two-way lane's assembly hands back when it refuses: the reason,
-/// the wiring, and both buffers it took.
-pub type TwoWayLaneRefused<T, const C: u8, Pin, Stream> =
-    LaneRefused<T, C, Pin, Stream, (&'static mut [u32], &'static mut [u16])>;
+pub type ComplementaryLaneRefused<T, const C: u8, Pin, Stream> =
+    crate::resource::Refused<ConfigError, ComplementaryLaneWiring<T, C, Pin, Stream>>;
 
 impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
     LaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>

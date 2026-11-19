@@ -41,7 +41,7 @@ static FERRO_IDENT: [u8; ident::LEN] = ident::block(concat!(
 ));
 
 use ferrohal_stm32::{
-    chip::{Peripherals, TIM1, TIM2, TIM8, UART4, UART5, USART3, USB_OTG_FS},
+    chip::{Peripherals, TIM1, TIM2, TIM3, TIM5, TIM8, UART4, UART5, USART3, USB_OTG_FS},
     dma::Stream,
     gpio::{Alternate, Ctrl, Output, Pin, Speed},
     rcc::{
@@ -217,3 +217,29 @@ pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
     })
 }
 
+
+/// Run F: die 0x413's timer trigger routes (RM0090 table 98): TIM8 and TIM3
+/// from TIM1, TIM2 and TIM5 from TIM3. Counters only, no pins.
+pub struct RunF {
+    pub rcc: Rcc,
+    pub tim1: TIM1,
+    pub tim2: TIM2,
+    pub tim3: TIM3,
+    pub tim5: TIM5,
+    pub tim8: TIM8,
+}
+
+pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
+    let rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
+    Ok(RunF {
+        tim1: p.TIM1,
+        tim2: p.TIM2,
+        tim3: p.TIM3,
+        tim5: p.TIM5,
+        tim8: p.TIM8,
+        rcc,
+    })
+}

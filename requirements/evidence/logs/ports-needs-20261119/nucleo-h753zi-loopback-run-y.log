@@ -1,0 +1,16 @@
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/uart-cross`
+     [38;5;10m[1mFinished[0m in 3.67s
+[INFO ] run Y, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (uart_cross src/bin/uart_cross.rs:75)
+[INFO ] PASS USART3 PC10: vectors enabled [UART-003 RESOURCE-001] (uart_cross ../common/tests.rs:904)
+[INFO ] PASS UART4 PC11: vectors enabled [UART-003 RESOURCE-001] (uart_cross ../common/tests.rs:904)
+[INFO ] PASS USART3 PC10 -> UART4 PC11: a line crosses from one UART to the other [UART-002] (uart_cross ../common/tests.rs:904)
+[INFO ] PASS USART3 PC10 -> UART4 PC11: even into odd reported as parity error [UART-014] (uart_cross ../common/tests.rs:904)
+[INFO ] PASS USART3 PC10 -> UART4 PC11: half baud rate reported as framing error [UART-005 UART-017] (uart_cross ../common/tests.rs:904)
+[INFO ] PASS USART3 PC10 -> UART4 PC11: half-duplex USART3: a frame out reaches UART4 and USART3's own ring; in full duplex its ring stays silent [UART-021] (uart_cross ../common/tests.rs:904)
+[INFO ] PASS USART3 PC10 -> UART4 PC11: a swapped USART3 sends on PB11, so UART4 hears nothing [USART-V4-002] (uart_cross ../common/tests.rs:904)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (uart_cross ../common/tests.rs:2255)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 0 unreviewed (uart_cross ../common/tests.rs:2231)
+[INFO ] all checks passed (uart_cross ../common/tests.rs:2264)
+Firmware exited successfully

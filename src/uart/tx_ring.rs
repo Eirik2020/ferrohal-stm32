@@ -6,7 +6,10 @@
 //! transfer. A frame that does not fit before the ring's end goes to its
 //! start, leaving the tail unused until the frames before it are gone.
 //!
-//! Requirements: UARTDMA-006, UARTDMA-007, UARTDMA-010
+//! The outcome queue gives each finished frame's outcome back, in the order
+//! the frames were queued.
+//!
+//! Requirements: UARTDMA-006, UARTDMA-007, UARTDMA-010, UARTDMA-015
 
 /// Where a frame of `len` bytes goes, given where the last one ended
 /// (`write`) and where the oldest queued one starts (`oldest`, `None` with
@@ -113,6 +116,76 @@ impl FrameQueue {
     /// Drops every frame.
     pub fn clear(&mut self) {
         self.tail = self.head;
+    }
+}
+
+/// What became of one transmit frame, given back by
+/// [`Uart::take_outcome`](crate::uart::Uart::take_outcome) in the order
+/// the frames were queued.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum TxOutcome {
+    /// The transmit DMA finished the frame: every byte is in the USART. The
+    /// line goes quiet up to two characters later, which
+    /// [`Events::tx_idle`](crate::uart::Events::tx_idle) reports.
+    Sent,
+    /// A DMA error ended the frame; part of it may have gone out.
+    Failed,
+    /// The queue was dropped, by a timeout or a stream that would not run,
+    /// before the frame finished; part of it may have gone out.
+    Dropped,
+    /// This many older outcomes were overwritten before they were taken,
+    /// in their place: the frames they stood for are the oldest not yet
+    /// accounted for.
+    Lost(u32),
+}
+
+/// The outcomes of finished frames, oldest first, waiting to be taken. It
+/// holds [`FRAMES`]; a further outcome overwrites the oldest and counts it
+/// lost, so transmission never waits on a caller that does not take them,
+/// and the loss is reported in its place.
+pub(crate) struct Outcomes {
+    slots: [TxOutcome; FRAMES],
+    head: u32,
+    tail: u32,
+    lost: u32,
+}
+
+impl Outcomes {
+    pub const fn new() -> Self {
+        Self {
+            slots: [TxOutcome::Sent; FRAMES],
+            head: 0,
+            tail: 0,
+            lost: 0,
+        }
+    }
+
+    pub fn push(&mut self, outcome: TxOutcome) {
+        if self.head.wrapping_sub(self.tail) as usize >= FRAMES {
+            self.tail = self.tail.wrapping_add(1);
+            self.lost = self.lost.saturating_add(1);
+        }
+        if let Some(slot) = self.slots.get_mut(self.head as usize % FRAMES) {
+            *slot = outcome;
+        }
+        self.head = self.head.wrapping_add(1);
+    }
+
+    /// The oldest outcome not yet taken: a loss first, since the lost
+    /// outcomes are older than every one still held.
+    pub fn take(&mut self) -> Option<TxOutcome> {
+        if self.lost != 0 {
+            let lost = self.lost;
+            self.lost = 0;
+            return Some(TxOutcome::Lost(lost));
+        }
+        if self.head == self.tail {
+            return None;
+        }
+        let outcome = self.slots.get(self.tail as usize % FRAMES).copied();
+        self.tail = self.tail.wrapping_add(1);
+        outcome
     }
 }
 
@@ -224,5 +297,51 @@ mod tests {
         assert_eq!(queue.peek(), Some(frame));
         queue.clear();
         assert_eq!(queue.peek(), None);
+    }
+
+    #[test]
+    fn outcomes_come_back_once_in_order() {
+        let mut outcomes = Outcomes::new();
+        assert_eq!(outcomes.take(), None);
+        outcomes.push(TxOutcome::Sent);
+        outcomes.push(TxOutcome::Failed);
+        outcomes.push(TxOutcome::Dropped);
+        assert_eq!(outcomes.take(), Some(TxOutcome::Sent));
+        assert_eq!(outcomes.take(), Some(TxOutcome::Failed));
+        assert_eq!(outcomes.take(), Some(TxOutcome::Dropped));
+        assert_eq!(outcomes.take(), None, "each is given back once");
+    }
+
+    #[test]
+    fn an_overwritten_outcome_is_counted_in_its_place() {
+        let mut outcomes = Outcomes::new();
+        // Three more than it holds: the three oldest are overwritten.
+        for i in 0..FRAMES + 3 {
+            outcomes.push(if i % 2 == 0 {
+                TxOutcome::Sent
+            } else {
+                TxOutcome::Failed
+            });
+        }
+        assert_eq!(outcomes.take(), Some(TxOutcome::Lost(3)));
+        for i in 3..FRAMES + 3 {
+            let expected = if i % 2 == 0 {
+                TxOutcome::Sent
+            } else {
+                TxOutcome::Failed
+            };
+            assert_eq!(outcomes.take(), Some(expected), "outcome {i}");
+        }
+        assert_eq!(outcomes.take(), None);
+    }
+
+    #[test]
+    fn the_exported_depth_is_the_queue_s() {
+        assert_eq!(crate::uart::TX_FRAMES, FRAMES);
+        let mut queue = FrameQueue::new();
+        for _ in 0..crate::uart::TX_FRAMES {
+            assert!(queue.push(Frame { offset: 0, len: 1 }));
+        }
+        assert!(!queue.push(Frame { offset: 0, len: 1 }));
     }
 }

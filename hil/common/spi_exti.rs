@@ -357,6 +357,44 @@ pub fn spi_suite<U: spi::Parts, B: Mutex<T = Bus<U>>, const P: char, const N: u8
 
     report.check(
         name,
+        "settings change between transfers, refused during one [SPI-011]",
+        (|| {
+            let slow = slowest(bus)?;
+            set_config(bus, &slow)?;
+            let sent: [u8; 64] = pattern(8);
+            // While a transfer runs, a change is refused and the transfer
+            // ends at the settings it started with.
+            let during = bus.lock(|b| {
+                b.done = None;
+                let s = b.spi.as_mut()?;
+                s.start(&sent).ok()?;
+                Some(s.set_config(config))
+            });
+            wait_done(bus, cpu.0)?;
+            match during {
+                Some(Err(spi::ConfigError::Busy)) => {}
+                Some(Err(other)) => return Err(Fail::SpiConfig(other)),
+                _ => return Err(Fail::SpiNotRefused(None)),
+            }
+            // Between transfers, each change holds for the next transfer:
+            // its time on the wire fits the SCK just set.
+            for setting in [*config, slow, *config, slow] {
+                set_config(bus, &setting)?;
+                let wire = wire_cycles(bus, cpu, sent.len());
+                let start = DWT::cycle_count();
+                by_interrupt(bus, cpu, &sent)?;
+                let cycles = DWT::cycle_count().wrapping_sub(start);
+                let (min, max) = (wire - wire / 50, wire + wire / 3 + 20_000);
+                if !(min..=max).contains(&cycles) {
+                    return Err(Fail::Time { cycles, min, max });
+                }
+            }
+            set_config(bus, config).map(|_| ())
+        })(),
+    );
+
+    report.check(
+        name,
         "abort mid-transfer, then a clean transfer [SPI-006]",
         (|| {
             let slow = slowest(bus)?;

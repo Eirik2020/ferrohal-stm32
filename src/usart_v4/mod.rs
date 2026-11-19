@@ -9,7 +9,7 @@
 //! clearing one never reads the data register. The receive and transmit
 //! FIFOs stay off: DMA serves one byte per request.
 //!
-//! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V4-001, USART-V4-002, UART-021
+//! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V4-001, USART-V4-002, UART-021, UART-023
 
 use stm32_metapac::usart::{
     regs::Icr,
@@ -128,6 +128,13 @@ impl Unit {
 
     pub(crate) fn clear_tc(self) {
         self.0.icr().write(|w| w.set_tc(true));
+    }
+
+    /// TCIE in CR1: the USART's vector is raised while TC is set. The
+    /// driver turns it on only to await the end of its last frame, and off
+    /// once it has seen TC.
+    pub(crate) fn set_tc_interrupt(self, on: bool) {
+        self.0.cr1().modify(|w| w.set_tcie(on));
     }
 
     pub(crate) fn tc(self) -> bool {

@@ -1,0 +1,11 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/uart-rx-only`
+     [38;5;10m[1mFinished[0m in 1.67s
+[INFO ] run D, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2, overdrive: false } (uart_rx_only src/bin/uart_rx_only.rs:59)
+[INFO ] PASS USART6: vectors enabled [UART-003 RESOURCE-001] (uart_rx_only ../common/tests.rs:904)
+[INFO ] PASS USART6 receive-only PA12, 100000 8E2: 25-byte frames, one chunk each [UART-007] (uart_rx_only ../common/tests.rs:904)
+[INFO ] USART6: health Health { overruns: 0, framing_errors: 0, parity_errors: 0, noise_errors: 0, dma_errors: 0, dma_overruns: 0, buffer_overruns: 0, restarts: 0, marks_lost: 0 } (uart_rx_only src/bin/uart_rx_only.rs:101)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (uart_rx_only ../common/tests.rs:2255)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (uart_rx_only ../common/tests.rs:2231)
+[INFO ] all checks passed (uart_rx_only ../common/tests.rs:2264)
+Firmware exited successfully

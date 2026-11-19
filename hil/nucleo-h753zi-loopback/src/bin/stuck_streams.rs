@@ -251,7 +251,7 @@ mod app {
                 },
             );
         }
-        let freed = cx.shared.usart6.lock(|slot| slot.take()).map(|uart| uart.free());
+        let freed = cx.shared.usart6.lock(|slot| slot.take().map(|uart| uart.free()));
         let Some(Ok((wiring, buffers))) = freed else {
             report.check(UART, "free once both streams stopped", Err(Fail::Count { expected: 1, got: 0 }));
             tests::finish(&report, || {})
@@ -279,10 +279,13 @@ mod app {
         // The UART leaves the slot, so from here no handler serves it: the
         // read below serves the receive stream itself.
         fault::stick(1, 1);
-        let Some(usart6) = cx.shared.usart6.lock(|slot| slot.take()) else {
+        // Freed inside the lock (`Uart::free`): an idle line landing after
+        // the echo would otherwise raise USART6's vector with no Uart in the
+        // slot to clear it. The refusal comes back closed, its line masked.
+        let Some(freed) = cx.shared.usart6.lock(|slot| slot.take().map(|uart| uart.free())) else {
             defmt::panic!("USART6 left its slot")
         };
-        let Err(refused) = usart6.free() else {
+        let Err(refused) = freed else {
             fault::release(1, 1);
             report.check_for(UART, "API-003", "free refuses while the receive stream will not stop", Err(Fail::Count { expected: 1, got: 0 }));
             tests::finish(&report, || {})
@@ -397,9 +400,15 @@ mod app {
         let Ok(pwm3) = Pwm::new(&mut run.rcc, run.tim3, Hertz::khz(500)) else {
             defmt::panic!("TIM3 PWM")
         };
-        match LaneWiring::<_, 3, _, _>::new(run.pb0, run.lane3_stream).assemble(&pwm3, lane_buf) {
+        match LaneWiring::<_, 3, _, _>::new(run.pb0, run.lane3_stream).assemble(&pwm3) {
             Ok(mut lane) => {
-                let armed = lane.arm(&pwm3, &[1, 2, 3, 4]).is_ok();
+                if let Some(words) = lane_buf.get_mut(..4) {
+                    words.copy_from_slice(&[1, 2, 3, 4]);
+                }
+                let armed = match ferrohal_stm32::timer::Frame::new(lane_buf, 4, pwm3.frame_limits()) {
+                    Ok(frame) => lane.arm(&pwm3, frame).is_ok(),
+                    Err(_) => false,
+                };
                 fault::stick(2, 0);
                 match lane.free(&pwm3) {
                     Ok(_) => {

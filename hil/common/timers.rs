@@ -34,6 +34,9 @@ pub trait BenchedTick {
     fn verify(&self) -> Result<(), IrqError>;
     /// Stops the counter, kills its update interrupt and clears its flag.
     fn stop(&mut self);
+    /// Sets the tick's update vector pending in the NVIC, as another timer
+    /// sharing it would.
+    fn pend(&self);
 }
 
 impl<T: Instance> BenchedTick for Tick<T> {
@@ -51,6 +54,9 @@ impl<T: Instance> BenchedTick for Tick<T> {
     }
     fn stop(&mut self) {
         self.stop()
+    }
+    fn pend(&self) {
+        self.vectors().iter().for_each(cortex_m::peripheral::NVIC::pend);
     }
 }
 
@@ -93,6 +99,14 @@ macro_rules! benched_ticks {
                     $(Self::$variant(tick) => tick.stop(),)+
                 }
             }
+            fn pend(&self) {
+                match self {
+                    $(Self::$variant(tick) => tick
+                        .vectors()
+                        .iter()
+                        .for_each(cortex_m::peripheral::NVIC::pend),)+
+                }
+            }
         }
     };
 }
@@ -104,6 +118,8 @@ pub(crate) use benched_ticks;
 pub struct TickBench<T: BenchedTick> {
     pub tick: Option<T>,
     pub count: u32,
+    /// Every pass of a handler, whether the tick answered or not.
+    pub passes: u32,
     /// DWT at the first and the latest tick.
     pub first: Option<u32>,
     pub last: u32,
@@ -114,6 +130,7 @@ impl<T: BenchedTick> TickBench<T> {
         Self {
             tick: None,
             count: 0,
+            passes: 0,
             first: None,
             last: 0,
         }
@@ -121,6 +138,7 @@ impl<T: BenchedTick> TickBench<T> {
 
     /// For every timer update vector's handler.
     pub fn on_interrupt(&mut self) {
+        self.passes = self.passes.wrapping_add(1);
         if let Some(tick) = self.tick.as_mut()
             && tick.on_interrupt()
         {
@@ -202,6 +220,30 @@ where
     );
     report.check(
         name,
+        "served twice for one update: true, then false [TIMER-006]",
+        (|| {
+            // Under the lock the update vector is masked: an update arrives
+            // within two periods and waits, flag set, for this task to serve
+            // it twice. The handler that runs after the lock finds the flag
+            // clear, unless a later update has come.
+            let (first, second) = bench.lock(|b| {
+                spin_until(period.saturating_mul(2), || false);
+                match b.tick.as_mut() {
+                    Some(tick) => (tick.on_interrupt(), tick.on_interrupt()),
+                    None => (false, false),
+                }
+            });
+            match (first, second) {
+                (true, false) => Ok(()),
+                (first, second) => Err(Fail::Count {
+                    expected: 0b10,
+                    got: u32::from(first) << 1 | u32::from(second),
+                }),
+            }
+        })(),
+    );
+    report.check(
+        name,
         "pause stops the ticks [TIMER-002]",
         (|| {
             bench.lock(|b| {
@@ -228,6 +270,36 @@ where
                     got: 0,
                 }),
             }
+        })(),
+    );
+    report.check(
+        name,
+        "a pass its timer did not raise reports false [TIMER-006]",
+        (|| {
+            // The tick is stopped, its flag clear: the vector pended by hand
+            // is what another timer sharing it raises. The handler must run
+            // and the tick must not count it.
+            let (passes, count) = bench.lock(|b| (b.passes, b.count));
+            bench.lock(|b| {
+                if let Some(tick) = b.tick.as_ref() {
+                    tick.pend();
+                }
+            });
+            spin_until(period, || bench.lock(|b| b.passes) != passes);
+            let (passes_after, count_after) = bench.lock(|b| (b.passes, b.count));
+            if passes_after == passes {
+                return Err(Fail::Count {
+                    expected: passes.wrapping_add(1),
+                    got: passes_after,
+                });
+            }
+            if count_after != count {
+                return Err(Fail::Count {
+                    expected: count,
+                    got: count_after,
+                });
+            }
+            Ok(())
         })(),
     );
     bench

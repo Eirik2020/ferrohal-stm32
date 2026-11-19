@@ -3,7 +3,7 @@
 //! [`Spi`](super::Spi) over DMA and [`BlockingSpi`](super::BlockingSpi)
 //! polled, take their bounds from here (API review D4).
 //!
-//! Requirements: SPI-001, SPI-005
+//! Requirements: SPI-001, SPI-005, SPI-011
 
 use crate::{
     dma::{StreamInstance, StreamInterrupt},
