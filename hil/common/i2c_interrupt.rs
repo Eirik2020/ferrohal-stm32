@@ -606,17 +606,18 @@ impl<B: Bus, M: rtic::Mutex<T = Slot<B>>> Harness<B, M> {
             report.check_for(link, "I2C-009", name, r);
         }
         let after = self.m.lock(|s| s.bus.health());
-        // Only the busy check's first transaction moved the bus.
+        // Only the busy check moved the bus: its pointer write, and the read
+        // that was running when the second start came.
         let moved = after.transactions.wrapping_sub(before.transactions);
         report.check_for(
             link,
             "I2C-009",
             "the refusals left the bus untouched",
-            if moved == 1 {
+            if moved == 2 {
                 Ok(())
             } else {
                 Err(Fail::Count {
-                    expected: 1,
+                    expected: 2,
                     got: moved,
                 })
             },
