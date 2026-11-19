@@ -243,8 +243,132 @@ fn main() -> ! {
     // The teardowns: each stops what it ran and hands the token back.
     keep(uart.free());
     keep(rx_only.free());
-    keep(i2c.free());
+    let i2c_wiring = i2c.free();
+    #[cfg(not(any(
+        feature = "stm32f722re",
+        feature = "stm32f745vg",
+        feature = "stm32f767zi",
+        feature = "stm32h743vi",
+        feature = "stm32h753zi"
+    )))]
+    exercise_interrupt_i2c(&mut rcc, i2c_wiring);
+    #[cfg(any(
+        feature = "stm32f722re",
+        feature = "stm32f745vg",
+        feature = "stm32f767zi",
+        feature = "stm32h743vi",
+        feature = "stm32h753zi"
+    ))]
+    keep(i2c_wiring);
     park()
+}
+
+#[cfg(not(any(
+    feature = "stm32f722re",
+    feature = "stm32f745vg",
+    feature = "stm32f767zi",
+    feature = "stm32h743vi",
+    feature = "stm32h753zi"
+)))]
+static mut I2C_TX: [u8; 8] = [0; 8];
+#[cfg(not(any(
+    feature = "stm32f722re",
+    feature = "stm32f745vg",
+    feature = "stm32f767zi",
+    feature = "stm32h743vi",
+    feature = "stm32h753zi"
+)))]
+static mut I2C_RX: [u8; 8] = [0; 8];
+
+/// The interrupt-driven I2C (`i2c_v1` only): both opens with their
+/// refusals, a transaction started, served, aborted and refused, and both
+/// teardowns. I2C1's streams on every F4: DMA1 stream 6 (TX) and 0 (RX).
+#[cfg(not(any(
+    feature = "stm32f722re",
+    feature = "stm32f745vg",
+    feature = "stm32f767zi",
+    feature = "stm32h743vi",
+    feature = "stm32h753zi"
+)))]
+fn exercise_interrupt_i2c(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: chip::I2cWiring) {
+    use ferrohal_stm32::i2c::{DmaWiring, InterruptI2c, Part, Transaction};
+
+    let bus = match InterruptI2c::new(rcc, wiring, &black_box(i2c::Config::new(Hertz::khz(400)))) {
+        Ok(bus) => bus,
+        Err(refused) => {
+            keep(refused.error());
+            let Ok(bus) = InterruptI2c::new(
+                rcc,
+                refused.into_parts(),
+                &black_box(i2c::Config::new(Hertz::khz(100))),
+            ) else {
+                park()
+            };
+            bus
+        }
+    };
+    let mut bus = bus;
+    keep((bus.frequency(), bus.kernel_clock(), bus.name(), bus.health(), bus.is_busy()));
+    keep(bus.bound_cycles(black_box(2), black_box(6)));
+    keep(InterruptI2c::<chip::I2cWiring>::DMA_FROM_WRITE);
+    keep(InterruptI2c::<chip::I2cWiring>::DMA_FROM_READ);
+    // SAFETY: the two statics are lent to one transaction at a time.
+    let (tx, rx) = unsafe { (&mut *addr_of_mut!(I2C_TX), &mut *addr_of_mut!(I2C_RX)) };
+    let t = Transaction {
+        address: black_box(0x2A),
+        write: Some(Part { buf: tx, len: black_box(1) }),
+        read: Some(Part { buf: rx, len: black_box(6) }),
+    };
+    let t = match bus.start(t) {
+        Ok(()) => {
+            keep(ferrohal_stm32::Service::on_interrupt(&mut bus).is_some());
+            match bus.abort() {
+                Some(outcome) => {
+                    keep(outcome.result);
+                    outcome.transaction
+                }
+                None => park(),
+            }
+        }
+        Err(refused) => {
+            keep(refused.error());
+            refused.into_parts()
+        }
+    };
+    keep(bus.start(t).is_ok());
+    keep(bus.on_interrupt().is_some());
+    keep(bus.abort().is_some());
+    let wiring = bus.free();
+    // A second set of DMA1 tokens, as `chip::wire` takes them: never run.
+    let dma1 = unsafe { ferrohal_stm32::chip::Peripherals::steal() }.DMA1.split(rcc);
+    let dma = DmaWiring {
+        i2c: wiring.i2c,
+        scl: wiring.scl,
+        sda: wiring.sda,
+        tx_dma: dma1.s6,
+        rx_dma: dma1.s0,
+    };
+    let mut bus = match InterruptI2c::new_dma(rcc, dma, &black_box(i2c::Config::new(Hertz::khz(400)))) {
+        Ok(bus) => bus,
+        Err(refused) => {
+            keep(refused.error());
+            let Ok(bus) = InterruptI2c::new_dma(
+                rcc,
+                refused.into_parts(),
+                &black_box(i2c::Config::new(Hertz::khz(100))),
+            ) else {
+                park()
+            };
+            bus
+        }
+    };
+    keep(bus.bound_cycles(black_box(1), black_box(0)));
+    keep(bus.on_interrupt().is_some());
+    keep(bus.abort().is_some());
+    match bus.free() {
+        Ok(wiring) => keep(wiring),
+        Err(refused) => keep(refused.error()),
+    }
 }
 
 /// The pure functions and accessors: clock solving and checking, I2C timing,
