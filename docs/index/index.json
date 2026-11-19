@@ -3,7 +3,7 @@
  "counts": {
   "documents": 91,
   "agent": 57,
-  "bytes": 566607
+  "bytes": 567137
  },
  "documents": [
   {
@@ -256,7 +256,7 @@
    "class": "agent",
    "title": "Timer lanes: frames, the switch and the readers",
    "purpose": "Source: ADR-014, ../decisions/2026-11-19-time",
-   "bytes": 6424
+   "bytes": 6954
   },
   {
    "path": "docs/design/layering.md",

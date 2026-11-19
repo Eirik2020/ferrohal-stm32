@@ -91,17 +91,21 @@ or a play leaves that state first, so a loaded first duty is never latched early
 - CCxP and CCxNP are clear while a channel is off (RM0090 table 95 note 1, RM0433 table
   337 note 1).
 
-## Measured (round 2 prototypes, 2026-11-18)
+## Measured (product, 2026-11-19)
 
-Margin from a frame's end to the latest reply read whole, against 30 us, four lanes on the
-STM32F4 Discovery (F407) and two on the Nucleo-H753ZI; T is the caller's switch, F the
-interrupt run's (`listen_on_end`). A sweep step is 1.67 us.
+Margin from a frame's end to the latest reply read whole, against 30 us, with no
+profiling feature: ferroforge-stm32's lane port benches at this crate's c723b1c, four
+lanes on the STM32F4 Discovery (F407) and two on the Nucleo-H753ZI, 600 kHz, a sweep step
+1.67 us. F is the interrupt run's switch (`listen_on_end`, through the lane port), T the
+caller's (these lanes under RTIC, no port). The switch is `Awg::listen` whole, measured with
+`profile-listen` alone: DWT cycles, mean of 37,000. Each margin is at the round 2
+prototypes' sweep step or past it (theirs in brackets).
 
-| form | F407 T / F | H753 T / F |
-|---|---|---|
-| armed ahead | 9.2 / 10.8 us | 12.5 / 14.2 us |
-| the lane's own stream | 4.2 / 5.8 us | 7.5 / 9.2 us |
-| paced (TIM8, lanes on TIM3 and TIM2) | 9.2 / 10.8 us | not built |
+| form | F407 F / T | F407 switch F / T | H753 F / T | H753 switch F / T |
+|---|---|---|---|---|
+| armed ahead | 10.84 / 10.84 us (10.8 / 9.2) | 686 / 639 | 14.18 / 12.52 us (14.2 / 12.5) | 1513 / 1440 |
+| the lane's own stream | 5.84 / 4.18 us (5.8 / 4.2) | 1661 / 1611 | 10.85 / 9.19 us (9.2 / 7.5) | 2958 / 2860 |
+| paced (TIM8, lanes on TIM3 and TIM2) | 10.84 / 9.18 us (10.8 / 9.2) | 711 / 715 | not built | not built |
 
 ## Left out
 
