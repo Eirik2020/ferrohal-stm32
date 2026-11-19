@@ -256,6 +256,25 @@ timer whose update reaches DMA2, the one DMA that reaches the GPIO ports. Checks
 duty on the pin, to 1/16, and one one-pulse period. Pass: both checks pass and the
 script exits zero.
 
+## Interrupt-driven I2C on the Nucleo-F401RE
+
+`hil/run-f401.sh x`. Run X drives `InterruptI2c` on I2C3 over
+PA8 and PC9 against the Pico 1 simulator, wired as run S, twice: opened
+from the plain wiring, every byte moved by the event interrupt, then from
+a DMA wiring of DMA1 stream 4 (TX) and stream 2 (RX), channel 3 (RM0368
+Table 28). Before each open, an open at a speed the IP cannot time is
+refused with the wiring, which then opens. Each mode runs a write, a write
+then a read, and a read, of 1, 2, 3, 6, 16 and 32 bytes, ten times each,
+every one checked against the simulator (its ECHO register, its pattern
+stream) and every phase's path (DMA or interrupt) against the driver's
+thresholds through its health counts; then each refusal of `start`, with
+the transaction handed back and the bus untouched; a vacant address's
+NACK and the next transaction; a stretch past the caller's bound aborted
+with its buffers, and the bus running again; and the driver's health
+against the run's own counts. A DMA buffer the stream cannot reach is not
+exercised: every F401 RAM is reachable. Pass: every check passes and the
+script exits zero.
+
 ## The ROM bootloader on the Nucleo-H753ZI
 
 `hil/run-h753.sh z`, with CN13 cabled to the host as the rig keeps it. The run asks for

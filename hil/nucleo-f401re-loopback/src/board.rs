@@ -1010,6 +1010,43 @@ pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
     })
 }
 
+// Run X: run S's wiring and DMA1 for the interrupt-driven I2C master
+// (I2C3_TX on stream 4, I2C3_RX on stream 2, channel 3: RM0368 Table 28).
+
+pub struct RunX {
+    pub rcc: Rcc,
+    pub led: Led,
+    pub i2c: I2c3Bus,
+    pub tx: Stream<1, 4>,
+    pub rx: Stream<1, 2>,
+}
+
+pub fn run_x(p: Peripherals) -> Result<RunX, ClockError> {
+    let mut rcc = p
+        .RCC
+        .freeze(&CLOCK_CONFIG)
+        .map_err(|refused| refused.error())?;
+    let dma1 = p.DMA1.split(&mut rcc);
+    let mut a = p.GPIOA.split(&mut rcc);
+    let mut c = p.GPIOC.split(&mut rcc);
+    let led = a.p5.into_push_pull_output(&mut a.ctrl);
+    let mut scl: Pin<'A', 8, Alternate<4, OpenDrain>> = a.p8.into_alternate_open_drain(&mut a.ctrl);
+    scl.set_pull(&mut a.ctrl, Pull::Up);
+    let mut sda: Pin<'C', 9, Alternate<4, OpenDrain>> = c.p9.into_alternate_open_drain(&mut c.ctrl);
+    sda.set_pull(&mut c.ctrl, Pull::Up);
+    Ok(RunX {
+        rcc,
+        led,
+        i2c: i2c::Wiring {
+            i2c: p.I2C3,
+            scl,
+            sda,
+        },
+        tx: dma1.s4,
+        rx: dma1.s2,
+    })
+}
+
 // Run V: every constructor refuses on hardware and hands its parts back.
 
 /// The clocks run V freezes: the bench's own, except PLLQ gives 56 MHz
