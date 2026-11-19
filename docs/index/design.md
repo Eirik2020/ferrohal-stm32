@@ -13,7 +13,7 @@
 | a | docs/design/free.md | 3498 B | Every driver handle that owns a peripheral to |
 | a | docs/design/glue-generator.md | 10783 B | Source: ADR-008, ../decisions/2026-11-13-chip |
 | a | docs/design/h7-errata.md | 1405 B | W11 of the debt sweep. Read against ES0392 Re |
-| a | docs/design/lanes.md | 6441 B | Source: ADR-014, ../decisions/2026-11-19-time |
+| a | docs/design/lanes.md | 6424 B | Source: ADR-014, ../decisions/2026-11-19-time |
 | a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/maturity.md | 3374 B | Source: ADR-009, ../decisions/2026-11-13-matu |
 | a | docs/design/naming.md | 10107 B | Source: ADR-003, ../decisions/2026-11-08-nami |

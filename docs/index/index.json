@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 90,
+  "documents": 91,
   "agent": 57,
-  "bytes": 566481
+  "bytes": 566607
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 40141
+   "bytes": 38241
   },
   {
    "path": "docs/DEBT.md",
@@ -40,6 +40,13 @@
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
    "bytes": 10101
+  },
+  {
+   "path": "docs/ROADMAP.md",
+   "class": "human",
+   "title": "Not supported yet",
+   "purpose": "Split from CHIPS.mdCHIPS.md when it reached i",
+   "bytes": 2076
   },
   {
    "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
@@ -249,7 +256,7 @@
    "class": "agent",
    "title": "Timer lanes: frames, the switch and the readers",
    "purpose": "Source: ADR-014, ../decisions/2026-11-19-time",
-   "bytes": 6441
+   "bytes": 6424
   },
   {
    "path": "docs/design/layering.md",
@@ -536,14 +543,14 @@
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 4768
+   "bytes": 4752
   },
   {
    "path": "docs/policies/features.md",
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 2769
+   "bytes": 2752
   },
   {
    "path": "docs/policies/safety.md",

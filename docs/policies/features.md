@@ -36,4 +36,4 @@ Normative. Goals G1, G2, G5 (`requirements/goals.md`). Record: ADR-007,
 - embassy-time: a time driver over a FerroHAL timer.
 - A panic-free USB core, retiring G2 exception 1.
 
-Roadmap: `docs/CHIPS.md`, Not supported yet.
+Roadmap: `docs/ROADMAP.md`.

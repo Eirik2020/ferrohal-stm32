@@ -114,6 +114,6 @@ interrupt run's (`listen_on_end`). A sweep step is 1.67 us.
 ## Open
 
 - In `docs/DEBT.md`: the H753's 210 ns pulse at the release.
-- On the roadmap (`docs/CHIPS.md`, Not supported yet): a reader paced by a compare
+- On the roadmap (`docs/ROADMAP.md`): a reader paced by a compare
   channel of a timer that is not a lane timer; the TIM3 to TIM5 trigger route on the H743
   and H753 (RM0433 table 341, ITR2).

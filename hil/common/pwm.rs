@@ -25,7 +25,7 @@ use ferrohal_stm32::{
 use crate::tests::{Fail, Report};
 
 /// The bench's frame memory: a lane keeps none of its own (FerroHAL
-/// ADR-014), so every play lends it a [`Frame`] written here. Copying the
+/// `docs/design/lanes.md`), so every play lends it a [`Frame`] written here. Copying the
 /// duties in is the bench's work, as a user's; the lane plays what it is lent
 /// in place. A bench seeds the pool once with [`lend_frames`], one block per
 /// lane it plays at a time.

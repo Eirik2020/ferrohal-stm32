@@ -3,8 +3,6 @@
 # <file> <Type::name or name> -- <reason>
 src/dma/mod.rs stick -- feature fault-injection only, a bench hook; this program builds without it
 src/dma/mod.rs release -- feature fault-injection only, stick's undo; was counted before only because Exti had a method of the same name
-src/timer/profile.rs watch -- feature profile-listen only, a bench's register watch; this program builds without it
-src/timer/profile.rs last -- feature profile-listen only, reads the stamps back; this program builds without it
 src/timer/profile.rs Stage::get -- feature profile-listen only; this program builds without it
 src/timer/profile.rs clear_start -- feature profile-start only; this program builds without it
 src/timer/profile.rs clear_turn -- feature profile-start only; this program builds without it

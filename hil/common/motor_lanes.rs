@@ -25,7 +25,7 @@ fn frame(pattern: u16, period: u32) -> [u32; 16] {
 }
 
 /// Frame memory, one block per lane: a lane keeps none of its own (FerroHAL
-/// ADR-014), so the suite writes each frame here and lends it.
+/// `docs/design/lanes.md`), so the suite writes each frame here and lends it.
 pub type Memory = [Option<&'static mut [u32]>; 4];
 
 /// Loads `duties` on `lane` from its block, the lane's last frame back first.
