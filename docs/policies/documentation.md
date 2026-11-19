@@ -22,7 +22,7 @@ Normative. Two classes:
 | tooling workaround | script comment + `requirements/benches.md`; `DEBT.md` pointer only |
 | open debt: owed work on what ships | `docs/DEBT.md`: tags, severity, what is wrong and the fix, the recorded origin (*Spawned:*, never reconstructed) |
 | silicon limit or documented contract | `docs/CHIPS.md` Limits, and the item's own doc |
-| feature not built | `docs/CHIPS.md` Not supported yet (the roadmap), never `DEBT.md` |
+| feature not built | `docs/ROADMAP.md` (the roadmap), never `DEBT.md` |
 | what a bench proves | `hil/COVERAGE.md` |
 | a user firmware's need | that firmware's repository, never here (toaster rule) |
 | review or audit finding | the review's note (evidence, proposed fix); `docs/DEBT.md` a tagged row pointing at it, added when the review lands: DEBT is the one ledger of open work |

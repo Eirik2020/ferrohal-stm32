@@ -581,6 +581,11 @@ pub struct RunQ {
     pub tim8: TIM8,
     pub pc7: Pin<'C', 7, Alternate<3>>,
     pub far_lane: Stream<2, 5>,
+    /// The near lane's reader armed ahead on TIM3's update (AWG-015).
+    pub ahead: Stream<2, 6>,
+    /// The near lane's reader paced by TIM5, a timer no lane uses (AWG-017).
+    pub tim5: TIM5,
+    pub paced: Stream<2, 7>,
 }
 
 pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
@@ -601,6 +606,9 @@ pub fn run_q(p: Peripherals) -> Result<RunQ, ClockError> {
         tim8: p.TIM8,
         pc7,
         far_lane: dma2.s5,
+        ahead: dma2.s6,
+        tim5: p.TIM5,
+        paced: dma2.s7,
         rcc,
     })
 }

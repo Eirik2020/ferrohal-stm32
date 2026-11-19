@@ -1,0 +1,88 @@
+PASS stm32f401re die: DEV_ID 0x433, the table's 0x433
+PASS USART1 (usart v2): APB2ENR.USART1EN clocks it: brr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS USART1 (usart v2): APB2RSTR.USART1RST resets it: brr back to 0x0 (0x0)
+PASS USART2 (usart v2): APB1ENR.USART2EN clocks it: brr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS USART2 (usart v2): APB1RSTR.USART2RST resets it: brr back to 0x0 (0x0)
+PASS USART6 (usart v2): APB2ENR.USART6EN clocks it: brr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS USART6 (usart v2): APB2RSTR.USART6RST resets it: brr back to 0x0 (0x0)
+PASS SPI1 (spi v2_i2s): APB2ENR.SPI1EN clocks it: crcpr ignores 0x55 with it clear (0x0), keeps it set (0x55)
+PASS SPI1 (spi v2_i2s): APB2RSTR.SPI1RST resets it: crcpr back to 0x7 (0x7)
+PASS SPI2 (spi v2_i2s): APB1ENR.SPI2EN clocks it: crcpr ignores 0x55 with it clear (0x0), keeps it set (0x55)
+PASS SPI2 (spi v2_i2s): APB1RSTR.SPI2RST resets it: crcpr back to 0x7 (0x7)
+PASS SPI3 (spi v2_i2s): APB1ENR.SPI3EN clocks it: crcpr ignores 0x55 with it clear (0x0), keeps it set (0x55)
+PASS SPI3 (spi v2_i2s): APB1RSTR.SPI3RST resets it: crcpr back to 0x7 (0x7)
+PASS I2C1 (i2c v1): APB1ENR.I2C1EN clocks it: oar2 ignores 0x54 with it clear (0x0), keeps it set (0x54)
+PASS I2C1 (i2c v1): APB1RSTR.I2C1RST resets it: oar2 back to 0x0 (0x0)
+PASS I2C2 (i2c v1): APB1ENR.I2C2EN clocks it: oar2 ignores 0x54 with it clear (0x0), keeps it set (0x54)
+PASS I2C2 (i2c v1): APB1RSTR.I2C2RST resets it: oar2 back to 0x0 (0x0)
+PASS I2C3 (i2c v1): APB1ENR.I2C3EN clocks it: oar2 ignores 0x54 with it clear (0x0), keeps it set (0x54)
+PASS I2C3 (i2c v1): APB1RSTR.I2C3RST resets it: oar2 back to 0x0 (0x0)
+PASS TIM1 (timer v1): APB2ENR.TIM1EN clocks it: arr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS TIM1 (timer v1): APB2RSTR.TIM1RST resets it: arr back to 0xffff (0xffff)
+PASS TIM2 (timer v1): APB1ENR.TIM2EN clocks it: arr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS TIM2 (timer v1): APB1RSTR.TIM2RST resets it: arr back to 0xffffffff (0xffffffff)
+PASS TIM3 (timer v1): APB1ENR.TIM3EN clocks it: arr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS TIM3 (timer v1): APB1RSTR.TIM3RST resets it: arr back to 0xffff (0xffff)
+PASS TIM4 (timer v1): APB1ENR.TIM4EN clocks it: arr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS TIM4 (timer v1): APB1RSTR.TIM4RST resets it: arr back to 0xffff (0xffff)
+PASS TIM5 (timer v1): APB1ENR.TIM5EN clocks it: arr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS TIM5 (timer v1): APB1RSTR.TIM5RST resets it: arr back to 0xffffffff (0xffffffff)
+PASS TIM9 (timer v1): APB2ENR.TIM9EN clocks it: arr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS TIM9 (timer v1): APB2RSTR.TIM9RST resets it: arr back to 0xffff (0xffff)
+PASS TIM10 (timer v1): APB2ENR.TIM10EN clocks it: arr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS TIM10 (timer v1): APB2RSTR.TIM10RST resets it: arr back to 0xffff (0xffff)
+PASS TIM11 (timer v1): APB2ENR.TIM11EN clocks it: arr ignores 0x1234 with it clear (0x0), keeps it set (0x1234)
+PASS TIM11 (timer v1): APB2RSTR.TIM11RST resets it: arr back to 0xffff (0xffff)
+PASS ADC1 (adc v2): APB2ENR.ADC1EN clocks it: htr ignores 0x123 with it clear (0x0), keeps it set (0x123)
+PASS USB_OTG_FS (otg v1): AHB2ENR.USB_OTG_FSEN clocks it: grxfsiz ignores 0x80 with it clear (0x0), keeps it set (0x80)
+PASS USB_OTG_FS (otg v1): AHB2RSTR.USB_OTG_FSRST resets it: grxfsiz back to 0x200 (0x200)
+PASS GPIOA (gpio v2): AHB1ENR.GPIOAEN clocks it: otyper ignores 0x5 with it clear (0xa8000000), keeps it set (0x5)
+PASS GPIOA (gpio v2): AHB1RSTR.GPIOARST resets it: otyper back to 0x0 (0x0)
+PASS GPIOB (gpio v2): AHB1ENR.GPIOBEN clocks it: otyper ignores 0x5 with it clear (0x280), keeps it set (0x5)
+PASS GPIOB (gpio v2): AHB1RSTR.GPIOBRST resets it: otyper back to 0x0 (0x0)
+PASS GPIOC (gpio v2): AHB1ENR.GPIOCEN clocks it: otyper ignores 0x5 with it clear (0x0), keeps it set (0x5)
+PASS GPIOC (gpio v2): AHB1RSTR.GPIOCRST resets it: otyper back to 0x0 (0x0)
+PASS GPIOD (gpio v2): AHB1ENR.GPIODEN clocks it: otyper ignores 0x5 with it clear (0x0), keeps it set (0x5)
+PASS GPIOD (gpio v2): AHB1RSTR.GPIODRST resets it: otyper back to 0x0 (0x0)
+PASS GPIOH (gpio v2): AHB1ENR.GPIOHEN clocks it: otyper ignores 0x5 with it clear (0x0), keeps it set (0x5)
+PASS GPIOH (gpio v2): AHB1RSTR.GPIOHRST resets it: otyper back to 0x0 (0x0)
+PASS vector ADC: IRQ 18 pends and clears
+PASS vector DMA1_STREAM0: IRQ 11 pends and clears
+PASS vector DMA1_STREAM1: IRQ 12 pends and clears
+PASS vector DMA1_STREAM2: IRQ 13 pends and clears
+PASS vector DMA1_STREAM3: IRQ 14 pends and clears
+PASS vector DMA1_STREAM4: IRQ 15 pends and clears
+PASS vector DMA1_STREAM5: IRQ 16 pends and clears
+PASS vector DMA1_STREAM6: IRQ 17 pends and clears
+PASS vector DMA1_STREAM7: IRQ 47 pends and clears
+PASS vector DMA2_STREAM0: IRQ 56 pends and clears
+PASS vector DMA2_STREAM1: IRQ 57 pends and clears
+PASS vector DMA2_STREAM2: IRQ 58 pends and clears
+PASS vector DMA2_STREAM3: IRQ 59 pends and clears
+PASS vector DMA2_STREAM4: IRQ 60 pends and clears
+PASS vector DMA2_STREAM5: IRQ 68 pends and clears
+PASS vector DMA2_STREAM6: IRQ 69 pends and clears
+PASS vector DMA2_STREAM7: IRQ 70 pends and clears
+PASS vector I2C1_ER: IRQ 32 pends and clears
+PASS vector I2C1_EV: IRQ 31 pends and clears
+PASS vector I2C2_ER: IRQ 34 pends and clears
+PASS vector I2C2_EV: IRQ 33 pends and clears
+PASS vector I2C3_ER: IRQ 73 pends and clears
+PASS vector I2C3_EV: IRQ 72 pends and clears
+PASS vector OTG_FS: IRQ 67 pends and clears
+PASS vector OTG_FS_WKUP: IRQ 42 pends and clears
+PASS vector SPI1: IRQ 35 pends and clears
+PASS vector SPI2: IRQ 36 pends and clears
+PASS vector SPI3: IRQ 51 pends and clears
+PASS vector TIM1_BRK_TIM9: IRQ 24 pends and clears
+PASS vector TIM1_CC: IRQ 27 pends and clears
+PASS vector TIM1_TRG_COM_TIM11: IRQ 26 pends and clears
+PASS vector TIM1_UP_TIM10: IRQ 25 pends and clears
+PASS vector TIM2: IRQ 28 pends and clears
+PASS vector TIM3: IRQ 29 pends and clears
+PASS vector TIM4: IRQ 30 pends and clears
+PASS vector TIM5: IRQ 50 pends and clears
+PASS vector USART1: IRQ 37 pends and clears
+PASS vector USART2: IRQ 38 pends and clears
+PASS vector USART6: IRQ 71 pends and clears
+stm32f401re: 87 passed, 0 failed (metapac 21.0.0)

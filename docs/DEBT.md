@@ -44,6 +44,12 @@ rerun (`tools/stale_runs.py` lists it). No item is High.
 
 ## 1. Library code
 
+- `code` `bench` **Low: a 210 ns pulse on an H753 lane pin at the release.** When a
+  two-way lane turns to read, the H753's line shows one pulse about 210 ns long at the
+  CCER store that turns the output off; the F407 shows none on the same switch.
+  Releasing the pin by MODER first did not remove it (measured, round 2 prototypes).
+  Cause not known; a reply that starts inside it would lose its first edge.
+  *Spawned:* the lane round 2 prototypes (2026-11-18), recorded by ADR-014.
 - `code` `api` **Medium: the feature hierarchy departs from `docs/design/structure.md`.**
   Chip features turn on their family marker, and two chips at once are caught only by a
   `compile_error!` listing every pair (10 at five chips, 15 at six). Same as review S6.

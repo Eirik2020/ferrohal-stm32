@@ -1,0 +1,16 @@
+build features: profile-listen
+   Compiling nucleo-f401re-loopback v0.1.0 (/home/kaldstrand/ws/ferro/lane-product/ferrohal-stm32/hil/nucleo-f401re-loopback)
+   Compiling ferrohal-stm32 v0.1.0 (/home/kaldstrand/ws/ferro/lane-product/ferrohal-stm32)
+    Finished `release` profile [optimized + debuginfo] target(s) in 3.16s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/switch-cycles`
+     [38;5;10m[1mFinished[0m in 2.46s
+[INFO ] run Y, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2, overdrive: false } (switch_cycles src/bin/switch_cycles.rs:75)
+[INFO ] PASS four lanes on TIM3 and TIM2, port B, paced by TIM1: a reader paced by TIM1 registers [AWG-017] (switch_cycles ../common/tests.rs:847)
+[INFO ] PASS four lanes on TIM3 and TIM2, port B, paced by TIM1: the last prepare_listen is the one prepared, at the rate it returned [AWG-013] (switch_cycles ../common/tests.rs:847)
+[INFO ] PASS four lanes on TIM3 and TIM2, port B, paced by TIM1: every exchange reads the last prepared count [AWG-013] (switch_cycles ../common/tests.rs:847)
+[INFO ] listen whole: least 689 cycles, mean 689, most 689, over 200 (switch_cycles src/bin/switch_cycles.rs:213)
+[INFO ] PASS four lanes on TIM3 and TIM2, port B, paced by TIM1: every switch takes the same cycles, within an eighth of the least [AWG-013] (switch_cycles ../common/tests.rs:847)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (switch_cycles ../common/tests.rs:2090)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (switch_cycles ../common/tests.rs:2066)
+[INFO ] all checks passed (switch_cycles ../common/tests.rs:2099)
+Firmware exited successfully

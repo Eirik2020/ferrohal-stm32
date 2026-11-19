@@ -142,6 +142,17 @@ path = "src/bin/i2c_interrupt.rs"
 test = false
 bench = false
 
+[[bin]]
+name = "switch-cycles"
+path = "src/bin/switch_cycles.rs"
+test = false
+bench = false
+required-features = ["profile-listen"]
+
+[features]
+# Run Y's cycle stamps through the lane switch (FerroHAL's `timer::profile`).
+profile-listen = ["ferrohal-stm32/profile-listen"]
+
 [dependencies]
 ferrohal-stm32 = { path = "../..", features = ["stm32f401re", "rt", "defmt", "rtic", "usb"] }
 # Safe reads of registers the checks inspect (PWR, USART SR). FerroHAL's pin;

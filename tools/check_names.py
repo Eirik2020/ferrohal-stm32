@@ -50,7 +50,10 @@ FAMILIES: dict[str, list[str]] = {
 }
 
 # Features that are neither a chip, an internal one nor an IP version.
-OPTIONS = {"default", "rt", "rtic", "defmt", "fugit", "usb", "fault-injection"}
+OPTIONS = {
+    "default", "rt", "rtic", "defmt", "fugit", "usb", "fault-injection",
+    "profile-listen", "profile-lanes", "profile-start",
+}
 
 # ID-shaped tokens that are not requirements.
 NOT_IDS = {"SHA-256"}

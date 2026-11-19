@@ -516,3 +516,150 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+  - id: AWG-012
+    title: A lane plays and fills lent memory
+    statement: >-
+      A lane shall play a checked frame in the memory lent to it, and fill memory lent to it on a receive, and hand both back once it has stopped, copying neither.
+    rationale: >-
+      A port that lends its memory pays for no copy at the switch, and a lane keeps no buffer of its own.
+    derived_from: [AWG-001]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-013
+    title: The switch is prepared
+    statement: >-
+      A listen shall start the read that the last prepare_listen computed, at the rate it returned.
+    rationale: >-
+      The switch then holds no arithmetic, so its time is fixed and short enough for a reply on the same wire.
+    derived_from: [AWG-009]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#The lane switch on the Nucleo-F401RE
+
+  - id: AWG-014
+    title: One reader per timer and port
+    statement: >-
+      Every lane on one timer and one GPIO port shall share one reader, whose port words are each of those lanes' samples.
+    rationale: >-
+      One stream and one switch per port, whatever the lane count, so more lanes cost no more at the switch.
+    derived_from: [AWG-009]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+
+  - id: AWG-015
+    title: A reader armed ahead
+    statement: >-
+      A reader registered on a spare request of a lane timer shall read the port at the switch.
+    rationale: >-
+      A board with a spare stream reaching GPIO gets the fastest switch: the reader is enabled while the frame plays.
+    derived_from: [AWG-014]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-016
+    title: A reader on the lane's own stream
+    statement: >-
+      Without a registered reader, the port's first lane shall read the port on its own stream, started at the switch.
+    rationale: >-
+      A board with no spare stream still receives, on the streams its lanes already have.
+    derived_from: [AWG-014]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-017
+    title: A reader paced by another timer
+    statement: >-
+      A reader registered on the update request of a timer that is not a lane timer shall read the port at that timer's rate.
+    rationale: >-
+      Lanes whose streams cannot reach GPIO (the F4's DMA1) receive only through a stream that can, paced by another timer.
+    derived_from: [AWG-014]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+
+  - id: AWG-018
+    title: Timers run on at a frame's end
+    statement: >-
+      At a frame's end the lane timers shall keep running at the send rate with every lane's compare at 0, until the next listen, load or play.
+    rationale: >-
+      A listen then retimes running timers instead of stopping and restarting them, which shortens the switch.
+    derived_from: [AWG-003]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-019
+    title: Listen in the run that sees the frame end
+    statement: >-
+      When asked to listen at the end, the interrupt run that sees the last lane end shall start the prepared listen.
+    rationale: >-
+      The caller's own return is then off the switch's path.
+    derived_from: [AWG-013]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
+
+  - id: AWG-020
+    title: Only the last lane interrupts
+    statement: >-
+      Only the last lane of a played frame shall raise its end-of-transfer interrupt, a lane found still running getting its own back so that every lane's frame ends.
+    rationale: >-
+      One interrupt run per frame serves every lane, and frames of unequal length still end.
+    derived_from: [AWG-005]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
+
+  - id: AWG-021
+    title: Outputs off in one store, polarity clear
+    statement: >-
+      A listen shall turn every lane output of a timer off in one CCER store, with its CCxP and CCxNP bits clear, for speak to restore.
+    rationale: >-
+      One store per timer releases the pins together, and a polarity bit left set while a channel is off is not allowed (RM0090 table 95 note 1, RM0433 table 337 note 1).
+    derived_from: [AWG-011]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-H753ZI

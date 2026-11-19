@@ -1,0 +1,21 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.06s
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32F407VGTx target/thumbv7em-none-eabihf/release/usb-deferred`
+     [38;5;10m[1mFinished[0m in 5.17s
+[INFO ] run E, clocks: Clocks { sysclk: Hertz(168000000), cpu: Hertz(168000000), hclk: Hertz(168000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(168000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 5, overdrive: false } (usb_deferred src/bin/usb_deferred.rs:109)
+[INFO ] PASS USB CDC CN5, deferred: the host configured the device (usb_deferred ../common/tests.rs:845)
+[INFO ] PASS USB CDC CN5, deferred: the host finished, every byte echoed but the marker [USB-002] (usb_deferred ../common/tests.rs:845)
+[INFO ] USB CDC CN5, deferred: 70473 bytes received, 70473 echoed, longest lock hold 12745 cycles (usb_deferred src/bin/usb_deferred.rs:256)
+[INFO ] identity: uid [39, 00, 41, 00, 07, 51, 35, 32, 36, 34, 36, 36], rev 0x101f (usb_deferred ../common/tests.rs:2088)
+[INFO ] errata: ES0182 Rev 19, 89 affect rev 0x101f, 0 unreviewed (usb_deferred ../common/tests.rs:2064)
+[INFO ] all checks passed (usb_deferred ../common/tests.rs:2097)
+Firmware exited successfully
+PASS host: port usb-FerroHAL_FerroHAL_CDC_bench_f407vg-deferred-if00
+PASS host: 1 bytes echoed
+PASS host: 63 bytes echoed
+PASS host: 64 bytes echoed
+PASS host: 65 bytes echoed
+PASS host: 128 bytes echoed
+PASS host: 512 bytes echoed
+PASS host: 4096 bytes echoed
+PASS host: 64 KiB echoed at 491 KiB/s
