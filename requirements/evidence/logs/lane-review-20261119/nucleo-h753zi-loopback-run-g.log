@@ -1,0 +1,33 @@
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/spi-other-pins`
+     [38;5;10m[1mFinished[0m in 4.24s
+[INFO ] run G, clocks: Clocks { sysclk: Hertz(400000000), cpu: Hertz(400000000), hclk: Hertz(200000000), pclk1: Hertz(100000000), pclk2: Hertz(100000000), pclk3: Hertz(100000000), pclk4: Hertz(100000000), timclk1: Hertz(200000000), timclk2: Hertz(200000000), pll1_q: Some(Hertz(100000000)), setup: Setup { flash_latency: 2, flash_wrhighfreq: 2, pll_range: 3, pll_wide_vco: true } } (spi_other_pins src/bin/spi_other_pins.rs:69)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: receive-stream vector enabled [RESOURCE-001] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: 1, 15 and 256 bytes by interrupt [SPI-001 SPI-002 GPIO-001] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: busy, empty and oversized starts refused [SPI-003] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: SCK: 8 rising edges per byte, modes 0 and 3 [SPI-004 EXTI-001 EXTI-004] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: SCK as reported: 64 bytes take 512 periods [SPI-005] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: abort mid-transfer, then a clean transfer [SPI-006] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: polling with the vector masked [SPI-002] (spi_other_pins ../common/tests.rs:847)
+[INFO ] SPI1 PB3/PB4/PB5, DMA1 S0/S1: fastest polling pass 589 cycles over 864 passes (spi_other_pins ../common/spi_exti.rs:443)
+[INFO ] PASS SPI1 PB3/PB4/PB5, DMA1 S0/S1: a polling pass takes no less than the driver's floor [SPI-008] (spi_other_pins ../common/tests.rs:847)
+[INFO ] SPI1 PB3/PB4/PB5, DMA1 S0/S1: SCK Some(Hertz(6250000)), health Health { transfers: 22, dma_errors: 0, overruns: 0, mode_faults: 0, timeouts: 0, aborts: 1 } (spi_other_pins ../common/spi_exti.rs:460)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: receive-stream vector enabled [RESOURCE-001] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: 1, 15 and 256 bytes by interrupt [SPI-001 SPI-002 GPIO-001] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: busy, empty and oversized starts refused [SPI-003] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: SCK: 8 rising edges per byte, modes 0 and 3 [SPI-004 EXTI-001 EXTI-004] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: SCK as reported: 64 bytes take 512 periods [SPI-005] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: abort mid-transfer, then a clean transfer [SPI-006] (spi_other_pins ../common/tests.rs:847)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: polling with the vector masked [SPI-002] (spi_other_pins ../common/tests.rs:847)
+[INFO ] SPI4 PE2/PE5/PE6, DMA1 S2/S3: fastest polling pass 627 cycles over 799 passes (spi_other_pins ../common/spi_exti.rs:443)
+[INFO ] PASS SPI4 PE2/PE5/PE6, DMA1 S2/S3: a polling pass takes no less than the driver's floor [SPI-008] (spi_other_pins ../common/tests.rs:847)
+[INFO ] SPI4 PE2/PE5/PE6, DMA1 S2/S3: SCK Some(Hertz(6250000)), health Health { transfers: 22, dma_errors: 0, overruns: 0, mode_faults: 0, timeouts: 0, aborts: 1 } (spi_other_pins ../common/spi_exti.rs:460)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (spi_other_pins ../common/tests.rs:2090)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 0 unreviewed (spi_other_pins ../common/tests.rs:2066)
+[INFO ] all checks passed (spi_other_pins ../common/tests.rs:2099)
+Firmware exited successfully

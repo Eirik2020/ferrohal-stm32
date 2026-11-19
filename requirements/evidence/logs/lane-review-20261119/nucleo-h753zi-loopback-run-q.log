@@ -1,0 +1,24 @@
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/awg-both-ways`
+     [38;5;10m[1mFinished[0m in 4.22s
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG out over the wire: the far lane reads the samples [AWG-008 AWG-009] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG in over the wire: the near lane reads the reply on its own pin [AWG-009] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7: AWG: with the output off, nothing crosses the wire [AWG-011] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: the reply read whole on the lane's own stream [AWG-016] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: a frame plays from lent memory and comes back; the reply fills lent memory, which comes back [AWG-012] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: prepare_listen's rate is the one the read ran at, and `prepared` names it [AWG-013] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: at the frame's end the timer runs on with the lane's compare at 0 [AWG-018] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: the listen turns the output off with CCxP and CCxNP clear; speak turns it back on, active low [AWG-021] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: the reply read whole after a listen at the frame's end [AWG-019] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: the run that saw the frame end had turned to read [AWG-019] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: a reader paced by TIM5 registers [AWG-017] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: the reply read whole by a reader paced by TIM5 [AWG-017] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: the paced reader reads at its pacer's rate [AWG-017] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: free gives back the paced reader's stream, DMA2 stream 7, once [API-002] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: a reader armed ahead on TIM3's update registers [AWG-015] (awg_both_ways ../common/tests.rs:847)
+[INFO ] PASS TIM3 CH1 PC6 reads TIM8 CH2 PC7 over Z2: the reply read whole by a reader armed ahead on TIM3's update [AWG-015] (awg_both_ways ../common/tests.rs:847)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (awg_both_ways ../common/tests.rs:2090)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 0 unreviewed (awg_both_ways ../common/tests.rs:2066)
+[INFO ] all checks passed (awg_both_ways ../common/tests.rs:2099)
+Firmware exited successfully
