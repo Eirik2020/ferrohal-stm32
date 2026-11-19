@@ -123,6 +123,18 @@ impl UsbFs {
         let (bus, handle) = UsbBus::new_deferred(self, ep_memory);
         (bus, UsbVector { handle })
     }
+
+    /// As [`UsbFs::deferred`], with the start-of-frame heartbeat masked: for
+    /// a task woken by something that holds a wake until the task reads it,
+    /// so that no report needs repeating. A quiet configured bus then raises
+    /// the vector not at all, instead of once a frame. PROTOTYPE.
+    pub fn deferred_without_heartbeat(
+        self,
+        ep_memory: &'static mut [u32],
+    ) -> (UsbBusAllocator<UsbBus>, UsbVector) {
+        let (bus, handle) = UsbBus::deferred_bus_without_heartbeat(self, ep_memory);
+        (UsbBusAllocator::new(bus), UsbVector { handle })
+    }
 }
 
 /// The vector's half of a deferred bus, from [`UsbFs::deferred`]. It owns

@@ -957,7 +957,12 @@ pub fn exercise_usb(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: ferrohal_stm32::
     let usb = bus.free();
     // SAFETY: the one reference to this static, taken once.
     let memory: &'static mut [u32; 64] = unsafe { &mut *addr_of_mut!(USB_MEMORY2) };
-    keep(black_box(usb).deferred(memory));
+    // Either constructor, so both are linked.
+    if black_box(true) {
+        keep(black_box(usb).deferred(memory));
+    } else {
+        keep(black_box(usb).deferred_without_heartbeat(memory));
+    }
 }
 
 fn exercise_spi<W: ferrohal_stm32::spi::Parts>(bus: &mut Spi<W>) {
