@@ -3,7 +3,7 @@
 //!
 //! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, API-002, RESOURCE-002
 
-use super::pwm::{CompareLane, Error, Pwm};
+use super::pwm::{CompareLane, Error, Frame, FrameLimits, PreparedRate, Pwm, lane_ccer_bits};
 use super::{ChannelTimer, ConfigError, TriggeredBy};
 use crate::{chip::Interrupt, resource::Refused, time::Hertz};
 
@@ -26,16 +26,44 @@ pub trait Lanes<T: ChannelTimer> {
     fn abort_all(&mut self, pwm: &Pwm<T>);
     /// Lane `index`'s stream vector.
     fn vector(&self, index: usize) -> Option<Interrupt>;
-    /// Turns every lane's output on or off.
-    fn set_outputs(pwm: &Pwm<T>, on: bool);
-    /// Makes every lane's output active low, or active high.
-    fn set_active_low(pwm: &Pwm<T>, low: bool);
-    /// Turns every lane's stream to read; see [`CompareLane::listen`].
-    fn listen(&mut self, pwm: &Pwm<T>, count: usize, duty: u32) -> Result<(), Error>;
+    /// Every lane's CCER bits, ORed: (owned, send); see [`lane_ccer_bits`].
+    fn ccer_bits(&self, active_low: bool) -> (u16, u16);
+    /// Prepares lane `index`'s read; see [`CompareLane::prepare_listen`].
+    fn prepare_listen(&mut self, index: usize, count: usize) -> Result<(), Error>;
+    /// Starts lane `index`'s prepared read; see [`CompareLane::listen`].
+    fn listen(&mut self, index: usize, pwm: &Pwm<T>, duty: u32) -> Result<(), Error>;
+    /// Lane `index`'s input register, if two-way.
+    fn port(&self, index: usize) -> Option<u32>;
     /// What lane `index` last read.
     fn samples(&self, index: usize) -> &[u16];
     /// Sets every lane's duty to 0, its inactive level.
     fn park(&mut self, pwm: &Pwm<T>);
+    /// PROTOTYPE (stage C): see [`CompareLane::arm_frame`].
+    fn arm_frame(
+        &mut self,
+        index: usize,
+        pwm: &Pwm<T>,
+        frame: Frame,
+    ) -> Result<(), Refused<Error, Frame>>;
+    /// See [`CompareLane::take_frame`].
+    fn take_frame(&mut self, index: usize) -> Option<Frame>;
+    /// PROTOTYPE (stage D step 5): turns lane `index`'s end-of-transfer
+    /// interrupt on or off; its error interrupts stay on.
+    fn set_complete_interrupt(&mut self, index: usize, on: bool);
+    /// See [`CompareLane::lend_samples`].
+    fn lend_samples(
+        &mut self,
+        index: usize,
+        samples: &'static mut [u16],
+    ) -> Result<(), Refused<Error, &'static mut [u16]>>;
+    /// See [`CompareLane::take_samples`].
+    fn take_samples(&mut self, index: usize) -> Option<&'static mut [u16]>;
+    /// See [`CompareLane::is_prepared`].
+    fn is_prepared(&self, index: usize) -> bool;
+    /// PROTOTYPE (stage D): see `CompareLane::ahead_target`.
+    fn ahead_target(&mut self, index: usize, count: usize) -> Result<(u32, u16), Error>;
+    /// PROTOTYPE (stage D): see `CompareLane::target_at`.
+    fn target_at(&self, index: usize) -> Option<u32>;
 }
 
 impl<T: ChannelTimer> Lanes<T> for () {
@@ -53,15 +81,53 @@ impl<T: ChannelTimer> Lanes<T> for () {
     fn vector(&self, _index: usize) -> Option<Interrupt> {
         None
     }
-    fn set_outputs(_pwm: &Pwm<T>, _on: bool) {}
-    fn set_active_low(_pwm: &Pwm<T>, _low: bool) {}
-    fn listen(&mut self, _pwm: &Pwm<T>, _count: usize, _duty: u32) -> Result<(), Error> {
-        Ok(())
+    fn ccer_bits(&self, _active_low: bool) -> (u16, u16) {
+        (0, 0)
+    }
+    fn prepare_listen(&mut self, _index: usize, _count: usize) -> Result<(), Error> {
+        Err(Error::Empty)
+    }
+    fn listen(&mut self, _index: usize, _pwm: &Pwm<T>, _duty: u32) -> Result<(), Error> {
+        Err(Error::Empty)
+    }
+    fn port(&self, _index: usize) -> Option<u32> {
+        None
     }
     fn samples(&self, _index: usize) -> &[u16] {
         &[]
     }
     fn park(&mut self, _pwm: &Pwm<T>) {}
+    fn arm_frame(
+        &mut self,
+        _index: usize,
+        _pwm: &Pwm<T>,
+        frame: Frame,
+    ) -> Result<(), Refused<Error, Frame>> {
+        Err(Refused::new(Error::Empty, frame))
+    }
+    fn take_frame(&mut self, _index: usize) -> Option<Frame> {
+        None
+    }
+    fn set_complete_interrupt(&mut self, _index: usize, _on: bool) {}
+    fn lend_samples(
+        &mut self,
+        _index: usize,
+        samples: &'static mut [u16],
+    ) -> Result<(), Refused<Error, &'static mut [u16]>> {
+        Err(Refused::new(Error::Empty, samples))
+    }
+    fn take_samples(&mut self, _index: usize) -> Option<&'static mut [u16]> {
+        None
+    }
+    fn is_prepared(&self, _index: usize) -> bool {
+        false
+    }
+    fn ahead_target(&mut self, _index: usize, _count: usize) -> Result<(u32, u16), Error> {
+        Err(Error::Empty)
+    }
+    fn target_at(&self, _index: usize) -> Option<u32> {
+        None
+    }
 }
 
 macro_rules! lanes {
@@ -95,15 +161,32 @@ macro_rules! lanes {
                     _ => None,
                 }
             }
-            fn set_outputs(pwm: &Pwm<T>, on: bool) {
-                $(pwm.set_output::<$C>(on);)+
+            fn ccer_bits(&self, active_low: bool) -> (u16, u16) {
+                let (mut owned, mut send) = (0, 0);
+                $(
+                    let (o, s) = lane_ccer_bits($C, T::BREAK, self.$index.is_complementary(), active_low);
+                    owned |= o;
+                    send |= s;
+                )+
+                (owned, send)
             }
-            fn set_active_low(pwm: &Pwm<T>, low: bool) {
-                $(pwm.set_active_low::<$C>(low);)+
+            fn prepare_listen(&mut self, index: usize, count: usize) -> Result<(), Error> {
+                match index {
+                    $($index => self.$index.prepare_listen(count),)+
+                    _ => Err(Error::Empty),
+                }
             }
-            fn listen(&mut self, pwm: &Pwm<T>, count: usize, duty: u32) -> Result<(), Error> {
-                $(self.$index.listen(pwm, count, duty)?;)+
-                Ok(())
+            fn listen(&mut self, index: usize, pwm: &Pwm<T>, duty: u32) -> Result<(), Error> {
+                match index {
+                    $($index => self.$index.listen(pwm, duty),)+
+                    _ => Err(Error::Empty),
+                }
+            }
+            fn port(&self, index: usize) -> Option<u32> {
+                match index {
+                    $($index => self.$index.port(),)+
+                    _ => None,
+                }
             }
             fn samples(&self, index: usize) -> &[u16] {
                 match index {
@@ -113,6 +196,58 @@ macro_rules! lanes {
             }
             fn park(&mut self, pwm: &Pwm<T>) {
                 $(pwm.set_duty::<$C>(0);)+
+            }
+            fn arm_frame(&mut self, index: usize, pwm: &Pwm<T>, frame: Frame) -> Result<(), Refused<Error, Frame>> {
+                match index {
+                    $($index => self.$index.arm_frame(pwm, frame),)+
+                    _ => Err(Refused::new(Error::Empty, frame)),
+                }
+            }
+            fn take_frame(&mut self, index: usize) -> Option<Frame> {
+                match index {
+                    $($index => self.$index.take_frame(),)+
+                    _ => None,
+                }
+            }
+            fn set_complete_interrupt(&mut self, index: usize, on: bool) {
+                match index {
+                    $($index => self.$index.set_complete_interrupt(on),)+
+                    _ => {}
+                }
+            }
+            fn lend_samples(
+                &mut self,
+                index: usize,
+                samples: &'static mut [u16],
+            ) -> Result<(), Refused<Error, &'static mut [u16]>> {
+                match index {
+                    $($index => self.$index.lend_samples(samples),)+
+                    _ => Err(Refused::new(Error::Empty, samples)),
+                }
+            }
+            fn take_samples(&mut self, index: usize) -> Option<&'static mut [u16]> {
+                match index {
+                    $($index => self.$index.take_samples(),)+
+                    _ => None,
+                }
+            }
+            fn is_prepared(&self, index: usize) -> bool {
+                match index {
+                    $($index => self.$index.is_prepared(),)+
+                    _ => false,
+                }
+            }
+            fn ahead_target(&mut self, index: usize, count: usize) -> Result<(u32, u16), Error> {
+                match index {
+                    $($index => self.$index.ahead_target(count),)+
+                    _ => Err(Error::Empty),
+                }
+            }
+            fn target_at(&self, index: usize) -> Option<u32> {
+                match index {
+                    $($index => self.$index.target_at(),)+
+                    _ => None,
+                }
             }
         }
     };
@@ -143,7 +278,92 @@ struct Playing {
     /// Turned to read: the outputs are released and the timers at the capture
     /// rate, until `speak`.
     listening: bool,
+    /// PROTOTYPE (stage D): readers on their own streams now reading, one bit
+    /// per reader.
+    ahead_active: u8,
+    /// PROTOTYPE (stage D): readers on their own streams armed, one bit per
+    /// reader, so the switch checks a mask instead of walking the readers.
+    armed: u8,
+    /// PROTOTYPE (stage D step 5, `lane-listen-at-end`): listen from the
+    /// run that sees the frame end, inside `on_interrupt`.
+    listen_on_end: bool,
+    /// PROTOTYPE (stage D step 3): the frame has ended with every reader the
+    /// plan uses armed, and the timers were left running at the send rate,
+    /// their requests closed, so `listen` retimes them without a stop.
+    idling: bool,
 }
+
+/// PROTOTYPE (stage D): how a reader on its own stream is paced.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Opening {
+    /// The timer's update request.
+    Update,
+    /// A compare request of a channel no lane uses, numbered from 1.
+    Compare(u8),
+    /// PROTOTYPE (stage G2): the update request of a timer no lane uses,
+    /// kept running at the capture rate (`Awg::read_ahead_paced`).
+    Paced,
+}
+
+/// PROTOTYPE (stage D): a reader on a stream of its own, armed (enabled,
+/// its request closed) while the frame plays, so the switch to listening
+/// opens a request instead of starting a stream. One per timer and port it
+/// reads.
+struct AheadReader {
+    dma: crate::dma::AnyStream,
+    request: u8,
+    /// The port's input register.
+    port: u32,
+    /// On the second timer.
+    second: bool,
+    opening: Opening,
+    /// The transfer `prepare_listen` computed, and the address it writes.
+    prepared: Option<crate::dma::Prepared>,
+    prepared_at: u32,
+    /// The lane whose memory it reads into.
+    lane: u8,
+    /// Enabled, its request closed, waiting for the switch.
+    armed: bool,
+}
+
+impl AheadReader {
+    fn new<S: crate::dma::StreamInstance>(
+        stream: S,
+        request: u8,
+        port: u32,
+        second: bool,
+        opening: Opening,
+    ) -> Result<Self, Error> {
+        let mut dma = crate::dma::claim(&stream);
+        if dma.stop(crate::dma::STOP_SPINS).is_err() {
+            return Err(Error::Dma);
+        }
+        dma.clear_flags(crate::dma::Flags::ALL);
+        // PROTOTYPE: the token is dropped, so the stream cannot be freed.
+        drop(stream);
+        Ok(Self {
+            dma,
+            request,
+            port,
+            second,
+            opening,
+            prepared: None,
+            prepared_at: 0,
+            lane: 0,
+            armed: false,
+        })
+    }
+
+    /// Stops the stream, whatever it was doing.
+    fn disarm(&mut self) {
+        let _ = self.dma.stop(crate::dma::STOP_SPINS);
+        self.dma.clear_flags(crate::dma::Flags::ALL);
+        core::sync::atomic::fence(core::sync::atomic::Ordering::SeqCst);
+        self.armed = false;
+    }
+}
+
+const AHEAD: usize = 4;
 
 /// How a two-timer generator starts its second timer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -188,28 +408,64 @@ pub struct Awg<A: ChannelTimer, B: ChannelTimer, LA, LB> {
     second_lanes: LB,
     start: Start,
     state: Playing,
-    /// The sample rate to go back to after listening.
-    sample_rate: Hertz,
-    /// EXPERIMENT ONLY (`listen-clear-polarity`): the polarity to restore.
-    #[cfg(feature = "listen-clear-polarity")]
+    /// Active low, as last set.
     active_low: bool,
+    /// Whether the outputs are on (CCER's send bits set).
+    outputs_on: bool,
+    /// Each timer's CCER bits for its lanes: (owned, send), per
+    /// [`lane_ccer_bits`], for `active_low`.
+    ccer: [(u16, u16); 2],
+    /// What [`prepare_listen`](Awg::prepare_listen) computed.
+    plan: Option<Plan>,
+    /// PROTOTYPE (stage D): readers on their own streams.
+    ahead: [Option<AheadReader>; AHEAD],
+    /// PROTOTYPE (stage G2): the pacer's registers and its rate.
+    pacer: Option<(super::pwm::Pacer, Hertz)>,
+}
+
+/// A listen computed beforehand, so the switch itself is register stores.
+#[derive(Clone, Copy)]
+struct Plan {
+    /// Each timer's capture rate and the duty its compare event sits at.
+    listen: [(PreparedRate, u32); 2],
+    /// Each timer's send rate, to go back to.
+    send: [PreparedRate; 2],
+    /// Lanes whose own stream reads (bit n for lane n).
+    readers: u8,
+    /// For each lane, the lane whose read it shares.
+    reader_of: [u8; 8],
+    /// PROTOTYPE (stage D): readers on their own streams this plan uses, one
+    /// bit per reader.
+    ahead: u8,
+    /// PROTOTYPE (stage D): what the readers in `ahead` open on each timer:
+    /// the update request, and compare requests (bit 0 = channel 1), whose
+    /// compare registers take the listen duty.
+    open: [(bool, u8); 2],
+    /// PROTOTYPE (stage G2): a paced reader is in `ahead`.
+    paced: bool,
+    /// What was asked for: the rate and the count.
+    asked: (Hertz, usize),
 }
 
 impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
     /// A generator on one timer.
     pub fn single(first: Pwm<A>, lanes: LA) -> Self {
-        let rate = first.rate();
-        Self {
+        let mut awg = Self {
             first,
             second: None,
             first_lanes: lanes,
             second_lanes: (),
             start: Start::Single,
             state: Playing::default(),
-            sample_rate: rate,
-            #[cfg(feature = "listen-clear-polarity")]
             active_low: false,
-        }
+            outputs_on: true,
+            ccer: [(0, 0); 2],
+            plan: None,
+            ahead: [const { None }; AHEAD],
+            pacer: None,
+        };
+        awg.refresh_ccer();
+        awg
     }
 }
 
@@ -235,18 +491,22 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
         first.lead();
         second.follow(&first);
-        let rate = first.rate();
-        Ok(Self {
+        let mut awg = Self {
             first,
             second: Some(second),
             first_lanes,
             second_lanes,
             start: Start::Linked,
             state: Playing::default(),
-            sample_rate: rate,
-            #[cfg(feature = "listen-clear-polarity")]
             active_low: false,
-        })
+            outputs_on: true,
+            ccer: [(0, 0); 2],
+            plan: None,
+            ahead: [const { None }; AHEAD],
+            pacer: None,
+        };
+        awg.refresh_ccer();
+        Ok(awg)
     }
 
     /// A generator on two timers at one period, started in software one after
@@ -265,18 +525,22 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
                 (first, second, first_lanes, second_lanes),
             ));
         }
-        let rate = first.rate();
-        Ok(Self {
+        let mut awg = Self {
             first,
             second: Some(second),
             first_lanes,
             second_lanes,
             start: Start::Independent,
             state: Playing::default(),
-            sample_rate: rate,
-            #[cfg(feature = "listen-clear-polarity")]
             active_low: false,
-        })
+            outputs_on: true,
+            ccer: [(0, 0); 2],
+            plan: None,
+            ahead: [const { None }; AHEAD],
+            pacer: None,
+        };
+        awg.refresh_ccer();
+        Ok(awg)
     }
 
     /// How many lanes.
@@ -294,31 +558,40 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         self.first.rate()
     }
 
-    /// Turns every lane's output on or off. Off, a pin falls to its inactive
-    /// level.
+    /// Turns every lane's output on or off, each timer's in one CCER store.
+    /// Off, a pin is released (not driven by the timer), with its polarity
+    /// bits cleared as RM0090 Table 95 note 1 (p. 577) and RM0433 Table 337
+    /// note 1 (p. 1608) require; on, it drives at its polarity.
     pub fn set_outputs(&mut self, on: bool) {
-        LA::set_outputs(&self.first, on);
+        let [(owned, send), (owned2, send2)] = self.ccer;
+        self.first.write_ccer(owned, if on { send } else { 0 });
         if let Some(second) = self.second.as_ref() {
-            LB::set_outputs(second, on);
+            second.write_ccer(owned2, if on { send2 } else { 0 });
         }
+        self.outputs_on = on;
     }
 
     /// Makes every lane's output active low, or active high. Active low, a line
     /// idles high: duty 0 holds it high, and a sample's pulse pulls it low.
+    /// With the outputs off it takes effect when they turn on.
     pub fn set_active_low(&mut self, low: bool) {
-        #[cfg(feature = "listen-clear-polarity")]
-        {
-            self.active_low = low;
+        self.active_low = low;
+        self.refresh_ccer();
+        if self.outputs_on {
+            self.set_outputs(true);
         }
-        LA::set_active_low(&self.first, low);
-        if let Some(second) = self.second.as_ref() {
-            LB::set_active_low(second, low);
-        }
+    }
+
+    fn refresh_ccer(&mut self) {
+        self.ccer = [
+            self.first_lanes.ccer_bits(self.active_low),
+            self.second_lanes.ccer_bits(self.active_low),
+        ];
     }
 
     /// Whether a waveform is loaded or playing.
     pub const fn is_busy(&self) -> bool {
-        self.state.active != 0
+        self.state.active != 0 || self.state.ahead_active != 0
     }
 
     /// Loads `samples` on `lane`, for the next [`play`](Self::play). The lane's
@@ -326,6 +599,10 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     pub fn load(&mut self, lane: usize, samples: &[u32]) -> Result<(), Error> {
         if self.state.started || self.state.listening {
             return Err(Error::Busy);
+        }
+        // Idling timers would latch a loaded first duty before `play`.
+        if self.state.idling {
+            self.halt();
         }
         let bit = match u32::try_from(lane) {
             Ok(index) if lane < self.lanes() => 1u8 << (index & 7),
@@ -342,6 +619,325 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         Ok(())
     }
 
+    /// PROTOTYPE (stage D): reads port `P` for the first timer's lanes on it
+    /// through `stream`, paced by the first timer's update request, armed
+    /// while the frame plays. Refused if a reader already reads that port on
+    /// that timer, or with no room.
+    pub fn read_ahead_first_update<S, const P: char>(&mut self, stream: S) -> Result<(), Error>
+    where
+        S: super::UpdateDma<A> + super::GpioDma,
+        crate::gpio::Port<P>: crate::gpio::PortInstance,
+    {
+        let port = Self::idr::<P>();
+        self.add_ahead(AheadReader::new(
+            stream,
+            S::REQUEST,
+            port,
+            false,
+            Opening::Update,
+        )?)
+    }
+
+    /// PROTOTYPE (stage D): as [`read_ahead_first_update`](Self::read_ahead_first_update),
+    /// on the second timer.
+    pub fn read_ahead_second_update<S, const P: char>(&mut self, stream: S) -> Result<(), Error>
+    where
+        S: super::UpdateDma<B> + super::GpioDma,
+        crate::gpio::Port<P>: crate::gpio::PortInstance,
+    {
+        let port = Self::idr::<P>();
+        self.add_ahead(AheadReader::new(
+            stream,
+            S::REQUEST,
+            port,
+            true,
+            Opening::Update,
+        )?)
+    }
+
+    /// PROTOTYPE (stage D): as [`read_ahead_first_update`](Self::read_ahead_first_update),
+    /// paced by the compare request of the first timer's channel `C`, which no
+    /// lane may use. For a second port on a timer, since one update request
+    /// reads one port.
+    pub fn read_ahead_first_compare<const C: u8, S, const P: char>(
+        &mut self,
+        stream: S,
+    ) -> Result<(), Error>
+    where
+        S: super::CompareDma<A, C> + super::GpioDma,
+        crate::gpio::Port<P>: crate::gpio::PortInstance,
+    {
+        if (0..LA::COUNT).any(|lane| LA::channel(lane) == C) {
+            return Err(Error::Busy);
+        }
+        let port = Self::idr::<P>();
+        self.add_ahead(AheadReader::new(
+            stream,
+            S::REQUEST,
+            port,
+            false,
+            Opening::Compare(C),
+        )?)
+    }
+
+    /// PROTOTYPE (stage D): as [`read_ahead_first_compare`](Self::read_ahead_first_compare),
+    /// on the second timer.
+    pub fn read_ahead_second_compare<const C: u8, S, const P: char>(
+        &mut self,
+        stream: S,
+    ) -> Result<(), Error>
+    where
+        S: super::CompareDma<B, C> + super::GpioDma,
+        crate::gpio::Port<P>: crate::gpio::PortInstance,
+    {
+        if (0..LB::COUNT).any(|lane| LB::channel(lane) == C) {
+            return Err(Error::Busy);
+        }
+        let port = Self::idr::<P>();
+        self.add_ahead(AheadReader::new(
+            stream,
+            S::REQUEST,
+            port,
+            true,
+            Opening::Compare(C),
+        )?)
+    }
+
+    fn idr<const P: char>() -> u32
+    where
+        crate::gpio::Port<P>: crate::gpio::PortInstance,
+    {
+        use crate::gpio::PortRegisters;
+        <crate::gpio::Port<P> as PortRegisters>::regs()
+            .idr()
+            .as_ptr() as u32
+    }
+
+    /// PROTOTYPE (stage G2): a reader for port `P` paced by `pacer`'s update
+    /// request, for lanes whose streams cannot reach GPIO. One reader serves
+    /// every lane on the port, on either timer. `pacer` must run at the rate
+    /// `prepare_listen` will ask for, its update interrupt off; the caller
+    /// keeps it and keeps it running. Its request opens only at the switch.
+    pub fn read_ahead_paced<T: super::ChannelTimer, S, const P: char>(
+        &mut self,
+        pacer: &Pwm<T>,
+        stream: S,
+    ) -> Result<(), Error>
+    where
+        S: super::UpdateDma<T> + super::GpioDma,
+        crate::gpio::Port<P>: crate::gpio::PortInstance,
+    {
+        if self.pacer.is_some() {
+            return Err(Error::Busy);
+        }
+        let port = Self::idr::<P>();
+        self.add_ahead(AheadReader::new(
+            stream,
+            S::REQUEST,
+            port,
+            false,
+            Opening::Paced,
+        )?)?;
+        let handle = pacer.pacer();
+        handle.close();
+        self.pacer = Some((handle, pacer.rate()));
+        Ok(())
+    }
+
+    /// PROTOTYPE (stage G2): the paced reader's port, if one is registered.
+    fn paced_port(&self) -> Option<u32> {
+        self.ahead
+            .iter()
+            .flatten()
+            .find(|r| r.opening == Opening::Paced)
+            .map(|r| r.port)
+    }
+
+    /// PROTOTYPE (stage G2): opens or closes the pacer's update request,
+    /// clearing its flag first when opening.
+    fn pace(&self, open: bool) {
+        if let Some((handle, _)) = self.pacer {
+            handle.open(open);
+        }
+    }
+
+    fn add_ahead(&mut self, reader: AheadReader) -> Result<(), Error> {
+        if self.state.started || self.state.listening {
+            return Err(Error::Busy);
+        }
+        let taken = self.ahead.iter().flatten().any(|r| {
+            r.second == reader.second
+                && (r.port == reader.port
+                    || matches!(
+                        (r.opening, reader.opening),
+                        (Opening::Update, Opening::Update)
+                    ))
+        });
+        if taken {
+            return Err(Error::Busy);
+        }
+        match self.ahead.iter_mut().find(|slot| slot.is_none()) {
+            Some(slot) => {
+                *slot = Some(reader);
+                self.plan = None;
+                Ok(())
+            }
+            None => Err(Error::TooLarge),
+        }
+    }
+
+    /// PROTOTYPE (stage D): the reader on its own stream for `port` on the
+    /// first (`second` false) or second timer, if any.
+    fn ahead_for(&self, second: bool, port: u32) -> Option<usize> {
+        self.ahead.iter().position(
+            |r| matches!(r, Some(r) if r.port == port && (r.second == second || Self::paced(r))),
+        )
+    }
+
+    fn paced(r: &AheadReader) -> bool {
+        r.opening == Opening::Paced
+    }
+
+    /// PROTOTYPE (stage D): enables every reader this plan uses that is not
+    /// yet waiting, its request closed, if its lane still holds the memory
+    /// it was prepared for. Runs before the frame starts, outside the
+    /// switch.
+    fn arm_ahead(&mut self) {
+        let Some(plan) = self.plan else {
+            return;
+        };
+        for (index, slot) in self.ahead.iter_mut().enumerate() {
+            if plan.ahead & (1 << (index & 7)) == 0 {
+                continue;
+            }
+            let Some(reader) = slot.as_mut() else {
+                continue;
+            };
+            if reader.armed && reader.dma.is_running() {
+                continue;
+            }
+            let lane = usize::from(reader.lane);
+            let at = if lane < LA::COUNT {
+                self.first_lanes.target_at(lane)
+            } else {
+                self.second_lanes.target_at(lane - LA::COUNT)
+            };
+            reader.armed = false;
+            self.state.armed &= !(1 << (index & 7));
+            let Some(prepared) = reader.prepared else {
+                continue;
+            };
+            if at != Some(reader.prepared_at) {
+                continue;
+            }
+            // SAFETY: the memory is the lane's own or lent to it, and
+            // `take_samples` refuses while this reader is armed or running;
+            // it holds the prepared count, as `ahead_target` checked; the
+            // address is a GPIO port's input register, read-only and without
+            // side effects, which this stream's request paces once opened.
+            if unsafe { reader.dma.start_prepared(&prepared) }.is_ok() {
+                reader.armed = true;
+                self.state.armed |= 1 << (index & 7);
+            }
+        }
+    }
+
+    /// PROTOTYPE (stage C): what a frame for `lane` is checked against.
+    pub fn frame_limits(&self, lane: usize) -> Option<FrameLimits> {
+        if lane < LA::COUNT {
+            Some(self.first.frame_limits())
+        } else if lane < self.lanes() {
+            self.second.as_ref().map(Pwm::frame_limits)
+        } else {
+            None
+        }
+    }
+
+    /// PROTOTYPE (stage C): loads a checked frame on `lane`, played in
+    /// place, for the next [`play`](Self::play). As [`load`](Self::load),
+    /// refusing with the frame.
+    pub fn load_frame(&mut self, lane: usize, frame: Frame) -> Result<(), Refused<Error, Frame>> {
+        super::start_mark!(begin);
+        if self.state.started || self.state.listening {
+            return Err(Refused::new(Error::Busy, frame));
+        }
+        // Idling timers would latch a loaded first duty before `play`.
+        if self.state.idling {
+            self.halt();
+        }
+        let bit = match u32::try_from(lane) {
+            Ok(index) if lane < self.lanes() => 1u8 << (index & 7),
+            _ => return Err(Refused::new(Error::Empty, frame)),
+        };
+        if lane < LA::COUNT {
+            self.first_lanes.arm_frame(lane, &self.first, frame)?;
+        } else if let Some(second) = self.second.as_ref() {
+            self.second_lanes
+                .arm_frame(lane - LA::COUNT, second, frame)?;
+        } else {
+            return Err(Refused::new(Error::Empty, frame));
+        }
+        self.state.active |= bit;
+        super::start_mark!(4);
+        super::start_mark!(end);
+        Ok(())
+    }
+
+    /// PROTOTYPE (stage C): `lane`'s frame back, once it has ended.
+    pub fn take_frame(&mut self, lane: usize) -> Option<Frame> {
+        if lane < LA::COUNT {
+            self.first_lanes.take_frame(lane)
+        } else {
+            self.second_lanes.take_frame(lane.wrapping_sub(LA::COUNT))
+        }
+    }
+
+    /// PROTOTYPE (stage C): lends `lane` samples memory to read into; see
+    /// [`CompareLane::lend_samples`]. With a shared reader only a reader
+    /// lane's memory is written ([`reader_of`](Self::reader_of)).
+    pub fn lend_samples(
+        &mut self,
+        lane: usize,
+        samples: &'static mut [u16],
+    ) -> Result<(), Refused<Error, &'static mut [u16]>> {
+        if self.state.listening {
+            return Err(Refused::new(Error::Busy, samples));
+        }
+        if lane < LA::COUNT {
+            self.first_lanes.lend_samples(lane, samples)
+        } else {
+            self.second_lanes
+                .lend_samples(lane.wrapping_sub(LA::COUNT), samples)
+        }
+    }
+
+    /// PROTOTYPE (stage C): `lane`'s lent samples back, once it has stopped.
+    pub fn take_samples(&mut self, lane: usize) -> Option<&'static mut [u16]> {
+        if self
+            .ahead
+            .iter()
+            .flatten()
+            .any(|r| usize::from(r.lane) == lane && (r.armed || r.dma.is_running()))
+        {
+            return None;
+        }
+        if lane < LA::COUNT {
+            self.first_lanes.take_samples(lane)
+        } else {
+            self.second_lanes.take_samples(lane.wrapping_sub(LA::COUNT))
+        }
+    }
+
+    /// The lane whose read `lane` shares, as the last
+    /// [`prepare_listen`](Self::prepare_listen) set; `lane` itself without
+    /// one.
+    pub fn reader_of(&self, lane: usize) -> usize {
+        match &self.plan {
+            Some(plan) => usize::from(plan.reader_of.get(lane).copied().unwrap_or(0)),
+            None => lane,
+        }
+    }
+
     /// Plays every loaded lane, from one start. Refused while one plays, or with
     /// nothing loaded.
     pub fn play(&mut self) -> Result<(), Error> {
@@ -351,17 +947,62 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         if self.state.active == 0 {
             return Err(Error::Empty);
         }
+        super::start_mark!(begin);
+        self.arm_ahead();
+        self.quiet_all_but_last();
+        super::start_mark!(5);
         self.begin();
+        super::start_mark!(end);
         Ok(())
+    }
+
+    /// PROTOTYPE (stage D step 5, `lane-last-interrupts`): only the last
+    /// active lane (the highest numbered: the second timer starts from the
+    /// first's trigger, after it) raises its end-of-transfer interrupt; the
+    /// run it starts serves every lane. A lane still running then gets its
+    /// interrupt back (`on_interrupt`), so frames of unequal length still end.
+    fn quiet_all_but_last(&mut self) {
+        let active = self.state.active;
+        if active == 0 {
+            return;
+        }
+        let last = 7 - active.leading_zeros() as usize;
+        for lane in 0..last {
+            if active & (1 << lane) == 0 {
+                continue;
+            }
+            if lane < LA::COUNT {
+                self.first_lanes.set_complete_interrupt(lane, false);
+            } else {
+                self.second_lanes
+                    .set_complete_interrupt(lane - LA::COUNT, false);
+            }
+        }
+    }
+
+    /// PROTOTYPE (stage D step 5): listen from the run that sees the frame
+    /// end, inside [`on_interrupt`](Self::on_interrupt), instead of from the
+    /// caller after it returns. Whether it will (`lane-listen-at-end`).
+    pub fn listen_on_end(&mut self) -> bool {
+        self.state.listen_on_end = true;
+        self.state.listen_on_end
+    }
+
+    /// Whether it is turned to read.
+    pub const fn is_listening(&self) -> bool {
+        self.state.listening
     }
 
     /// Opens the active lanes' requests and starts the timers, all from one start.
     fn begin(&mut self) {
         let (first, second) = self.masks();
+        super::start_mark!(6);
         self.first.stage(first);
+        super::start_mark!(7);
         if let Some(timer) = self.second.as_mut() {
             timer.stage(second);
         }
+        super::start_mark!(8);
         self.state.started = true;
         self.first.start();
         if self.start == Start::Independent
@@ -369,79 +1010,382 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         {
             timer.start();
         }
+        super::start_mark!(9);
     }
 
-    /// Releases every output and reads every lane's port `count` times at `rate`,
-    /// or as near as the clock allows, which it returns. Every lane has to be
-    /// two-way. Refused while a waveform is loaded or plays. Serve it through
-    /// [`on_interrupt`](Self::on_interrupt), read it through
-    /// [`samples`](Self::samples), and [`speak`](Self::speak) to send again.
-    pub fn listen(&mut self, rate: Hertz, count: usize) -> Result<Hertz, Error> {
+    /// PROTOTYPE (stage D): `begin` for a listen with readers armed ahead:
+    /// stages both timers with the lane readers' requests, then opens each
+    /// armed reader's request, then starts. Refused if a reader the plan
+    /// uses is not armed.
+    fn begin_ahead(&mut self, plan: &Plan) -> Result<(), Error> {
+        if self.state.armed & plan.ahead != plan.ahead {
+            return Err(Error::NotPrepared);
+        }
+        self.set_ahead_compares(plan);
+        let (first, second) = self.masks();
+        self.first.stage(first);
+        if let Some(timer) = self.second.as_mut() {
+            timer.stage(second);
+        }
+        self.first.open_requests(plan.open[0].0, plan.open[0].1);
+        if let Some(timer) = self.second.as_ref() {
+            timer.open_requests(plan.open[1].0, plan.open[1].1);
+        }
+        if plan.paced {
+            self.pace(true);
+        }
+        self.state.ahead_active = plan.ahead;
+        self.state.started = true;
+        self.first.start();
+        if self.start == Start::Independent
+            && let Some(timer) = self.second.as_mut()
+        {
+            timer.start();
+        }
+        Ok(())
+    }
+
+    /// PROTOTYPE (stage D): the listen duty into the compare register of
+    /// each channel a reader in the plan opens.
+    fn set_ahead_compares(&self, plan: &Plan) {
+        for index in 0..4 {
+            if plan.open[0].1 & (1 << index) != 0 {
+                self.first.set_compare(index, plan.listen[0].1);
+            }
+            if plan.open[1].1 & (1 << index) != 0
+                && let Some(second) = self.second.as_ref()
+            {
+                second.set_compare(index, plan.listen[1].1);
+            }
+        }
+    }
+
+    /// PROTOTYPE (stage D step 3): at a frame's end with every reader the
+    /// plan uses armed (none, stage G1), closes the lanes' compare requests and leaves the
+    /// timers running at the send rate, every output at duty 0, the closing
+    /// sample each frame ends with. Whether it did.
+    fn idle_running(&mut self) -> bool {
+        let Some(plan) = self.plan.as_ref() else {
+            return false;
+        };
+        // With no reader ahead the lanes' own streams start at the switch,
+        // their requests closed until `listen` opens them, so the timers can
+        // idle as well.
+        if self.state.listening || self.state.armed & plan.ahead != plan.ahead {
+            return false;
+        }
+        self.first.close_requests();
+        if let Some(second) = self.second.as_ref() {
+            second.close_requests();
+        }
+        self.state.started = false;
+        self.state.idling = true;
+        true
+    }
+
+    /// PROTOTYPE (stage D step 3): `listen` from idling timers. Releases the
+    /// outputs, starts the lanes' own reads and sets the readers' compare
+    /// duties, then retimes each running timer by PSC, ARR and an update
+    /// generation, which with URS counter-only raises no update request,
+    /// clears its flags and opens the requests. No stop, stage or start.
+    fn listen_running(&mut self, plan: &Plan) -> Result<(), Error> {
+        self.state.idling = false;
+        if self.state.armed & plan.ahead != plan.ahead {
+            self.abort();
+            return Err(Error::NotPrepared);
+        }
+        self.set_outputs(false);
+        super::stamp!(super::profile::OUTPUTS);
+        self.state.listening = true;
+        super::stamp!(super::profile::RETIMED);
+        if let Err(error) = self.listen_lanes(plan) {
+            self.abort();
+            return Err(error);
+        }
+        self.set_ahead_compares(plan);
+        super::stamp!(super::profile::LANES);
+        self.state.active = plan.readers;
+        let (first, second) = self.masks();
+        self.first.retime_running(&plan.listen[0].0);
+        if let Some(timer) = self.second.as_mut() {
+            timer.retime_running(&plan.listen[1].0);
+        }
+        self.first
+            .open_requests(plan.open[0].0, plan.open[0].1 | first);
+        if let Some(timer) = self.second.as_ref() {
+            timer.open_requests(plan.open[1].0, plan.open[1].1 | second);
+        }
+        if plan.paced {
+            self.pace(true);
+        }
+        self.state.ahead_active = plan.ahead;
+        self.state.started = true;
+        super::stamp!(super::profile::BEGUN);
+        #[cfg(feature = "profile-listen")]
+        super::profile::commit_listen();
+        Ok(())
+    }
+
+    /// Computes a listen of `count` port samples at `rate`, or as near as
+    /// the clock allows, which it returns, so that [`listen`](Self::listen)
+    /// and [`speak`](Self::speak) are register stores only. Every lane has to
+    /// be two-way. Holds until the next `prepare_listen`; the send rate it
+    /// returns to is the one the timers run at now. Refused while a
+    /// waveform is loaded, plays or is being read.
+    ///
+    /// With `lane-shared-reader`, the lanes of one timer that read one port
+    /// share the first such lane's read: only its stream runs, and
+    /// [`samples`](Self::samples) gives its capture for each of them.
+    /// Without it, every lane reads through its own stream.
+    pub fn prepare_listen(&mut self, rate: Hertz, count: usize) -> Result<Hertz, Error> {
         if self.state.started || self.state.active != 0 || self.state.listening {
             return Err(Error::Busy);
         }
-        super::stamp!(super::profile::ENTRY);
-        super::stamp!(super::profile::ENTRY2);
-        self.sample_rate = self.first.rate();
-        self.set_outputs(false);
-        // EXPERIMENT ONLY: RM0090 Table 95 note 1 and RM0433 Table 337 note 1
-        // keep CCxP and CCxNP clear while both outputs are off.
-        #[cfg(feature = "listen-clear-polarity")]
-        {
-            LA::set_active_low(&self.first, false);
-            if let Some(second) = self.second.as_ref() {
-                LB::set_active_low(second, false);
+        let first = self.first.prepare_rate(rate).map_err(|_| Error::Rate)?;
+        let second = match self.second.as_ref() {
+            Some(timer) => Some(timer.prepare_rate(rate).map_err(|_| Error::Rate)?),
+            None => None,
+        };
+        let mut reader_of = [0u8; 8];
+        let mut readers = 0u8;
+        #[allow(unused_mut)]
+        let mut ahead_mask = 0u8;
+        #[allow(unused_mut)]
+        let mut open = [(false, 0u8); 2];
+        #[allow(unused_mut)]
+        let mut paced = false;
+        let paced_port = self.paced_port();
+        let all = self.lanes().min(8);
+        let mut lane = 0;
+        while lane < all {
+            let (group_start, port) = if lane < LA::COUNT {
+                (0, self.first_lanes.port(lane))
+            } else {
+                (LA::COUNT, self.second_lanes.port(lane - LA::COUNT))
+            };
+            let Some(port) = port else {
+                return Err(Error::NoInput);
+            };
+            let mut reader = lane;
+            // A paced reader serves its port on both timers.
+            let group_start = if paced_port == Some(port) {
+                0
+            } else {
+                group_start
+            };
+            let mut other = group_start;
+            while other < lane {
+                let theirs = if other < LA::COUNT {
+                    self.first_lanes.port(other)
+                } else {
+                    self.second_lanes.port(other - LA::COUNT)
+                };
+                if theirs == Some(port) {
+                    reader = other;
+                    break;
+                }
+                other += 1;
+            }
+            if let Some(slot) = reader_of.get_mut(lane) {
+                *slot = reader as u8;
+            }
+            if reader == lane {
+                let ahead = self.ahead_for(lane >= LA::COUNT, port);
+                match ahead {
+                    Some(index) => {
+                        let (at, len) = if lane < LA::COUNT {
+                            self.first_lanes.ahead_target(lane, count)?
+                        } else {
+                            self.second_lanes.ahead_target(lane - LA::COUNT, count)?
+                        };
+                        if let Some(Some(r)) = self.ahead.get_mut(index) {
+                            // A reader still armed for other memory stops first.
+                            if r.armed || r.dma.is_running() {
+                                r.disarm();
+                                self.state.armed &= !(1 << (index & 7));
+                            }
+                            let t = usize::from(r.second) & 1;
+                            match r.opening {
+                                Opening::Update => open[t].0 = true,
+                                Opening::Compare(c) => open[t].1 |= 1 << (c.wrapping_sub(1) & 3),
+                                Opening::Paced => paced = true,
+                            }
+                            let transfer = crate::dma::Transfer::one_shot(
+                                r.request,
+                                crate::dma::Direction::PeripheralToMemory,
+                                r.port,
+                                at,
+                                len,
+                                crate::dma::WordSize::HalfWord,
+                                crate::dma::Priority::VeryHigh,
+                            );
+                            r.prepared =
+                                Some(crate::dma::Prepared::new(&transfer).map_err(|_| Error::Dma)?);
+                            r.prepared_at = at;
+                            r.lane = lane as u8;
+                        }
+                        ahead_mask |= 1 << (index & 7);
+                    }
+                    _ => {
+                        if lane < LA::COUNT {
+                            self.first_lanes.prepare_listen(lane, count)?;
+                        } else {
+                            self.second_lanes.prepare_listen(lane - LA::COUNT, count)?;
+                        }
+                        readers |= 1 << (lane & 7);
+                    }
+                }
+            }
+            lane += 1;
+        }
+        let send_first = self.first.current_rate();
+        let send_second = self
+            .second
+            .as_ref()
+            .map_or(send_first, |t| t.current_rate());
+        let second = second.unwrap_or(first);
+        self.plan = Some(Plan {
+            // A compare event once a period, wherever in the period it falls.
+            listen: [(first, first.period() / 2), (second, second.period() / 2)],
+            send: [send_first, send_second],
+            readers,
+            reader_of,
+            ahead: ahead_mask,
+            open,
+            paced,
+            asked: (rate, count),
+        });
+        // A paced reader samples at its pacer's rate, whatever the lane
+        // timers can reach.
+        if paced && let Some((_, at)) = self.pacer {
+            return Ok(at);
+        }
+        Ok(first.rate())
+    }
+
+    /// The rate and count the last [`prepare_listen`](Self::prepare_listen)
+    /// was asked for, and the rate it gives, if any.
+    pub fn prepared(&self) -> Option<(Hertz, usize, Hertz)> {
+        let plan = self.plan.as_ref()?;
+        let mut lane = 0;
+        while lane < self.lanes().min(8) {
+            if plan.readers & (1 << (lane & 7)) != 0 {
+                let ready = if lane < LA::COUNT {
+                    self.first_lanes.is_prepared(lane)
+                } else {
+                    self.second_lanes.is_prepared(lane - LA::COUNT)
+                };
+                // Prepared into memory the lane no longer reads into.
+                if !ready {
+                    return None;
+                }
+            }
+            lane += 1;
+        }
+        for (index, slot) in self.ahead.iter().enumerate() {
+            if plan.ahead & (1 << (index & 7)) == 0 {
+                continue;
+            }
+            let r = slot.as_ref()?;
+            let lane = usize::from(r.lane);
+            let at = if lane < LA::COUNT {
+                self.first_lanes.target_at(lane)
+            } else {
+                self.second_lanes.target_at(lane - LA::COUNT)
+            };
+            if at != Some(r.prepared_at) {
+                return None;
             }
         }
+        if plan.paced
+            && let Some((_, at)) = self.pacer
+        {
+            return Some((plan.asked.0, plan.asked.1, at));
+        }
+        Some((plan.asked.0, plan.asked.1, plan.listen[0].0.rate()))
+    }
+
+    /// Releases every output and starts the prepared read
+    /// ([`prepare_listen`](Self::prepare_listen)). Refused while a waveform
+    /// is loaded or plays, or with nothing prepared. Serve it through
+    /// [`on_interrupt`](Self::on_interrupt), read it through
+    /// [`samples`](Self::samples), and [`speak`](Self::speak) to send again.
+    pub fn listen(&mut self) -> Result<(), Error> {
+        if self.state.started || self.state.active != 0 || self.state.listening {
+            return Err(Error::Busy);
+        }
+        let Some(plan) = self.plan else {
+            return Err(Error::NotPrepared);
+        };
+        super::stamp!(super::profile::ENTRY);
+        super::stamp!(super::profile::ENTRY2);
+        if self.state.idling {
+            return self.listen_running(&plan);
+        }
+        self.set_outputs(false);
         super::stamp!(super::profile::OUTPUTS);
         self.state.listening = true;
-        let got = match self.retime(rate) {
-            Ok(got) => got,
-            Err(error) => {
-                self.abort();
-                return Err(error);
-            }
-        };
+        self.first.apply_rate(&plan.listen[0].0);
+        if let Some(second) = self.second.as_mut() {
+            second.apply_rate(&plan.listen[1].0);
+        }
         super::stamp!(super::profile::RETIMED);
-        // A compare event once a period, wherever in the period it falls.
-        let first = self
-            .first_lanes
-            .listen(&self.first, count, self.first.period() / 2);
-        let listening = match self.second.as_ref() {
-            Some(second) => {
-                let duty = second.period() / 2;
-                first.and_then(|()| self.second_lanes.listen(second, count, duty))
-            }
-            None => first,
-        };
-        if let Err(error) = listening {
+        if let Err(error) = self.listen_lanes(&plan) {
             self.abort();
             return Err(error);
         }
         super::stamp!(super::profile::LANES);
-        let all = self.lanes();
-        let mut lane = 0;
-        while lane < all {
-            self.state.active |= 1 << (lane & 7);
-            lane += 1;
+        self.state.active = plan.readers;
+        if plan.ahead != 0 {
+            if let Err(error) = self.begin_ahead(&plan) {
+                self.abort();
+                return Err(error);
+            }
+            super::stamp!(super::profile::BEGUN);
+            #[cfg(feature = "profile-listen")]
+            super::profile::commit_listen();
+            return Ok(());
         }
         self.begin();
         super::stamp!(super::profile::BEGUN);
         #[cfg(feature = "profile-listen")]
         super::profile::commit_listen();
-        Ok(got)
+        Ok(())
     }
 
-    fn retime(&mut self, rate: Hertz) -> Result<Hertz, Error> {
-        let got = self.first.set_rate(rate).map_err(|_| Error::Rate)?;
-        if let Some(second) = self.second.as_mut() {
-            second.set_rate(rate).map_err(|_| Error::Rate)?;
+    /// Starts the read of each lane in `plan` that reads on its own stream.
+    fn listen_lanes(&mut self, plan: &Plan) -> Result<(), Error> {
+        let all = self.lanes().min(8);
+        let mut lane = 0;
+        while lane < all {
+            if plan.readers & (1 << (lane & 7)) != 0 {
+                #[cfg(feature = "profile-lanes")]
+                super::profile::set_lane(lane);
+                let started = if lane < LA::COUNT {
+                    self.first_lanes.listen(lane, &self.first, plan.listen[0].1)
+                } else if let Some(second) = self.second.as_ref() {
+                    self.second_lanes
+                        .listen(lane - LA::COUNT, second, plan.listen[1].1)
+                } else {
+                    Err(Error::Empty)
+                };
+                started?;
+            }
+            lane += 1;
         }
-        Ok(got)
+        Ok(())
     }
 
-    /// What `lane` last read, as whole port samples; see [`recover`].
+    /// What `lane` last read, as whole port samples; see [`recover`]. With a
+    /// shared reader, the capture of the lane whose read it shares.
     pub fn samples(&self, lane: usize) -> &[u16] {
+        if self.state.ahead_active != 0 {
+            return &[];
+        }
+        let lane = match &self.plan {
+            Some(plan) => usize::from(plan.reader_of.get(lane).copied().unwrap_or(0)),
+            None => lane,
+        };
         if lane < LA::COUNT {
             self.first_lanes.samples(lane)
         } else {
@@ -449,7 +1393,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
     }
 
-    /// Turns back from listening: the sample rate again, every output on at its
+    /// Turns back from listening: the send rate again, every output on at its
     /// inactive level. Refused while still reading.
     pub fn speak(&mut self) -> Result<(), Error> {
         if self.state.started {
@@ -457,22 +1401,18 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
         super::stamp!(super::profile::S_ENTRY);
         self.state.listening = false;
-        let rate = self.sample_rate;
         self.first_lanes.park(&self.first);
         if let Some(second) = self.second.as_ref() {
             self.second_lanes.park(second);
         }
         super::stamp!(super::profile::S_PARKED);
-        self.retime(rate)?;
-        super::stamp!(super::profile::S_RETIMED);
-        #[cfg(feature = "listen-clear-polarity")]
-        {
-            let low = self.active_low;
-            LA::set_active_low(&self.first, low);
-            if let Some(second) = self.second.as_ref() {
-                LB::set_active_low(second, low);
+        if let Some(plan) = self.plan {
+            self.first.apply_rate(&plan.send[0]);
+            if let Some(second) = self.second.as_mut() {
+                second.apply_rate(&plan.send[1]);
             }
         }
+        super::stamp!(super::profile::S_RETIMED);
         self.set_outputs(true);
         super::stamp!(super::profile::S_DONE);
         #[cfg(feature = "profile-listen")]
@@ -503,6 +1443,8 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// ends, the timers stop and their requests close. A lane that fails
     /// stops the whole generator, since its waveforms belong together.
     pub fn on_interrupt(&mut self) -> Option<Result<u8, Error>> {
+        #[cfg(feature = "profile-start")]
+        let t0 = cortex_m::peripheral::DWT::cycle_count();
         let mut ended = 0u8;
         let mut lane = 0;
         while lane < (LA::COUNT + LB::COUNT).min(8) {
@@ -527,11 +1469,77 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             }
             lane += 1;
         }
+        if ended != 0 && self.state.active != 0 && !self.state.listening {
+            let mut lane = 0;
+            while lane < (LA::COUNT + LB::COUNT).min(8) {
+                if self.state.active & (1 << lane) != 0 {
+                    if lane < LA::COUNT {
+                        self.first_lanes.set_complete_interrupt(lane, true);
+                    } else {
+                        self.second_lanes
+                            .set_complete_interrupt(lane - LA::COUNT, true);
+                    }
+                }
+                lane += 1;
+            }
+        }
+        #[cfg(feature = "profile-start")]
+        let t1 = cortex_m::peripheral::DWT::cycle_count();
+        if self.state.ahead_active != 0 {
+            let mut failed = false;
+            for (index, slot) in self.ahead.iter_mut().enumerate() {
+                let bit = 1u8 << (index & 7);
+                if self.state.ahead_active & bit == 0 {
+                    continue;
+                }
+                let Some(r) = slot.as_mut() else {
+                    continue;
+                };
+                let flags = r.dma.flags();
+                if flags.failed() {
+                    failed = true;
+                    break;
+                }
+                if flags.complete {
+                    r.dma.clear_flags(crate::dma::Flags::ALL);
+                    core::sync::atomic::fence(core::sync::atomic::Ordering::SeqCst);
+                    r.armed = false;
+                    self.state.armed &= !bit;
+                    self.state.ahead_active &= !bit;
+                    ended |= 1 << (r.lane & 7);
+                }
+            }
+            if failed {
+                self.abort();
+                return Some(Err(Error::Dma));
+            }
+        }
         if ended == 0 {
             return None;
         }
-        if self.state.active == 0 {
-            self.halt();
+        #[cfg(feature = "profile-start")]
+        let t2 = cortex_m::peripheral::DWT::cycle_count();
+        if self.state.active == 0 && self.state.ahead_active == 0 {
+            let frame_end = !self.state.listening;
+            let idled = self.idle_running();
+            if !idled {
+                self.halt();
+            }
+            #[cfg(feature = "profile-start")]
+            let t3 = cortex_m::peripheral::DWT::cycle_count();
+            let mut result = Some(Ok(ended));
+            if frame_end && self.state.listen_on_end {
+                self.state.listen_on_end = false;
+                if let Err(error) = self.listen() {
+                    result = Some(Err(error));
+                }
+            }
+            #[cfg(feature = "profile-start")]
+            if frame_end {
+                let t4 = cortex_m::peripheral::DWT::cycle_count();
+                super::profile::turn_add(&[t0, t1, t2, t3, t4]);
+            }
+            return result;
         }
         Some(Ok(ended))
     }
@@ -543,6 +1551,12 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             self.second_lanes.abort_all(second);
         }
         self.halt();
+        for r in self.ahead.iter_mut().flatten() {
+            r.disarm();
+        }
+        self.state.ahead_active = 0;
+        self.state.armed = 0;
+        self.state.listen_on_end = false;
         // The lanes wrote duty 0 into the preload; the stopped timers make no
         // update to load it, so an output stopped mid-pulse would stay high.
         self.first.latch();
@@ -552,8 +1566,12 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         self.state.active = 0;
         if self.state.listening {
             self.state.listening = false;
-            let rate = self.sample_rate;
-            let _ = self.retime(rate);
+            if let Some(plan) = self.plan {
+                self.first.apply_rate(&plan.send[0]);
+                if let Some(second) = self.second.as_mut() {
+                    second.apply_rate(&plan.send[1]);
+                }
+            }
         }
     }
 
@@ -579,13 +1597,21 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     }
 
     fn halt(&mut self) {
+        self.pace(false);
         self.first.stop();
         self.first.close_requests();
+        {
+            self.first.close_update();
+            if let Some(second) = self.second.as_ref() {
+                second.close_update();
+            }
+        }
         if let Some(second) = self.second.as_mut() {
             second.stop();
             second.close_requests();
         }
         self.state.started = false;
+        self.state.idling = false;
     }
 
     /// Every lane's stream vector, to bind to

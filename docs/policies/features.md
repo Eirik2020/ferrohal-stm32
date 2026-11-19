@@ -25,6 +25,9 @@ Normative. Goals G1, G2, G5 (`requirements/goals.md`). Record: ADR-007,
 | `defmt` | `defmt::Format` on public types | no | |
 | `fugit` | `From` both ways between `time::Hertz` and fugit 0.6's `HertzU32` | no | in the no-panic link |
 | `fault-injection` | `dma::fault`: marks a DMA stream to ignore stop requests | no | benches only (UARTDMA-009); a stuck mark is the only behaviour change, and nothing in FerroHAL sets one |
+| `profile-listen` | `timer::profile`: DWT cycle stamps through the lane switch (`Awg::listen`, `speak`) | no | benches only: the switch-path cycle counts the lane design requires after any change to the switch path (`docs/design/lanes.md`); a stamp costs cycles, so product figures are taken without it |
+| `profile-lanes` | `profile-listen`, plus a stamp inside each lane's listen | no | benches only; costs the listen time it measures |
+| `profile-start` | `profile-listen`, plus an exchange's start (each load, play) and the frame-end turn by part | no | benches only |
 | `usb` | a `usb-device` bus over `synopsys-usb-otg` (0.4.0 from a fork pinned by revision, for ES0392 2.25.7) | **yes** | G2 exception 1: about 30 panic/unwrap sites and unbounded register spins in the dependency; the link covers FerroHAL's clock and constructor only |
 
 ## Allowed, not built (owner 2026-11-13: not now)

@@ -863,8 +863,7 @@ pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     let sent = scaled(&REPLY, far.period());
     let budget = cpu.0 / 100;
     let result = (|| {
-        let rate = near
-            .listen(CAPTURE_RATE, CAPTURES)
+        let rate = near.prepare_listen(CAPTURE_RATE, CAPTURES).and_then(|rate| near.listen().map(|()| rate))
             .map_err(|_| Fail::Count {
                 expected: CAPTURES as u32,
                 got: 0,
@@ -927,8 +926,7 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
 
     let sent = scaled(&WAVE, near.period());
     let result = (|| {
-        let rate = far
-            .listen(CAPTURE_RATE, CAPTURES)
+        let rate = far.prepare_listen(CAPTURE_RATE, CAPTURES).and_then(|rate| far.listen().map(|()| rate))
             .map_err(|_| short(CAPTURES))?;
         play_one(near, &sent, budget)?;
         if !matches!(
@@ -957,8 +955,7 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
 
     let answer = scaled(&REPLY, far.period());
     let result = spoke.and_then(|()| {
-        let rate = near
-            .listen(CAPTURE_RATE, CAPTURES)
+        let rate = near.prepare_listen(CAPTURE_RATE, CAPTURES).and_then(|rate| near.listen().map(|()| rate))
             .map_err(|_| short(CAPTURES))?;
         play_one(far, &answer, budget)?;
         if !matches!(
@@ -988,7 +985,7 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     // With the sender's output off, the far end reads only the pull-up.
     near.set_outputs(false);
     let result = spoke.and_then(|()| {
-        far.listen(CAPTURE_RATE, CAPTURES)
+        far.prepare_listen(CAPTURE_RATE, CAPTURES).and_then(|rate| far.listen().map(|()| rate))
             .map_err(|_| short(CAPTURES))?;
         play_one(near, &sent, budget)?;
         if !matches!(

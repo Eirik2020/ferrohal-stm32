@@ -110,8 +110,7 @@ pub fn listen_suite<T1, T2, L1, L2>(
 {
     const CAPTURES: usize = 64;
     link.service();
-    let started = awg
-        .listen(ferrohal_stm32::time::Hertz::mhz(1), CAPTURES)
+    let started = awg.prepare_listen(ferrohal_stm32::time::Hertz::mhz(1), CAPTURES).and_then(|rate| awg.listen().map(|()| rate))
         .is_ok();
     let began = link.now();
     let mut finished = [false; 4];

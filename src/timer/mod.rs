@@ -30,7 +30,10 @@ use stm32_metapac::timer::{
 };
 
 mod pwm;
-pub use pwm::{CompareLane, Error, Pwm, PwmChannel, Sampler, nearest};
+pub use pwm::{
+    CompareLane, Error, Frame, FrameLimits, PreparedRate, Pwm, PwmChannel, Sampler, lane_ccer_bits,
+    nearest,
+};
 
 mod awg;
 #[cfg(feature = "profile-listen")]
@@ -44,6 +47,23 @@ macro_rules! stamp {
 }
 pub use awg::{Awg, Lanes, recover};
 pub(crate) use stamp;
+
+/// PROFILING ONLY: a mark of an exchange's start (`profile-start`).
+macro_rules! start_mark {
+    (begin) => {
+        #[cfg(feature = "profile-start")]
+        super::profile::start_begin();
+    };
+    (end) => {
+        #[cfg(feature = "profile-start")]
+        super::profile::start_end();
+    };
+    ($stage:expr) => {
+        #[cfg(feature = "profile-start")]
+        super::profile::start_mark($stage);
+    };
+}
+pub(crate) use start_mark;
 
 use crate::{
     chip::Interrupt,

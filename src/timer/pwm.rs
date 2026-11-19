@@ -84,6 +84,8 @@ pub enum Error {
     /// time from 12 counts below (DShot600, 200 MHz counter, 2026-11-17).
     /// Step through a lower duty first.
     TopToZero,
+    /// `listen` before `prepare_listen`.
+    NotPrepared,
 }
 
 /// The prescaler and reload nearest `rate` from `clock`: (PSC + 1,
@@ -214,6 +216,43 @@ impl<T: ChannelTimer> Pwm<T> {
         Ok(rate)
     }
 
+    /// The prescaler and reload for `rate` on this timer, computed now, for
+    /// [`apply_rate`](Self::apply_rate) to load later with no arithmetic.
+    pub fn prepare_rate(&self, rate: Hertz) -> Result<PreparedRate, ConfigError> {
+        let (prescaler, reload, rate) = nearest(self.clock, rate, T::BITS)?;
+        Ok(PreparedRate {
+            prescaler,
+            reload,
+            rate,
+        })
+    }
+
+    /// The prepared form of the rate the timer runs at now.
+    pub fn current_rate(&self) -> PreparedRate {
+        PreparedRate {
+            prescaler: u32::from(self.gp.psc().read()) + 1,
+            reload: u64::from(self.period),
+            rate: self.rate,
+        }
+    }
+
+    /// [`set_rate`](Self::set_rate) from a [`PreparedRate`]: stops the timer
+    /// and loads PSC and ARR through an update event, the counter at 0.
+    pub fn apply_rate(&mut self, prepared: &PreparedRate) {
+        self.stop();
+        reload_counter(self.gp, prepared.prescaler, prepared.reload);
+        self.period = prepared.reload as u32;
+        self.rate = prepared.rate;
+    }
+
+    /// Clears the CCER bits in `clear`, then sets those in `set`, in one
+    /// read and one store: the whole timer's outputs and polarities at once.
+    pub(crate) fn write_ccer(&self, clear: u16, set: u16) {
+        let ccer = self.gp.ccer();
+        let value = (ccer.read().0 & !u32::from(clear)) | u32::from(set);
+        ccer.write_value(stm32_metapac::timer::regs::CcerGp16(value));
+    }
+
     /// The rate `T` would run at for `rate` under `clocks`.
     pub const fn check(clocks: &crate::rcc::Clocks, rate: Hertz) -> Result<Hertz, ConfigError> {
         match nearest(T::KERNEL.clock(clocks), rate, T::BITS) {
@@ -248,6 +287,15 @@ impl<T: ChannelTimer> Pwm<T> {
     pub fn top_margin(&self) -> u32 {
         let counts = u64::from(self.rate.0) * u64::from(self.period) / 10_000_000;
         (counts as u32).max(1)
+    }
+
+    /// PROTOTYPE (stage C): the send period and top margin a [`Frame`] is
+    /// checked against.
+    pub fn frame_limits(&self) -> FrameLimits {
+        FrameLimits {
+            period: self.period(),
+            margin: self.top_margin(),
+        }
     }
 
     /// The rate the timer runs at: periods a second.
@@ -336,6 +384,55 @@ impl<T: ChannelTimer> Pwm<T> {
         self.gp
             .ccr(usize::from((C - 1) & 3))
             .write_value(stm32_metapac::timer::regs::Ccr1ch(duty));
+    }
+
+    /// PROTOTYPE (stage D): channel `index`'s compare value (0 for channel
+    /// 1), by a runtime index.
+    pub(crate) fn set_compare(&self, index: usize, value: u32) {
+        self.gp
+            .ccr(index & 3)
+            .write_value(stm32_metapac::timer::regs::Ccr1ch(value));
+    }
+
+    /// PROTOTYPE (stage D): opens the update request (`update`) and the
+    /// compare requests of `channels` (bit 0 = channel 1) beside those open,
+    /// in one DIER store.
+    pub(crate) fn open_requests(&self, update: bool, channels: u8) {
+        self.gp.dier().modify(|w| {
+            if update {
+                w.set_ude(true);
+            }
+            for index in 0..4 {
+                if channels & (1 << index) != 0 {
+                    w.set_ccde(index, true);
+                }
+            }
+        });
+    }
+
+    /// The timer's update-request switch, for a generator that paces a
+    /// reader by this timer's update while owning none of it.
+    pub(crate) fn pacer(&self) -> Pacer {
+        Pacer(self.gp)
+    }
+
+    /// PROTOTYPE (stage D step 3): new PSC and ARR on a running counter,
+    /// loaded by an update generation, which restarts the counter at 0; URS
+    /// is counter-only (set at construction), so it raises no update
+    /// interrupt or request. Then clears every flag, so a request opened
+    /// next waits for its own event.
+    pub(crate) fn retime_running(&mut self, prepared: &PreparedRate) {
+        reload_counter(self.gp, prepared.prescaler, prepared.reload);
+        self.gp
+            .sr()
+            .write_value(stm32_metapac::timer::regs::SrGp16(0));
+        self.period = prepared.reload as u32;
+        self.rate = prepared.rate;
+    }
+
+    /// PROTOTYPE (stage D): closes the update request.
+    pub(crate) fn close_update(&self) {
+        self.gp.dier().modify(|w| w.set_ude(false));
     }
 
     /// Channel `C`'s compare register's value.
@@ -479,6 +576,33 @@ impl<T: ChannelTimer> Pwm<T> {
     }
 }
 
+/// A timer's update request and update interrupt, held by a generator whose
+/// reader that timer paces. It touches DIER's UDE and UIE and SR alone; the
+/// timer's owner keeps everything else.
+#[derive(Clone, Copy)]
+pub(crate) struct Pacer(TimGp16);
+
+impl Pacer {
+    /// Update request and update interrupt both off: the timer runs on,
+    /// pacing nothing until [`open`](Self::open).
+    pub(crate) fn close(&self) {
+        self.0.dier().modify(|w| {
+            w.set_ude(false);
+            w.set_uie(false);
+        });
+    }
+
+    /// Opens (clearing the flags first) or closes the update request.
+    pub(crate) fn open(&self, open: bool) {
+        if open {
+            self.0
+                .sr()
+                .write_value(stm32_metapac::timer::regs::SrGp16(0));
+        }
+        self.0.dier().modify(|w| w.set_ude(open));
+    }
+}
+
 /// One PWM channel's compare register, borrowed from its [`Pwm`]: the
 /// channel writes only its own compare register, through the handle that
 /// holds the token, and cannot outlive it. It keeps its pin, which
@@ -574,13 +698,18 @@ where
         request: S::REQUEST,
         vector: S::INTERRUPT,
         buffer,
+        lent: None,
         running: false,
         input: input.map(|(port, samples)| LaneInput {
             port,
             samples,
             len: 0,
+            lent: None,
+            prepared_at: 0,
+            paced_only: false,
         }),
         complementary,
+        listening: None,
         wiring,
         _timer: PhantomData,
     })
@@ -610,6 +739,44 @@ where
     > {
         assemble_lane(pwm, self, |w| &w.stream, false, buffer, None)
             .map_err(|(error, wiring, buffer, _)| Refused::new(error, (wiring, buffer)))
+    }
+
+    /// PROTOTYPE (stage G2): as [`assemble_two_way`](Self::assemble_two_way)
+    /// on a stream that cannot reach GPIO (F4's DMA1): the lane sends on its
+    /// own stream, and only a reader paced by another timer
+    /// ([`Awg::read_ahead_paced`](super::Awg::read_ahead_paced)) reads its
+    /// port, into `samples` or lent memory.
+    #[allow(clippy::type_complexity)]
+    pub fn assemble_paced<const PORT: char>(
+        self,
+        pwm: &Pwm<T>,
+        buffer: &'static mut [u32],
+        samples: &'static mut [u16],
+    ) -> Result<
+        CompareLane<T, C, Self>,
+        super::TwoWayLaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>>,
+    >
+    where
+        Port<PORT>: PortInstance,
+    {
+        let port = <Port<PORT> as PortRegisters>::regs().idr().as_ptr() as u32;
+        assemble_lane(
+            pwm,
+            self,
+            |w| &w.stream,
+            false,
+            buffer,
+            Some((port, samples)),
+        )
+        .map(|mut lane| {
+            if let Some(input) = lane.input.as_mut() {
+                input.paced_only = true;
+            }
+            lane
+        })
+        .map_err(|(error, wiring, buffer, samples)| {
+            Refused::new(error, (wiring, (buffer, samples.unwrap_or_default())))
+        })
     }
 
     /// As [`assemble`](Self::assemble), for a lane that can also read its own
@@ -708,6 +875,158 @@ struct LaneInput {
     samples: &'static mut [u16],
     /// How many samples the last listen asked for.
     len: u16,
+    /// PROTOTYPE (stage C): lent samples memory, read into in place of
+    /// `samples` while lent.
+    lent: Option<&'static mut [u16]>,
+    /// The address the prepared listen writes to, so a listen into memory
+    /// no longer held is refused.
+    prepared_at: u32,
+    /// PROTOTYPE (stage G2): the lane's stream cannot reach GPIO; only a
+    /// paced reader reads its port, into this lane's memory.
+    paced_only: bool,
+}
+
+impl LaneInput {
+    /// Where a listen reads into now: the lent memory, else the own.
+    fn target(&mut self) -> &mut [u16] {
+        match self.lent.as_deref_mut() {
+            Some(lent) => lent,
+            None => self.samples,
+        }
+    }
+}
+
+/// PROTOTYPE (round 2 stage C): what a lent frame is checked against, so it
+/// can be checked where it is written, away from the timer: the send
+/// period and [`Pwm::top_margin`]. [`Pwm::frame_limits`] gives it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FrameLimits {
+    period: u32,
+    margin: u32,
+}
+
+impl FrameLimits {
+    /// Limits for a send `period` and top `margin`, in counts; a timer's own
+    /// come from [`Pwm::frame_limits`].
+    pub const fn new(period: u32, margin: u32) -> Self {
+        Self { period, margin }
+    }
+
+    /// Whether `duty` is within the top margin of the period's end.
+    const fn near_top(&self, duty: u32) -> bool {
+        duty.saturating_add(self.margin) >= self.period
+    }
+}
+
+/// PROTOTYPE (round 2 stage C): a frame in lent memory, checked once and
+/// closed: no duty near the top followed by 0, none near the top last
+/// ([`Error::TopToZero`]), and the closing 0 written after the last duty.
+/// A lane plays it in place ([`CompareLane::arm_frame`]): nothing is
+/// copied. [`into_words`](Self::into_words) hands the memory back.
+pub struct Frame {
+    words: &'static mut [u32],
+    len: u16,
+    limits: FrameLimits,
+}
+
+impl Frame {
+    /// Checks and closes the first `len` duties of `words`, which needs one
+    /// word more for the closing 0. Refuses with the words back: for 0
+    /// duties, no room for the 0, or a duty near the top before a 0 or at
+    /// the end. Pure: whether a stream reaches the memory is
+    /// [`CompareLane::arm_frame`]'s check, one range compare.
+    pub fn new(
+        words: &'static mut [u32],
+        len: usize,
+        limits: FrameLimits,
+    ) -> Result<Self, Refused<Error, &'static mut [u32]>> {
+        if len == 0 {
+            return Err(Refused::new(Error::Empty, words));
+        }
+        let Ok(count) = u16::try_from(len) else {
+            return Err(Refused::new(Error::TooLarge, words));
+        };
+        if len >= words.len() {
+            return Err(Refused::new(Error::TooLarge, words));
+        }
+        let duties = words.get(..len).unwrap_or(&[]);
+        let top_to_zero = duties
+            .windows(2)
+            .any(|pair| limits.near_top(pair[0]) && pair[1] == 0);
+        if top_to_zero || duties.last().is_some_and(|&last| limits.near_top(last)) {
+            return Err(Refused::new(Error::TopToZero, words));
+        }
+        if let Some(close) = words.get_mut(len) {
+            *close = 0;
+        }
+        Ok(Self {
+            words,
+            len: count,
+            limits,
+        })
+    }
+
+    /// The frame's duties, without the closing 0.
+    pub fn duties(&self) -> &[u32] {
+        self.words.get(..usize::from(self.len)).unwrap_or(&[])
+    }
+
+    /// The memory back, whole.
+    pub fn into_words(self) -> &'static mut [u32] {
+        self.words
+    }
+}
+
+/// A timer rate computed beforehand by [`Pwm::prepare_rate`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PreparedRate {
+    prescaler: u32,
+    reload: u64,
+    rate: Hertz,
+}
+
+impl PreparedRate {
+    /// The rate it gives.
+    pub fn rate(&self) -> Hertz {
+        self.rate
+    }
+
+    /// Counts per period at this rate.
+    pub fn period(&self) -> u32 {
+        self.reload as u32
+    }
+}
+
+/// The CCER bits a lane on channel `channel` (1 to 4) owns, and those it sets
+/// to send: (owned, send). Owned are CCxE and CCxP, and on an advanced
+/// timer's channels 1 to 3 also CCxNE and CCxNP. Sending sets the output the
+/// lane drives (CCxNE for a complementary lane, else CCxE) and, active low,
+/// the polarity bits `Pwm::set_active_low` sets. Listening clears every owned
+/// bit: RM0090 Table 95 note 1 (p. 577) and RM0433 Table 337 note 1
+/// (p. 1608) keep CCxP and CCxNP clear while both outputs are off.
+pub const fn lane_ccer_bits(
+    channel: u8,
+    advanced: bool,
+    complementary: bool,
+    active_low: bool,
+) -> (u16, u16) {
+    let index = (channel.wrapping_sub(1) & 3) as u32;
+    let shift = 4 * index;
+    let has_n = advanced && index < 3;
+    let owned: u16 = if has_n { 0b1111 } else { 0b0011 };
+    let enable: u16 = if complementary && has_n {
+        0b0100
+    } else {
+        0b0001
+    };
+    let polarity: u16 = if !active_low {
+        0
+    } else if has_n {
+        0b1010
+    } else {
+        0b0010
+    };
+    (owned << shift, (enable | polarity) << shift)
 }
 
 /// The update event alone: preloaded registers load, the counter goes to 0.
@@ -740,9 +1059,14 @@ pub struct CompareLane<T, const C: u8, W> {
     request: u8,
     vector: Interrupt,
     buffer: &'static mut [u32],
+    /// PROTOTYPE (stage C): a lent frame it plays, or played, in place.
+    lent: Option<Frame>,
     running: bool,
     input: Option<LaneInput>,
     complementary: bool,
+    /// The listen transfer's register words and length, from
+    /// [`prepare_listen`](CompareLane::prepare_listen).
+    listening: Option<(crate::dma::Prepared, u16)>,
     wiring: W,
     _timer: PhantomData<fn() -> T>,
 }
@@ -817,11 +1141,110 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         Ok(())
     }
 
-    /// Turns the stream to read `count` whole port samples into the lane's input,
-    /// one per compare request of the channel, at `duty` in the timer's period.
-    /// Nothing runs until the requests open. The caller releases the pin first.
-    pub fn listen(&mut self, pwm: &Pwm<T>, count: usize, duty: u32) -> Result<(), Error> {
-        super::stamp!(super::profile::CHANNEL + 3 * usize::from((C - 1) & 3));
+    /// PROTOTYPE (stage C): plays a checked [`Frame`] in place, from lent
+    /// memory: the first duty into the compare register, the stream from the
+    /// rest and the closing 0 [`Frame::new`] wrote. Nothing is copied or
+    /// checked again but the limits, which must still be this timer's, and
+    /// the memory's reach.
+    /// Refuses with the frame while the lane runs or still holds one.
+    pub fn arm_frame(&mut self, pwm: &Pwm<T>, frame: Frame) -> Result<(), Refused<Error, Frame>> {
+        super::start_mark!(0);
+        if self.running || self.lent.is_some() {
+            return Err(Refused::new(Error::Busy, frame));
+        }
+        if frame.limits != pwm.frame_limits() {
+            return Err(Refused::new(Error::Rate, frame));
+        }
+        if crate::chip::check_dma_buffer(frame.words).is_err() {
+            return Err(Refused::new(Error::Dma, frame));
+        }
+        super::start_mark!(1);
+        let first = frame.words.first().copied().unwrap_or(0);
+        let rest = frame.words.get(1..).map_or(0, |rest| rest.as_ptr() as u32);
+        pwm.set_duty::<C>(first);
+        let transfer = Transfer::one_shot(
+            self.request,
+            Direction::MemoryToPeripheral,
+            pwm.gp.ccr(usize::from((C - 1) & 3)).as_ptr() as u32,
+            rest,
+            frame.len,
+            WordSize::Word,
+            Priority::VeryHigh,
+        );
+        super::start_mark!(2);
+        // SAFETY: the frame is held by the lane until `take_frame`, which
+        // refuses while it runs; from its second word it holds `len` words
+        // (`len - 1` duties and the closing 0, per `Frame::new`); the
+        // address is this channel's compare register.
+        if unsafe { self.dma.start(&transfer) }.is_err() {
+            return Err(Refused::new(Error::Dma, frame));
+        }
+        super::start_mark!(3);
+        self.lent = Some(frame);
+        self.running = true;
+        Ok(())
+    }
+
+    /// PROTOTYPE (stage D step 5): turns the stream's end-of-transfer
+    /// interrupt on or off, its error interrupts left on.
+    pub(crate) fn set_complete_interrupt(&mut self, on: bool) {
+        self.dma.set_interrupts(crate::dma::Interrupts {
+            complete: on,
+            half: false,
+            error: true,
+            fifo_error: false,
+        });
+    }
+
+    /// PROTOTYPE (stage C): the lent frame back, once the lane has stopped.
+    pub fn take_frame(&mut self) -> Option<Frame> {
+        // A stop that timed out leaves `running` clear and the stream on.
+        if self.running || self.dma.is_running() {
+            return None;
+        }
+        self.lent.take()
+    }
+
+    /// PROTOTYPE (stage C): lends samples memory for the next listens
+    /// instead of the lane's own. A listen prepared for other memory is
+    /// refused until prepared again. Refuses with the memory on a lane with
+    /// no input, while it runs, while one is lent, or for memory a stream
+    /// cannot reach.
+    pub fn lend_samples(
+        &mut self,
+        samples: &'static mut [u16],
+    ) -> Result<(), Refused<Error, &'static mut [u16]>> {
+        if self.running {
+            return Err(Refused::new(Error::Busy, samples));
+        }
+        let Some(input) = self.input.as_mut() else {
+            return Err(Refused::new(Error::NoInput, samples));
+        };
+        if input.lent.is_some() {
+            return Err(Refused::new(Error::Busy, samples));
+        }
+        if crate::chip::check_dma_buffer(samples).is_err() {
+            return Err(Refused::new(Error::Dma, samples));
+        }
+        input.lent = Some(samples);
+        Ok(())
+    }
+
+    /// PROTOTYPE (stage C): the lent samples back, once the lane has
+    /// stopped, with what the last listen read at their start.
+    pub fn take_samples(&mut self) -> Option<&'static mut [u16]> {
+        if self.running || self.dma.is_running() {
+            return None;
+        }
+        fence(Ordering::SeqCst);
+        self.input.as_mut()?.lent.take()
+    }
+
+    /// PROTOTYPE (stage D): where a reader on another stream may read
+    /// `count` samples for this lane: the address of the memory the lane
+    /// holds now, recorded as prepared. Refused on a lane with no input, for
+    /// 0 samples or more than the memory holds, or while the lane runs.
+    pub(crate) fn ahead_target(&mut self, count: usize) -> Result<(u32, u16), Error> {
         if self.running {
             return Err(Error::Busy);
         }
@@ -831,29 +1254,119 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         let Some(input) = self.input.as_mut() else {
             return Err(Error::NoInput);
         };
-        if count > input.samples.len() {
+        let target = input.target();
+        if count > target.len() {
             return Err(Error::TooLarge);
         }
+        let at = target.as_mut_ptr() as u32;
+        let len = u16::try_from(count).map_err(|_| Error::TooLarge)?;
+        input.prepared_at = at;
+        input.len = len;
+        Ok((at, len))
+    }
+
+    /// PROTOTYPE (stage D): the address of the memory the lane reads into
+    /// now, if it has an input.
+    pub(crate) fn target_at(&self) -> Option<u32> {
+        self.input
+            .as_ref()
+            .map(|input| match input.lent.as_deref() {
+                Some(lent) => lent.as_ptr() as u32,
+                None => input.samples.as_ptr() as u32,
+            })
+    }
+
+    /// Whether a listen is prepared into the memory the lane reads into now.
+    pub fn is_prepared(&self) -> bool {
+        match (self.input.as_ref(), self.listening) {
+            (Some(input), Some(_)) => {
+                let at = match input.lent.as_deref() {
+                    Some(lent) => lent.as_ptr(),
+                    None => input.samples.as_ptr(),
+                };
+                at as u32 == input.prepared_at
+            }
+            _ => false,
+        }
+    }
+
+    /// Computes the listen transfer for `count` whole port samples, once, so
+    /// [`listen`](Self::listen) only stores it. Refused on a lane with no
+    /// input, for 0 samples, or for more than the samples buffer holds.
+    pub fn prepare_listen(&mut self, count: usize) -> Result<(), Error> {
+        if count == 0 {
+            return Err(Error::Empty);
+        }
+        let Some(input) = self.input.as_mut() else {
+            return Err(Error::NoInput);
+        };
+        if input.paced_only {
+            return Err(Error::NoInput);
+        }
+        let port = input.port;
+        let target = input.target();
+        if count > target.len() {
+            return Err(Error::TooLarge);
+        }
+        let at = target.as_mut_ptr() as u32;
         let len = u16::try_from(count).map_err(|_| Error::TooLarge)?;
         let transfer = Transfer::one_shot(
             self.request,
             Direction::PeripheralToMemory,
-            input.port,
-            input.samples.as_mut_ptr() as u32,
+            port,
+            at,
             len,
             WordSize::HalfWord,
             Priority::VeryHigh,
         );
+        let prepared = crate::dma::Prepared::new(&transfer).map_err(|_| Error::Dma)?;
+        input.prepared_at = at;
+        self.listening = Some((prepared, len));
+        Ok(())
+    }
+
+    /// Starts the prepared read: one port sample per compare request of the
+    /// channel, at `duty` in the timer's period. Nothing runs until the
+    /// requests open. The caller releases the pin first.
+    pub fn listen(&mut self, pwm: &Pwm<T>, duty: u32) -> Result<(), Error> {
+        #[cfg(feature = "profile-lanes")]
+        super::profile::stamp(super::profile::lane(0));
+        if self.running {
+            return Err(Error::Busy);
+        }
+        let Some((prepared, len)) = self.listening else {
+            return Err(Error::NotPrepared);
+        };
+        let Some(input) = self.input.as_mut() else {
+            return Err(Error::NoInput);
+        };
+        if input.target().as_ptr() as u32 != input.prepared_at {
+            return Err(Error::NotPrepared);
+        }
         pwm.set_duty::<C>(duty);
-        super::stamp!(super::profile::CHANNEL + 3 * usize::from((C - 1) & 3) + 1);
-        // SAFETY: the samples are the lane's own for its life and hold `len`
-        // words; the address is a GPIO port's input register, read-only and
-        // without side effects, which this channel's compare request paces.
-        unsafe { self.dma.start(&transfer) }.map_err(|_| Error::Dma)?;
-        super::stamp!(super::profile::CHANNEL + 3 * usize::from((C - 1) & 3) + 2);
+        #[cfg(feature = "profile-lanes")]
+        super::profile::stamp(super::profile::lane(1));
+        // SAFETY: the samples are the lane's own, or lent to it until
+        // `take_samples`, which refuses while it runs; they hold `len`
+        // words, as `prepare_listen` checked, at the address just compared; the address is a GPIO port's
+        // input register, read-only and without side effects, which this
+        // channel's compare request paces.
+        unsafe { self.dma.start_prepared(&prepared) }.map_err(|_| Error::Dma)?;
+        #[cfg(feature = "profile-lanes")]
+        super::profile::stamp(super::profile::lane(2));
         input.len = len;
         self.running = true;
         Ok(())
+    }
+
+    /// The input register this lane reads, if it is two-way.
+    pub fn port(&self) -> Option<u32> {
+        self.input.as_ref().map(|input| input.port)
+    }
+
+    /// Whether the lane drives its channel's complementary output.
+    pub fn is_complementary(&self) -> bool {
+        self.complementary
     }
 
     /// What the last listen read, as whole port samples. Empty on a lane with no
@@ -862,7 +1375,11 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         match self.input.as_ref() {
             Some(input) if !self.running => {
                 fence(Ordering::SeqCst);
-                input.samples.get(..usize::from(input.len)).unwrap_or(&[])
+                let read: &[u16] = match input.lent.as_deref() {
+                    Some(lent) => lent,
+                    None => input.samples,
+                };
+                read.get(..usize::from(input.len)).unwrap_or(&[])
             }
             _ => &[],
         }
@@ -1159,6 +1676,22 @@ unsafe impl<T: Instance, S: Send> Send for Sampler<T, S> {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_lane_owns_its_channels_ccer_bits() {
+        use super::lane_ccer_bits as bits;
+        // General-purpose timer, channel 3: CC3E and CC3P only.
+        assert_eq!(bits(3, false, false, false), (0b0011 << 8, 0b0001 << 8));
+        assert_eq!(bits(3, false, false, true), (0b0011 << 8, 0b0011 << 8));
+        // Advanced timer, channel 2, plain: CC2E; active low sets P and NP.
+        assert_eq!(bits(2, true, false, false), (0b1111 << 4, 0b0001 << 4));
+        assert_eq!(bits(2, true, false, true), (0b1111 << 4, 0b1011 << 4));
+        // Complementary channel 3: CC3NE, not CC3E.
+        assert_eq!(bits(3, true, true, false), (0b1111 << 8, 0b0100 << 8));
+        assert_eq!(bits(3, true, true, true), (0b1111 << 8, 0b1110 << 8));
+        // Channel 4 of an advanced timer has no complementary output.
+        assert_eq!(bits(4, true, false, true), (0b0011 << 12, 0b0011 << 12));
+    }
 
     #[test]
     fn nearest_rounds_and_reports() {
