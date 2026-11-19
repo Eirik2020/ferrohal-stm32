@@ -11,7 +11,7 @@ of each flashed bench a procedure names (`hil/run-<board>.sh`, through
 hil/flash-dfu.sh: <crate>-usb-irq.log and <crate>.log); writes
 <crate>-images.sha256 (each binary's SHA-256) and checks-run.log. Commit the
 folder before `record`, so the tree is clean when reqtool reads it. `--bench`
-copies one bench's logs alone (f401, h753, discovery, lucid, foxeer), for a
+copies one bench's logs alone (f401, h753, discovery, f767, lucid, foxeer), for a
 run made on its own; `--analysis` none.
 
 record: for every procedure whose runs all passed (PASS lines and no FAIL),
@@ -36,6 +36,7 @@ BENCH = {
     "f401": "nucleo-f401re-loopback",
     "h753": "nucleo-h753zi-loopback",
     "discovery": "stm32f4-discovery",
+    "f767": "nucleo-f767zi",
 }
 # Flashed benches (FLSH tier): one firmware after usb-irq, no runs to pick.
 FLASHED = {

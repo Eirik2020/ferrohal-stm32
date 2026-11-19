@@ -41,6 +41,8 @@ mod app {
 
     const SPEED: Hertz = Hertz::khz(50);
     const LINK: &str = "I2C3 PA8/PC9 (Pico simulator), interrupt-driven";
+    /// What the bus running after an abort verifies: i2c_v1's recovery.
+    const RECOVERS: &str = "I2C-011,I2C-V1-003";
 
     type Scl = Pin<'A', 8, Alternate<4, OpenDrain>>;
     type Sda = Pin<'C', 9, Alternate<4, OpenDrain>>;
@@ -173,7 +175,7 @@ mod app {
         let tx = core::mem::take(cx.local.tx);
         let rx = core::mem::take(cx.local.rx);
         let mut h = Harness::new(cx.shared.slot, tx, rx);
-        h.suite(report, LINK, "irq", "I2C-007,I2C-008");
+        h.suite(report, LINK, "irq", "I2C-007,I2C-008", RECOVERS);
         // The DMA wiring: the interrupt-fed driver's wiring and both streams.
         let rcc = cx.local.rcc;
         let streams = cx.local.streams.take();
@@ -216,7 +218,7 @@ mod app {
             opened.map_err(Fail::Unexpected),
         );
         if opened.is_ok() {
-            h.suite(report, LINK, "dma", "I2C-007,I2C-008,I2C-V1-002");
+            h.suite(report, LINK, "dma", "I2C-007,I2C-008,I2C-V1-002", RECOVERS);
         }
         let led = cx.local.led;
         tests::finish(report, || led.set_high());

@@ -450,7 +450,17 @@ impl<B: Bus, M: rtic::Mutex<T = Slot<B>>> Harness<B, M> {
 
     /// Every check for the driver now in the slot, with `mode` naming it
     /// and `verifies` the requirements its rows add (the IP version's).
-    pub fn suite(&mut self, report: &mut Report, link: &str, mode: &str, verifies: &'static str) {
+    /// One mode's checks. `verifies` names the requirements a row speaks
+    /// for; `recovers` those the bus running after an abort speaks for, the
+    /// IP version's recovery among them.
+    pub fn suite(
+        &mut self,
+        report: &mut Report,
+        link: &str,
+        mode: &str,
+        verifies: &'static str,
+        recovers: &'static str,
+    ) {
         self.reopened();
         report.check_for(link, "I2C-007", "the simulator answers", self.id());
         for shape in [Shape::Write, Shape::WriteRead, Shape::Read] {
@@ -478,7 +488,7 @@ impl<B: Bus, M: rtic::Mutex<T = Slot<B>>> Harness<B, M> {
             },
         );
         report.check_for(link, "I2C-010", "the bus runs after the NACK", self.id());
-        self.abort(report, link);
+        self.abort(report, link, recovers);
         report.check_for(
             link,
             "I2C-013",
@@ -632,7 +642,7 @@ impl<B: Bus, M: rtic::Mutex<T = Slot<B>>> Harness<B, M> {
 
     /// A stretch past the bound: the caller aborts, the buffers come back,
     /// and the bus runs again (polled every 100 ms up to 10 s, logged).
-    fn abort(&mut self, report: &mut Report, link: &str) {
+    fn abort(&mut self, report: &mut Report, link: &str, recovers: &'static str) {
         let stretch = 20_000u16.to_le_bytes();
         let armed = self
             .ok(&[REG_STRETCH, stretch[0], stretch[1]], 0)
@@ -657,12 +667,7 @@ impl<B: Bus, M: rtic::Mutex<T = Slot<B>>> Harness<B, M> {
             ran = self.id();
         }
         defmt::info!("ABORT recovered after {=u32} retries of 100 ms", tries);
-        report.check_for(
-            link,
-            "I2C-011,I2C-V1-003",
-            "the bus runs after the abort",
-            ran,
-        );
+        report.check_for(link, recovers, "the bus runs after the abort", ran);
     }
 
     fn health(&mut self) -> Result<(), Fail> {
