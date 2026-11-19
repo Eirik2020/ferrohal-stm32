@@ -19,5 +19,6 @@ tiers = ["BRD", "HIL", "DBG", "FLSH"]
 nucleo-f401re-loopback = "HIL"
 nucleo-h753zi-loopback = "HIL"
 stm32f4-discovery = "HIL"
+nucleo-f767zi = "HIL"
 foxeer-f405-v2 = "FLSH"
 lucid-h7 = "FLSH"
