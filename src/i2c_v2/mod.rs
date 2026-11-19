@@ -413,10 +413,10 @@ mod tests {
     /// rather than a tick rounded to whole nanoseconds: the low and high
     /// times over the mode's minimums, the setup over its bound, the period
     /// at or above the asked one, and the rate reported the one the counts
-    /// make. The clocks are the benches' PCLK1s: 54 MHz (Nucleo-F767ZI),
-    /// whose 18.5 ns tick once ran tLOW at 4.63 us, and 120 MHz
-    /// (Nucleo-H753ZI), whose 8.3 ns tick ran it at 4.43 us, beside 100 MHz
-    /// and 48 MHz.
+    /// make. The clocks: 54 MHz, the Nucleo-F767ZI's PCLK1, whose 18.5 ns
+    /// tick rounded to 19 once ran tLOW at 4.63 us (TIMINGR 0x40d3a131,
+    /// read on the bench); 120 MHz, whose 8.3 ns tick rounded to 9 would
+    /// run it at 4.43 us; and 100 and 48 MHz, whose ticks are whole.
     #[test]
     fn the_counts_meet_the_specification() {
         for kernel in [54_000_000u64, 120_000_000, 100_000_000, 48_000_000] {
