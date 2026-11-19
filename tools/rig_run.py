@@ -108,9 +108,10 @@ def classify(code, failed, flashed):
     return "fail"
 
 
-def git(*args):
+def git(*args, cwd=ROOT):
+    """git in the repository given, FerroHAL's own by default."""
     try:
-        res = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=5)
+        res = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, timeout=5)
         return res.stdout.strip() if res.returncode == 0 else None
     except (OSError, subprocess.SubprocessError):
         return None
@@ -166,6 +167,9 @@ class Session:
         self.args = args
         self.start = start
         self.log_dir = Path(log_dir)
+        # The script's own repository (log_dir is <repo>/hil/logs): a sibling's bench,
+        # run through tools/rig.py, records that repository's commit, not FerroHAL's.
+        self.repo = self.log_dir.parent.parent
         self.mark = start  # when the previous phase ended
         self.prelude = None
         self.build = None
@@ -221,16 +225,16 @@ class Session:
             self.last_run_end = now
 
     def records(self, end, code, interrupted, path):
-        commit = git("rev-parse", "--short=12", "HEAD")
+        commit = git("rev-parse", "--short=12", "HEAD", cwd=self.repo)
         common = {
             "v": VERSION,
             "session": f"{self.bench}-{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime(self.start))}-{os.getpid()}",
             "bench": self.bench,
             "board": self.board,
             "host": socket.gethostname(),
-            "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
+            "branch": git("rev-parse", "--abbrev-ref", "HEAD", cwd=self.repo),
             "commit": commit,
-            "dirty": bool(git("status", "--porcelain", "--untracked-files=no")),
+            "dirty": bool(git("status", "--porcelain", "--untracked-files=no", cwd=self.repo)),
             "requester": os.environ.get("RIG_REQUESTER") or None,
         }
         if self.picked:

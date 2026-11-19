@@ -1,6 +1,6 @@
 # FerroHAL - agent entry
 
-STM32 HAL on stm32-metapac. Chips: every package of the STM32F401, F411, F405, F407, F722, F745, F767, H743 and H753 lines (`docs/CHIPS.md`); each line's chip module is named after its first part (`src/chips/stm32f401re.rs`).
+STM32 HAL on stm32-metapac. Chips: every package of the STM32F401, F405, F407, F410, F411, F412, F413, F427, F429, F446, F722, F745, F76x/F77x, H743, H750 and H753 lines (`docs/CHIPS.md`); chip modules sit by family and are named by the lines they serve (`src/chips/f4/stm32f401.rs`).
 Public repo. Bench-verified.
 
 ## Authority
@@ -22,7 +22,7 @@ Public repo. Bench-verified.
 | touch IP driver | `src/<ip>/` (neutral driver, or the IP's own folder: ADR-012), `src/<ip>_vN/mod.rs` (register wrapper) + `src/requirements/<ip>.yaml` |
 | add/change a user example | `examples/README.md`; built by `checks/run.sh` |
 | run/extend benches | `hil/WIRING.md`, `requirements/benches.md`, run module doc |
-| plan work | `docs/DEBT.md`; `docs/CHIPS.md` roadmap; open plan: `docs/plans/2026-11-17-f411-f722-f745.md`; ADR-012 item 4 (`chips/` by family, generated chip selection) waits on the F7 glue branch |
+| plan work | `docs/DEBT.md`; `docs/CHIPS.md` roadmap; open plan: `docs/plans/2026-11-17-f411-f722-f745.md` |
 | naming/catalogs/IDs | `docs/design/naming.md`; `tools/check_names.py` holds it |
 | chip glue, parts, dies, packages | `docs/design/glue-generator.md` (ADR-008), `tools/glue-gen` |
 | maturity, tiers, evidence axes | `docs/design/maturity.md` (ADR-009) |
@@ -48,6 +48,7 @@ hil/run-discovery.sh [runs]      # STM32F4 Discovery
 hil/flash-dfu.sh <board>         # a DFU-flashed board (`FLSH` tier): Foxeer, Lucid
 hil/pico-i2c-sim.sh [flash|run]  # Pico 1 I2C slave, both benches
 python3 -I tools/rig_run.py hil/run-<bench>.sh [runs]  # the same run, timed into the rig telemetry
+rig <script> [args] | rig list | rig locks  # any hil/ script, one holder per board, pins, telemetry
 python3 -I tools/rig_report.py [--since 24h] [--full]  # where the rig's time goes (hil/RIG.md)
 ```
 

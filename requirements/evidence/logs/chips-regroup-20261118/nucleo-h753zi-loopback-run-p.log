@@ -1,0 +1,14 @@
+build features: none
+   Compiling nucleo-h753zi-loopback v0.1.0 (/home/kaldstrand/ws/ferro/ferrohal-stm32/hil/nucleo-h753zi-loopback)
+    Finished `release` profile [optimized + debuginfo] target(s) in 2.04s
+     Running `probe-rs run --chip STM32H753ZI target/thumbv7em-none-eabihf/release/timer-trigger`
+     [38;5;10m[1mFinished[0m in 3.83s
+[INFO ] PASS TIM1 starts TIM8: the slave waits for the master [PWM-004] (timer_trigger ../common/tests.rs:845)
+[INFO ] PASS TIM1 starts TIM8: 100 starts: the master's starts the slave [PWM-005] (timer_trigger ../common/tests.rs:845)
+[INFO ] PASS TIM1 starts TIM8: 100 starts: they begin together [PWM-005] (timer_trigger ../common/tests.rs:845)
+[INFO ] TIM1 starts TIM8: at most 4 counts apart, read one after the other (timer_trigger ../common/pwm.rs:1226)
+[INFO ] PASS TIM1 starts TIM8, linked: AWG: every lane on both timers finishes [AWG-005] (timer_trigger ../common/tests.rs:845)
+[INFO ] identity: uid [33, 00, 30, 00, 01, 51, 33, 32, 34, 37, 34, 34], rev 0x2003 (timer_trigger ../common/tests.rs:2088)
+[INFO ] errata: ES0392 Rev 15, 102 affect rev 0x2003, 0 unreviewed (timer_trigger ../common/tests.rs:2064)
+[INFO ] all checks passed (timer_trigger ../common/tests.rs:2097)
+Firmware exited successfully

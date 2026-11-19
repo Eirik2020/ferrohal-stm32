@@ -18,6 +18,7 @@ mod emit;
 #[cfg(feature = "probe")]
 mod probe;
 mod registry;
+mod select;
 mod silicon;
 mod tables;
 mod tiers;
@@ -111,6 +112,13 @@ fn run(args: &[String]) -> Result<(), String> {
                     );
                 }
             }
+            // The chip selection follows the whole registry, whatever the
+            // selector named.
+            select::write(&tool_dir().join("../.."))?;
+            println!(
+                "src/lib.rs: the chip selection for {} parts",
+                registry::PARTS.len()
+            );
             Ok(())
         }
         "tables" => {

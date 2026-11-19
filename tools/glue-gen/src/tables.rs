@@ -68,24 +68,25 @@ fn compact(names: &[String]) -> String {
 }
 
 /// A part's module text: its line's chip file, the one that mounts the
-/// part's generated glue, and every shared module that file mounts.
+/// part's generated glue, and every module that file mounts, one level down
+/// (a die file, the family's common file, an errata table, the macros).
 fn module_text(root: &Path, part: &Part) -> String {
-    let chips = root.join("src/chips");
-    let mount = format!("#[path = \"gen/{}.rs\"]", part.feature);
-    let own = fs::read_dir(&chips)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter(|entry| entry.path().extension().is_some_and(|e| e == "rs"))
-        .filter_map(|entry| fs::read_to_string(entry.path()).ok())
-        .find(|text| text.contains(&mount))
-        .unwrap_or_default();
+    let Ok(files) = crate::select::chip_files(root) else {
+        return String::new();
+    };
+    let Some(file) = files.get(part.feature) else {
+        return String::new();
+    };
+    let path = root.join("src").join(file);
+    let own = fs::read_to_string(&path).unwrap_or_default();
+    let here = path.parent().unwrap_or(root);
     let mut text = own.clone();
     for line in own.lines() {
-        if let Some(rest) = line.trim().strip_prefix("#[path = \"shared/")
+        if let Some(rest) = line.trim().strip_prefix("#[path = \"")
             && let Some(file) = rest.strip_suffix("\"]")
+            && !file.starts_with("../gen/")
         {
-            text += &fs::read_to_string(chips.join("shared").join(file)).unwrap_or_default();
+            text += &fs::read_to_string(here.join(file)).unwrap_or_default();
         }
     }
     text
