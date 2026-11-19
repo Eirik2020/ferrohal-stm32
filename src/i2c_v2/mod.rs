@@ -17,6 +17,9 @@
 //!
 //! Requirements: I2C-005, I2C-V2-001, I2C-002, I2C-003, I2C-004, I2C-006
 
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+mod interrupt;
+
 use stm32_metapac::i2c::I2c as Regs;
 
 pub use crate::i2c::{ConfigError, Error};
@@ -145,9 +148,12 @@ impl Unit {
             // All fields fit: the SCL these counts make is
             // kernel_clock / ((PRESC + 1) x (SCLL + 1 + SCLH + 1)), rounded
             // up so the rate reported is never under the one on the wire.
-            // The period is two counts at the least, so the divisor is
-            // never zero.
+            // The period is two counts at the least, so the guard never
+            // fires; it keeps the division's zero edge out of the link.
             let counts = (presc as u64 + 1) * (scll + 1 + sclh + 1);
+            if counts == 0 {
+                return Err(ConfigError::Frequency);
+            }
             let made = k.div_ceil(counts);
             return Ok(Timing {
                 timingr: (presc << 28)
