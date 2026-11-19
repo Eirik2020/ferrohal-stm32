@@ -3,7 +3,7 @@
  "counts": {
   "documents": 88,
   "agent": 55,
-  "bytes": 552101
+  "bytes": 552079
  },
  "documents": [
   {
@@ -583,7 +583,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6882
+   "bytes": 6860
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",

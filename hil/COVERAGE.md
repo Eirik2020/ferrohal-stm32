@@ -25,8 +25,8 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 |---|---|---|
 | IP `adc_v2` | HIL | nucleo-f401re-loopback |
 | IP `adc_v4` | HIL | nucleo-h753zi-loopback |
-| IP `dma_v1` | HIL | nucleo-h753zi-loopback |
-| IP `dma_v2` | HIL | nucleo-f401re-loopback |
+| IP `dma_v1` | – |  |
+| IP `dma_v2` | – | nucleo-f401re-loopback |
 | IP `exti_h7` | HIL | nucleo-h753zi-loopback |
 | IP `exti_v1` | HIL | nucleo-f401re-loopback |
 | IP `i2c_v1` | HIL | nucleo-f401re-loopback |
@@ -40,9 +40,9 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `spi_v4_i2s` | – | nucleo-h753zi-loopback |
 | IP `timer_v1` | HIL | nucleo-f401re-loopback, stm32f4-discovery |
 | IP `timer_v3` | HIL | nucleo-h753zi-loopback |
-| IP `usart_v2` | HIL | nucleo-f401re-loopback |
+| IP `usart_v2` | – | nucleo-f401re-loopback |
 | IP `usart_v3` | – |  |
-| IP `usart_v4` | HIL | nucleo-h753zi-loopback |
+| IP `usart_v4` | – | nucleo-h753zi-loopback |
 | die `0x413` (glue probe) | HIL | stm32f4-discovery |
 | die `0x419` (glue probe) | – |  |
 | die `0x421` (glue probe) | – |  |
