@@ -4,10 +4,11 @@ Source: ADR-013, [`../decisions/2026-11-19-timer-lanes-round2.md`](../decisions/
 
 A compare lane plays one duty per timer period from memory over DMA, and a two-way lane
 then releases its pin and reads the line it sent on (`timer::CompareLane`). A waveform
-generator (`timer::Awg`) runs the lanes of one or two timers from one start. This is how
-a bidirectional protocol (DShot with telemetry, one wire) runs on FerroHAL; the protocol
-itself is the user's, never FerroHAL's. The behaviour below is the only one: no build
-option changes it, beyond the profiling features (`docs/policies/features.md`).
+generator (`timer::Awg`) runs the lanes of one or two timers from one start. The lanes are
+for one-wire protocols that send a frame on a pin and read the reply on the same pin
+within tens of microseconds; any such protocol is the user's, never FerroHAL's, and none
+has run on these lanes against a real device yet. The behaviour below is the only one: no
+build option changes it, beyond the profiling features (`docs/policies/features.md`).
 
 ## Frames in lent memory
 
