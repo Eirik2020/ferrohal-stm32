@@ -709,9 +709,9 @@ requirements:
   - id: UART-023
     title: The line is reported quiet after the last stop bit
     statement: >-
-      Once its transmit queue has emptied, a UART shall report the line
-      quiet only after the USART's transmission complete, raised by the
-      USART's interrupt.
+      Once its transmit queue has emptied, a UART asked for the
+      transmission-complete interrupt shall report the line quiet only after
+      the USART's transmission complete, raised by the USART's interrupt.
     rationale: >-
       A transmit DMA finishes while the USART still shifts out up to two
       characters; a caller that turns a line around (half duplex, RS-485)

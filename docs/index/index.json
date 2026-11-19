@@ -3,7 +3,7 @@
  "counts": {
   "documents": 87,
   "agent": 54,
-  "bytes": 545921
+  "bytes": 545953
  },
  "documents": [
   {
@@ -630,7 +630,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 22498
+   "bytes": 22530
   },
   {
    "path": "requirements/goals.md",

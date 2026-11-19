@@ -57,6 +57,9 @@ pub(super) struct Tx {
     drained: bool,
     /// The line's interrupts are masked (`Uart::mask`): TCIE stays off.
     masked: bool,
+    /// The caller asked for TC to raise the USART's vector
+    /// (`set_tx_idle_interrupt`); without it a drain is only polled.
+    notify: bool,
 }
 
 impl Tx {
@@ -77,6 +80,7 @@ impl Tx {
             idle: false,
             drained: true,
             masked: false,
+            notify: false,
         }
     }
 
@@ -115,7 +119,7 @@ impl Tx {
     /// Waits for the USART's transmission complete: the queue just emptied.
     fn arm_drain(&mut self, unit: Unit) {
         self.draining = true;
-        unit.set_tc_interrupt(!self.masked);
+        unit.set_tc_interrupt(self.notify && !self.masked);
     }
 
     /// Reports TC once after the last frame: polled by every service, and
@@ -137,7 +141,13 @@ impl Tx {
     /// Holds TCIE off while the line is masked, and restores it.
     pub(super) fn set_masked(&mut self, unit: Unit, masked: bool) {
         self.masked = masked;
-        unit.set_tc_interrupt(self.draining && !masked);
+        unit.set_tc_interrupt(self.draining && self.notify && !masked);
+    }
+
+    /// Whether TC raises the USART's vector while a drain is awaited.
+    pub(super) fn set_notify(&mut self, unit: Unit, on: bool) {
+        self.notify = on;
+        unit.set_tc_interrupt(self.draining && on && !self.masked);
     }
 
     /// The oldest outcome not yet taken.
@@ -426,12 +436,29 @@ where
     /// Whether the line has gone quiet: the transmit queue is empty and the
     /// USART's transmission complete has come since its last frame, so the
     /// last stop bit has left the wire. A state read, as of the last service:
-    /// with the USART's vector bound, its interrupt sets it; without, a call
-    /// of [`on_interrupt`](Self::on_interrupt) first serves the line.
+    /// with [`set_tx_idle_interrupt`](Self::set_tx_idle_interrupt) on and the
+    /// USART's vector bound, its interrupt sets it; otherwise a call of
+    /// [`on_interrupt`](Self::on_interrupt) first serves the line.
     pub fn tx_drained(&self) -> bool {
         self.tx
             .as_ref()
             .is_some_and(|tx| tx.drained && tx.frames.len() == 0 && !tx.halted)
+    }
+
+    /// Whether the USART's transmission complete (TC) raises its vector
+    /// once the transmit queue empties, so [`Events::tx_idle`](super::Events::tx_idle) and
+    /// [`tx_drained`](Self::tx_drained) come by interrupt. Off when the UART
+    /// is opened: a drain is then seen only when the UART is served.
+    ///
+    /// While on, TC stays pending after the last frame until a service
+    /// sees it: a handler bound to the USART's vector must reach this
+    /// `Uart` until then. Turn it off, or free the UART from inside the
+    /// lock that holds it, before moving it out of the handlers' reach.
+    pub fn set_tx_idle_interrupt(&mut self, on: bool) {
+        let unit = self.unit;
+        if let Some(tx) = self.tx.as_mut() {
+            tx.set_notify(unit, on);
+        }
     }
 
     /// Frames sent, DMA errors and timeouts since the UART was opened.

@@ -39,7 +39,8 @@ sends into PC7, the RX pin half-duplex leaves unused, must not arrive.
 Every link of runs A and C also queues frames until `try_send` refuses one, at most
 `TX_FRAMES` plus the one already gone, and each must come back from `take_outcome`
 once, in order, as `Sent`, with nothing after [UARTDMA-013 UARTDMA-014]; then sends one
-16-byte frame and calls nothing on the transmit side: `tx_drained` must turn true by
+16-byte frame with `set_tx_idle_interrupt` on and calls nothing on the transmit side:
+`tx_drained` must turn true by
 the USART's interrupt, and on a jumpered link only once every byte has come back
 [UART-023]. The log states how many bytes the receiver lacked when the transmit DMA
 finished.

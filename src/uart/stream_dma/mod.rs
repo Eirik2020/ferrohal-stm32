@@ -30,8 +30,9 @@
 //! # Interrupts
 //!
 //! FerroHAL enables the peripheral's own interrupt bits (USART: idle,
-//! parity, errors, and transmission complete while the end of the last
-//! queued frame is awaited; receive stream: half, complete, errors; transmit stream:
+//! parity, errors, and, when asked with `set_tx_idle_interrupt`,
+//! transmission complete while the end of the last queued frame is
+//! awaited; receive stream: half, complete, errors; transmit stream:
 //! complete, errors) and nothing else. The scheduler binds the vectors in
 //! [`Uart::vectors`] and calls [`Uart::on_interrupt`] from each.
 //!

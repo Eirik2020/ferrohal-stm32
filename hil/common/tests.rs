@@ -35,6 +35,7 @@ pub trait TxHalf: Write<Error = Error> + embedded_io::WriteReady {
     fn health(&mut self) -> TxHealth;
     fn take_outcome(&mut self) -> Option<TxOutcome>;
     fn tx_drained(&mut self) -> bool;
+    fn set_tx_idle_interrupt(&mut self, on: bool);
 }
 
 impl<U, TxP, RxP, TxD, RxD> TxHalf for Uart<Wiring<U, TxP, RxP, TxD, RxD>>
@@ -62,6 +63,9 @@ where
     }
     fn tx_drained(&mut self) -> bool {
         Self::tx_drained(self)
+    }
+    fn set_tx_idle_interrupt(&mut self, on: bool) {
+        Self::set_tx_idle_interrupt(self, on)
     }
 }
 
@@ -268,6 +272,9 @@ where
     }
     fn tx_drained(&mut self) -> bool {
         self.0.lock(|uart| uart.tx_drained())
+    }
+    fn set_tx_idle_interrupt(&mut self, on: bool) {
+        self.0.lock(|uart| uart.set_tx_idle_interrupt(on))
     }
 }
 
@@ -789,6 +796,9 @@ impl<T: Full> TxHalf for Side<'_, T> {
     }
     fn tx_drained(&mut self) -> bool {
         self.0.borrow_mut().tx_drained()
+    }
+    fn set_tx_idle_interrupt(&mut self, on: bool) {
+        self.0.borrow_mut().set_tx_idle_interrupt(on)
     }
 }
 
@@ -1394,6 +1404,13 @@ pub fn frames_have_outcomes(link: &mut dyn Link, tx_len: usize) -> Result<(), Fa
 /// interrupt reports it without a call. Logs how many bytes the receiver
 /// still lacked when the transmit DMA had finished.
 pub fn quiet_after_the_last_stop_bit(link: &mut dyn Link) -> Result<(), Fail> {
+    link.tx().set_tx_idle_interrupt(true);
+    let result = quiet_by_interrupt(link);
+    link.tx().set_tx_idle_interrupt(false);
+    result
+}
+
+fn quiet_by_interrupt(link: &mut dyn Link) -> Result<(), Fail> {
     const LEN: usize = 16;
     drain(link);
     link.tx().flush()?;
