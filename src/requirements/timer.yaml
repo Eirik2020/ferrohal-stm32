@@ -103,7 +103,11 @@ requirements:
       is not counted.
     derived_from: [G1]
     verification:
-      entries: []
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Timers on the Nucleo-F401RE
 
   - id: PWM-001
     title: A channel's duty is as set
