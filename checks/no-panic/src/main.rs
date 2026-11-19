@@ -41,6 +41,12 @@ static mut COMPLEMENT: [u32; 20] = [0; 20];
 static mut TWO_WAY: [u32; 8] = [0; 8];
 static mut TWO_WAY_READS: [u16; 8] = [0; 8];
 static mut SAMPLES: [u16; 64] = [0; 64];
+static mut FRAME: [u32; 8] = [0; 8];
+static mut LENT: [u16; 8] = [0; 8];
+#[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
+static mut READER_LANE: [u32; 8] = [0; 8];
+#[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
+static mut READER_READS: [u16; 8] = [0; 8];
 static mut SPI_RX: [u8; 32] = [0; 32];
 
 #[entry]
@@ -563,7 +569,8 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     keep(awg.vectors().verify());
     awg.abort();
     awg.set_active_low(black_box(true));
-    keep(awg.listen(black_box(Hertz::mhz(1)), black_box(4)));
+    keep(awg.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
+    keep(awg.listen());
     keep(awg.samples(black_box(0)).len());
     keep(awg.speak());
     let mut out = [0u32; 4];
@@ -615,9 +622,132 @@ pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
             }
         }
     };
-    keep(lane.listen(&pwm, black_box(4), black_box(10)));
+    keep(lane.prepare_listen(black_box(4)));
+    keep(lane.listen(&pwm, black_box(10)));
     keep(lane.samples().len());
     lane.abort(&pwm);
+    keep(lane.is_prepared());
+    keep(lane.port());
+    keep(lane.is_complementary());
+    keep(ferrohal_stm32::timer::lane_ccer_bits(
+        black_box(1),
+        black_box(false),
+        black_box(false),
+        black_box(true),
+    ));
+    // A frame in lent memory, checked and closed, played in place.
+    keep(ferrohal_stm32::timer::FrameLimits::new(black_box(100), black_box(2)));
+    // SAFETY: as TX and RX in `main`.
+    let words = black_box(unsafe { &mut *addr_of_mut!(FRAME) });
+    match ferrohal_stm32::timer::Frame::new(words, black_box(3), pwm.frame_limits()) {
+        Ok(frame) => {
+            keep(frame.duties().len());
+            match lane.arm_frame(&pwm, frame) {
+                Ok(()) => {
+                    lane.abort(&pwm);
+                    keep(lane.take_frame().map(ferrohal_stm32::timer::Frame::into_words));
+                }
+                Err(refused) => keep(refused.error()),
+            }
+        }
+        Err(refused) => keep(refused.error()),
+    }
+    // Samples memory lent and taken back.
+    // SAFETY: as TX and RX in `main`.
+    let lent = black_box(unsafe { &mut *addr_of_mut!(LENT) });
+    match lane.lend_samples(lent) {
+        Ok(()) => keep(lane.take_samples()),
+        Err(refused) => keep(refused.error()),
+    }
+    // A rate computed ahead, then applied, as the switch does.
+    let mut pwm = pwm;
+    keep(pwm.current_rate());
+    if let Ok(rate) = pwm.prepare_rate(black_box(Hertz::mhz(1))) {
+        pwm.apply_rate(&rate);
+    }
+    // The generator's frame and lent-memory calls over the same lane.
+    let mut awg = ferrohal_stm32::timer::Awg::single(pwm, (lane,));
+    keep(awg.frame_limits(black_box(0)));
+    // SAFETY: as TX and RX in `main`; the frame above came back or was
+    // refused, so the memory is free again.
+    let words = black_box(unsafe { &mut *addr_of_mut!(FRAME) });
+    if let Some(limits) = awg.frame_limits(0) {
+        match ferrohal_stm32::timer::Frame::new(words, black_box(3), limits) {
+            Ok(frame) => keep(awg.load_frame(black_box(0), frame).map_err(|r| r.error())),
+            Err(refused) => keep(refused.error()),
+        }
+    }
+    keep(awg.play());
+    keep(awg.listen_on_end());
+    keep(awg.on_interrupt());
+    awg.abort();
+    keep(awg.take_frame(black_box(0)).map(ferrohal_stm32::timer::Frame::into_words));
+    // SAFETY: as TX and RX in `main`.
+    let lent = black_box(unsafe { &mut *addr_of_mut!(LENT) });
+    keep(awg.lend_samples(black_box(0), lent).map_err(|r| r.error()));
+    keep(awg.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
+    keep(awg.prepared());
+    keep(awg.reader_of(black_box(0)));
+    keep(awg.is_listening());
+    keep(awg.take_samples(black_box(0)));
+}
+
+/// The three reader forms: a reader armed ahead on the lane timer's update
+/// and on a compare request no lane uses, and a reader paced by a timer no
+/// lane uses. Every stream reaches GPIO through DMAMUX on the H7, so one
+/// chip links all three.
+#[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
+#[allow(clippy::too_many_arguments)]
+pub fn exercise_readers<T, P, U, const CD: u8, const SN: u8, SA, SC, SP, S2, S3, const PORT: char>(
+    rcc: &mut ferrohal_stm32::rcc::Rcc,
+    timer: T,
+    pin: P,
+    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+    ahead: SA,
+    compare: SC,
+    pacer: U,
+    paced: SP,
+    second: (S2, S3),
+) where
+    T: ferrohal_stm32::timer::ChannelTimer,
+    U: ferrohal_stm32::timer::ChannelTimer,
+    P: ferrohal_stm32::timer::ChannelPin<T, 1>,
+    ferrohal_stm32::dma::Stream<CD, SN>:
+        ferrohal_stm32::timer::CompareDma<T, 1> + ferrohal_stm32::timer::GpioDma,
+    SA: ferrohal_stm32::timer::UpdateDma<T> + ferrohal_stm32::timer::GpioDma,
+    SC: ferrohal_stm32::timer::CompareDma<T, 2> + ferrohal_stm32::timer::GpioDma,
+    SP: ferrohal_stm32::timer::UpdateDma<U> + ferrohal_stm32::timer::GpioDma,
+    S2: ferrohal_stm32::timer::UpdateDma<T> + ferrohal_stm32::timer::GpioDma,
+    S3: ferrohal_stm32::timer::CompareDma<T, 3> + ferrohal_stm32::timer::GpioDma,
+    ferrohal_stm32::gpio::Port<PORT>: ferrohal_stm32::gpio::PortInstance,
+{
+    let pwm = retried_pwm(rcc, timer, Hertz::khz(600));
+    let pace = retried_pwm(rcc, pacer, Hertz::mhz(2));
+    let wiring =
+        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
+            pin, stream,
+        );
+    // SAFETY: as TX and RX in `main`.
+    let (buffer, reads) = black_box(unsafe {
+        (
+            &mut *addr_of_mut!(READER_LANE),
+            &mut *addr_of_mut!(READER_READS),
+        )
+    });
+    let Ok(lane) = wiring.assemble_two_way::<PORT>(&pwm, buffer, reads) else {
+        park()
+    };
+    let mut awg = ferrohal_stm32::timer::Awg::single(pwm, (lane,));
+    keep(awg.read_ahead_first_update::<_, PORT>(ahead));
+    keep(awg.read_ahead_first_compare::<2, _, PORT>(compare));
+    keep(awg.read_ahead_paced::<_, _, PORT>(&pace, paced));
+    // A one-timer generator has no second timer: both are refused, linked.
+    keep(awg.read_ahead_second_update::<_, PORT>(second.0));
+    keep(awg.read_ahead_second_compare::<3, _, PORT>(second.1));
+    keep(awg.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
+    keep(awg.listen());
+    keep(awg.speak());
+    awg.abort();
 }
 
 /// A complementary output (CH1N) of a timer with a break unit, assembled
@@ -1706,6 +1836,17 @@ mod chip {
             dma1.s3,
         );
         super::exercise_sampler(&mut rcc, p.TIM8, dma2.s1);
+        super::exercise_readers::<_, _, _, 2, 2, _, _, _, _, _, 'A'>(
+            &mut rcc,
+            p.TIM5,
+            a.p0.into_alternate::<2>(&mut a.ctrl),
+            dma2.s2,
+            dma2.s5,
+            dma2.s6,
+            p.TIM3,
+            dma2.s7,
+            (dma1.s6, dma1.s7),
+        );
         let _ = analog;
         Some((
             rcc,
