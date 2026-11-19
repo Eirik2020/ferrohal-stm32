@@ -251,7 +251,7 @@ mod app {
                 },
             );
         }
-        let freed = cx.shared.usart6.lock(|slot| slot.take()).map(|uart| uart.free());
+        let freed = cx.shared.usart6.lock(|slot| slot.take().map(|uart| uart.free()));
         let Some(Ok((wiring, buffers))) = freed else {
             report.check(UART, "free once both streams stopped", Err(Fail::Count { expected: 1, got: 0 }));
             tests::finish(&report, || {})

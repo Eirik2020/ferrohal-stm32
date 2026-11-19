@@ -423,6 +423,11 @@ where
     /// explicit so the parts can move out. The transmit queue is dropped.
     /// A reopen runs `Uart::new` again on the same parts.
     ///
+    /// Free it inside the lock its handlers share: the line's interrupt
+    /// enables stay on until `free` clears them, and an event landing after
+    /// the `Uart` has left the handlers' reach raises its vector with
+    /// nothing left to clear it.
+    ///
     /// A stream that does not stop in time could still write the buffers,
     /// so they are not handed out: the refusal returns the UART, closed and
     /// both directions halted (sends and reads report `Halted`), still owning
@@ -627,16 +632,19 @@ impl<W: Parts> Uart<W> {
     /// Stops both streams and the line, and drops the transmit queue: what
     /// `free` runs. Both directions are halted if a stream does not stop.
     fn close(&mut self) -> Result<(), StopTimeout> {
+        // The line's enables go first. An event that lands while the
+        // streams stop (an idle line right after the last byte, TC after
+        // the last frame) would otherwise raise the USART's vector, and a
+        // caller that has already moved this `Uart` out of its handlers'
+        // reach has nothing left to clear it: the vector would fire for
+        // ever and the stop below would never finish.
+        self.unit.set_event_enables(false);
+        self.unit.set_tc_interrupt(false);
         let tx_stopped = match self.tx.as_mut() {
             Some(tx) => tx.halt(),
             None => Ok(()),
         };
         let rx_stopped = self.rx.halt();
-        self.unit.set_event_enables(false);
-        // TC stays set once the line is quiet: with TCIE left on after a
-        // drain the caller never served, the USART's vector would fire for
-        // ever once nothing serves it.
-        self.unit.set_tc_interrupt(false);
         self.unit.disable();
         tx_stopped.and(rx_stopped)
     }
