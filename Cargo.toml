@@ -28,12 +28,15 @@ synopsys-usb-otg = { git = "https://github.com/Eirik2020/synopsys-usb-otg", rev 
 
 [features]
 default = []
-# PROFILING ONLY, never merged: cycle stamps through `Awg::listen`.
+# Benches only (docs/policies/features.md): DWT cycle stamps through the lane
+# switch (`Awg::listen`, `speak`), for the switch-path cycle counts
+# docs/design/lanes.md requires after a change to that path. Product figures
+# are taken without it.
 profile-listen = []
-# PROFILING ONLY: also stamp each lane inside its listen (costs the listen
+# Benches only: also stamp each lane inside its listen (costs the listen
 # time it measures; off to measure the listen without it).
 profile-lanes = ["profile-listen"]
-# PROFILING ONLY: an exchange's start by part (each load, play), behind
+# Benches only: an exchange's start by part (each load, play), behind
 # its own stamps.
 profile-start = ["profile-listen"]
 
