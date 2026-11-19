@@ -30,8 +30,12 @@
 //!   transfer goes on, as the errata sheets ask.
 //! - **scope**: master only, 7-bit addresses, no SMBus, no clock
 //!   stretching on our side (a slow device may stretch SCL; the bound
-//!   covers only a device that answers within it). No DMA: an I2C
-//!   exchange is a few bytes.
+//!   covers only a device that answers within it).
+//! - **without blocking**: `InterruptI2c` (ADR-013), on `i2c_v1`:
+//!   `start` returns at once, the event and error vectors carry the
+//!   transaction, and its bytes move by DMA from a `DmaWiring` or from the
+//!   event interrupt, on buffers the caller lends. The routing traits
+//!   `I2cTxDma` and `I2cRxDma` name each I2C's streams.
 //!
 //! Requirements: I2C-001, I2C-002, I2C-003, I2C-004, I2C-005, I2C-006, API-002
 
@@ -45,6 +49,14 @@ use crate::{
 };
 
 use crate::i2c_ip::Unit;
+
+#[cfg(all(feature = "i2c_v1", any(feature = "dma_v1", feature = "dma_v2")))]
+pub(crate) mod interrupt;
+#[cfg(all(feature = "i2c_v1", any(feature = "dma_v1", feature = "dma_v2")))]
+pub use interrupt::{
+    DmaRefused, DmaWiring, Fault, InterruptHealth, InterruptI2c, MAX_PHASE, OpenError, Outcome,
+    Part, StartError, Transaction,
+};
 
 /// Bits of wire time an operation of `len` bytes occupies: nine per byte,
 /// plus a start, an address and an acknowledge, rounded up for the stop.
@@ -77,6 +89,26 @@ pub trait Instance: crate::Sealed + 'static {
 pub trait SclPin<U: Instance>: crate::Sealed {}
 /// A pin, in the right alternate function, that carries `U`'s SDA.
 pub trait SdaPin<U: Instance>: crate::Sealed {}
+
+/// A DMA stream that serves `U`'s transmit requests.
+///
+/// # Safety
+///
+/// `REQUEST` must be the request that routes `U`'s TX to this stream.
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub unsafe trait I2cTxDma<U: Instance>: crate::dma::StreamInstance {
+    const REQUEST: u8;
+}
+
+/// A DMA stream that serves `U`'s receive requests.
+///
+/// # Safety
+///
+/// As [`I2cTxDma`], for RX.
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub unsafe trait I2cRxDma<U: Instance>: crate::dma::StreamInstance {
+    const REQUEST: u8;
+}
 
 /// What the board file hands to `I2c::new`: one I2C instance and its two
 /// pins. The driver's trait bounds check that they belong together; this

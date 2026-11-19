@@ -56,7 +56,7 @@ so it sends on PB11 and UART4 on PC11 must hear nothing.
 ## USB on the Nucleo-H753ZI
 
 `hil/run-h753.sh m`, with the CN13 cable on the H753, as the rig keeps it
-(`hil/WIRING.md`). Pass: every check passes and the script exits zero. Before the echo, the port is freed to its token and both pins and reopened from them, so the echo runs on the reopened port [API-002]. The run clocks from HSE in bypass (the ST-LINK-V3's MCO); after the echo it counts CPU cycles over 1000 of the host's start-of-frames and requires 400 MHz within 0.5 %, the MCO's own error (`hil/RIG.md`) [RCC-001].
+(`hil/WIRING.md`). Pass: every check passes and the script exits zero. Before the echo, the port is freed to its token and both pins and reopened from them, so the echo runs on the reopened port [API-002]. The run clocks from HSE in bypass (the ST-LINK-V3's MCO); after the echo it counts CPU cycles over 1000 of the host's start-of-frames and requires 400 MHz within 1 %, past the MCO's own error, measured up to 0.65 % low (`hil/RIG.md`) [RCC-001].
 
 Run M (USB CDC over CN13) builds its binary (`usb-cdc`) before starting `hil/usb_cdc_host.py`, so the host's wait for a port
 is not spent compiling, and the host opens only a port that appeared after the one
@@ -265,6 +265,25 @@ for each poll and echo pass: USB-002's rule of use. The vector wakes the task th
 signal; the task enumerates and echoes every block `hil/usb_cdc_host.py` sends, and the
 log gives the longest the task held the lock. Pass: every check passes and the script
 exits zero.
+
+## Interrupt-driven I2C on the Nucleo-F401RE
+
+`hil/run-f401.sh x`. Run X drives `InterruptI2c` on I2C3 over
+PA8 and PC9 against the Pico 1 simulator, wired as run S, twice: opened
+from the plain wiring, every byte moved by the event interrupt, then from
+a DMA wiring of DMA1 stream 4 (TX) and stream 2 (RX), channel 3 (RM0368
+Table 28). Before each open, an open at a speed the IP cannot time is
+refused with the wiring, which then opens. Each mode runs a write, a write
+then a read, and a read, of 1, 2, 3, 6, 16 and 32 bytes, ten times each,
+every one checked against the simulator (its ECHO register, its pattern
+stream) and every phase's path (DMA or interrupt) against the driver's
+thresholds through its health counts; then each refusal of `start`, with
+the transaction handed back and the bus untouched; a vacant address's
+NACK and the next transaction; a stretch past the caller's bound aborted
+with its buffers, and the bus running again; and the driver's health
+against the run's own counts. A DMA buffer the stream cannot reach is not
+exercised: every F401 RAM is reachable. Pass: every check passes and the
+script exits zero.
 
 ## The ROM bootloader on the Nucleo-H753ZI
 

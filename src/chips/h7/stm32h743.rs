@@ -26,7 +26,7 @@ pub use stm32_metapac::Interrupt;
 use crate::{
     dma::{Dma, DmaInstance, Stream},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
-    i2c::{SclPin, SdaPin},
+    i2c::{I2cRxDma, I2cTxDma, SclPin, SdaPin},
     rcc_h7_rm0433::{Bus, RCC, RccBit},
     sdmmc::{CkPin, CmdPin, D0Pin, D1Pin, D2Pin, D3Pin},
     spi::{MisoPin, MosiPin, SckPin, SpiRxDma, SpiTxDma},

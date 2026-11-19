@@ -1,0 +1,12 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --no-catch-reset --chip STM32F401RE target/thumbv7em-none-eabihf/release/bootloader-request`
+     [38;5;10m[1mFinished[0m in 1.46s
+[INFO ] PASS bootloader request: a fresh boot finds no request [RESET-003] (bootloader_request ../common/tests.rs:847)
+[INFO ] PASS bootloader request: the request survives the reset [RESET-002] (bootloader_request ../common/tests.rs:847)
+[INFO ] PASS bootloader request: it answers yes only once [RESET-003] (bootloader_request ../common/tests.rs:847)
+[INFO ] PASS bootloader request: it survives with the data cache on [RESET-002] (bootloader_request ../common/tests.rs:847)
+[INFO ] PASS bootloader request: the reset cause is software [RESET-001] (bootloader_request ../common/tests.rs:847)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (bootloader_request ../common/tests.rs:2090)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (bootloader_request ../common/tests.rs:2066)
+[INFO ] all checks passed (bootloader_request ../common/tests.rs:2099)
+Firmware exited successfully
