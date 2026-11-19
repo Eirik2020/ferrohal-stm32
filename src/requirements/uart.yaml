@@ -537,6 +537,45 @@ requirements:
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI
 
+  - id: UARTDMA-013
+    title: Each transmit frame comes back with its outcome
+    statement: >-
+      Each queued transmit frame's outcome shall be given back once, in the
+      order the frames were queued, or its loss counted in its place.
+    rationale: >-
+      A caller that lends or reuses a frame's buffer must know which frame
+      failed; counters can say that a frame failed, not which one.
+    derived_from: [UART-010]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::outcomes_come_back_once_in_order
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::an_overwritten_outcome_is_counted_in_its_place
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+
+  - id: UARTDMA-014
+    title: The transmit queue's depth is public
+    statement: >-
+      The driver shall export how many frames its transmit queue holds.
+    rationale: >-
+      A caller sizing its own queue of frames in flight must not restate a
+      private number that could change under it.
+    derived_from: [UARTDMA-007]
+    verification:
+      entries:
+        - level: unit
+          environment: host
+          method:
+            test: ferrohal_stm32::uart::tx_ring::tests::the_exported_depth_is_the_queue_s
+
   - id: UART-016
     title: Frame settings leave the line ready
     statement: >-
@@ -666,6 +705,28 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::uart::stream_dma::tests::a_receive_only_uart_refuses_what_needs_a_tx_pin
+
+  - id: UART-023
+    title: The line is reported quiet after the last stop bit
+    statement: >-
+      Once its transmit queue has emptied, a UART shall report the line
+      quiet only after the USART's transmission complete, raised by the
+      USART's interrupt.
+    rationale: >-
+      A transmit DMA finishes while the USART still shifts out up to two
+      characters; a caller that turns a line around (half duplex, RS-485)
+      or powers a transceiver down needs the last stop bit gone.
+    derived_from: [UART-010, UART-021]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
   - id: USART-V2-001
     title: USART v2 refuses inversion

@@ -20,7 +20,8 @@ use ferrohal_stm32::{
     time::CycleClock,
     uart::{
         Chunk, ChunkEnd, Config, ConfigError, Error, Health, Instance, IrqError, Parity, Parts,
-        RxDma, RxPin, RxWiring, SendError, StopBits, TxDma, TxHealth, TxPin, Uart, Vectors, Wiring,
+        RxDma, RxPin, RxWiring, SendError, StopBits, TX_FRAMES, TxDma, TxHealth, TxOutcome, TxPin, Uart,
+        Vectors, Wiring,
     },
 };
 
@@ -32,6 +33,8 @@ pub trait TxHalf: Write<Error = Error> + embedded_io::WriteReady {
     fn is_idle(&mut self) -> Result<bool, Error>;
     fn queued(&mut self) -> usize;
     fn health(&mut self) -> TxHealth;
+    fn take_outcome(&mut self) -> Option<TxOutcome>;
+    fn tx_drained(&mut self) -> bool;
 }
 
 impl<U, TxP, RxP, TxD, RxD> TxHalf for Uart<Wiring<U, TxP, RxP, TxD, RxD>>
@@ -53,6 +56,12 @@ where
     }
     fn health(&mut self) -> TxHealth {
         Self::tx_health(self)
+    }
+    fn take_outcome(&mut self) -> Option<TxOutcome> {
+        Self::take_outcome(self)
+    }
+    fn tx_drained(&mut self) -> bool {
+        Self::tx_drained(self)
     }
 }
 
@@ -253,6 +262,12 @@ where
     }
     fn health(&mut self) -> TxHealth {
         self.0.lock(|uart| TxHalf::health(uart))
+    }
+    fn take_outcome(&mut self) -> Option<TxOutcome> {
+        self.0.lock(|uart| uart.take_outcome())
+    }
+    fn tx_drained(&mut self) -> bool {
+        self.0.lock(|uart| uart.tx_drained())
     }
 }
 
@@ -543,6 +558,12 @@ pub enum Fail {
     Count { expected: u32, got: u32 },
     /// A pin sat at the wrong level.
     Level { expected_high: bool },
+    /// The transmit outcome at `at` (from 0, in queue order) was not the
+    /// one expected: what came instead.
+    Outcome { at: usize, got: Option<TxOutcome> },
+    /// The line was reported quiet while the receiver still lacked this
+    /// many bytes of what was sent.
+    EarlyIdle { missing: usize },
     /// A transfer took this many CPU cycles, outside `min..=max`.
     Time { cycles: u32, min: u32, max: u32 },
     /// A timer refused a rate the check needs.
@@ -620,6 +641,11 @@ pub trait Link {
     fn settle_ms(&self) -> u32 {
         5
     }
+    /// Whether the receiving side hears the transmitting side's line
+    /// itself, so a byte arrives within its own frame time.
+    fn direct(&self) -> bool {
+        true
+    }
 }
 
 /// A link that can change the frame on both its ends.
@@ -680,6 +706,9 @@ impl<T: Full> Link for HostEcho<'_, T> {
     }
     fn settle_ms(&self) -> u32 {
         500
+    }
+    fn direct(&self) -> bool {
+        false
     }
 }
 
@@ -754,6 +783,12 @@ impl<T: Full> TxHalf for Side<'_, T> {
     }
     fn health(&mut self) -> TxHealth {
         TxHalf::health(&mut *self.0.borrow_mut())
+    }
+    fn take_outcome(&mut self) -> Option<TxOutcome> {
+        self.0.borrow_mut().take_outcome()
+    }
+    fn tx_drained(&mut self) -> bool {
+        self.0.borrow_mut().tx_drained()
     }
 }
 
@@ -1304,6 +1339,107 @@ pub fn frames_in_order(link: &mut dyn Link, tx_len: usize) -> Result<(), Fail> {
     Ok(())
 }
 
+/// Every outcome still held, taken and dropped: what earlier checks left.
+fn take_outcomes(link: &mut dyn Link) {
+    while link.tx().take_outcome().is_some() {}
+}
+
+/// Frames queued back to back each come back once, in order, as `Sent`,
+/// and nothing more; the depth FerroHAL exports is the depth `try_send`
+/// refuses at.
+pub fn frames_have_outcomes(link: &mut dyn Link, tx_len: usize) -> Result<(), Fail> {
+    drain(link);
+    link.tx().flush()?;
+    take_outcomes(link);
+    let mut frames = 0;
+    let mut queued = 0;
+    let frame = [0x5au8; 8];
+    let len = frame.len().min(tx_len / TX_FRAMES).max(1);
+    for _ in 0..TX_FRAMES + 1 {
+        match link.tx().try_send(&frame[..len]) {
+            Ok(()) => {
+                frames += 1;
+                queued += len;
+            }
+            Err(SendError::Full) => break,
+            Err(error) => return Err(Fail::Send(error)),
+        }
+    }
+    // The first may already be gone, so up to one more than the depth fits;
+    // never more.
+    if frames < 2 || frames > TX_FRAMES + 1 {
+        return Err(Fail::Count {
+            expected: TX_FRAMES as u32,
+            got: frames as u32,
+        });
+    }
+    link.tx().flush()?;
+    let mut back = [0u8; 8 * (TX_FRAMES + 1)];
+    read_exact(link, &mut back[..queued])?;
+    for at in 0..frames {
+        match link.tx().take_outcome() {
+            Some(TxOutcome::Sent) => {}
+            got => return Err(Fail::Outcome { at, got }),
+        }
+    }
+    match link.tx().take_outcome() {
+        None => Ok(()),
+        got => Err(Fail::Outcome { at: frames, got }),
+    }
+}
+
+/// One frame sent with nothing calling the transmit half after it: the
+/// line is reported quiet only once every byte is back on the loop, which
+/// the receiver has only after the last stop bit's middle, and the USART's
+/// interrupt reports it without a call. Logs how many bytes the receiver
+/// still lacked when the transmit DMA had finished.
+pub fn quiet_after_the_last_stop_bit(link: &mut dyn Link) -> Result<(), Fail> {
+    const LEN: usize = 16;
+    drain(link);
+    link.tx().flush()?;
+    let frame = [0xc3u8; LEN];
+    link.tx().try_send(&frame).map_err(Fail::Send)?;
+    let mut missing_at_dma_end = None;
+    let mut got = 0;
+    let mut buf = [0u8; LEN];
+    // About ten frame times a byte, at the slowest baud rate the suite uses.
+    let start = cortex_m::peripheral::DWT::cycle_count();
+    let limit = CYCLES_PER_MS.load(Ordering::Relaxed).saturating_mul(20);
+    loop {
+        let queued = link.tx().queued();
+        let drained = link.tx().tx_drained();
+        got += link.rx().try_read(&mut buf[got..])?;
+        if queued == 0 && missing_at_dma_end.is_none() {
+            missing_at_dma_end = Some(LEN - got);
+        }
+        if drained {
+            if got < LEN {
+                // Bytes the DMA had already taken may still be in flight to
+                // the reader: read once more before calling it early.
+                got += link.rx().try_read(&mut buf[got..])?;
+            }
+            defmt::info!(
+                "{=str}: {=usize} of {=usize} bytes not yet received when the transmit DMA finished",
+                link.name(),
+                missing_at_dma_end.unwrap_or(0),
+                LEN
+            );
+            return if got == LEN || !link.direct() {
+                Ok(())
+            } else {
+                Err(Fail::EarlyIdle {
+                    missing: LEN - got,
+                })
+            };
+        }
+        if cortex_m::peripheral::DWT::cycle_count().wrapping_sub(start) > limit {
+            return Err(Fail::Silent {
+                missing: LEN - got,
+            });
+        }
+    }
+}
+
 /// With nothing calling the transmit half after the frames are queued, the
 /// transmit stream's interrupt alone starts each next frame.
 pub fn frames_chain_from_the_interrupt(link: &mut dyn Link, tx_len: usize) -> Result<(), Fail> {
@@ -1736,6 +1872,18 @@ pub fn full_suite(
         "UART-010",
         "queued frames arrive whole and in order",
         frames_in_order(link, tx_len),
+    );
+    report.check_for(
+        name,
+        "UARTDMA-013 UARTDMA-014",
+        "each frame's outcome comes back once, in order",
+        frames_have_outcomes(link, tx_len),
+    );
+    report.check_for(
+        name,
+        "UART-023",
+        "quiet reported after the last stop bit, by the USART's interrupt",
+        quiet_after_the_last_stop_bit(link),
     );
     report.check_for(
         name,

@@ -2,7 +2,7 @@
 //! register operations the [`crate::uart`] driver needs. The driver and the
 //! routing traits the glue implements are [`crate::uart`]'s.
 //!
-//! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V2-001, USART-V2-002, UART-021
+//! Requirements: UART-016, UART-017, UART-018, UART-019, UART-020, USART-V2-001, USART-V2-002, UART-021, UART-023
 
 use stm32_metapac::usart::{
     regs::Sr,
@@ -123,6 +123,13 @@ impl Unit {
         sr.set_rxne(true);
         sr.set_lbd(true);
         self.0.sr().write_value(sr);
+    }
+
+    /// TCIE in CR1: the USART's vector is raised while TC is set. The
+    /// driver turns it on only to await the end of its last frame, and off
+    /// once it has seen TC.
+    pub(crate) fn set_tc_interrupt(self, on: bool) {
+        self.0.cr1().modify(|w| w.set_tcie(on));
     }
 
     pub(crate) fn tc(self) -> bool {

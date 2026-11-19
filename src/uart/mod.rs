@@ -19,7 +19,7 @@
 //! The driver for the enabled chip is re-exported here, so firmware names
 //! `ferrohal_stm32::uart::Uart` whatever the IP version.
 //!
-//! Requirements: UART-001, UART-002, UART-003, UART-004, UART-005, UART-007, UART-008, UART-009, UART-010, UART-012, UART-013, UART-014, UART-015, UART-021
+//! Requirements: UART-001, UART-002, UART-003, UART-004, UART-005, UART-007, UART-008, UART-009, UART-010, UART-012, UART-013, UART-014, UART-015, UART-021, UARTDMA-014
 
 use core::fmt;
 
@@ -35,6 +35,16 @@ pub use stream_dma::{
     Events, Info, Instance, Parts, RxDma, RxPin, TxDma, TxPin, Uart, UartRefused, UartRxRefused,
     check,
 };
+
+/// What became of a transmit frame: [`Uart::take_outcome`].
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub use tx_ring::TxOutcome;
+
+/// How many frames the transmit queue holds, the one in flight included:
+/// [`Uart::try_send`] refuses a further frame with [`SendError::Full`], and
+/// [`Uart::take_outcome`] keeps this many outcomes.
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub const TX_FRAMES: usize = tx_ring::FRAMES;
 
 /// Frame settings. Data is always 8 bits; with parity on, the parity bit
 /// is a ninth.

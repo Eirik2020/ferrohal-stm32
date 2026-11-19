@@ -36,6 +36,13 @@ saw PE, and how many bytes the receive DMA had taken by then. Run B also puts US
 half-duplex [UART-021]: a frame it sends from PC6 must reach USART1 and come back
 into USART6's own ring, though USART1 sends nothing meanwhile, and a frame USART1
 sends into PC7, the RX pin half-duplex leaves unused, must not arrive.
+Every link of runs A and C also queues frames until `try_send` refuses one, at most
+`TX_FRAMES` plus the one already gone, and each must come back from `take_outcome`
+once, in order, as `Sent`, with nothing after [UARTDMA-013 UARTDMA-014]; then sends one
+16-byte frame and calls nothing on the transmit side: `tx_drained` must turn true by
+the USART's interrupt, and on a jumpered link only once every byte has come back
+[UART-023]. The log states how many bytes the receiver lacked when the transmit DMA
+finished.
 
 ## UART on the Nucleo-H753ZI
 
@@ -51,7 +58,8 @@ in half-duplex must put a frame on PC10 that reaches UART4 and comes back into i
 own ring, and back in full duplex its ring (on the unwired PB11) must stay silent.
 TX and RX swap [USART-V4-002]: run B runs USART3's PC10/PC11 loop
 swapped, which must still carry a line and a stream, and run Y swaps USART3 alone,
-so it sends on PB11 and UART4 on PC11 must hear nothing.
+so it sends on PB11 and UART4 on PC11 must hear nothing. The outcome and quiet-line checks run in
+every suite as on the F401; on `usart_v4` they prove UART-023 [UART-023].
 
 ## USB on the Nucleo-H753ZI
 
