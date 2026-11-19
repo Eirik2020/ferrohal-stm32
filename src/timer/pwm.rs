@@ -710,6 +710,10 @@ where
         }),
         complementary,
         listening: None,
+        send: crate::dma::Prepared::send_words(
+            S::REQUEST,
+            pwm.gp.ccr(usize::from((C - 1) & 3)).as_ptr() as u32,
+        ),
         wiring,
         _timer: PhantomData,
     })
@@ -933,8 +937,9 @@ impl Frame {
     /// Checks and closes the first `len` duties of `words`, which needs one
     /// word more for the closing 0. Refuses with the words back: for 0
     /// duties, no room for the 0, or a duty near the top before a 0 or at
-    /// the end. Pure: whether a stream reaches the memory is
-    /// [`CompareLane::arm_frame`]'s check, one range compare.
+    /// the end. Pure, so a frame can be built anywhere: whether a stream
+    /// reaches the memory is [`CompareLane::arm_frame`]'s check, one range
+    /// compare.
     pub fn new(
         words: &'static mut [u32],
         len: usize,
@@ -1067,6 +1072,9 @@ pub struct CompareLane<T, const C: u8, W> {
     /// The listen transfer's register words and length, from
     /// [`prepare_listen`](CompareLane::prepare_listen).
     listening: Option<(crate::dma::Prepared, u16)>,
+    /// A frame's send transfer, its memory unset, computed once at assembly
+    /// so a start sets only the memory and length (D33).
+    send: crate::dma::Prepared,
     wiring: W,
     _timer: PhantomData<fn() -> T>,
 }
@@ -1162,21 +1170,15 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         let first = frame.words.first().copied().unwrap_or(0);
         let rest = frame.words.get(1..).map_or(0, |rest| rest.as_ptr() as u32);
         pwm.set_duty::<C>(first);
-        let transfer = Transfer::one_shot(
-            self.request,
-            Direction::MemoryToPeripheral,
-            pwm.gp.ccr(usize::from((C - 1) & 3)).as_ptr() as u32,
-            rest,
-            frame.len,
-            WordSize::Word,
-            Priority::VeryHigh,
-        );
+        // `Frame::new` checked that `len` is not 0; the transfer's other
+        // words were prepared at assembly (D33).
+        let prepared = self.send.with_memory(rest, frame.len);
         super::start_mark!(2);
         // SAFETY: the frame is held by the lane until `take_frame`, which
         // refuses while it runs; from its second word it holds `len` words
         // (`len - 1` duties and the closing 0, per `Frame::new`); the
         // address is this channel's compare register.
-        if unsafe { self.dma.start(&transfer) }.is_err() {
+        if unsafe { self.dma.start_prepared(&prepared) }.is_err() {
             return Err(Refused::new(Error::Dma, frame));
         }
         super::start_mark!(3);

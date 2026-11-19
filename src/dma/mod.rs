@@ -624,6 +624,35 @@ impl Prepared {
         if transfer.len == 0 || !request_valid {
             return Err(StartError::Invalid);
         }
+        Ok(Self::words(transfer))
+    }
+
+    /// The register words of a word-sized, memory-to-peripheral transfer
+    /// at very high priority for `request` into `peripheral`, with no
+    /// memory yet: a compare lane's send, prepared once at assembly so a
+    /// start only sets the memory ([`with_memory`](Self::with_memory)).
+    /// `request` comes from a glue trait, so it is valid by construction.
+    pub(crate) fn send_words(request: u8, peripheral: u32) -> Self {
+        Self::words(&Transfer::one_shot(
+            request,
+            Direction::MemoryToPeripheral,
+            peripheral,
+            0,
+            1,
+            WordSize::Word,
+            Priority::VeryHigh,
+        ))
+    }
+
+    /// These words with `len` items from `memory`. `len` must not be 0,
+    /// which the caller's own check guarantees (a lane's `Frame`).
+    pub(crate) const fn with_memory(mut self, memory: u32, len: u16) -> Self {
+        self.m0ar = memory;
+        self.ndt = len;
+        self
+    }
+
+    fn words(transfer: &Transfer) -> Self {
         // Direct mode: each word goes straight through, so peripheral and
         // memory word sizes match (one `size` sets both).
         let mut fcr = stm32_metapac::dma::regs::Fcr(0);
@@ -652,7 +681,7 @@ impl Prepared {
         cr.set_htie(transfer.interrupts.half);
         cr.set_teie(transfer.interrupts.error);
         cr.set_dmeie(transfer.interrupts.error);
-        Ok(Self {
+        Self {
             #[cfg(feature = "dma_v1")]
             request: transfer.request,
             par: transfer.peripheral,
@@ -660,7 +689,7 @@ impl Prepared {
             ndt: transfer.len,
             fcr,
             cr,
-        })
+        }
     }
 }
 
