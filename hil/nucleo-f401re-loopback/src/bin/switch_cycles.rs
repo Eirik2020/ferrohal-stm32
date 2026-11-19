@@ -1,4 +1,4 @@
-//! Run X: the prepared switch, built with `profile-listen`.
+//! Run Y: the prepared switch, built with `profile-listen`.
 //!
 //! Run R's four lanes (TIM3 CH3/CH4 on PB0/PB1, TIM2 CH3/CH2 on PB10/PB3,
 //! DMA1 streams 7, 2, 1 and 6) as one generator, TIM3 starting TIM2 through
@@ -72,7 +72,7 @@ mod app {
             Err(error) => defmt::panic!("clocks: {}", error),
         };
         defmt::assert_eq!(run.rcc.clocks(), board::CLOCKS);
-        defmt::info!("run X, clocks: {}", board::CLOCKS);
+        defmt::info!("run Y, clocks: {}", board::CLOCKS);
         checks::spawn().ok();
         (
             Shared {},

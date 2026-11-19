@@ -178,13 +178,16 @@ fn main() -> ! {
     // The device stays configured after the echo; the host keeps sending
     // start-of-frames. DSTS: OTG_FS (USB2) at 0x4008_0000, RM0433. The
     // tree runs from HSE in bypass, the ST-LINK-V3's MCO, which UM2407
-    // calls 8 MHz but measured 0.43 % low against the host (2026-11-15;
-    // its F723 runs from a 25 MHz crystal); 0.5 % still catches any wrong
-    // PLL divider.
+    // calls 8 MHz but measured 0.39-0.43 % low against the host on
+    // 2026-11-15 and 0.61-0.65 % low on 2026-11-19 (its F723 runs from a
+    // 25 MHz crystal). 1 % leaves a third of a percent over the worst
+    // reading and still catches a wrong M, P or source (each a factor of
+    // two or more) and N one low. N one high (+1 %) is left to run A,
+    // which checks the tree it froze from HSE against `CLOCKS`.
     report.check(
         name,
-        "the CPU clock against the host's 1 kHz frames, within 0.5 % [RCC-001]",
-        tests::clock_against_host_frames(0x4008_0808 as *const u32, board::CLOCKS.cpu.0, 5_000, || {
+        "the CPU clock against the host's 1 kHz frames, within 1 % [RCC-001]",
+        tests::clock_against_host_frames(0x4008_0808 as *const u32, board::CLOCKS.cpu.0, 10_000, || {
             device.poll(&mut [&mut serial]);
         }),
     );

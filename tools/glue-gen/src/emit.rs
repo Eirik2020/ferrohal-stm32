@@ -464,6 +464,7 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         &[("SCL", "SclPin"), ("SDA", "SdaPin")],
         Some("OpenDrain"),
     );
+    dma_rows(w, &cut, &i2cs, ("RX", "I2cRxDma"), ("TX", "I2cTxDma"));
 
     // Timers.
     let timers = cut.instances("timer");

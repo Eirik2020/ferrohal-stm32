@@ -137,6 +137,12 @@ test = false
 bench = false
 
 [[bin]]
+name = "i2c-interrupt"
+path = "src/bin/i2c_interrupt.rs"
+test = false
+bench = false
+
+[[bin]]
 name = "switch-cycles"
 path = "src/bin/switch_cycles.rs"
 test = false
@@ -144,7 +150,7 @@ bench = false
 required-features = ["profile-listen"]
 
 [features]
-# Run X's cycle stamps through the lane switch (FerroHAL's `timer::profile`).
+# Run Y's cycle stamps through the lane switch (FerroHAL's `timer::profile`).
 profile-listen = ["ferrohal-stm32/profile-listen"]
 
 [dependencies]

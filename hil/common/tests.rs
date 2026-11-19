@@ -541,6 +541,8 @@ pub enum Fail {
     SpiNotRefused(Option<ferrohal_stm32::spi::Error>),
     /// Fewer or more events (edges, interrupts) than expected.
     Count { expected: u32, got: u32 },
+    /// Something other than what the check expects happened: what it was.
+    Unexpected(&'static str),
     /// A pin sat at the wrong level.
     Level { expected_high: bool },
     /// A transfer took this many CPU cycles, outside `min..=max`.

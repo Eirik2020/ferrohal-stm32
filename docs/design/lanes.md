@@ -1,6 +1,6 @@
 # Timer lanes: frames, the switch and the readers
 
-Source: ADR-013, [`../decisions/2026-11-19-timer-lanes-round2.md`](../decisions/2026-11-19-timer-lanes-round2.md).
+Source: ADR-014, [`../decisions/2026-11-19-timer-lanes-round2.md`](../decisions/2026-11-19-timer-lanes-round2.md).
 
 A compare lane plays one duty per timer period from memory over DMA, and a two-way lane
 then releases its pin and reads the line it sent on (`timer::CompareLane`). A waveform

@@ -1,6 +1,6 @@
-# ADR-013: Timer lanes as the lane port needs them (2026-11-19)
+# ADR-014: Timer lanes as the lane port needs them (2026-11-19)
 
-ADR-013 - Status: promoted
+ADR-014 - Status: promoted
 
 Promoted to: [lanes.md](../design/lanes.md).
 
