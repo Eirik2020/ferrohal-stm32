@@ -289,7 +289,7 @@ impl<T: ChannelTimer> Pwm<T> {
         (counts as u32).max(1)
     }
 
-    /// PROTOTYPE (stage C): the send period and top margin a [`Frame`] is
+    /// The send period and top margin a [`Frame`] is
     /// checked against.
     pub fn frame_limits(&self) -> FrameLimits {
         FrameLimits {
@@ -386,7 +386,7 @@ impl<T: ChannelTimer> Pwm<T> {
             .write_value(stm32_metapac::timer::regs::Ccr1ch(duty));
     }
 
-    /// PROTOTYPE (stage D): channel `index`'s compare value (0 for channel
+    /// Channel `index`'s compare value (0 for channel
     /// 1), by a runtime index.
     pub(crate) fn set_compare(&self, index: usize, value: u32) {
         self.gp
@@ -394,7 +394,7 @@ impl<T: ChannelTimer> Pwm<T> {
             .write_value(stm32_metapac::timer::regs::Ccr1ch(value));
     }
 
-    /// PROTOTYPE (stage D): opens the update request (`update`) and the
+    /// Opens the update request (`update`) and the
     /// compare requests of `channels` (bit 0 = channel 1) beside those open,
     /// in one DIER store.
     pub(crate) fn open_requests(&self, update: bool, channels: u8) {
@@ -416,7 +416,7 @@ impl<T: ChannelTimer> Pwm<T> {
         Pacer(self.gp)
     }
 
-    /// PROTOTYPE (stage D step 3): new PSC and ARR on a running counter,
+    /// New PSC and ARR on a running counter,
     /// loaded by an update generation, which restarts the counter at 0; URS
     /// is counter-only (set at construction), so it raises no update
     /// interrupt or request. Then clears every flag, so a request opened
@@ -430,7 +430,7 @@ impl<T: ChannelTimer> Pwm<T> {
         self.rate = prepared.rate;
     }
 
-    /// PROTOTYPE (stage D): closes the update request.
+    /// Closes the update request.
     pub(crate) fn close_update(&self) {
         self.gp.dier().modify(|w| w.set_ude(false));
     }
@@ -745,7 +745,7 @@ where
             .map_err(|(error, wiring, buffer, _)| Refused::new(error, (wiring, buffer)))
     }
 
-    /// PROTOTYPE (stage G2): as [`assemble_two_way`](Self::assemble_two_way)
+    /// As [`assemble_two_way`](Self::assemble_two_way)
     /// on a stream that cannot reach GPIO (F4's DMA1): the lane sends on its
     /// own stream, and only a reader paced by another timer
     /// ([`Awg::read_ahead_paced`](super::Awg::read_ahead_paced)) reads its
@@ -879,13 +879,13 @@ struct LaneInput {
     samples: &'static mut [u16],
     /// How many samples the last listen asked for.
     len: u16,
-    /// PROTOTYPE (stage C): lent samples memory, read into in place of
+    /// Lent samples memory, read into in place of
     /// `samples` while lent.
     lent: Option<&'static mut [u16]>,
     /// The address the prepared listen writes to, so a listen into memory
     /// no longer held is refused.
     prepared_at: u32,
-    /// PROTOTYPE (stage G2): the lane's stream cannot reach GPIO; only a
+    /// The lane's stream cannot reach GPIO; only a
     /// paced reader reads its port, into this lane's memory.
     paced_only: bool,
 }
@@ -900,7 +900,7 @@ impl LaneInput {
     }
 }
 
-/// PROTOTYPE (round 2 stage C): what a lent frame is checked against, so it
+/// What a lent frame is checked against, so it
 /// can be checked where it is written, away from the timer: the send
 /// period and [`Pwm::top_margin`]. [`Pwm::frame_limits`] gives it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -922,7 +922,7 @@ impl FrameLimits {
     }
 }
 
-/// PROTOTYPE (round 2 stage C): a frame in lent memory, checked once and
+/// A frame in lent memory, checked once and
 /// closed: no duty near the top followed by 0, none near the top last
 /// ([`Error::TopToZero`]), and the closing 0 written after the last duty.
 /// A lane plays it in place ([`CompareLane::arm_frame`]): nothing is
@@ -1064,7 +1064,7 @@ pub struct CompareLane<T, const C: u8, W> {
     request: u8,
     vector: Interrupt,
     buffer: &'static mut [u32],
-    /// PROTOTYPE (stage C): a lent frame it plays, or played, in place.
+    /// A lent frame it plays, or played, in place.
     lent: Option<Frame>,
     running: bool,
     input: Option<LaneInput>,
@@ -1149,7 +1149,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         Ok(())
     }
 
-    /// PROTOTYPE (stage C): plays a checked [`Frame`] in place, from lent
+    /// Plays a checked [`Frame`] in place, from lent
     /// memory: the first duty into the compare register, the stream from the
     /// rest and the closing 0 [`Frame::new`] wrote. Nothing is copied or
     /// checked again but the limits, which must still be this timer's, and
@@ -1187,7 +1187,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         Ok(())
     }
 
-    /// PROTOTYPE (stage D step 5): turns the stream's end-of-transfer
+    /// Turns the stream's end-of-transfer
     /// interrupt on or off, its error interrupts left on.
     pub(crate) fn set_complete_interrupt(&mut self, on: bool) {
         self.dma.set_interrupts(crate::dma::Interrupts {
@@ -1198,7 +1198,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         });
     }
 
-    /// PROTOTYPE (stage C): the lent frame back, once the lane has stopped.
+    /// The lent frame back, once the lane has stopped.
     pub fn take_frame(&mut self) -> Option<Frame> {
         // A stop that timed out leaves `running` clear and the stream on.
         if self.running || self.dma.is_running() {
@@ -1207,7 +1207,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         self.lent.take()
     }
 
-    /// PROTOTYPE (stage C): lends samples memory for the next listens
+    /// Lends samples memory for the next listens
     /// instead of the lane's own. A listen prepared for other memory is
     /// refused until prepared again. Refuses with the memory on a lane with
     /// no input, while it runs, while one is lent, or for memory a stream
@@ -1232,7 +1232,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         Ok(())
     }
 
-    /// PROTOTYPE (stage C): the lent samples back, once the lane has
+    /// The lent samples back, once the lane has
     /// stopped, with what the last listen read at their start.
     pub fn take_samples(&mut self) -> Option<&'static mut [u16]> {
         if self.running || self.dma.is_running() {
@@ -1242,7 +1242,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         self.input.as_mut()?.lent.take()
     }
 
-    /// PROTOTYPE (stage D): where a reader on another stream may read
+    /// Where a reader on another stream may read
     /// `count` samples for this lane: the address of the memory the lane
     /// holds now, recorded as prepared. Refused on a lane with no input, for
     /// 0 samples or more than the memory holds, or while the lane runs.
@@ -1267,7 +1267,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         Ok((at, len))
     }
 
-    /// PROTOTYPE (stage D): the address of the memory the lane reads into
+    /// The address of the memory the lane reads into
     /// now, if it has an input.
     pub(crate) fn target_at(&self) -> Option<u32> {
         self.input

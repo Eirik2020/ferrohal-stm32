@@ -50,6 +50,11 @@ rerun (`tools/stale_runs.py` lists it). No item is High.
   Releasing the pin by MODER first did not remove it (measured, round 2 prototypes).
   Cause not known; a reply that starts inside it would lose its first edge.
   *Spawned:* the lane round 2 prototypes (2026-11-18), recorded by ADR-013.
+- `code` `api` **Low: a lane reader's stream is never given back.** A reader armed ahead
+  or paced (`Awg::read_ahead_*`) keeps its stream's DMA handle and drops the stream's
+  token, so `Awg::free` returns the timers and lanes but not the reader streams: they
+  cannot be reused until reset. A paced reader's timer stays the caller's. *Spawned:* the lane round
+  2 prototypes (2026-11-18), found by the product pass (2026-11-19).
 
 - `code` `api` **Medium: the feature hierarchy departs from `docs/design/structure.md`.**
   Chip features turn on their family marker, and two chips at once are caught only by a
