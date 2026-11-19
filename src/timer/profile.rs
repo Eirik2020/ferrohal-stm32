@@ -1,6 +1,10 @@
-//! PROFILING ONLY, never merged: core-cycle stamps through `Awg::listen` and
-//! `Awg::speak`, behind the `profile-listen` feature, for step 0 of the lane
-//! switch design note. The bench enables DWT CYCCNT; this only reads it.
+//! Core-cycle stamps through the lane switch (`Awg::listen`, `Awg::speak`),
+//! an exchange's start and the frame-end turn, behind the profiling features
+//! (`docs/policies/features.md`). They measure the prepared switch's cycle
+//! count, which `docs/design/lanes.md` requires after any change to the
+//! switch path. The bench enables DWT CYCCNT; this only reads it.
+//!
+//! Requirements: AWG-013
 
 use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
 

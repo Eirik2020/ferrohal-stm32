@@ -1018,6 +1018,159 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     let _ = far.speak();
 }
 
+/// What one reader round saw, for the caller's checks (AWG-012 to AWG-021).
+#[derive(Clone, Copy)]
+pub struct ReaderRound {
+    /// The rate `prepare_listen` returned, and whether `prepared` named it.
+    pub rate: Hertz,
+    pub prepared_names_it: bool,
+    /// Right after the frame's end: the counter still enabled and the
+    /// lane's compare at 0, before any listen (`at_end` off).
+    pub ran_on: bool,
+    pub duty_zero: bool,
+    /// With `at_end`, the run that saw the end had turned to listening.
+    pub listening_at_end: bool,
+    /// The lane's CCER bits before the listen (output on), while listening
+    /// (output off, polarity bits clear) and after `speak` (on, active low).
+    pub on_before: bool,
+    pub released_clear: bool,
+    pub restored: bool,
+    /// The reply was read into the lent memory, and both the frame and the
+    /// lent memory came back.
+    pub read_lent: bool,
+    pub frame_back: bool,
+    pub samples_back: bool,
+}
+
+/// A timer's state as the bench reads it from its registers: CR1.CEN, the
+/// lane channel's compare register and CCER.
+#[derive(Clone, Copy)]
+pub struct TimerRegs {
+    pub enabled: bool,
+    pub compare: u32,
+    pub ccer: u32,
+}
+
+/// One reader round over one wire: `near` plays a frame from lent memory
+/// and turns to read, in the reader form the caller set up (its own stream,
+/// armed ahead, or paced), into lent memory; `far` answers once `near`'s
+/// frame has ended; the reply must come back whole. `regs` reads `near`'s
+/// timer. The frame and lent memory go in and come back through the slots.
+#[allow(clippy::too_many_arguments)]
+pub fn awg_reader_round<N: ChannelTimer, const NC: u8, WNC, F: ChannelTimer, const FC: u8, WFC>(
+    near: &mut Awg<N, N, (CompareLane<N, NC, WNC>,), ()>,
+    near_pin: u8,
+    far: &mut Awg<F, F, (CompareLane<F, FC, WFC>,), ()>,
+    frame_slot: &mut Option<&'static mut [u32]>,
+    rx_slot: &mut Option<&'static mut [u16]>,
+    at_end: bool,
+    regs: &dyn Fn() -> TimerRegs,
+    cpu: Hertz,
+) -> Result<ReaderRound, Fail> {
+    let budget = cpu.0 / 100;
+    let short = |expected: usize| Fail::Count {
+        expected: expected as u32,
+        got: 0,
+    };
+    let shift = 4 * u32::from((NC - 1) & 3);
+    let (cce, ccp, ccnp) = (1u32 << shift, 1u32 << (shift + 1), 1u32 << (shift + 3));
+    let mut seen = ReaderRound {
+        rate: Hertz(0),
+        prepared_names_it: false,
+        ran_on: false,
+        duty_zero: false,
+        listening_at_end: false,
+        on_before: false,
+        released_clear: false,
+        restored: false,
+        read_lent: false,
+        frame_back: false,
+        samples_back: false,
+    };
+
+    let (Some(words), Some(rx)) = (frame_slot.take(), rx_slot.take()) else {
+        return Err(short(1));
+    };
+    let rx_at = rx.as_ptr() as usize;
+    let limits = near.frame_limits(0).ok_or(short(1))?;
+    let wave = scaled(&WAVE, near.period());
+    for (slot, duty) in words.iter_mut().zip(wave.iter()) {
+        *slot = *duty;
+    }
+    let frame = match ferrohal_stm32::timer::Frame::new(words, wave.len(), limits) {
+        Ok(frame) => frame,
+        Err(refused) => {
+            *frame_slot = Some(refused.into_parts());
+            *rx_slot = Some(rx);
+            return Err(short(2));
+        }
+    };
+    if let Err(refused) = near.lend_samples(0, rx) {
+        *rx_slot = Some(refused.into_parts());
+        *frame_slot = Some(frame.into_words());
+        return Err(short(3));
+    }
+    let answer = scaled(&REPLY, far.period());
+    let result = (|| -> Result<(), Fail> {
+        seen.rate = near.prepare_listen(CAPTURE_RATE, CAPTURES).map_err(|_| short(4))?;
+        seen.prepared_names_it = near.prepared() == Some((CAPTURE_RATE, CAPTURES, seen.rate));
+        if far.load(0, &answer).is_err() {
+            return Err(short(5));
+        }
+        if at_end {
+            near.listen_on_end();
+        }
+        near.load_frame(0, frame).map_err(|_| short(6))?;
+        near.play().map_err(|_| short(7))?;
+        if !matches!(wait(budget, || near.on_interrupt().map(|r| r.map(|_| ()))), Some(Ok(()))) {
+            return Err(short(8));
+        }
+        let after = regs();
+        if at_end {
+            seen.listening_at_end = near.is_listening();
+        } else {
+            seen.ran_on = after.enabled;
+            seen.duty_zero = after.compare == 0;
+            seen.on_before = after.ccer & cce != 0;
+            near.listen().map_err(|_| short(9))?;
+        }
+        let released = regs().ccer;
+        seen.released_clear = released & (cce | ccp | ccnp) == 0;
+        far.play().map_err(|_| short(10))?;
+        if !matches!(wait(budget, || far.on_interrupt().map(|r| r.map(|_| ()))), Some(Ok(()))) {
+            return Err(short(11));
+        }
+        if !matches!(wait(budget, || near.on_interrupt().map(|r| r.map(|_| ()))), Some(Ok(()))) {
+            return Err(short(CAPTURES));
+        }
+        let read = near.samples(0);
+        seen.read_lent = read.as_ptr() as usize == rx_at;
+        recovered(read, near_pin, true, seen.rate, far.sample_rate(), far.period(), &answer)
+    })();
+    if result.is_err() {
+        near.abort();
+        far.abort();
+    }
+    let _ = near.speak();
+    let restored = regs().ccer;
+    seen.restored = restored & cce != 0 && restored & ccp != 0;
+    match near.take_frame(0) {
+        Some(frame) => {
+            seen.frame_back = true;
+            *frame_slot = Some(frame.into_words());
+        }
+        None => seen.frame_back = false,
+    }
+    match near.take_samples(0) {
+        Some(rx) => {
+            seen.samples_back = true;
+            *rx_slot = Some(rx);
+        }
+        None => seen.samples_back = false,
+    }
+    result.map(|()| seen)
+}
+
 /// A running PWM output's duty, read from `samples` of its pin: high for
 /// `sixteenths`/16 of the time, to within 1/16.
 pub fn duty_check<T: ferrohal_stm32::timer::Instance, ST>(
