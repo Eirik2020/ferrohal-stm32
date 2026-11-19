@@ -85,14 +85,15 @@ every run passes and the script exits zero.
 
 ## UART and SPI links on the Nucleo-F767ZI
 
-`hil/run-f767.sh d e f`, with links F1 to F6 and S1 to S4 fitted
+`hil/run-f767.sh d e f g`, with links F1 to F6 and S1 to S4 and the second Pico fitted
 (`nucleo-f767zi/src/board.rs`). Run D runs USART2, USART6, UART4, UART5 and UART7 over F1,
 F2, F3, F4 and F6, each the full UART check list, then all five streaming at once. Run E
 runs UART4 over F5 and USART3 through the ST-LINK's virtual COM port with
 `hil/vcp_echo.py` alongside. Run F runs SPI1, SPI2, SPI4 and SPI5 over S1 to S4, each
-SPI's SCK counted on its own EXTI line, with the instruction cache on. First pass
-2026-11-18: D 102 and E 26 checks, none failed; F 38 passed and 2 failed, SPI5 at its
-slowest clock (`docs/DEBT.md`). Pass: every check in every run passes and the script
+SPI's SCK counted on its own EXTI line, with the instruction cache on. Run G runs I2C1
+against the second Pico simulator (tag 3, `hil/WIRING.md`): the NACK suite, then the live
+suite. First pass 2026-11-18: D 102 and E 26 checks, none failed; F 38 passed and 2 failed,
+SPI5 at its slowest clock (`docs/DEBT.md`); G 25 passed (2026-11-19). Pass: every check in every run passes and the script
 exits zero.
 
 ## SPI on the Nucleo-F767ZI

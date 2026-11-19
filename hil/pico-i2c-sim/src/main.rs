@@ -82,9 +82,11 @@ async fn main(spawner: Spawner) {
     // idle high with no external resistor fitted.
     config.scl_pullup = true;
     config.sda_pullup = true;
-    // I2C0: SDA on GP0, SCL on GP1 — the F401 bench, bus tag 1.
+    // I2C0: SDA on GP0, SCL on GP1 — the F401 bench, bus tag 1 (the second
+    // Pico: the F767 bench, tag 3).
     let bus0 = I2cSlave::new(p.I2C0, p.PIN_1, p.PIN_0, Irqs, config);
-    // I2C1: SDA on GP2, SCL on GP3 — the H753 bench, bus tag 2.
+    // I2C1: SDA on GP2, SCL on GP3 — the H753 bench, bus tag 2 (the second
+    // Pico: the G474 bench, tag 4).
     let bus1 = I2cSlave::new(p.I2C1, p.PIN_3, p.PIN_2, Irqs, config);
     spawner.spawn(bus0_task(bus0).expect("the I2C0 task"));
     spawner.spawn(bus1_task(bus1).expect("the I2C1 task"));
@@ -140,7 +142,9 @@ fn identity(spawner: &Spawner, usb: embassy_rp::Peri<'static, USB>, flash: embas
     let mut line = Line { buf, len: 0 };
     let _ = write!(
         line,
-        "FERRO-ID v=1 board=pico part=RP2040 crate=pico-i2c-sim run=pico-i2c-sim git={} dev=0x{:04x} rev=0x{:x} uid={}\r\n",
+        "FERRO-ID v=1 board=pico part=RP2040 crate=pico-i2c-sim run=pico-i2c-sim tags={}+{} git={} dev=0x{:04x} rev=0x{:x} uid={}\r\n",
+        TAGS[0],
+        TAGS[1],
         env!("FERRO_GIT"),
         chip.part(),
         chip.revision(),
@@ -233,14 +237,22 @@ fn feed_watchdog() {
         .write_value(embassy_rp::pac::watchdog::regs::Load(0));
 }
 
+/// Each bus's tag in its ID register: 1 and 2 on the first Pico, 3 and 4 on
+/// the second (`--features second`, hil/WIRING.md), so a bench run's ID check
+/// tells the two Picos apart.
+#[cfg(not(feature = "second"))]
+const TAGS: [u8; 2] = [1, 2];
+#[cfg(feature = "second")]
+const TAGS: [u8; 2] = [3, 4];
+
 #[embassy_executor::task]
 async fn bus0_task(slave: I2cSlave<'static, I2C0>) {
-    serve(slave, 1, poke_i2c0).await
+    serve(slave, TAGS[0], 0, poke_i2c0).await
 }
 
 #[embassy_executor::task]
 async fn bus1_task(slave: I2cSlave<'static, I2C1>) {
-    serve(slave, 2, poke_i2c1).await
+    serve(slave, TAGS[1], 1, poke_i2c1).await
 }
 
 /// Spends NACK arms that have sat for their settle. The refusal itself
@@ -288,13 +300,13 @@ async fn warden_task() {
 async fn serve<T: embassy_rp::i2c::Instance>(
     mut slave: I2cSlave<'static, T>,
     tag: u8,
+    slot: usize,
     poke: fn(bool),
 ) {
     let mut state = sim::State::new(tag);
     let mut in_buf = [0u8; 64];
     let mut out = [0u8; 64];
     let mut armed = false;
-    let slot = usize::from(tag - 1);
     loop {
         ALIVE[slot].store(now_word(), Ordering::Relaxed);
         let command = match with_timeout(QUIET, slave.listen(&mut in_buf)).await {

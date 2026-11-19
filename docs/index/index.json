@@ -3,7 +3,7 @@
  "counts": {
   "documents": 87,
   "agent": 54,
-  "bytes": 546278
+  "bytes": 547451
  },
  "documents": [
   {
@@ -595,7 +595,7 @@
    "class": "human",
    "title": "Bench wiring: the Pico 1 I2C simulator",
    "purpose": "The two Nucleo benches prove FerroHAL's I2C m",
-   "bytes": 5441
+   "bytes": 6453
   },
   {
    "path": "hil/pico-i2c-sim/README.md",
@@ -630,7 +630,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 22228
+   "bytes": 22389
   },
   {
    "path": "requirements/goals.md",

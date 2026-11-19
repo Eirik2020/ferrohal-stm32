@@ -51,6 +51,27 @@ with bus tag `2` in its ID register. This is the only I2C of the H753 that
 reaches a header pair a bench can wire (see below), and the one whose
 kernel clock is the APB4/pclk4 path no other bench covers.
 
+## The second Pico 1: Nucleo-F767ZI I2C1 and Nucleo-G474RE I2C3
+
+A second Pico 1 runs the same simulator built with `--features second`, so its buses answer
+with tags 3 and 4, and a run's ID check tells the two Picos apart. Its identity line says
+`tags=3+4` (USB serial e66540f0a3812b2b, measured 2026-11-19). Flash it by its own UF2:
+`cargo build --release --features second` in `pico-i2c-sim`, then the UF2 onto its RPI-RP2
+drive; `pico-i2c-sim.sh flash` builds the first Pico's image.
+
+| Pico 2 pin | Board | Signal |
+| --- | --- | --- |
+| GP0 (physical 1) | F767 CN7-4 (PB9) | I2C1 SDA, tag 3 |
+| GP1 (physical 2) | F767 CN7-2 (PB8) | I2C1 SCL |
+| GND | F767 CN7-8 | ground |
+| GP2 (physical 4) | G474 CN10-1 (PC9) | I2C3 SDA, tag 4 |
+| GP3 (physical 5) | G474 CN10-2 (PC8) | I2C3 SCL |
+| GND | G474 CN10-9 | ground |
+
+F767 run G (`hil/run-f767.sh g`) drives the F767's bus. The G474 has no FerroHAL support
+yet, so nothing drives tag 4. The G474 uses I2C3 rather than D14/D15 because its PB8 can be
+BOOT0.
+
 ## Why no other instance is wired
 
 - **H753 I2C2 (PF1/PF0)**: PF0 is `OSC_IN`, driven at all times by the

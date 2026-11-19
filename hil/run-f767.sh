@@ -5,7 +5,8 @@
 # fitted; none of those needs a link. Run D five UARTs over links F1 to F4 and F6,
 # run E UART4 over F5 and USART3 through the ST-LINK's virtual COM port, with
 # the host echo running alongside, run F SPI1, SPI2, SPI4 and SPI5 over links S1
-# to S4. Exits non-zero if any run failed.
+# to S4, run G I2C1 against the second Pico simulator (tag 3). Exits non-zero if
+# any run failed.
 #
 # Logs go to hil/logs/f767-run-<run>.log. Arguments pick runs, say `a c`; none
 # runs all. With several probes attached, set F767_PROBE.
@@ -21,7 +22,7 @@ mkdir -p "$here/logs"
 port="${F767_VCP:-/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_${PROBE_RS_PROBE#*:*:}-if02}"
 
 status=0
-for run in ${*:-probe a b c d e f}; do
+for run in ${*:-probe a b c d e f g}; do
     log="$here/logs/f767-run-$run.log"
     runner=()
     # The watchdog run resets the chip on purpose: the debugger must not catch
