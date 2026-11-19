@@ -393,7 +393,10 @@ The roadmap: features FerroHAL does not offer. None is debt; the owner sets the 
 - **SPI:** slave, simplex, half-duplex, 16-bit frames, hardware NSS, CRC; SPI6.
 - **I2C:** slave, 10-bit addresses, SMBus, DMA.
 - **Timers:** input capture, dead time, the break input, trigger routes beyond those in
-  use.
+  use: among them TIM5 from TIM3 on the H743 and H753 (RM0433 table 341, ITR2), so a
+  generator on TIM3 and TIM5 starts both in software there. A lane reader paced by a
+  compare channel of a timer that is not a lane timer (`docs/design/lanes.md`: the
+  paced form uses that timer's update request only).
 - **Time adapters** (allowed by G1, behind features; `policies/features.md`): a FerroHAL
   timer as rtic-monotonics' monotonic (rtic-time), an embassy-time driver.
 - **EXTI:** event mode, the internal lines (PVD, RTC, USB wake-up).
