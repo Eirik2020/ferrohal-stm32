@@ -14,13 +14,16 @@ option changes it, beyond the profiling features (`docs/policies/features.md`).
 - A `Frame` is checked and closed where it is written (`Frame::new`): at least one duty,
   room for the closing 0, no duty near the top before a 0 or last (`Error::TopToZero`).
   The closing 0 is written then. `Frame::new` is pure, so a frame builds anywhere.
-- A lane plays a frame in place (`arm_frame`, `Awg::load_frame`); nothing is copied, and
-  `take_frame` hands the memory back once the lane has stopped. A start checks only that
+- A lane plays a frame in place (`CompareLane::arm`, `Awg::load`), and only a lent
+  frame: nothing is copied, and `take_frame` hands the memory back once the lane has
+  stopped. A start checks only that
   the lane is free, the frame's limits are the timer's, and a DMA stream reaches its
   memory, one compare each; the lane's send transfer is prepared once, at assembly, and a
   start sets only its memory and length.
-- A receive fills memory the caller lends (`lend_samples`, `take_samples`). A lane keeps
-  no buffer of its own for a frame or a receive.
+- A receive fills memory the caller lends (`lend_samples`, `take_samples`); a listen with
+  none lent is refused (`Error::NotLent`). A lane keeps no memory of its own: assembly
+  takes the pin and the stream only, and `free` gives back the wiring with whatever is
+  still lent.
 
 ## The prepared switch
 
@@ -47,7 +50,12 @@ Chosen per port by what the board has free; the lane API is the same for all thr
 
 A reader armed ahead is enabled while the frame plays, its request closed, so the switch
 opens one DIER bit. A paced reader's timer runs from setup with its update request and
-interrupt off; the switch opens the request (`timer::pwm::Pacer`).
+interrupt off; the switch opens the request (`timer::pwm::Pacer`). The pacer stays the
+caller's.
+
+A reader takes its stream's token, and a refused registration gives it back. `Awg::free`
+returns every reader's stream, stopped, in a `ReaderStreams`, from which each comes out
+once as the token it went in as (`take::<D, N>()`).
 
 Which form a board gets:
 

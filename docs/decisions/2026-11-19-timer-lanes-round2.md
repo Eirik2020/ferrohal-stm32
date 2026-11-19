@@ -24,8 +24,9 @@ frame's end and restarted at the listen.
    `lane-retime-running`, `lane-listen-at-end`, `lane-last-interrupts`,
    `lane-paced-reader`, `lane-shared-reader`) become the only behaviour. Only the
    profiling features stay, listed in `docs/policies/features.md`.
-2. **Frames in lent memory.** `Frame` is checked and closed where it is written; a lane
-   plays it in place; a receive fills lent memory.
+2. **Lent memory only.** `Frame` is checked and closed where it is written, and a lane
+   plays it in place; a receive fills lent memory. A lane keeps no memory of its own
+   (D30): the copying path is gone, so sending and receiving each have one path.
 3. **The switch is prepared.** `prepare_listen(rate, count)` computes everything;
    `listen()` takes no arguments and only stores.
 4. **One reader per timer and port**, served in one of three forms: armed ahead on a spare
@@ -36,10 +37,14 @@ frame's end and restarted at the listen.
 6. **Listen at the end, the last lane's interrupt**, one CCER store per timer, CCxP and
    CCxNP clear while off.
 7. **TIM5's trigger from TIM3** on die 0x413 (RM0090 table 98, ITR1), so a generator on
-   TIM3 and TIM2 can start the responder or a third timer on the same edge.
+   TIM3 and TIM2 can start the responder or a third timer on the same edge. Every route
+   that die states runs on the Discovery (GLUE-010).
 8. **A start rebuilds no transfer (D33).** The lane's send transfer is prepared at
    assembly, so a start sets only memory and length; it keeps one compare each for the
    lane being free, the frame's limits and the memory's DMA reach.
+9. **A reader's stream comes back** (API-002). A reader keeps its stream's id, every
+   refused registration hands the stream back, and `Awg::free` returns each reader's
+   stream once, typed, through `ReaderStreams`.
 
 ## Breaking changes
 
@@ -47,6 +52,14 @@ frame's end and restarted at the listen.
   `Awg::listen()`; `CompareLane::listen(pwm, count, duty)` becomes
   `CompareLane::prepare_listen(count)` then `CompareLane::listen(pwm, duty)`.
 - Lanes on one timer and port share one reader: `samples(lane)` is that reader's words.
+- Lane assembly takes no buffers (`assemble`, `assemble_two_way`, `assemble_paced` take
+  the timer only), and its refusal is the wiring alone (`LaneRefused`,
+  `ComplementaryLaneRefused`; `TwoWayLaneRefused` is gone). `CompareLane::arm` and
+  `Awg::load` take a `Frame` (the copying forms and `arm_frame`, `load_frame` are gone);
+  `CompareLane::free` returns the wiring with the lent frame and samples.
+- `read_ahead_*` refuse with their stream (`Refused<Error, S>`); `Awg::free` returns a
+  fifth element, the `ReaderStreams`.
+- A listen with no samples memory lent is refused with the new `Error::NotLent`.
 - At a frame's end the timers keep running (outputs at duty 0) until the next listen,
   load or play.
 
