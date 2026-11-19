@@ -1,0 +1,269 @@
+{
+  "schema_version": 5,
+  "run_id": "20261119T210223Z__interrupt-driven-i2c-on-the-nucleo-f767zi__nucleo-f767zi__01",
+  "recorded_at_utc": "2026-11-19T21:02:23Z",
+  "board": "nucleo-f767zi",
+  "tier": "HIL",
+  "revision": "e5e7a208b738791fd020ca4c392c8f4e4a51be48",
+  "working_tree": "clean",
+  "configuration": {
+    "board": "nucleo-f767zi",
+    "features": [],
+    "files": {
+      "hil/nucleo-f767zi/../../Cargo.toml": "9394b05a212c2e2eb9f6d62bce3e0ccab97fa9a7230cc42718b41ec7f80afbf3",
+      "hil/nucleo-f767zi/.cargo/config.toml": "96f73f8d14448341381ca290f52cc6c9f804af7132517732413629c61908b8fe",
+      "hil/nucleo-f767zi/Cargo.toml": "6b60b5079fcffbdf04e865c1d979233a59550c53e5b4b6f52c987c480e2b408d",
+      "hil/nucleo-f767zi/memory.x": "d9623f7fbb2993cadc91e37a4b2e322a4c73f067690df79d01378fd2ae79bbfc",
+      "hil/nucleo-f767zi/src/bin/../../../common/i2c.rs": "79e163403e4d0f754bb83ec5cdde81f0d5797f23b8510875dae703535e323995",
+      "hil/nucleo-f767zi/src/bin/../../../common/i2c_interrupt.rs": "005d3e3f5f9fc43d14b33cf00fa84ef4174081589fc066aa3ce787dcc9092888",
+      "hil/nucleo-f767zi/src/bin/../../../common/ident.rs": "75e05b29ee2cab428023f841cd1b3229f726e01d1342a167c1efffb7b433d68a",
+      "hil/nucleo-f767zi/src/bin/../../../common/tests.rs": "131da69b5a03e6eccb06b4c28a6716146885b0177950f5f663cc5de227e11c56",
+      "hil/nucleo-f767zi/src/bin/../../../common/timers.rs": "118a2246261030182348957b50986cea0ad320aa25fbe506730f68bc11261ac2",
+      "hil/nucleo-f767zi/src/bin/../../../common/watchdog.rs": "41ef77ec384c0d8dd7799de1506920704c79644308c0c883e9b4fd71d12db4dd",
+      "hil/nucleo-f767zi/src/bin/../board.rs": "e22ee48120902ecd646b6c252f69e4d599f6e89f198eca051118c215a720d97f",
+      "hil/nucleo-f767zi/src/bin/run_a.rs": "e91718422e452b58a49366ebe460646a1d46993b44ad7ca9155ecb9a839af113",
+      "hil/nucleo-f767zi/src/bin/run_b.rs": "01590d8894f65340430d0c82aeda86dbb0e3ccad8cde12a2aeb06a67d32146c9",
+      "hil/nucleo-f767zi/src/bin/run_c.rs": "864d20a9f9e833167cadee4095bf2392f875078d8c9db91c3b3e8587507daeaf",
+      "hil/nucleo-f767zi/src/bin/run_d.rs": "365ce61b6f020537340e88c9f5d5a513feeca43758ff1d5433dcb72c8c63a7f1",
+      "src/adc/mod.rs": "5a6d37374fda9db53bb3eb9460c5958d0626ae052ab65b2ab9c7675ed1784608",
+      "src/adc_v2/mod.rs": "cd24f788efd1e08d81eb1c9356854edca48f705415ee0d3721d3e1c9ea2fb9dd",
+      "src/chips/f7/../f4/macros.rs": "c5f48ab3c2b1c41017e2c92ef1d878e19f9de2449b30c46e38b47b3eb7e8811f",
+      "src/chips/f7/../gen/stm32f767zi.rs": "04050374a3fc32a7d5f3852284e6c1d49bf3bf06ea9ea6b39353e74bcbf6deda",
+      "src/chips/f7/../m7.rs": "47e930e071fee52cea1dafa5ac54edd5c62e51319aa6c6193f27ddf5fa5cb581",
+      "src/chips/f7/../macros.rs": "3ee8c5120ebbd9f130c38094ef6c512d83649b4fe7f07dd1117e9a4d231a725e",
+      "src/chips/f7/common.rs": "1b275d66529d7f88910b3d461c3adfbfe080653eea1dc600143b9c31af5a6b6f",
+      "src/chips/f7/errata_es0334.rs": "0ae5ef2b68a90bdc52105b36e5f5bac262c8b9e10fe350364e27161dccbc5b21",
+      "src/chips/f7/stm32f76x_f77x.rs": "ff3a74fbde18a330f107cafd78aa68ed6f569412e66811483991a7da2be4cc19",
+      "src/device.rs": "f5a967ad4e01231155d23970b0af672a04ab43deaebc3800d8d2f99e87eae5d3",
+      "src/dma/mod.rs": "ce50530fd1530f985ae4472095e6766e8d6bb69bfcc17e517f33440d09a47f2f",
+      "src/errata.rs": "800114cb735e801adcccb9e66f348538e0b18201134356bb97e7a9b5288f7da3",
+      "src/exti/mod.rs": "d48fcd0d6ecac92aa0c8dcb88814797ad470ca08b6ea6ad5c162383e6ccec1e4",
+      "src/gpio_v2/mod.rs": "8d9ecf0fd728b67e41245c0486a1fba54922f372e7cafccf4d3f345c81cfb71b",
+      "src/i2c/interrupt.rs": "bd1e0521e62264263a28a8bf01bd1fc1714beaa8168e072d2c68f03170d5f4d0",
+      "src/i2c/mod.rs": "b714390a8d779c2f84d16a3f0d174e39f3c955096c40fb87af4735081d661ae3",
+      "src/i2c_v2/interrupt.rs": "baf92c72d04516808c77f3489b5f6460e91a1329f2485451be656b3415309e38",
+      "src/i2c_v2/mod.rs": "e514bc4c9782efe961e3ca882c556260fcd677937ccd769b5b1f2a09defc8d69",
+      "src/iwdg/mod.rs": "513442c57ee11182d607e6f87246d6af4c87f4e0a639b478b8f5eb7fbfdb6eb9",
+      "src/lib.rs": "8baba1c600913a4bd714552ba1111c43bf4212c19308f4e7d7b7de8314154c52",
+      "src/rcc/kernel.rs": "22a17f4427cc659ec850b41b7b56f605671543ef904db53797eef583aa2819d3",
+      "src/rcc/mod.rs": "7d4fddca77d583c4efeef771573c405dc2cc0d586f95f2cfa4d8977500534402",
+      "src/rcc/shared.rs": "1970583e9a43552b522baa2af840c8c5686605f290cfd298d2326adbe3876f04",
+      "src/rcc_f7/../rcc_f4/tree.rs": "326fea704c401fe4b334277de7ce577ce32234b8a9dd9693391fa3849623880f",
+      "src/rcc_f7/mod.rs": "7fd382a114a87f8f88513b57078ae320fce1905906ab6f072a8c84c8a17cd452",
+      "src/reset.rs": "1607d70a1aca0a2e4f1717f82c7e167b4805d8714b4efeecc84b676f3a6c5763",
+      "src/resource.rs": "358384a14d3ff19ff37b6d686b6f2991053963f2910d865373c8f64a19da0a91",
+      "src/signature.rs": "d9b230fc27427fbbab2c96462d9c30f418b3b033302a252242f8d91deb2bde90",
+      "src/spi/instance.rs": "c74841baa531e4c781a005d813a38022df9d034d656c384fb92704dab4607fee",
+      "src/spi/mod.rs": "a8e8739059c0856c22056b5403f029c6247215808c46bd05b32922f106baf4e3",
+      "src/spi/polled.rs": "bd072765c9b2b88b99084b2f3a5991fcf9f8a39ef12fa401ca75b2efea23700f",
+      "src/spi/stream_dma.rs": "1b5f6e3c1603a9cf38b21823a713a3b99c8002ea0eecb3eb21b1c17744277b9a",
+      "src/spi_v3/mod.rs": "d8e7431618e7133636c7e7ee9fb8b2d801818b0febfa47847ae7b9a0b1460a7f",
+      "src/syscfg/mod.rs": "2ae9fa779ef1bb55a892668b55205479745af74f7bb4ae79881a0130ec55739a",
+      "src/time.rs": "60af22fa1454794d28a34dbfc1f0d979a3a82e8092b2af42daf0990f2d3e8f22",
+      "src/timer/awg.rs": "10b7411c12861ad671d3b61cb5b4fc5e374badcc5dfb67c00b3dc4bd32aad8b9",
+      "src/timer/mod.rs": "f34edb26dde11edc61c00cb51322c4b1cd6bd2cee518ddc9d437d6ac9bc7c871",
+      "src/timer/pwm.rs": "4bdd54f089b2bc2b67386a0f2f808ba109e88e37e5e1dfa19201341c19b70b30",
+      "src/uart/mod.rs": "b9ce4aa0a624af5b41f507ccc23c15cdc0459f79184f131349896a6040cea30a",
+      "src/uart/ring.rs": "1c568c6bf674451a80a21a9fcf875f92ed32358bab235adc3628b708b2901ded",
+      "src/uart/stream_dma/io.rs": "c54f20abad23d0efc8691765b5e59fa395824b104dc6b3993258af9bde573ad6",
+      "src/uart/stream_dma/mod.rs": "ac30dfa3a461c3901aaf90e5cf97b73cf78a34470a8ed2668be1f01cbccc4e49",
+      "src/uart/stream_dma/rx.rs": "58a0f3760ad6971793685b8c8217fd5feaa2a5405b95cc456ba1b96539e9d586",
+      "src/uart/stream_dma/tx.rs": "939fc5e0611ab01a580d4bef4d9d1f89e2f1474c833f6b76e8af2ee5d055839a",
+      "src/uart/tx_ring.rs": "6983703c6a19a1b4f0251fa0579f5321d015539fc1735c13d95adb48adb6468f",
+      "src/usart_v4/mod.rs": "077f270f928bae61f4bb52c6f53cb993ddd7e19d66d60cc999130dab34147de6",
+      "src/usb/mod.rs": "a497f6d78bc4c0a7d19961edda34a5380e760ef46a5383cae6a9f17b9131449e",
+      "src/wait.rs": "e81144f39b38427ba861350232161bd56ef497b997b87e44045afe49895d0c70"
+    },
+    "externals": {
+      "bare-metal": "0.2.5",
+      "bitfield": "0.13.2",
+      "bitflags": "1.3.2",
+      "byteorder": "1.5.0",
+      "cortex-m": "0.7.10",
+      "cortex-m-macros": "0.7.8",
+      "cortex-m-rt": "0.7.7",
+      "cortex-m-rt-macros": "0.7.7",
+      "cortex-m-semihosting": "0.5.0",
+      "critical-section": "1.2.0",
+      "defmt": "0.3.101, 1.2.0",
+      "defmt-macros": "1.2.0",
+      "defmt-parser": "1.1.0",
+      "defmt-rtt": "1.3.1",
+      "embedded-hal": "0.2.7, 1.0.0",
+      "embedded-io": "0.6.1, 0.7.1",
+      "equivalent": "1.0.3",
+      "hash32": "0.3.1",
+      "hashbrown": "0.17.1",
+      "heapless": "0.8.0",
+      "indexmap": "2.14.2",
+      "nb": "0.1.3, 1.1.0",
+      "panic-probe": "1.0.0",
+      "portable-atomic": "1.15.0",
+      "proc-macro2": "1.0.107",
+      "quote": "1.0.47",
+      "rtic": "2.4.0",
+      "rtic-core": "1.0.0",
+      "rtic-macros": "2.4.0",
+      "rustc_version": "0.2.3",
+      "semver": "0.9.0",
+      "semver-parser": "0.7.0",
+      "stable_deref_trait": "1.2.1",
+      "stm32-metapac": "21.0.0",
+      "syn": "2.0.119, 3.0.10",
+      "synopsys-usb-otg": "0.4.0+902ebe9494899ef13d1a9e7b757fb86b6f308727",
+      "thiserror": "2.0.21",
+      "thiserror-impl": "2.0.21",
+      "unicode-ident": "1.0.27",
+      "usb-device": "0.3.2",
+      "usbd-serial": "0.2.2",
+      "vcell": "0.1.3",
+      "void": "1.0.2",
+      "volatile-register": "0.2.2"
+    },
+    "environment": {
+      "CARGO_PKG_NAME": "nucleo-f767zi",
+      "DEFMT_LOG": "info"
+    }
+  },
+  "results": [
+    {
+      "requirement": "I2C-007",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "6f88a66aaf3110b7d8659ebb7256c09001021bcfd4386b9423937b2c991d4f06",
+      "result": "pass"
+    },
+    {
+      "requirement": "I2C-008",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "5b960570a7afba6e6961970fc51a75d2ab13530329eda23cb91d5a3842ae16a7",
+      "result": "pass"
+    },
+    {
+      "requirement": "I2C-009",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "9b07db6496567ab69aaee33fadf9f1d87960ea31344e20da46f104fb25bf3646",
+      "result": "pass"
+    },
+    {
+      "requirement": "I2C-010",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "ed72806b2c16209b57a3546b2972491fb04b0778c5ccd2dc8b00f81ce182ceb3",
+      "result": "pass"
+    },
+    {
+      "requirement": "I2C-011",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "f893e2521b7b754f6bf1a304f52ce24dd252876e0e2ba2a8d3d73cf72d62a303",
+      "result": "pass"
+    },
+    {
+      "requirement": "I2C-012",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "b527d7e2d6b42cd313a1f41a7e07c2aee24976245e9b23159c47858d803ef166",
+      "result": "pass"
+    },
+    {
+      "requirement": "I2C-013",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "300f7b027da95904096a8437a1a0b136c651bf024953c37c6af2da3ce1f4172f",
+      "result": "pass"
+    },
+    {
+      "requirement": "I2C-V2-002",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "68110382804b8ac7781d0489416fa835a80c56da78fe8b5825e721ec17aa4680",
+      "result": "pass"
+    },
+    {
+      "requirement": "I2C-V2-003",
+      "method": {
+        "procedure": "requirements/benches.md#Interrupt-driven I2C on the Nucleo-F767ZI"
+      },
+      "level": "target",
+      "environment": "development",
+      "hazard": "none",
+      "claim": "02160c6459568140a7466c7be17b0c436a0fc95ad738cb28db017bbd3e1b88cc",
+      "result": "pass"
+    }
+  ],
+  "note": null,
+  "supersedes": [],
+  "ruling": null,
+  "details": {
+    "execution": {
+      "performed_by": "agent",
+      "user_confirmed": false
+    },
+    "candidate": {
+      "firmware_sha256": "749f680fe43075ffd7efefe87051ccc6394c0c907756aabf3bc1d6a31441e4d1",
+      "features": [],
+      "target_triple": "thumbv7em-none-eabihf",
+      "profile": "release"
+    },
+    "commands": [
+      {
+        "command": "hil/run-f767.sh d",
+        "exit_code": 0
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "nucleo-f767zi-images",
+        "kind": "configuration",
+        "path": "requirements/evidence/logs/i2c-v2-interrupt-20261119/nucleo-f767zi-images.sha256",
+        "bytes": 72,
+        "sha256": "749f680fe43075ffd7efefe87051ccc6394c0c907756aabf3bc1d6a31441e4d1"
+      },
+      {
+        "id": "nucleo-f767zi-run-d",
+        "kind": "log",
+        "path": "requirements/evidence/logs/i2c-v2-interrupt-20261119/nucleo-f767zi-run-d.log",
+        "bytes": 16990,
+        "sha256": "a6b67704c7440f62546adff2844f3d71d52e1c7f8304855309b4e25cfa032dd7"
+      }
+    ],
+    "observations": [
+      "Every check in every run of the subset passed (PASS lines in the logs; no FAIL)."
+    ]
+  }
+}
