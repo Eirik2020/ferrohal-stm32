@@ -1,0 +1,17 @@
+build features: none
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.03s
+     Running `probe-rs run --chip STM32F401RE target/thumbv7em-none-eabihf/release/spi-polled`
+     [38;5;10m[1mFinished[0m in 1.66s
+[INFO ] run K, clocks: Clocks { sysclk: Hertz(84000000), cpu: Hertz(84000000), hclk: Hertz(84000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(84000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 2, overdrive: false } (spi_polled src/bin/spi_polled.rs:37)
+[INFO ] PASS SPI2 polled PB13/PC2/PC3 (Foxeer NOR pins): SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (spi_polled ../common/tests.rs:847)
+[INFO ] PASS SPI2 polled PB13/PC2/PC3 (Foxeer NOR pins): every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001] (spi_polled ../common/tests.rs:847)
+[INFO ] SPI2 polled PB13/PC2/PC3 (Foxeer NOR pins): 64 bytes in 12799 cycles, 8192 on the wire (spi_polled ../common/spi_exti.rs:680)
+[INFO ] PASS SPI2 polled PB13/PC2/PC3 (Foxeer NOR pins): 64 bytes take at least their time on the wire [SPIPOLL-002] (spi_polled ../common/tests.rs:847)
+[INFO ] PASS SPI3 polled PC10/PC11/PC12: SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001] (spi_polled ../common/tests.rs:847)
+[INFO ] PASS SPI3 polled PC10/PC11/PC12: every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001] (spi_polled ../common/tests.rs:847)
+[INFO ] SPI3 polled PC10/PC11/PC12: 64 bytes in 12798 cycles, 8192 on the wire (spi_polled ../common/spi_exti.rs:680)
+[INFO ] PASS SPI3 polled PC10/PC11/PC12: 64 bytes take at least their time on the wire [SPIPOLL-002] (spi_polled ../common/tests.rs:847)
+[INFO ] identity: uid [4a, 00, 24, 00, 16, 51, 32, 32, 35, 35, 32, 35], rev 0x1001 (spi_polled ../common/tests.rs:2090)
+[INFO ] errata: ES0299 Rev 6, 66 affect rev 0x1001, 0 unreviewed (spi_polled ../common/tests.rs:2066)
+[INFO ] all checks passed (spi_polled ../common/tests.rs:2099)
+Firmware exited successfully

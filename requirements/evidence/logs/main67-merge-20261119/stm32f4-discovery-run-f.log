@@ -1,0 +1,24 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `probe-rs run --chip STM32F407VGTx target/thumbv7em-none-eabihf/release/timer-trigger`
+     [38;5;10m[1mFinished[0m in 2.23s
+[INFO ] run F, clocks: Clocks { sysclk: Hertz(168000000), cpu: Hertz(168000000), hclk: Hertz(168000000), pclk1: Hertz(42000000), pclk2: Hertz(84000000), timclk1: Hertz(84000000), timclk2: Hertz(168000000), pll_q: Some(Hertz(48000000)), flash_wait_states: 5, overdrive: false } (timer_trigger src/bin/timer_trigger.rs:49)
+[INFO ] PASS TIM1 starts TIM8 [GLUE-010]: the slave waits for the master [PWM-004] (timer_trigger ../common/tests.rs:847)
+[INFO ] PASS TIM1 starts TIM8 [GLUE-010]: 100 starts: the master's starts the slave [PWM-005] (timer_trigger ../common/tests.rs:847)
+[INFO ] PASS TIM1 starts TIM8 [GLUE-010]: 100 starts: they begin together [PWM-005] (timer_trigger ../common/tests.rs:847)
+[INFO ] TIM1 starts TIM8 [GLUE-010]: at most 4 counts apart, read one after the other (timer_trigger ../common/pwm.rs:1479)
+[INFO ] PASS TIM1 starts TIM3 [GLUE-010]: the slave waits for the master [PWM-004] (timer_trigger ../common/tests.rs:847)
+[INFO ] PASS TIM1 starts TIM3 [GLUE-010]: 100 starts: the master's starts the slave [PWM-005] (timer_trigger ../common/tests.rs:847)
+[INFO ] PASS TIM1 starts TIM3 [GLUE-010]: 100 starts: they begin together [PWM-005] (timer_trigger ../common/tests.rs:847)
+[INFO ] TIM1 starts TIM3 [GLUE-010]: at most 2 counts apart, read one after the other (timer_trigger ../common/pwm.rs:1479)
+[INFO ] PASS TIM3 starts TIM2 [GLUE-010]: the slave waits for the master [PWM-004] (timer_trigger ../common/tests.rs:847)
+[INFO ] PASS TIM3 starts TIM2 [GLUE-010]: 100 starts: the master's starts the slave [PWM-005] (timer_trigger ../common/tests.rs:847)
+[INFO ] PASS TIM3 starts TIM2 [GLUE-010]: 100 starts: they begin together [PWM-005] (timer_trigger ../common/tests.rs:847)
+[INFO ] TIM3 starts TIM2 [GLUE-010]: at most 4 counts apart, read one after the other (timer_trigger ../common/pwm.rs:1479)
+[INFO ] PASS TIM3 starts TIM5 [GLUE-010]: the slave waits for the master [PWM-004] (timer_trigger ../common/tests.rs:847)
+[INFO ] PASS TIM3 starts TIM5 [GLUE-010]: 100 starts: the master's starts the slave [PWM-005] (timer_trigger ../common/tests.rs:847)
+[INFO ] PASS TIM3 starts TIM5 [GLUE-010]: 100 starts: they begin together [PWM-005] (timer_trigger ../common/tests.rs:847)
+[INFO ] TIM3 starts TIM5 [GLUE-010]: at most 4 counts apart, read one after the other (timer_trigger ../common/pwm.rs:1479)
+[INFO ] identity: uid [39, 00, 41, 00, 07, 51, 35, 32, 36, 34, 36, 36], rev 0x101f (timer_trigger ../common/tests.rs:2090)
+[INFO ] errata: ES0182 Rev 19, 89 affect rev 0x101f, 0 unreviewed (timer_trigger ../common/tests.rs:2066)
+[INFO ] all checks passed (timer_trigger ../common/tests.rs:2099)
+Firmware exited successfully
