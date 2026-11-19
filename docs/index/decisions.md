@@ -1,6 +1,6 @@
 # Document index: decisions (generated)
 
-14 documents in docs/decisions/. Hub: [README.md](README.md).
+15 documents in docs/decisions/. Hub: [README.md](README.md).
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -15,6 +15,7 @@
 | a | docs/decisions/2026-11-15-errata-as-data.md | 3068 B | ADR-010 - Status: promoted |
 | a | docs/decisions/2026-11-17-src-layout.md | 3570 B | ADR-012 - Status: promoted |
 | a | docs/decisions/2026-11-17-uart-single-owner.md | 7883 B | ADR-011 - Status: promoted |
+| a | docs/decisions/2026-11-19-i2c-interrupt-driver.md | 4421 B | ADR-013 - Status: accepted |
 | a | docs/decisions/README.md | 1418 B | Record = event what, why, rejected, date, not |
 | a | docs/decisions/archive/2026/2026-11-09-uart-capabilities.md | 2455 B | ADR-004 - Status: superseded |
-| a | docs/decisions/index/2026.md | 1716 B | One row per record. The record itself is auth |
+| a | docs/decisions/index/2026.md | 1852 B | One row per record. The record itself is auth |

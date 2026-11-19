@@ -128,6 +128,128 @@ requirements:
           method:
             procedure: requirements/benches.md#I2C on the Nucleo-H753ZI
 
+  - id: I2C-007
+    title: A transaction starts without waiting and its end is reported
+    statement: >-
+      The interrupt-driven driver shall start a transaction of a write, a
+      read, or a write then a read joined by a repeated start, to one
+      7-bit address, and return at once, its end reported by the
+      interrupt service with every lent buffer handed back.
+    rationale: >-
+      A control loop cannot spend the wire time of an I2C transfer in a busy
+      wait; the buffers coming back with the end keep their ownership
+      with the caller.
+    derived_from: [G1]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+
+  - id: I2C-008
+    title: Each phase moves by DMA from the IP version's threshold up
+    statement: >-
+      A phase at least its IP version's threshold long shall move its bytes by
+      DMA when the wiring has streams, and every other phase from the
+      event interrupt.
+    rationale: >-
+      The bench measured a stream's cost flat in length and the interrupt's
+      per byte; below the crossover the interrupt costs the CPU less.
+    derived_from: [I2C-007]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+
+  - id: I2C-009
+    title: A transaction that cannot run is refused before the bus moves
+    statement: >-
+      A start while one runs, a phase empty, longer than its buffer or than
+      255 bytes, an address past 7 bits, or a DMA buffer the stream
+      cannot reach shall be refused with the transaction handed back and
+      nothing put on the bus.
+    rationale: >-
+      A refusal that keeps the buffers lets the caller retry; a stream pointed
+      at memory it cannot reach would fault or read stale cache.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+
+  - id: I2C-010
+    title: A failed transaction ends with its fault and the bus put back
+    statement: >-
+      A NACK, lost arbitration, an overrun or a stream fault shall end the
+      transaction with that fault and its buffers, the flags cleared, so
+      the next transaction runs.
+    rationale: >-
+      A vacant or misbehaving device is a condition the firmware measures, not
+      a hang; the bus must not go down with it.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+
+  - id: I2C-011
+    title: An aborted transaction hands its buffers back and the bus recovers
+    statement: >-
+      An abort shall end the running transaction as aborted with its buffers,
+      and leave the bus so the next transaction runs.
+    rationale: >-
+      A slave may stretch SCL without limit and the driver has no timer, so
+      the caller's bound ends it; a bus left held would take every later
+      transfer with it.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+
+  - id: I2C-012
+    title: An interrupt-driven open that cannot run is refused
+    statement: >-
+      An open with a speed or kernel clock the IP version cannot time, or a
+      stream an earlier owner left running, shall be refused with the
+      wiring handed back.
+    rationale: >-
+      Starting anyway could break a device or point a running stream at new
+      memory; the wiring kept lets the firmware try another route.
+    derived_from: [G2]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+
+  - id: I2C-013
+    title: The interrupt-driven driver counts what happened
+    statement: >-
+      The interrupt-driven driver shall count completed, NACKed, faulted,
+      aborted and refused transactions, bus errors, stream faults, and
+      phases by DMA and by interrupt, from its open.
+    rationale: >-
+      Health monitoring reads the counts; a bus error the errata say to carry
+      on through is only visible there.
+    derived_from: [G4]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+
   - id: I2C-V1-001
     title: I2C v1 clears its event flags in the manual's sequences
     statement: >-
@@ -145,6 +267,41 @@ requirements:
           environment: development
           method:
             procedure: requirements/benches.md#I2C on the Nucleo-F401RE
+
+  - id: I2C-V1-002
+    title: I2C v1 moves a phase by DMA as the manual sequences it
+    statement: >-
+      I2C v1 shall move a DMA phase with DMAEN and ITBUFEN off, a receive with
+      LAST and its stop at the stream's transfer complete, a write's
+      stop at BTF after DMAEN drops, and a one-byte receive from the
+      event interrupt.
+    rationale: >-
+      RM0368 18.3.8: the NACK of a one-byte receive is programmed at EV6,
+      before DMA could end it, and ITBUFEN with DMA raises the byte
+      events twice.
+    derived_from: [I2C-008]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
+
+  - id: I2C-V1-003
+    title: I2C v1 recovers an aborted transaction
+    statement: >-
+      I2C v1 shall end an aborted transaction with a STOP and reset the
+      peripheral once the bus is free.
+    rationale: >-
+      The STOP tells a slave mid-transfer the transaction is over; without it
+      the slave keeps the bus.
+    derived_from: [I2C-011]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#Interrupt-driven I2C on the Nucleo-F401RE
 
   - id: I2C-V2-001
     title: I2C v2 carries its transfers in CR2 programs

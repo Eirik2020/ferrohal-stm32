@@ -126,8 +126,8 @@ each leaves for [resolved/](resolved/README.md) when the F401 and H753 benches r
   Discovery (run B) measure the CPU clock against the host's USB start-of-frames; the
   Nucleo-F401RE has no USB device, so its clocks rest on `freeze`'s record, baud rates
   and the host echo. Measuring showed the H753's HSE input, the ST-LINK-V3's MCO, 0.4 %
-  below 8 MHz, so its check allows 0.5 % (`hil/RIG.md`). *Spawned:* `af65cad`; narrowed
-  2026-11-15.
+  below 8 MHz, and 0.6 % on 2026-11-19, so its check allows 1 % (`hil/RIG.md`).
+  *Spawned:* `af65cad`; narrowed 2026-11-15; widened 2026-11-19 (owner).
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. Every F4 here
   is past revision A, so ES0182 2.2.2's mapping (`resolved/`) stands on host tests
