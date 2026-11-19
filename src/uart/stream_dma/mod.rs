@@ -632,6 +632,10 @@ impl<W: Parts> Uart<W> {
         };
         let rx_stopped = self.rx.halt();
         self.unit.set_event_enables(false);
+        // TC stays set once the line is quiet: with TCIE left on after a
+        // drain the caller never served, the USART's vector would fire for
+        // ever once nothing serves it.
+        self.unit.set_tc_interrupt(false);
         self.unit.disable();
         tx_stopped.and(rx_stopped)
     }

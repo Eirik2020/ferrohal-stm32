@@ -281,10 +281,15 @@ mod app {
             .is_some_and(|uart| uart.free().is_ok());
         report.check(
             "USART6 PC6->PC7",
-            "free leaves the USART off and both streams stopped [API-002]",
+            "free leaves the USART off, TCIE off and both streams stopped [API-002]",
             crate::freed(
                 handed_back,
-                !stm32_metapac::USART6.cr1().read().ue(),
+                {
+                    let cr1 = stm32_metapac::USART6.cr1().read();
+                    // TCIE off too: a drain left armed would raise the vector
+                    // for ever once nothing serves it.
+                    !cr1.ue() && !cr1.tcie()
+                },
                 &[(stm32_metapac::DMA1, 6), (stm32_metapac::DMA1, 1)],
             ),
         );

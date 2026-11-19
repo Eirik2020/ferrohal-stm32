@@ -95,6 +95,7 @@ impl Tx {
     /// off for good: what `free` runs.
     pub(super) fn halt(&mut self) -> Result<(), StopTimeout> {
         self.halted = true;
+        self.draining = false;
         self.dma.set_interrupts(Interrupts::default());
         let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
