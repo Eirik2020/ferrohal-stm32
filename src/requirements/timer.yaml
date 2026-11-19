@@ -91,6 +91,20 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
+  - id: TIMER-006
+    title: A tick's service answers for its own timer only
+    statement: >-
+      A tick's interrupt service shall clear its timer's update flag and
+      report whether that flag was set.
+    rationale: >-
+      A scheduler task serving a tick counts one event per pass that reports
+      true; a flag left set would raise the vector again, and a pass raised
+      by another timer on a shared update vector must report false so that it
+      is not counted.
+    derived_from: [G1]
+    verification:
+      entries: []
+
   - id: PWM-001
     title: A channel's duty is as set
     statement: >-
