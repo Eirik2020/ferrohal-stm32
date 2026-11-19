@@ -9,7 +9,7 @@
 //! The outcome queue gives each finished frame's outcome back, in the order
 //! the frames were queued.
 //!
-//! Requirements: UARTDMA-006, UARTDMA-007, UARTDMA-010, UARTDMA-013
+//! Requirements: UARTDMA-006, UARTDMA-007, UARTDMA-010, UARTDMA-015
 
 /// Where a frame of `len` bytes goes, given where the last one ended
 /// (`write`) and where the oldest queued one starts (`oldest`, `None` with

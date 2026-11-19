@@ -541,11 +541,27 @@ requirements:
     title: Each transmit frame comes back with its outcome
     statement: >-
       Each queued transmit frame's outcome shall be given back once, in the
-      order the frames were queued, or its loss counted in its place.
+      order the frames were queued.
     rationale: >-
       A caller that lends or reuses a frame's buffer must know which frame
       failed; counters can say that a frame failed, not which one.
     derived_from: [UART-010]
+    verification:
+      entries:
+        - level: target
+          environment: development
+          method:
+            procedure: requirements/benches.md#UART on the Nucleo-F401RE
+
+  - id: UARTDMA-015
+    title: An overwritten outcome is reported in its place
+    statement: >-
+      The outcome queue shall give its outcomes back in order, and report
+      the number it overwrote unread in their place.
+    rationale: >-
+      Transmission must not wait on a caller that never takes outcomes, and
+      a lost outcome must not pass silently.
+    derived_from: [UARTDMA-013]
     verification:
       entries:
         - level: unit
@@ -556,10 +572,6 @@ requirements:
           environment: host
           method:
             test: ferrohal_stm32::uart::tx_ring::tests::an_overwritten_outcome_is_counted_in_its_place
-        - level: target
-          environment: development
-          method:
-            procedure: requirements/benches.md#UART on the Nucleo-F401RE
 
   - id: UARTDMA-014
     title: The transmit queue's depth is public
