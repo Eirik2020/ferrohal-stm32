@@ -93,6 +93,8 @@ pub(crate) fn watchdog_frozen() -> bool {
 timer_trigger!(TIM8: TIM1, 0);
 timer_trigger!(TIM3: TIM1, 0);
 timer_trigger!(TIM2: TIM3, 2);
+// RM0090 table 98: TIM5 ITR1 is TIM3_TRGO.
+timer_trigger!(TIM5: TIM3, 1);
 
 adc_internal!(ADC1: 16, 17);
 
