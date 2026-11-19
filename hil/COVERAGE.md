@@ -25,8 +25,8 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 |---|---|---|
 | IP `adc_v2` | HIL | nucleo-f401re-loopback |
 | IP `adc_v4` | HIL | nucleo-h753zi-loopback |
-| IP `dma_v1` | – |  |
-| IP `dma_v2` | – | nucleo-f401re-loopback |
+| IP `dma_v1` | HIL | nucleo-h753zi-loopback |
+| IP `dma_v2` | HIL | nucleo-f401re-loopback |
 | IP `exti_h7` | HIL | nucleo-h753zi-loopback |
 | IP `exti_v1` | HIL | nucleo-f401re-loopback |
 | IP `i2c_v1` | HIL | nucleo-f401re-loopback |
