@@ -3,7 +3,7 @@
  "counts": {
   "documents": 87,
   "agent": 54,
-  "bytes": 544936
+  "bytes": 545671
  },
  "documents": [
   {
@@ -32,7 +32,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 39554
+   "bytes": 39585
   },
   {
    "path": "docs/DEBT.md",
@@ -308,21 +308,21 @@
    "class": "human",
    "title": "ES0182: errata of die 0x413 (F405, F407)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 14622
+   "bytes": 14692
   },
   {
    "path": "docs/errata/ES0206.md",
    "class": "human",
    "title": "ES0206: errata of die 0x419 (F427/437, F429/439)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 15539
+   "bytes": 15609
   },
   {
    "path": "docs/errata/ES0287.md",
    "class": "human",
    "title": "ES0287: errata of die 0x431 (F411xC/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10697
+   "bytes": 10767
   },
   {
    "path": "docs/errata/ES0290.md",
@@ -336,21 +336,21 @@
    "class": "human",
    "title": "ES0298: errata of die 0x421 (F446xC/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 13538
+   "bytes": 13608
   },
   {
    "path": "docs/errata/ES0299.md",
    "class": "human",
    "title": "ES0299: errata of die 0x433 (F401xD/xE)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10768
+   "bytes": 10838
   },
   {
    "path": "docs/errata/ES0305.md",
    "class": "human",
    "title": "ES0305: errata of die 0x441 (F412xE/xG)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 11903
+   "bytes": 11973
   },
   {
    "path": "docs/errata/ES0325.md",
@@ -364,7 +364,7 @@
    "class": "human",
    "title": "ES0334: errata of die 0x451 (F76xxx/F77xxx)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 10110
+   "bytes": 10180
   },
   {
    "path": "docs/errata/ES0360.md",
@@ -378,14 +378,14 @@
    "class": "human",
    "title": "ES0372: errata of die 0x463 (F413xG/xH, F423xH)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 11720
+   "bytes": 11790
   },
   {
    "path": "docs/errata/ES0392.md",
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 23605
+   "bytes": 23675
   },
   {
    "path": "docs/housekeeping/README.md",
@@ -518,7 +518,7 @@
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 2195
+   "bytes": 2260
   },
   {
    "path": "docs/policies/safety.md",
@@ -574,7 +574,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6860
+   "bytes": 6869
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",

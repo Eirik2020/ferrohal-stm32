@@ -5,10 +5,16 @@
 //! The controller's driver is `synopsys-usb-otg` 0.4.0 from a fork pinned by
 //! revision. The fork makes it panic-free, with every wait on the core
 //! bounded, so the bus and its vector service sit inside FerroHAL's no-panic
-//! proof. It also carries one erratum: ES0392 2.25.7, a zero-length IN
+//! proof. It also carries two errata. ES0392 2.25.7: a zero-length IN
 //! packet enabled with CNAK set can send a wrong packet on the H7's core, so
 //! the fork sets SNAK, waits, enables the endpoint, waits, and only then
-//! clears the NAK. The `usb-device` stack above the bus (enumeration, the
+//! clears the NAK. The transmit FIFO erratum: another core register access
+//! cutting into a FIFO write corrupts the FIFO (ES0182 2.14.1, ES0206 2.14.1,
+//! ES0287 2.12.1, ES0298 2.16.1, ES0299 2.12.1, ES0305 2.16.1,
+//! ES0372 2.16.1, ES0334 2.19.1, and ES0392 2.25.2 on revisions Y and W), and a
+//! deferred vector reads and masks the core's interrupts at its own
+//! priority, so the fork writes each IN packet inside a critical section.
+//! The `usb-device` stack above the bus (enumeration, the
 //! classes) is the firmware's protocol code, re-exported only so the firmware
 //! builds against the same version; it is not FerroHAL's, and its own code
 //! can panic.

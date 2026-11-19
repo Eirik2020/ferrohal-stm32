@@ -261,7 +261,7 @@ dependencies = [
 [[package]]
 name = "synopsys-usb-otg"
 version = "0.4.0"
-source = "git+https://github.com/Eirik2020/synopsys-usb-otg?rev=99ce43fcb29c420d413a4c6e154e4aadaab62ae3#99ce43fcb29c420d413a4c6e154e4aadaab62ae3"
+source = "git+https://github.com/Eirik2020/synopsys-usb-otg?rev=8f9852113847578492bc7ff6dbcdc735cbc50add#8f9852113847578492bc7ff6dbcdc735cbc50add"
 dependencies = [
  "cortex-m",
  "embedded-hal 0.2.7",

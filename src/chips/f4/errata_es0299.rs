@@ -89,7 +89,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.11.4", "Corrupted last bit of data and/or CRC received in Master mode with delayed SCK feedback", [0x1000, 0x1001], Workaround, Firmware("SCK at high or very high speed with APB at 84 MHz; low allows 25 MHz, medium 75"), []),
     erratum!("2.11.5", "BSY flag may stay high at the end of a data transfer in Slave mode", [0x1000, 0x1001], Workaround, Avoided("master only: no slave mode"), []),
     erratum!("2.11.6", "In I2S Slave mode, the WS level must be set by the external master when enabling the I2S", [0x1000, 0x1001], Workaround, NotReached("no I2S driver"), []),
-    erratum!("2.12.1", "Transmit data FIFO is corrupted when a write sequence to the FIFO is interrupted with", [0x1000, 0x1001], Workaround, Firmware("every USB call from one context, as usb/mod.rs asks, so no register access cuts into a FIFO write"), []),
+    erratum!("2.12.1", "Transmit data FIFO is corrupted when a write sequence to the FIFO is interrupted with", [0x1000, 0x1001], Workaround, Workaround("the synopsys-usb-otg fork writes each IN packet inside a critical section, so neither a deferred vector nor any other context cuts into a FIFO write (usb/mod.rs)"), []),
     erratum!("2.12.2", "Host packet transmission may hang when connecting through a hub to a low-speed device", [0x1000, 0x1001], None, Avoided("device mode only"), []),
     erratum!("2.12.3", "Data in RxFIFO is overwritten when all channels are disabled simultaneously", [0x1000, 0x1001], Workaround, Avoided("device mode only"), []),
     erratum!("2.12.4", "OTG host blocks the receive channel when receiving IN packets and no TxFIFO is configured", [0x1000, 0x1001], Workaround, Avoided("device mode only"), []),
