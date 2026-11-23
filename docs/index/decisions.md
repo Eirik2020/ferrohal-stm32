@@ -18,7 +18,7 @@
 | a | docs/decisions/2026-11-23-first-supported-user.md | 1114 B | ADR-016 - Status: promoted |
 | a | docs/decisions/2026-11-23-glue-offers-everything.md | 836 B | ADR-019 - Status: promoted |
 | a | docs/decisions/2026-11-23-naming-scheme.md | 2890 B | ADR-017 - Status: promoted |
-| a | docs/decisions/2026-11-23-rig-upgrade-rules.md | 843 B | ADR-020 - Status: accepted |
+| a | docs/decisions/2026-11-23-rig-upgrade-rules.md | 917 B | ADR-020 - Status: promoted |
 | a | docs/decisions/AGENTS.md | 886 B | These rules bind every decision recorded in t |
 | a | docs/decisions/CLAUDE.md | 11 B |  |
 | a | docs/decisions/README.md | 1735 B | Record = event what, why, rejected, date, not |
