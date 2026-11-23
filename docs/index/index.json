@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 91,
-  "agent": 57,
-  "bytes": 570067
+  "documents": 94,
+  "agent": 59,
+  "bytes": 571584
  },
  "documents": [
   {
@@ -11,7 +11,14 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: every pack",
-   "bytes": 7497
+   "bytes": 7708
+  },
+  {
+   "path": "CLAUDE.md",
+   "class": "human",
+   "title": "CLAUDE",
+   "purpose": "",
+   "bytes": 11
   },
   {
    "path": "README.md",
@@ -164,6 +171,20 @@
    "bytes": 4817,
    "adr": "ADR-014",
    "status": "promoted"
+  },
+  {
+   "path": "docs/decisions/AGENTS.md",
+   "class": "agent",
+   "title": "Decision records - agent rules",
+   "purpose": "These rules bind every decision recorded in t",
+   "bytes": 886
+  },
+  {
+   "path": "docs/decisions/CLAUDE.md",
+   "class": "agent",
+   "title": "CLAUDE",
+   "purpose": "",
+   "bytes": 11
   },
   {
    "path": "docs/decisions/README.md",
@@ -543,7 +564,7 @@
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 4752
+   "bytes": 5150
   },
   {
    "path": "docs/policies/features.md",

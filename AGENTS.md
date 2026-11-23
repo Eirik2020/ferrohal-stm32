@@ -82,6 +82,7 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - G5: no `unsafe fn` public; only `Peripherals::steal` behind `rtic`. Registers -> take metapac.
 - No unsafe wrappers around register writes; token-owning module only; PAC imports confined.
 - One `shall` per requirement; module trailer names its IDs.
+- Decisions: when the owner states a decision, record it as an ADR (`docs/decisions/AGENTS.md`) in the same change, even inside a code task. Code, comments and docs state the rule, never who decided it or when.
 - `DEBT.md`/`resolved/` = pointer indexes, no prose.
 - Nothing documented only in commit/PR/chat.
 - Docs: human vs agent classes; 20000 B always-loaded, 40000 B otherwise (`docs/policies/documentation.md`); split, never compress; a split is linked, never orphaned.
