@@ -3,8 +3,8 @@
 Source: ADR-010, [`../decisions/2026-11-15-errata-as-data.md`](../decisions/2026-11-15-errata-as-data.md).
 The tables (generated): [ES0182](../errata/ES0182.md) (die 0x413), [ES0206](../errata/ES0206.md) (die 0x419),
 [ES0287](../errata/ES0287.md) (die 0x431), [ES0298](../errata/ES0298.md) (die 0x421), [ES0305](../errata/ES0305.md) (die 0x441), [ES0372](../errata/ES0372.md) (die 0x463), [ES0325](../errata/ES0325.md) (die 0x458), [ES0290](../errata/ES0290.md) (die 0x449), [ES0299](../errata/ES0299.md) (die 0x433),
-[ES0334](../errata/ES0334.md) (die 0x451), [ES0360](../errata/ES0360.md) (die 0x452), [ES0392](../errata/ES0392.md) (die 0x450). The ES0392
-review notes: [h7-errata.md](h7-errata.md).
+[ES0334](../errata/ES0334.md) (die 0x451), [ES0360](../errata/ES0360.md) (die 0x452), [ES0392](../errata/ES0392.md) (die 0x450). The ES0392 review that preceded
+the table is archived: [h7-errata.md](archive/2026/h7-errata.md).
 
 ## The data
 

@@ -3,7 +3,7 @@
  "counts": {
   "documents": 101,
   "agent": 66,
-  "bytes": 571969
+  "bytes": 572663
  },
  "documents": [
   {
@@ -39,14 +39,14 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 38467
+   "bytes": 38464
   },
   {
    "path": "docs/DEBT.md",
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9713
+   "bytes": 9710
   },
   {
    "path": "docs/ROADMAP.md",
@@ -60,7 +60,7 @@
    "class": "agent",
    "title": "ADR-002: Ownership and `free()` (2026-11-08)",
    "purpose": "ADR-002 - Status: promoted",
-   "bytes": 1278,
+   "bytes": 1302,
    "adr": "ADR-002",
    "status": "promoted"
   },
@@ -262,6 +262,20 @@
    "bytes": 2984
   },
   {
+   "path": "docs/design/archive/2026/free-shapes.md",
+   "class": "agent",
+   "title": "`free()`: the landed shapes, driver by driver",
+   "purpose": "Archived 2026-11-23 from docs/design/free-sha",
+   "bytes": 3715
+  },
+  {
+   "path": "docs/design/archive/2026/h7-errata.md",
+   "class": "agent",
+   "title": "ES0392 review: cache, system, flash ECC",
+   "purpose": "Archived 2026-11-23 from docs/design/h7-errat",
+   "bytes": 1555
+  },
+  {
    "path": "docs/design/archive/2026/uart-ferrowasp.md",
    "class": "agent",
    "title": "UART design for FerroWasp",
@@ -280,7 +294,7 @@
    "class": "agent",
    "title": "Errata as data",
    "purpose": "Source: ADR-010, ../decisions/2026-11-15-erra",
-   "bytes": 3645
+   "bytes": 3688
   },
   {
    "path": "docs/design/execution-model.md",
@@ -297,18 +311,11 @@
    "bytes": 1901
   },
   {
-   "path": "docs/design/free-shapes.md",
-   "class": "agent",
-   "title": "`free()`: the landed shapes, driver by driver",
-   "purpose": "What blocked each driver's teardown, and the ",
-   "bytes": 3580
-  },
-  {
    "path": "docs/design/free.md",
    "class": "agent",
    "title": "`free()`: handing tokens back",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3176
+   "bytes": 3517
   },
   {
    "path": "docs/design/glue-generator.md",
@@ -316,13 +323,6 @@
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
    "bytes": 10119
-  },
-  {
-   "path": "docs/design/h7-errata.md",
-   "class": "agent",
-   "title": "ES0392 review: cache, system, flash ECC",
-   "purpose": "W11 of the debt sweep. Read against ES0392 Re",
-   "bytes": 1405
   },
   {
    "path": "docs/design/i2c-interrupt.md",
@@ -679,7 +679,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9294
+   "bytes": 9301
   },
   {
    "path": "hil/COVERAGE.md",

@@ -376,7 +376,7 @@ names where the code documents it.
 - HSI48 runs untrimmed for USB; CRS trimming fails on revision Y (ES0392 2.2.3).
 - Flash wait states are transcribed from RM0433 table 17, checked once.
 - A future flash driver must follow ES0392 2.2.6, 2.2.7 and 2.2.18
-  (`design/h7-errata.md`).
+  (`errata/ES0392.md`).
 
 **SDMMC**
 - Polled through the FIFO, up to 25 MHz, 4-bit, 3.3 V, high-capacity v2 cards.

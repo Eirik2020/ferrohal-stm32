@@ -4,7 +4,7 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | docs/decisions/2026-11-08-free-teardown-brief.md | 1278 B | ADR-002 - Status: promoted |
+| a | docs/decisions/2026-11-08-free-teardown-brief.md | 1302 B | ADR-002 - Status: promoted |
 | a | docs/decisions/2026-11-08-g5-safe-by-default.md | 1913 B | ADR-001 - Status: promoted |
 | a | docs/decisions/2026-11-13-adapters-behind-features.md | 1832 B | ADR-007 - Status: promoted |
 | a | docs/decisions/2026-11-13-chip-glue-generator.md | 2773 B | ADR-008 - Status: promoted |

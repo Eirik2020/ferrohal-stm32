@@ -29,5 +29,5 @@ No alternative was recorded.
 - A safe `free()` needs a redesign of the handles, not one added method: a channel or
   lane that held register access without a borrow could outlive its timer's `free()`.
   What blocked each driver and the shape that landed are in
-  [free-shapes.md](../design/free-shapes.md).
+  [free-shapes.md](../design/archive/2026/free-shapes.md) (archived).
 - The fresh-boot bench runs become redundant once `free()` exists.

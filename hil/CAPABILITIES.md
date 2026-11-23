@@ -142,7 +142,7 @@ are cheap ones first, then the ones that unblock a claim.
   lists the runs and their pass criteria. Logs land in `hil/logs/` and the
   manifest beside each log hashes every binary.
 - A claim in a commit or requirement names the run that proves it. A claim based
-  on inspection says so and points at `docs/DEBT.md` §4 or `docs/design/h7-errata.md`.
+  on inspection says so and points at `docs/DEBT.md` §4 or the errata table (`docs/errata/`).
 - When the rig gains a capability, add its run to `benches.md`, move the entry
   out of the queue here, update `COVERAGE.md`, and remove the matching item from
   `docs/DEBT.md` §4.
