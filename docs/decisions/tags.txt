@@ -1,0 +1,21 @@
+# Approved decision-record tags, one per line: lower case, digits and hyphens.
+# Only the owner adds a tag. Each active row of index/<year>.md carries one or
+# more of these in its Tags column, comma-separated; tools/check_docs.py fails on
+# any other tag. Search: python3 -I tools/adr.py find <tag>.
+api
+buffers
+dma
+errata
+evidence
+features
+glue
+goals
+i2c
+interrupts
+naming
+ownership
+safety
+scope
+structure
+timers
+uart

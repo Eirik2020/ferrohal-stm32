@@ -20,7 +20,12 @@ Index: `index/<year>.md`. Policies: `../policies/`. Plans: `../plans/`.
 
 `tools/check_docs.py`: byte budgets, no orphans, status line, promoted target, unique ADR IDs,
 archive placement, index agreement both ways, active cap, no dated record in `AGENTS.md`,
-every relative `.md` link in `docs/` and `AGENTS.md` resolves.
+every relative `.md` link in `docs/` and `AGENTS.md` resolves. Through `tools/adr.py`: each
+record's format ([rules 2-4](AGENTS.md)) and every index row's tags, from
+[the approved list](tags.txt).
+
+Find by tag: `python3 -I tools/adr.py find <tag>...`; `python3 -I tools/adr.py tags` lists them.
+Reads the index only.
 
 ## No script holds
 
