@@ -1,6 +1,8 @@
 # ADR-020: The rules a rig upgrade must fit (2026-11-23)
 
-ADR-020 - Status: accepted
+ADR-020 - Status: promoted
+
+Promoted to: [RIG-IMPROVEMENTS.md](../../hil/RIG-IMPROVEMENTS.md) (rig).
 
 ## Context
 

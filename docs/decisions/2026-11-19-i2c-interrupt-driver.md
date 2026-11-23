@@ -1,6 +1,8 @@
 # ADR-013: An interrupt-driven I2C master on lent buffers (2026-11-19)
 
-ADR-013 - Status: accepted
+ADR-013 - Status: promoted
+
+Promoted to: [i2c-interrupt.md](../design/i2c-interrupt.md) (design).
 
 ## Context
 
@@ -39,8 +41,7 @@ on driver-owned ones with a copy each way. The measurements are in
    with `BusBusy`.
 6. Routes from the glue. `I2cTxDma` and `I2cRxDma` are emitted per part by the glue
    generator; an I2C with BDMA-only routes gets none.
-7. `i2c_v1` lands first. `i2c_v2` follows once the F767's intermittent 32-byte
-   miscompares have a measured cause.
+7. `i2c_v1` lands first; `i2c_v2` follows.
 
 ## Rejected
 

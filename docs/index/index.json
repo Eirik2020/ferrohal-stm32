@@ -3,7 +3,7 @@
  "counts": {
   "documents": 101,
   "agent": 66,
-  "bytes": 572573
+  "bytes": 572644
  },
  "documents": [
   {
@@ -131,10 +131,10 @@
    "path": "docs/decisions/2026-11-19-i2c-interrupt-driver.md",
    "class": "agent",
    "title": "ADR-013: An interrupt-driven I2C master on lent buffers (2026-11-19)",
-   "purpose": "ADR-013 - Status: accepted",
-   "bytes": 2995,
+   "purpose": "ADR-013 - Status: promoted",
+   "bytes": 2992,
    "adr": "ADR-013",
-   "status": "accepted"
+   "status": "promoted"
   },
   {
    "path": "docs/decisions/2026-11-19-timer-lanes-round2.md",
@@ -185,10 +185,10 @@
    "path": "docs/decisions/2026-11-23-rig-upgrade-rules.md",
    "class": "agent",
    "title": "ADR-020: The rules a rig upgrade must fit (2026-11-23)",
-   "purpose": "ADR-020 - Status: accepted",
-   "bytes": 843,
+   "purpose": "ADR-020 - Status: promoted",
+   "bytes": 917,
    "adr": "ADR-020",
-   "status": "accepted"
+   "status": "promoted"
   },
   {
    "path": "docs/decisions/AGENTS.md",
