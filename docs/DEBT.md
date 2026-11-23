@@ -35,11 +35,6 @@ item says so; an origin is never reconstructed after the fact.
 Severity: **High** gives wrong behaviour. **Medium** is a gap a user will hit soon.
 **Low** is cleanup. **Lowest** waits on something outside the repository.
 
-Status 2026-11-16 (PR #48): the merge-gate benches pass on F401, H753 and the STM32F4
-Discovery; reqtool 128 of 128 verified, 0 stale (SDMMC-003/004 on the Lucid, `FLSH`). Since
-then #52 (ADR-011) and #53 (ADR-012) changed shared files, so the F4 and H7 benches owe a
-rerun. No item is High.
-
 ---
 
 ## 1. Library code

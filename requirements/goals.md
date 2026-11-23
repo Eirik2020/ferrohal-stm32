@@ -14,12 +14,15 @@ FerroHAL's own: it knows nothing of what it is used for.
    it is off by default and listed as an exception in the
    [features policy](../docs/policies/features.md): the default build is panic-free,
    and the ecosystem stays reachable for a user who opts in.
-3. **G3 - A single unified HAL.** One crate, with one API across every chip it
-   supports. A chip's differences stay in its glue and its IP versions.
+3. **G3 - A single unified HAL.** One API across every chip it supports. A chip's
+   differences stay in its glue and its IP versions.
 4. **G4 - Requirement tracing and verification.** Each file states the requirements
-   it fulfils and is hashed, and evidence records the hash. One first pass verifies
+   it fulfils. A part is verified once against its own requirements: an IP version
+   proven on one chip is proven for every chip that carries it, and glue a family
+   shares is proven on one chip of that family. A change to a part that still fulfils
+   the requirements set on it re-owes only that part. One first pass verifies
    everything; after it, only what changed is retested.
 5. **G5 - Safe by default.** The public API exposes no `unsafe fn` and no reachable
-   raw register access: a HAL is the safe abstraction. An exception needs a written
-   rationale, the owner's dated approval, and a default-off feature gate
+   raw register access: a HAL is the safe abstraction. An exception needs a decision
+   record (`docs/decisions/`) and a default-off feature gate
    ([safety policy](../docs/policies/safety.md)).
