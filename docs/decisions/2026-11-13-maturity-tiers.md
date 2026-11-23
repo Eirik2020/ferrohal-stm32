@@ -11,7 +11,7 @@ boards' runs as smoke tests carrying no evidence. With a generator able to emit 
 parts, a part's maturity needs a definition that keeps the car rule: evidence belongs
 to the IP version, the die or the series, not to a part.
 
-## Decision (owner, 2026-11-13)
+## Decision
 
 1. Capability is separate from maturity, and an IP from a die. A part *requires* its
    platform (die glue, clock module, GPIO, reset and system, flash latency, memory
@@ -29,15 +29,15 @@ to the IP version, the die or the series, not to a part.
    covered. No part is gated by its tier.
 5. Tiers are computed from the evidence, never declared, and checked at the merge gate.
 
+## Rejected
+
+- Gating a part on an unproven IP version: evidence belongs to the IP, so an unproven
+  UART leaves the UART uncovered, not the part.
+- One tier per part from its weakest capability: it hides what is covered.
+
 ## Consequences
 
 - Supersedes the rule that smoke runs carry no evidence (`requirements-system.md`): a
   flashed board's runs are `FLSH` evidence.
 - reqtool records each run's tier, as its generic environment.
 - `docs/CHIPS.md` gains the computed tier tables once the tool exists.
-
-## Rejected
-
-- Gating a part on an unproven IP version: evidence belongs to the IP, so an unproven
-  UART leaves the UART uncovered, not the part.
-- One tier per part from its weakest capability: it hides what is covered.

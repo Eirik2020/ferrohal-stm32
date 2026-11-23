@@ -23,7 +23,7 @@ ROOT = check_docs.ROOT
 LINK = check_docs.LINK
 TITLE = re.compile(r"^# (.+)$", re.M)
 STATUS = re.compile(
-    r"^ADR-(\d{3}) - Status: (accepted|promoted|superseded|rejected)\b", re.M
+    r"^ADR-(\d{3}) - Status: (accepted|promoted|superseded|rejected|obsolete)\b", re.M
 )
 STAMP = re.compile(r"^- (Last review|Next due): (\d{4}-\d{2}-\d{2})$", re.M)
 
@@ -93,7 +93,9 @@ def collect() -> dict:
                     {"a": names[0], "b": names[1], "ratio": round(ratio, 2)}
                 )
 
-    counts = {"accepted": 0, "promoted": 0, "superseded": 0, "rejected": 0}
+    counts = {
+        "accepted": 0, "promoted": 0, "superseded": 0, "rejected": 0, "obsolete": 0,
+    }
     unpromoted = []
     decisions = sorted((ROOT / "docs/decisions").glob("*.md"))
     archived = sorted((ROOT / "docs/decisions/archive").glob("*/*.md"))
@@ -189,7 +191,8 @@ def render(data: dict) -> None:
     print("\ndecision records")
     print(
         f"  accepted {counts['accepted']}, promoted {counts['promoted']}, "
-        f"superseded {counts['superseded']}, rejected {counts['rejected']} "
+        f"superseded {counts['superseded']}, rejected {counts['rejected']}, "
+        f"obsolete {counts['obsolete']} "
         f"(active cap {data['decisions']['active_cap']})"
     )
     for item in data["decisions"]["unpromoted"]:

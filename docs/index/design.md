@@ -4,24 +4,24 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | docs/design/api-surface.md | 3199 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/clocks.md | 958 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/api-surface.md | 3236 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/clocks.md | 995 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/errata.md | 3743 B | Source: ADR-010, ../decisions/2026-11-15-erra |
-| a | docs/design/execution-model.md | 934 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/ferroforge-seam.md | 2084 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/execution-model.md | 971 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/ferroforge-seam.md | 2121 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/free-shapes.md | 3580 B | What blocked each driver's teardown, and the  |
 | a | docs/design/free.md | 3498 B | Every driver handle that owns a peripheral to |
 | a | docs/design/glue-generator.md | 10783 B | Source: ADR-008, ../decisions/2026-11-13-chip |
 | a | docs/design/h7-errata.md | 1405 B | W11 of the debt sweep. Read against ES0392 Re |
 | a | docs/design/lanes.md | 6954 B | Source: ADR-014, ../decisions/2026-11-19-time |
-| a | docs/design/layering.md | 1634 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/layering.md | 1671 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/maturity.md | 3374 B | Source: ADR-009, ../decisions/2026-11-13-matu |
 | a | docs/design/naming.md | 10107 B | Source: ADR-003, ../decisions/2026-11-08-nami |
-| a | docs/design/ownership.md | 2774 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/requirements-ids.md | 1789 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/requirements-system.md | 4669 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/requirements-tooling.md | 2741 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/scope.md | 3746 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
-| a | docs/design/structure.md | 2262 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
+| a | docs/design/ownership.md | 2811 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/requirements-ids.md | 1826 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/requirements-system.md | 4706 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/requirements-tooling.md | 2778 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/scope.md | 3783 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/structure.md | 2299 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/uart-ferrowasp.md | 1402 B | Source: ADR-005, ../decisions/2026-10-31-ferr |
-| a | docs/design/uart-ownership.md | 3459 B | Source: ADR-011, ../decisions/2026-11-17-uart |
+| a | docs/design/uart-ownership.md | 4785 B | Source: ADR-011, ../decisions/2026-11-17-uart |

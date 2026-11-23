@@ -39,6 +39,17 @@ has no atomics, no critical section and no protocol of its own.
   send (`checks/no-metapac`). It refuses half-duplex and swap, which need the TX pin.
 - **`free` is the inverse of `new`.** It hands back the wiring and buffers whole, or the
   UART itself while a stream has not stopped ([free](free.md)).
+- **Half-duplex and swap are `Config` fields.** `usart_v4` has both; `usart_v2` has
+  half-duplex and refuses swap. In half-duplex the receiver hears every byte the UART
+  sends, so the ring holds the echo; the driver does not filter it.
+- **`write_all` and `read_exact` cannot panic.** The `embedded-io` defaults are
+  overridden, and both are in `checks/no-panic`.
+- **Names.** The register wrapper is `Unit`, as in SPI, I2C and ADC. A DMA fault is
+  `Error::Dma`, with the cause kept in `Health`, whose fields are plural and saturate.
+  The refusal alias is `UartRefused`. `mask` and `unmask` name the line's interrupt
+  enables ([naming](naming.md)).
+- **Files.** `uart/stream_dma/` holds the driver, the receive engine, the transmit
+  engine and the `embedded-io` impls apart.
 
 ## IP versions and DMA
 
@@ -49,3 +60,14 @@ has no atomics, no critical section and no protocol of its own.
   flags and their clear, remaining count, and interrupt enables. A channel-DMA engine
   (BDMA behind DMAMUX) slots in by offering the same operations; the crate-internal trait
   naming them is written when that engine lands (ADR-011).
+
+## Interrupt service in every driver
+
+- `Service`, at the crate root, is scheduler-neutral:
+  `trait Service { type Event; fn on_interrupt(&mut self) -> Self::Event; }`. Every
+  interrupt-served driver implements it and keeps an inherent `on_interrupt`, so a
+  caller needs no import. There is no `poll` alias: `on_interrupt` is callable from a
+  task.
+- `AdcScan` reports completion and `samples()` reads them.
+- `resource::Vectors` lists a driver's vectors, with `iter()` and `verify()`, from
+  `vectors()` on every interrupt-served driver.

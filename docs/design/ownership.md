@@ -1,6 +1,6 @@
 # Ownership and shared registers
 
-Source: ADR-006, [`../decisions/2026-11-10-doc-map-dissolution.md`](../decisions/2026-11-10-doc-map-dissolution.md).
+Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
 The architecture map's section 4, dissolved 2026-11-10. The UART's one owner is its own

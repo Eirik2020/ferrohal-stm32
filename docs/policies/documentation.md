@@ -38,10 +38,10 @@ Measurement wins for what the code does; record both; divergence -> erratum cand
 
 ## Decision records
 
-Event, not rule. `ADR-NNN - Status:` line; statuses `accepted|promoted|superseded|rejected`.
+Event, not rule. `ADR-NNN - Status:` line; statuses `accepted|promoted|superseded|rejected|obsolete`.
 Promotion: policy -> `docs/policies/`; design -> `docs/design/<topic>.md`; behaviour ->
 a catalog in `src/requirements/`. Promoted records carry `Promoted to: [path](path)` (resolved by the checker).
-Exactly one `index/<year>.md` row per record; row id+status must match. Superseded/rejected
+Exactly one `index/<year>.md` row per record; row id+status must match. Superseded/rejected/obsolete
 move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 `docs/decisions/README.md`.
 
