@@ -1,4 +1,4 @@
-# `free()`: handing tokens back (2026-11-09, landed 2026-11-13)
+# `free()`: handing tokens back
 
 Every driver handle that owns a peripheral token hands it back with `free(self) -> T`,
 stopping what it ran as a `Drop` would: requirement `API-002`, proven on both Nucleos
@@ -51,6 +51,3 @@ deleted `tokens!::steal`. With `free()` landed they folded back into runs H and 
 TIM4 reopens at 8 kHz, TIM2 and TIM5 as 1 MHz timebases, from the freed token — and
 the fresh-boot runs are gone. `Peripherals::steal` stays the only unsafe hatch, W6
 gated behind `rtic`.
-
-Decisions: [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions/2026-11-08-free-teardown-brief.md).
-Plan of record: PRs #35 to #38 (the plan file was deleted on 2026-11-13; git history keeps it).

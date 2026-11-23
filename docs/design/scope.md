@@ -3,8 +3,6 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's sections 1, 10, 12 and 13, dissolved 2026-11-10.
-
 The design's other topics: [execution-model.md](execution-model.md) (scheduler-agnostic
 execution), [layering.md](layering.md) (crate layering and the async hooks),
 [structure.md](structure.md), [ownership.md](ownership.md),

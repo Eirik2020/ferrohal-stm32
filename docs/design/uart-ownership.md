@@ -1,4 +1,4 @@
-# UART ownership: one owner, served by `on_interrupt` (2026-11-17)
+# UART ownership: one owner, served by `on_interrupt`
 
 Source: ADR-011, [`../decisions/2026-11-17-uart-single-owner.md`](../decisions/2026-11-17-uart-single-owner.md),
 which superseded ADR-004's line, flag and data handles

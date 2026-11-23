@@ -3,7 +3,7 @@
  "counts": {
   "documents": 101,
   "agent": 66,
-  "bytes": 572652
+  "bytes": 571353
  },
  "documents": [
   {
@@ -259,7 +259,7 @@
    "class": "agent",
    "title": "Public API surface",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 3096
+   "bytes": 2984
   },
   {
    "path": "docs/design/archive/2026/uart-ferrowasp.md",
@@ -273,7 +273,7 @@
    "class": "agent",
    "title": "Clocks",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 953
+   "bytes": 896
   },
   {
    "path": "docs/design/errata.md",
@@ -287,14 +287,14 @@
    "class": "agent",
    "title": "Execution model: scheduler-agnostic",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 957
+   "bytes": 900
   },
   {
    "path": "docs/design/ferroforge-seam.md",
    "class": "agent",
    "title": "The FerroForge seam: foot-guns and fixes",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 1957
+   "bytes": 1901
   },
   {
    "path": "docs/design/free-shapes.md",
@@ -306,16 +306,16 @@
   {
    "path": "docs/design/free.md",
    "class": "agent",
-   "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
+   "title": "`free()`: handing tokens back",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3416
+   "bytes": 3176
   },
   {
    "path": "docs/design/glue-generator.md",
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 10175
+   "bytes": 10119
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -343,70 +343,70 @@
    "class": "agent",
    "title": "Crate layering above FerroHAL",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 1644
+   "bytes": 1581
   },
   {
    "path": "docs/design/maturity.md",
    "class": "agent",
    "title": "Maturity: capability, evidence axes and tiers",
    "purpose": "Source: ADR-009, ../decisions/2026-11-13-matu",
-   "bytes": 3207
+   "bytes": 3168
   },
   {
    "path": "docs/design/naming.md",
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-017, ../decisions/2026-11-23-nami",
-   "bytes": 9257
+   "bytes": 9125
   },
   {
    "path": "docs/design/ownership.md",
    "class": "agent",
    "title": "Ownership and shared registers",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2699
+   "bytes": 2607
   },
   {
    "path": "docs/design/requirements-ids.md",
    "class": "agent",
    "title": "Requirement IDs and what a user maps onto",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 1740
+   "bytes": 1669
   },
   {
    "path": "docs/design/requirements-system.md",
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 4140
+   "bytes": 4068
   },
   {
    "path": "docs/design/requirements-tooling.md",
    "class": "agent",
    "title": "Requirement format and reqtool",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2188
+   "bytes": 2078
   },
   {
    "path": "docs/design/scope.md",
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 3578
+   "bytes": 3505
   },
   {
    "path": "docs/design/structure.md",
    "class": "agent",
    "title": "Crate and module structure",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2187
+   "bytes": 2131
   },
   {
    "path": "docs/design/uart-ownership.md",
    "class": "agent",
-   "title": "UART ownership: one owner, served by `on_interrupt` (2026-11-17)",
+   "title": "UART ownership: one owner, served by `on_interrupt`",
    "purpose": "Source: ADR-011, ../decisions/2026-11-17-uart",
-   "bytes": 5442
+   "bytes": 5429
   },
   {
    "path": "docs/errata/ES0182.md",
