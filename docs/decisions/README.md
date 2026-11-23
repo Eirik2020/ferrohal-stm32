@@ -9,10 +9,10 @@ Index: `index/<year>.md`. Policies: `../policies/`. Plans: `../plans/`.
 
 ## Lifecycle
 
-- Statuses: `accepted`; `promoted`; `superseded` (names the replacement); `rejected` (kept, so it is not re-argued).
+- Statuses: `accepted`; `promoted`; `superseded` (names the replacement); `rejected` (kept, so it is not re-argued); `obsolete` (records an event that binds nothing now).
 - Every record: `ADR-NNN - Status: ...` after the title; exactly one index row; row id and status must match the record.
 - Promoted records: `Promoted to: [path](path)`, resolved by the checker.
-- Superseded/rejected -> `archive/<year>/` verbatim. Nothing deleted; archived records not loaded by default.
+- Superseded/rejected/obsolete -> `archive/<year>/` verbatim. Nothing deleted; archived records not loaded by default.
 - Active cap 20; over -> promotion/archive pass.
 - Promotion = record status edit + target edit; the record keeps the "why".
 

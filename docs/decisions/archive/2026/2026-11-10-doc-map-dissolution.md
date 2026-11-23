@@ -1,6 +1,6 @@
 # ADR-006: Dissolve the architecture map into topic documents (2026-11-10)
 
-ADR-006 - Status: accepted
+ADR-006 - Status: obsolete
 
 The map (`ferrohal-architecture.md`, 15 sections) was the W7 answer to a
 one-place-for-everything design doc; it floated in the root, held both rules and

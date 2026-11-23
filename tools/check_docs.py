@@ -262,7 +262,7 @@ def main() -> int:
     )
     archived = sorted((decisions_dir / "archive").glob("*/*.md"))
     status = re.compile(
-        r"^ADR-(\d{3}) - Status: (accepted|promoted|superseded|rejected)\b", re.M
+        r"^ADR-(\d{3}) - Status: (accepted|promoted|superseded|rejected|obsolete)\b", re.M
     )
     promoted = re.compile(r"^Promoted to: .*\]\(([^)]+\.md)\)", re.M)
 
@@ -296,11 +296,11 @@ def main() -> int:
                     f"{relative}: 'Promoted to' target "
                     f"{target.group(1)} does not resolve"
                 )
-        if record.parent == decisions_dir and state in ("superseded", "rejected"):
+        if record.parent == decisions_dir and state in ("superseded", "rejected", "obsolete"):
             failures.append(f"{relative}: {state} records move to archive/<year>/")
         if record.parent != decisions_dir and state in ("accepted", "promoted"):
             failures.append(
-                f"{relative}: archived records are superseded or rejected, "
+                f"{relative}: archived records are superseded, rejected or obsolete, "
                 f"not {state}"
             )
 

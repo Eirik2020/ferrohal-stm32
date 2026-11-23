@@ -1,6 +1,6 @@
 # Requirement format and reqtool
 
-Source: ADR-006, [`../decisions/2026-11-10-doc-map-dissolution.md`](../decisions/2026-11-10-doc-map-dissolution.md).
+Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
 The architecture map's section 9's tooling half, dissolved 2026-11-10. The model

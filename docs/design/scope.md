@@ -1,6 +1,6 @@
 # Scope: what FerroHAL is and is not
 
-Source: ADR-006, [`../decisions/2026-11-10-doc-map-dissolution.md`](../decisions/2026-11-10-doc-map-dissolution.md).
+Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
 The architecture map's sections 1, 10, 12 and 13, dissolved 2026-11-10. Tags:

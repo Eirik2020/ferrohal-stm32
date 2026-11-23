@@ -3,7 +3,7 @@
  "counts": {
   "documents": 95,
   "agent": 60,
-  "bytes": 569449
+  "bytes": 569961
  },
  "documents": [
   {
@@ -90,15 +90,6 @@
    "bytes": 3234,
    "adr": "ADR-003",
    "status": "promoted"
-  },
-  {
-   "path": "docs/decisions/2026-11-10-doc-map-dissolution.md",
-   "class": "agent",
-   "title": "ADR-006: Dissolve the architecture map into topic documents (2026-11-10)",
-   "purpose": "ADR-006 - Status: accepted",
-   "bytes": 1578,
-   "adr": "ADR-006",
-   "status": "accepted"
   },
   {
    "path": "docs/decisions/2026-11-13-adapters-behind-features.md",
@@ -200,7 +191,7 @@
    "class": "agent",
    "title": "Decision records (ADR hub)",
    "purpose": "Record = event what, why, rejected, date, not",
-   "bytes": 1418
+   "bytes": 1481
   },
   {
    "path": "docs/decisions/archive/2026/2026-11-09-uart-capabilities.md",
@@ -212,25 +203,34 @@
    "status": "superseded"
   },
   {
+   "path": "docs/decisions/archive/2026/2026-11-10-doc-map-dissolution.md",
+   "class": "agent",
+   "title": "ADR-006: Dissolve the architecture map into topic documents (2026-11-10)",
+   "purpose": "ADR-006 - Status: obsolete",
+   "bytes": 1578,
+   "adr": "ADR-006",
+   "status": "obsolete"
+  },
+  {
    "path": "docs/decisions/index/2026.md",
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 2122
+   "bytes": 2146
   },
   {
    "path": "docs/design/api-surface.md",
    "class": "agent",
    "title": "Public API surface",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 3199
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 3236
   },
   {
    "path": "docs/design/clocks.md",
    "class": "agent",
    "title": "Clocks",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 958
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 995
   },
   {
    "path": "docs/design/errata.md",
@@ -243,15 +243,15 @@
    "path": "docs/design/execution-model.md",
    "class": "agent",
    "title": "Execution model: scheduler-agnostic",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 934
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 971
   },
   {
    "path": "docs/design/ferroforge-seam.md",
    "class": "agent",
    "title": "The FerroForge seam: foot-guns and fixes",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2084
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 2121
   },
   {
    "path": "docs/design/free-shapes.md",
@@ -292,8 +292,8 @@
    "path": "docs/design/layering.md",
    "class": "agent",
    "title": "Crate layering above FerroHAL",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 1634
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 1671
   },
   {
    "path": "docs/design/maturity.md",
@@ -313,43 +313,43 @@
    "path": "docs/design/ownership.md",
    "class": "agent",
    "title": "Ownership and shared registers",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2774
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 2811
   },
   {
    "path": "docs/design/requirements-ids.md",
    "class": "agent",
    "title": "Requirement IDs and what a user maps onto",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 1789
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 1826
   },
   {
    "path": "docs/design/requirements-system.md",
    "class": "agent",
    "title": "The requirements and verification model",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 4669
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 4706
   },
   {
    "path": "docs/design/requirements-tooling.md",
    "class": "agent",
    "title": "Requirement format and reqtool",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2741
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 2778
   },
   {
    "path": "docs/design/scope.md",
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 3746
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 3783
   },
   {
    "path": "docs/design/structure.md",
    "class": "agent",
    "title": "Crate and module structure",
-   "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 2262
+   "purpose": "Source: ADR-006 archived: ../decisions/archiv",
+   "bytes": 2299
   },
   {
    "path": "docs/design/uart-ferrowasp.md",
@@ -573,7 +573,7 @@
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 5846
+   "bytes": 5864
   },
   {
    "path": "docs/policies/features.md",
