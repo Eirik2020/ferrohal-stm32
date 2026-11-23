@@ -1,0 +1,33 @@
+# Code path (glob) -> the design pages that state its rules. Read by tools/docs_for.py.
+# The last matching line wins. `none` = no design page: the path's rules are its
+# requirements, which reqtool traces, so no catalog is listed here. A path with no
+# line fails `docs_for.py --map`: a new driver gets a line when it is added.
+src/adc/** none
+src/adc_v*/** none
+src/dma/** none
+src/exti/** none
+src/gpio_v2/** none
+src/iwdg/** none
+src/sdmmc_v2/** none
+src/spi/** none
+src/spi_v*/** none
+src/syscfg/** none
+src/usb/** none
+src/signature.rs none
+src/lib.rs docs/design/structure.md docs/design/naming.md
+src/device.rs docs/design/ferroforge-seam.md
+src/resource.rs docs/design/ownership.md
+src/reset.rs docs/design/ownership.md
+src/wait.rs docs/design/execution-model.md
+src/time.rs docs/design/clocks.md
+src/rcc/** docs/design/clocks.md
+src/rcc_*/** docs/design/clocks.md
+src/uart/** docs/design/uart-ownership.md
+src/usart_v*/** docs/design/uart-ownership.md
+src/i2c/** docs/design/i2c-interrupt.md
+src/i2c_v*/** docs/design/i2c-interrupt.md
+src/timer/** docs/design/lanes.md
+src/chips/** docs/design/glue-generator.md
+src/errata.rs docs/design/errata.md
+src/chips/*/errata_*.rs docs/design/errata.md
+src/requirements/** none

@@ -38,6 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import adr  # noqa: E402  (decision-record format and tags)
+import docs_for  # noqa: E402  (the code-to-design-page map)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -358,6 +359,9 @@ def main() -> int:
     # in tools/adr.py, beside the search that reads the same tags, so that both
     # take a root and are tested on a temporary tree.
     failures.extend(adr.failures(ROOT))
+
+    # The code-to-page map: every file under src/ has a line, every page exists.
+    failures.extend(docs_for.map_failures(ROOT))
 
     # Design topic documents name the record(s) they distil.
     design_dir = ROOT / "docs/design"
