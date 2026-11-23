@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 97,
-  "agent": 62,
-  "bytes": 563597
+  "documents": 99,
+  "agent": 64,
+  "bytes": 568395
  },
  "documents": [
   {
@@ -71,15 +71,6 @@
    "purpose": "ADR-001 - Status: promoted",
    "bytes": 1913,
    "adr": "ADR-001",
-   "status": "promoted"
-  },
-  {
-   "path": "docs/decisions/2026-11-08-naming-scheme.md",
-   "class": "agent",
-   "title": "ADR-003: Naming scheme (2026-11-08)",
-   "purpose": "ADR-003 - Status: promoted",
-   "bytes": 2602,
-   "adr": "ADR-003",
    "status": "promoted"
   },
   {
@@ -173,6 +164,24 @@
    "status": "promoted"
   },
   {
+   "path": "docs/decisions/2026-11-23-naming-scheme.md",
+   "class": "agent",
+   "title": "ADR-017: Naming scheme (2026-11-23)",
+   "purpose": "ADR-017 - Status: promoted",
+   "bytes": 2890,
+   "adr": "ADR-017",
+   "status": "promoted"
+  },
+  {
+   "path": "docs/decisions/2026-11-23-rig-upgrade-rules.md",
+   "class": "agent",
+   "title": "ADR-020: The rules a rig upgrade must fit (2026-11-23)",
+   "purpose": "ADR-020 - Status: accepted",
+   "bytes": 843,
+   "adr": "ADR-020",
+   "status": "accepted"
+  },
+  {
    "path": "docs/decisions/AGENTS.md",
    "class": "agent",
    "title": "Decision records - agent rules",
@@ -203,6 +212,15 @@
    "status": "superseded"
   },
   {
+   "path": "docs/decisions/archive/2026/2026-11-08-naming-scheme.md",
+   "class": "agent",
+   "title": "ADR-003: Naming scheme (2026-11-08)",
+   "purpose": "ADR-003 - Status: superseded by ADR-017",
+   "bytes": 2627,
+   "adr": "ADR-003",
+   "status": "superseded"
+  },
+  {
    "path": "docs/decisions/archive/2026/2026-11-09-uart-capabilities.md",
    "class": "agent",
    "title": "Decision: UART control and flag capabilities (2026-11-09)",
@@ -225,7 +243,7 @@
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 2482
+   "bytes": 2737
   },
   {
    "path": "docs/design/api-surface.md",
@@ -322,8 +340,8 @@
    "path": "docs/design/naming.md",
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
-   "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 9375
+   "purpose": "Source: ADR-017, ../decisions/2026-11-23-nami",
+   "bytes": 9257
   },
   {
    "path": "docs/design/ownership.md",
@@ -470,14 +488,14 @@
    "class": "agent",
    "title": "Housekeeping state",
    "purpose": "Cadence: monthly, or immediately when more th",
-   "bytes": 3980
+   "bytes": 4870
   },
   {
    "path": "docs/notes/2026-11-08-naming-audit.md",
    "class": "agent",
    "title": "Naming audit (evidence)",
    "purpose": "Audited 2026-11-08/09. Target scheme: ../deci",
-   "bytes": 2458
+   "bytes": 2471
   },
   {
    "path": "docs/notes/2026-11-08-rtic-and-hal-comparison.md",

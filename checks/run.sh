@@ -136,7 +136,7 @@ shared=$(
     step "no-panic calls every public function" python3 -I "$root/tools/check_no_panic_coverage.py"
     step "firmware crates enable rt" python3 -I "$root/tools/check_firmware_features.py"
     step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
-    step "names (ADR-003)" python3 -I "$root/tools/check_names.py"
+    step "names (ADR-017)" python3 -I "$root/tools/check_names.py"
     step "decision label check tests" python3 -I "$root/tools/test_check_decision_labels.py"
     step "decision record check tests" python3 -I "$root/tools/test_adr.py"
     step "no-metapac probes" bash "$root/checks/no-metapac/run.sh"

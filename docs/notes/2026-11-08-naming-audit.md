@@ -1,6 +1,6 @@
 # Naming audit (evidence)
 
-Audited 2026-11-08/09. Target scheme: `../decisions/2026-11-08-naming-scheme.md`. Renames: W14.
+Audited 2026-11-08/09. Target scheme: `../decisions/archive/2026/2026-11-08-naming-scheme.md`. Renames: W14.
 
 ## Catalogs (11 files, two homes)
 

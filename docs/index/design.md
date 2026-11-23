@@ -17,7 +17,7 @@
 | a | docs/design/lanes.md | 8422 B | Source: ADR-014, ../decisions/2026-11-19-time |
 | a | docs/design/layering.md | 1644 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/maturity.md | 3207 B | Source: ADR-009, ../decisions/2026-11-13-matu |
-| a | docs/design/naming.md | 9375 B | Source: ADR-003, ../decisions/2026-11-08-nami |
+| a | docs/design/naming.md | 9257 B | Source: ADR-017, ../decisions/2026-11-23-nami |
 | a | docs/design/ownership.md | 2699 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-ids.md | 1740 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-system.md | 4140 B | Source: ADR-006 archived: ../decisions/archiv |

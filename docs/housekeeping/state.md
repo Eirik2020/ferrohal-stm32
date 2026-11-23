@@ -1,14 +1,25 @@
 # Housekeeping state
 
-- Last review: 2026-11-17
-- Next due: 2026-12-17
-- Documents at last review: 87
+- Last review: 2026-11-23
+- Next due: 2026-12-23
+- Documents at last review: 99
 
 Cadence: monthly, or immediately when more than ten documents have been added since the
 last review. The owner changes the cadence by editing the two dates above.
 
 ## Reviews
 
+- 2026-11-23 - forced by the cap (87 documents at the last review, 99 now). No orphans. The
+  duplicate hints are all kept: the two `CLAUDE.md` files each import their folder's
+  `AGENTS.md`; ADR-017 and the archived ADR-003 are a record and the one it supersedes;
+  the errata tables are one per sheet; the two `resolved/` parts and the two bench
+  procedure files are splits for the size budget. Decisions: 14 active against a cap of
+  20, every one in the record format (`tools/adr.py`); ADR-003 superseded by ADR-017 and
+  archived; ADR-013 and ADR-020 are accepted and not promoted, which is the open question
+  the report raises. Plans and notes: none older than 90 days; the F411/F722/F745 plan
+  is still open. Decision labels: gone from every working document; four dated notes
+  keep theirs as history. The workspace pass does not apply: this repository has no
+  `agent-memory/`.
 - 2026-11-17 - owner-requested sweep after #52 to #55 (+5 documents, none added by
   the pass). README and AGENTS brought level with ADR-011 (one owner, `Service`), ADR-012
   (one folder per IP), the F407VG Discovery bench, `examples/` and rig telemetry; two dead

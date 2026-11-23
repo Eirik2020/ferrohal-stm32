@@ -4,7 +4,7 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| a | docs/notes/2026-11-08-naming-audit.md | 2458 B | Audited 2026-11-08/09. Target scheme: ../deci |
+| a | docs/notes/2026-11-08-naming-audit.md | 2471 B | Audited 2026-11-08/09. Target scheme: ../deci |
 | a | docs/notes/2026-11-08-rtic-and-hal-comparison.md | 3216 B | Code-only, 2026-11-08/09. Sources: rtic-macro |
 | a | docs/notes/2026-11-10-ip-versions.md | 1279 B | From the architecture map's section 11, disso |
 | a | docs/notes/2026-11-10-reference-implementations.md | 1067 B | The architecture map's section 14, dissolved  |
