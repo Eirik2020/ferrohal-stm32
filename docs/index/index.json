@@ -3,7 +3,7 @@
  "counts": {
   "documents": 95,
   "agent": 60,
-  "bytes": 566726
+  "bytes": 565568
  },
  "documents": [
   {
@@ -132,7 +132,7 @@
    "class": "agent",
    "title": "ADR-012: The `src/` layout, clean slate (2026-11-17)",
    "purpose": "ADR-012 - Status: promoted",
-   "bytes": 3570,
+   "bytes": 2881,
    "adr": "ADR-012",
    "status": "promoted"
   },
@@ -159,7 +159,7 @@
    "class": "agent",
    "title": "ADR-014: Timer lanes as the lane port needs them (2026-11-19)",
    "purpose": "ADR-014 - Status: promoted",
-   "bytes": 4817,
+   "bytes": 2880,
    "adr": "ADR-014",
    "status": "promoted"
   },
@@ -286,7 +286,7 @@
    "class": "agent",
    "title": "Timer lanes: frames, the switch and the readers",
    "purpose": "Source: ADR-014, ../decisions/2026-11-19-time",
-   "bytes": 6954
+   "bytes": 8422
   },
   {
    "path": "docs/design/layering.md",

@@ -121,3 +121,27 @@ prototypes' sweep step or past it (theirs in brackets).
 - On the roadmap (`docs/ROADMAP.md`): a reader paced by a compare
   channel of a timer that is not a lane timer; the TIM3 to TIM5 trigger route on the H743
   and H753 (RM0433 table 341, ITR2).
+
+## What changed from the earlier lane API (ADR-014)
+
+The prototypes' build options (`lane-reader-ahead`, `lane-retime-running`,
+`lane-listen-at-end`, `lane-last-interrupts`, `lane-paced-reader`, `lane-shared-reader`)
+are the only behaviour; none is a feature.
+
+- `Awg::listen(rate, count)` became `Awg::prepare_listen(rate, count)` then
+  `Awg::listen()`; `CompareLane::listen(pwm, count, duty)` became
+  `CompareLane::prepare_listen(count)` then `CompareLane::listen(pwm, duty)`.
+- Lanes on one timer and port share one reader: `samples(lane)` is that reader's words.
+- Lane assembly takes no buffers (`assemble`, `assemble_two_way`, `assemble_paced` take
+  the timer only), and its refusal is the wiring alone (`LaneRefused`,
+  `ComplementaryLaneRefused`; `TwoWayLaneRefused` is gone). `CompareLane::arm` and
+  `Awg::load` take a `Frame` (the copying forms and `arm_frame`, `load_frame` are gone);
+  `CompareLane::free` returns the wiring with the lent frame and samples.
+- `read_ahead_*` refuse with their stream (`Refused<Error, S>`); `Awg::free` returns a
+  fifth element, the `ReaderStreams`.
+- A listen with no samples memory lent is refused with `Error::NotLent`.
+- At a frame's end the timers keep running (outputs at duty 0) until the next listen,
+  load or play.
+- A start keeps one compare each for the lane being free, the frame's limits and the
+  memory's DMA reach.
+- Every route die 0x413 states for the TIM5 trigger runs on the Discovery (GLUE-010).
