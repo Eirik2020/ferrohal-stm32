@@ -3,7 +3,7 @@
  "counts": {
   "documents": 100,
   "agent": 65,
-  "bytes": 569364
+  "bytes": 569438
  },
  "documents": [
   {
@@ -185,10 +185,10 @@
    "path": "docs/decisions/2026-11-23-rig-upgrade-rules.md",
    "class": "agent",
    "title": "ADR-020: The rules a rig upgrade must fit (2026-11-23)",
-   "purpose": "ADR-020 - Status: accepted",
-   "bytes": 843,
+   "purpose": "ADR-020 - Status: promoted",
+   "bytes": 917,
    "adr": "ADR-020",
-   "status": "accepted"
+   "status": "promoted"
   },
   {
    "path": "docs/decisions/AGENTS.md",
