@@ -3,7 +3,7 @@
  "counts": {
   "documents": 94,
   "agent": 59,
-  "bytes": 570850
+  "bytes": 571546
  },
  "documents": [
   {
@@ -564,7 +564,7 @@
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 5150
+   "bytes": 5846
   },
   {
    "path": "docs/policies/features.md",

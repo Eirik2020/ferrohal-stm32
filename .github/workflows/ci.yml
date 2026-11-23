@@ -21,6 +21,69 @@ env:
   REQTOOL_REV: fd264172989820eab7a2a933fcaa9c8ce4cc1803
 
 jobs:
+  # A pull request that adds a decision label outside docs/decisions/ fails here
+  # (docs/decisions/AGENTS.md, rule 1). The job keeps one comment on the pull
+  # request, found by its hidden marker line, listing the flagged lines and the
+  # prose that may be a reworded label. The comment is edited, never deleted, so
+  # a label reworded away stays in front of the owner. A fork's token cannot
+  # write comments: there the check still fails, with the lines in the job log.
+  decision-labels:
+    name: Decision labels
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    # One run per PR at a time, so two quick pushes cannot both create a comment.
+    concurrency:
+      group: decision-labels-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      BASE_REF: ${{ github.base_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The tool diffs against the merge base of origin/<base> and HEAD, so
+          # it needs the history back to the branch point.
+          fetch-depth: 0
+
+      - name: Update the decision-label comment
+        # A fork's token cannot write comments; the next step still gates.
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          # This job's own comment: the bot's, opening with the marker. Filtering
+          # by author means a marker pasted by anyone else is never read or edited.
+          id=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]"
+                    and (.body | startswith("<!-- decision-labels -->"))) | .id' | head -n1)
+          : > previous.md
+          if [ -n "$id" ]; then
+            gh api "repos/$REPO/issues/comments/$id" --jq .body > previous.md
+          fi
+
+          status=0
+          python3 -I tools/check_decision_labels.py --diff "origin/$BASE_REF" \
+            --markdown --previous previous.md > body.md || status=$?
+          # 0: nothing flagged now; 1: labels flagged. Anything else is a tool or
+          # git error: fail here rather than post a misleading comment.
+          if [ "$status" -gt 1 ]; then exit "$status"; fi
+
+          # An empty body means nothing was ever flagged on this PR: post nothing.
+          if [ ! -s body.md ]; then exit 0; fi
+          if [ -n "$id" ]; then
+            # Edited in place, also when the check now passes: never deleted.
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@body.md > /dev/null
+          else
+            gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null
+          fi
+
+      - name: Decision labels on added lines
+        # The gate: prints each flagged line and the rule, exits 1 on any.
+        run: python3 -I tools/check_decision_labels.py --diff "origin/$BASE_REF"
+
   glue:
     name: Generated glue
     # The merge gate (ADR-008): pull requests into main, and pushes to main.
