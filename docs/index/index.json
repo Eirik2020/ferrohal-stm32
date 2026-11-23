@@ -3,7 +3,7 @@
  "counts": {
   "documents": 97,
   "agent": 62,
-  "bytes": 568305
+  "bytes": 566850
  },
  "documents": [
   {
@@ -232,7 +232,7 @@
    "class": "agent",
    "title": "Public API surface",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 3236
+   "bytes": 3096
   },
   {
    "path": "docs/design/archive/2026/uart-ferrowasp.md",
@@ -246,28 +246,28 @@
    "class": "agent",
    "title": "Clocks",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 995
+   "bytes": 953
   },
   {
    "path": "docs/design/errata.md",
    "class": "agent",
    "title": "Errata as data",
    "purpose": "Source: ADR-010, ../decisions/2026-11-15-erra",
-   "bytes": 3743
+   "bytes": 3645
   },
   {
    "path": "docs/design/execution-model.md",
    "class": "agent",
    "title": "Execution model: scheduler-agnostic",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 971
+   "bytes": 957
   },
   {
    "path": "docs/design/ferroforge-seam.md",
    "class": "agent",
    "title": "The FerroForge seam: foot-guns and fixes",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2121
+   "bytes": 2093
   },
   {
    "path": "docs/design/free-shapes.md",
@@ -288,7 +288,7 @@
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 10783
+   "bytes": 10615
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -309,63 +309,63 @@
    "class": "agent",
    "title": "Crate layering above FerroHAL",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 1671
+   "bytes": 1644
   },
   {
    "path": "docs/design/maturity.md",
    "class": "agent",
    "title": "Maturity: capability, evidence axes and tiers",
    "purpose": "Source: ADR-009, ../decisions/2026-11-13-matu",
-   "bytes": 3374
+   "bytes": 3290
   },
   {
    "path": "docs/design/naming.md",
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 10107
+   "bytes": 9813
   },
   {
    "path": "docs/design/ownership.md",
    "class": "agent",
    "title": "Ownership and shared registers",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2811
+   "bytes": 2699
   },
   {
    "path": "docs/design/requirements-ids.md",
    "class": "agent",
    "title": "Requirement IDs and what a user maps onto",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 1826
+   "bytes": 1770
   },
   {
    "path": "docs/design/requirements-system.md",
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 4706
+   "bytes": 4580
   },
   {
    "path": "docs/design/requirements-tooling.md",
    "class": "agent",
    "title": "Requirement format and reqtool",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2778
+   "bytes": 2708
   },
   {
    "path": "docs/design/scope.md",
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 3861
+   "bytes": 3777
   },
   {
    "path": "docs/design/structure.md",
    "class": "agent",
    "title": "Crate and module structure",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2299
+   "bytes": 2187
   },
   {
    "path": "docs/design/uart-ownership.md",

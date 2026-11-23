@@ -8,7 +8,7 @@ How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
 
 ## Requirement catalogs
 
-- **[Decided]** One catalog per IP or subsystem, all in `src/requirements/<ip>.yaml`.
+- One catalog per IP or subsystem, all in `src/requirements/<ip>.yaml`.
   A catalog holds a family and its part families: `uart.yaml` holds `UART`, `UARTDMA`,
   `USART-V2` and `USART-V4`; `signature.yaml` holds `UID` and `REVISION`.
   `check_names.py` lists each family's catalog and holds every family to exactly one
@@ -16,25 +16,25 @@ How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
 
 ## Requirement IDs
 
-- **[Decided]** `<FAMILY>-<NNN>`: an upper-case family, three digits, no project prefix
+- `<FAMILY>-<NNN>`: an upper-case family, three digits, no project prefix
   (the crate names the project: [`requirements-ids.md`](requirements-ids.md)).
-- **[Decided]** A requirement only one IP version or chip family has takes the family, a
+- A requirement only one IP version or chip family has takes the family, a
   hyphen and the part: `USART-V2-001`, `SPI-V4-001`, `I2C-V1-001`, `IWDG-V2-001`,
   `RESET-H7-001`, `USB-F4-001` (owner, 2026-11-13). A driver kind is not a part and
   stays one word: `UARTDMA`, `SPIPOLL`.
-- **[Decided]** One family per prefix: `RESOURCE-001`, not `RES-001` beside `RESET-*`;
+- One family per prefix: `RESOURCE-001`, not `RES-001` beside `RESET-*`;
   the USART IP's own requirements are `UART-016` to `UART-020`, not a third UART
   prefix.
 
 ## Features
 
-- **[Decided]** `<ip>_v<N>` where stm32-metapac versions the IP (its number, not a
+- `<ip>_v<N>` where stm32-metapac versions the IP (its number, not a
   chronology), `<ip>_<family>` where FerroHAL needs a family shape, and the RCC by its
   reference manual where one family has several shapes: `rcc_h7_rm0433` covers only the
   H742/743/750/753 (owner, 2026-11-13).
-- **[Decided]** metapac numbers DMA backwards: the F4's stream DMA is `dma_v2`, the H7's
+- metapac numbers DMA backwards: the F4's stream DMA is `dma_v2`, the H7's
   `dma_v1`. The numbers are metapac's, not an order.
-- **[Decided]** A chip feature is metapac's chip name and turns on every IP version the
+- A chip feature is metapac's chip name and turns on every IP version the
   chip carries, through its line's private feature (`_line-stm32f401`); every part of a
   line carries the same versions, so the table names one part per line:
 
@@ -62,7 +62,7 @@ Which IP versions each series carries, as metapac measured them:
 
 ## Modules
 
-- **[Decided]** A neutral module plus a directory per IP version for every new IP:
+- A neutral module plus a directory per IP version for every new IP:
   `uart` with `usart_v2`/`usart_v4`, and so `spi`, `i2c`, `adc`.
   A directory holding only `mod.rs` is that rule, not a leftover: it is where the IP
   version's next file goes.
@@ -72,7 +72,7 @@ Which IP versions each series carries, as metapac measured them:
   [structure.md](structure.md)), so it reaches only the crate's core (`resource`, `wait`,
   `time`, `rcc`, the chip's glue traits) and other IPs' public items, never a
   neighbour's internals. Loose files in `src/` are that core, not IPs.
-- **[Decided]** Deliberate exceptions: one source compiled under two version names, by
+- Deliberate exceptions: one source compiled under two version names, by
   `#[path = "<ip>/mod.rs"]` (`dma/` as `dma_v1`/`dma_v2`, `exti/` as `exti_v1`/`exti_h7`,
   `iwdg/` as `iwdg_v1`/`iwdg_v2`, `timer/` as `timer_v1`/`timer_v3`). Each is two IP
   versions, so each needs a chip per version. A file mounted by `#[path]` owns its
@@ -82,12 +82,12 @@ Which IP versions each series carries, as metapac measured them:
   debt sweep, API review K4) are superseded by this one. Not a driver alias either: the
   F4 clock tree's configuration and solver (`rcc_f4/tree.rs`), mounted by `rcc_f4` and by
   `rcc_f7`, which keeps its own register writes (the F7 plan's Q3, owner, 2026-11-17).
-- **[Decided]** A die with two DMA IPs (the H7: stream DMA, BDMA, MDMA) gives each its own
+- A die with two DMA IPs (the H7: stream DMA, BDMA, MDMA) gives each its own
   folder and neutral name, as metapac does (`dma`, `bdma`), not one name for both.
-- **[Decided]** The RCC's shared code is a neutral module like `uart/`: `rcc/` holds what
+- The RCC's shared code is a neutral module like `uart/`: `rcc/` holds what
   every RCC version shares (`kernel.rs`, `shared.rs`) and re-exports the chip's version
   (`rcc_f4`, `rcc_f7`, `rcc_h7_rm0433`).
-- **[Decided]** Not an exception: a neutral module's engine serving every IP version
+- Not an exception: a neutral module's engine serving every IP version
   through that version's register wrapper (`Unit`, the UART's too since N7)
   (`uart/stream_dma/`, `spi/stream_dma.rs`,
   `spi/polled.rs`, `i2c/mod.rs`, `adc/mod.rs`). That is the neutral-module pattern
@@ -95,23 +95,23 @@ Which IP versions each series carries, as metapac measured them:
 
 ## Vocabulary
 
-- **[Decided]** *channel*: a timer compare output. *lane*: a DMA-fed output. *stream*:
+- *channel*: a timer compare output. *lane*: a DMA-fed output. *stream*:
   a DMA stream. *line*: a UART's wire and its USART's event enables (`mask`, `unmask`). *handle*: an ownerless view of a
   running driver that another context, an interrupt handler above all, holds and copies
   freely, because everything it does is a single read or a write no one else races:
   `ExtiHandle`, `TimebaseHandle` (from `Timebase::handle`), `Watchdog::handle` (owner,
   2026-11-17, API review N5). The DMA's `FlagHandle` follows it. The UART has no handle
   since its single-owner redesign (ADR-011).
-- **[Decided]** Constructors are `new`; `Watchdog::start` is the deliberate exception,
+- Constructors are `new`; `Watchdog::start` is the deliberate exception,
   because an independent watchdog cannot be stopped once started and the name says so.
   Its token is `chip::IWDG` on every chip (the H7's IWDG1) (owner, 2026-11-17, N17).
-- **[Decided]** `set_*` changes a setting in place; `into_*` consumes and converts.
+- `set_*` changes a setting in place; `into_*` consumes and converts.
   Units ride in the name: `*_us`, `*_hz`.
 - **[Decided]** One quantity, one word (owner, 2026-11-17, API review N3): *frequency*
   is a clock's (the I2C bus's SCL, SPI's SCK, the SDMMC card clock, a timebase's count);
   *rate* is events a second (a PWM's periods, a tick, a sampler's samples); *baudrate*
   stays the UART's, as a `Hertz`; *speed* is GPIO slew only.
-- **[Decided]** A refusal's alias is `<What>Refused`, named after what refuses, not
+- A refusal's alias is `<What>Refused`, named after what refuses, not
   after the method (owner, 2026-11-17, API review N1): `SpiRefused`, `I2cRefused`,
   `LaneRefused`, `SamplerRefused`, `ScanRefused`. Names stay put when a method is
   renamed. The UART's are `UartRefused` and `UartRxRefused` (ADR-011).
@@ -122,30 +122,30 @@ Which IP versions each series carries, as metapac measured them:
   (`SpiTxDma` and `SpiRxDma` beside the UART's `TxDma`, `AdcPin` beside `gpio::Pin`).
   The UART's parts trait is `uart::Parts` (ADR-011).
 
-- **[Decided]** A clock tree's host tests sit in the chip file whose limits they need
+- A clock tree's host tests sit in the chip file whose limits they need
   (`src/chips/<family>/<line>.rs`), and are named by the tree they pin, not by a board:
   `solve_gives_168_mhz_and_usb_from_an_8_mhz_crystal`. A comment may say which bench
   board freezes that tree (API review S5, 2026-11-17).
 
 ## Benches and scripts
 
-- **[Decided]** `hil/run-<bench>.sh` runs a bench: `run-f401`, `run-h753`, `run-foxeer`,
+- `hil/run-<bench>.sh` runs a bench: `run-f401`, `run-h753`, `run-foxeer`,
   `run-lucid`. Helpers that are not benches take their own names: `flash-dfu.sh`,
   `pico-i2c-sim.sh` (owner, 2026-11-13).
-- **[Decided]** A bench binary is named by its test, `src/bin/usb_cdc.rs` building
+- A bench binary is named by its test, `src/bin/usb_cdc.rs` building
   `usb-cdc`, the same name on every bench that runs the test (owner, 2026-11-17, API
   review B1). The run letters stay as each bench's aliases, upper case in prose (run M)
   and lower case on the command line (`hil/run-h753.sh m`); `hil/<crate>/runs.tsv` maps
   them, and the run scripts and `tools/` read it. A letter still means a different test
   on each bench; the binary's name says which.
-- **[Decided]** A bench generates its runs only where several runs differ only in data:
+- A bench generates its runs only where several runs differ only in data:
   the H753's runs A to D (`tools/gen_h753_runs.py`), which open different UARTs at
   different rates on one template. Every other run, on every bench, is written by hand,
   because it tests something of its own (owner, 2026-11-17, API review B2).
 
 ## Documents
 
-- **[Decided]** Registries in capitals (`DEBT`, `README`, `WIRING`, `AGENTS`);
+- Registries in capitals (`DEBT`, `README`, `WIRING`, `AGENTS`);
   everything else kebab-case, with dated names where
   `docs/policies/documentation.md` asks for them. The resolved-debt registry is a
   folder, `docs/resolved/`, whose hub is its `README.md` and whose parts, split for the
