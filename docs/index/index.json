@@ -3,7 +3,7 @@
  "counts": {
   "documents": 95,
   "agent": 60,
-  "bytes": 569961
+  "bytes": 567806
  },
  "documents": [
   {
@@ -67,18 +67,18 @@
   {
    "path": "docs/decisions/2026-11-08-free-teardown-brief.md",
    "class": "agent",
-   "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
-   "purpose": "ADR-002 - Status: accepted",
-   "bytes": 2750,
+   "title": "ADR-002: Ownership and `free()` (2026-11-08)",
+   "purpose": "ADR-002 - Status: promoted",
+   "bytes": 1278,
    "adr": "ADR-002",
-   "status": "accepted"
+   "status": "promoted"
   },
   {
    "path": "docs/decisions/2026-11-08-g5-safe-by-default.md",
    "class": "agent",
    "title": "ADR-001: G5, safe by default (2026-11-08)",
    "purpose": "ADR-001 - Status: promoted",
-   "bytes": 2606,
+   "bytes": 1913,
    "adr": "ADR-001",
    "status": "promoted"
   },
@@ -216,7 +216,7 @@
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 2146
+   "bytes": 2156
   },
   {
    "path": "docs/design/api-surface.md",
