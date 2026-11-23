@@ -14,7 +14,7 @@ goals. The `usb` feature already broke the letter of G2.
 
 ## Decision
 
-Owner, 2026-11-13, in their words: "FerroHAL should have features that enable adapters
+The owner's words: "FerroHAL should have features that enable adapters
 that allow you to use the different time crates, like rtic-time, embassy-time.
 Internally, it shall not use them to stay time agnostic. Same way with no-panic.
 FerroHAL guarantees no-panic, except explicitly listed with a feature gate, but it
@@ -28,6 +28,10 @@ ecosystem."
    listed as an exception in `docs/policies/features.md`.
 3. Allowing is not building: the owner said the adapters are not to be implemented now.
    Those not built are on the roadmap (`docs/CHIPS.md`).
+
+## Rejected
+
+No alternative was recorded.
 
 ## Consequences
 

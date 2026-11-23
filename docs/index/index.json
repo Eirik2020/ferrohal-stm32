@@ -3,7 +3,7 @@
  "counts": {
   "documents": 95,
   "agent": 60,
-  "bytes": 569442
+  "bytes": 569449
  },
  "documents": [
   {
@@ -105,7 +105,7 @@
    "class": "agent",
    "title": "ADR-007: Time and panic adapters behind features (2026-11-13)",
    "purpose": "ADR-007 - Status: promoted",
-   "bytes": 1805,
+   "bytes": 1832,
    "adr": "ADR-007",
    "status": "promoted"
   },
@@ -123,7 +123,7 @@
    "class": "agent",
    "title": "ADR-009: Maturity by evidence tier, per IP, die and series (2026-11-13)",
    "purpose": "ADR-009 - Status: promoted",
-   "bytes": 2112,
+   "bytes": 2092,
    "adr": "ADR-009",
    "status": "promoted"
   },
