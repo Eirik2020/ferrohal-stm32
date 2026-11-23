@@ -19,8 +19,12 @@ second document is linked from the first.
 Dates: documents under docs/ must be named YYYY-MM-DD-topic.md.
 
 Root: a committed markdown file at the repository root must be README.md,
-AGENTS.md or THIRD-PARTY.md; any other root .md is temporary, stays uncommitted,
-and is neither budgeted nor indexed.
+AGENTS.md, CLAUDE.md or THIRD-PARTY.md; any other root .md is temporary, stays
+uncommitted, and is neither budgeted nor indexed.
+
+Agent entry files: an AGENTS.md or CLAUDE.md in any folder is read by the agent
+tool on entry, not reached by a link. It takes the always-loaded budget, and is
+neither a dated document, a decision record nor an orphan.
 """
 
 from __future__ import annotations
@@ -39,6 +43,11 @@ ALWAYS_LOADED: dict[str, int] = {
     "AGENTS.md": 20_000,
 }
 DEFAULT_BYTES = 40_000
+
+# Agent entry files, in any folder: the agent tool loads them by name. CLAUDE.md
+# exists because Claude Code loads an attached repository's or a subfolder's
+# AGENTS.md only through it; it holds `@AGENTS.md` and nothing else.
+AGENT_ENTRY_NAMES = {"AGENTS.md", "CLAUDE.md"}
 
 # Agent-facing documents (docs/policies/agent-docs.md style); the rest are human.
 # A class of writing, not a budget: both classes share the byte limits above.
@@ -63,7 +72,7 @@ LINK = re.compile(r"\]\(([^)\s#]+\.md)(?:#[^)]*)?\)")
 # The only markdown a commit may hold at the repository root (owner, 2026-11-13).
 # Any other root `.md` is temporary - a review record, a draft - and stays
 # uncommitted: no budget, no index.
-ROOT_FILES = {"README.md", "AGENTS.md", "THIRD-PARTY.md"}
+ROOT_FILES = {"README.md", "AGENTS.md", "CLAUDE.md", "THIRD-PARTY.md"}
 
 # Never part of a commit decision: evidence and build output.
 EXEMPT = (
@@ -119,7 +128,14 @@ def root_files() -> list[str]:
     return sorted(name for name in committed - ROOT_FILES if (ROOT / name).exists())
 
 
+def agent_entry(relative: str) -> bool:
+    """An AGENTS.md or CLAUDE.md, at the root or in a folder."""
+    return relative.rsplit("/", 1)[-1] in AGENT_ENTRY_NAMES
+
+
 def budget_for(relative: str) -> int:
+    if agent_entry(relative):
+        return ALWAYS_LOADED["AGENTS.md"]
     return ALWAYS_LOADED.get(relative, DEFAULT_BYTES)
 
 
@@ -160,6 +176,7 @@ def orphans(docs: list[Path]) -> list[str]:
         for path in docs
         if not inbound[path.resolve()]
         and path.relative_to(ROOT).as_posix() not in ENTRY
+        and not agent_entry(path.relative_to(ROOT).as_posix())
         and not path.relative_to(ROOT).as_posix().startswith(HUBS)
     ]
 
@@ -186,6 +203,7 @@ def main() -> int:
             relative.startswith(("docs/decisions/", "docs/notes/", "docs/plans/"))
             and not relative.startswith("docs/decisions/index/")
             and relative != "docs/decisions/README.md"
+            and not agent_entry(relative)
         ):
             stem = relative.rsplit("/", 1)[1]
             if not DATE_NAME.match(stem):
@@ -238,7 +256,9 @@ def main() -> int:
     # Decision-record lifecycle: ids, status lines, promotion targets, archive.
     decisions_dir = ROOT / "docs/decisions"
     records = sorted(
-        path for path in decisions_dir.glob("*.md") if path.name != "README.md"
+        path
+        for path in decisions_dir.glob("*.md")
+        if path.name != "README.md" and path.name not in AGENT_ENTRY_NAMES
     )
     archived = sorted((decisions_dir / "archive").glob("*/*.md"))
     status = re.compile(

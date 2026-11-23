@@ -8,7 +8,7 @@ through line by line, and the wrapper exits with the script's own status. It
 only watches: each line is timestamped as it arrives, and after each
 `run <x>: exit ...` line the run's log (hil/logs/<bench>-run-<x>.log) is read
 for cargo's build time and probe-rs's flash time. Because the run scripts are
-untouched, wrapping a run owes no bench a rerun (tools/stale_runs.py).
+untouched, wrapping a run owes no bench a rerun.
 
 One JSON line per run, and one per session (the whole script), is appended to
 hil/logs/telemetry/runs.jsonl (ignored; RIG_TELEMETRY overrides the path):

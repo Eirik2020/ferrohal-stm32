@@ -56,6 +56,11 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
   `requirements/`); the debt registries are `docs/DEBT.md` and `docs/resolved/*.md`.
 - `tools/check_docs.py` fails a committed root `.md` outside that list, and treats an
   uncommitted root `.md` as temporary: no budget, no index.
+- Agent entry files are the exception: `CLAUDE.md` at the root, and an `AGENTS.md` with a
+  `CLAUDE.md` beside it in a folder whose rules bind work in that folder. A `CLAUDE.md`
+  holds `@AGENTS.md` and nothing else; it is there because Claude Code loads an attached
+  repository's or a subfolder's `AGENTS.md` only through it. Entry files take the
+  always-loaded budget and need no inbound link.
 
 ## Limits
 

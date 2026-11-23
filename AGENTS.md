@@ -41,7 +41,6 @@ python3 -I tools/check_docs.py   # byte budgets, orphans, decisions, housekeepin
 python3 -I tools/docs_index.py   # regenerate docs/index/
 python3 -I tools/docs_read.py <path> [section]  # one section, 400-token cap
 python3 -I tools/housekeeping.py # the review report
-python3 -I tools/stale_runs.py   # the bench runs a change owes (--shell: the commands)
 hil/run-f401.sh [runs]           # Nucleo-F401RE
 hil/run-h753.sh [runs]           # Nucleo-H753ZI
 hil/run-discovery.sh [runs]      # STM32F4 Discovery
@@ -82,11 +81,12 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 - G5: no `unsafe fn` public; only `Peripherals::steal` behind `rtic`. Registers -> take metapac.
 - No unsafe wrappers around register writes; token-owning module only; PAC imports confined.
 - One `shall` per requirement; module trailer names its IDs.
+- Decisions: when the owner states a decision, record it as an ADR (`docs/decisions/AGENTS.md`) in the same change, even inside a code task. Code, comments and docs state the rule, never who decided it or when.
 - `DEBT.md`/`resolved/` = pointer indexes, no prose.
 - Nothing documented only in commit/PR/chat.
 - Docs: human vs agent classes; 20000 B always-loaded, 40000 B otherwise (`docs/policies/documentation.md`); split, never compress; a split is linked, never orphaned.
 - Housekeeping forced: `state.md` due date or +10 docs -> `tools/housekeeping.py`, record pass.
-- Root: README, AGENTS, THIRD-PARTY, licences, manifests, and uncommitted temporary `.md` only; docs live in `docs/`.
+- Root: README, AGENTS, CLAUDE, THIRD-PARTY, licences, manifests, and uncommitted temporary `.md` only; docs live in `docs/`.
 - Don't touch `flash-backups/`, `requirements/evidence/`.
 - `review/` (owner's reviews + drafts, uncommitted): read only; no write of any kind without the owner's explicit permission.
 - Workspace habits: `../agent-memory/MEMORY.md`.
@@ -100,8 +100,7 @@ recorded origins; limits and roadmap to `docs/CHIPS.md`, coverage to `hil/COVERA
 requirement names a method since #48 (USB-F4-001 and F4 RESET-004 on the Discovery); rig
 upgrades held by the owner are in `hil/RIG-IMPROVEMENTS.md`. 2026-11-17: one owner per UART
 and the `Service` trait (#52, ADR-011), one folder per IP (#53, ADR-012), user examples
-(#54), rig telemetry (#55). Their shared-file changes owe the F4/H7 bench rerun
-(`tools/stale_runs.py`); DEBT §2's ADR-011 rows leave when it passes.
+(#54), rig telemetry (#55).
 
 ## Style
 
