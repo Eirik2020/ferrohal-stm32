@@ -16,5 +16,4 @@ versions referred to below are 2.1.0, 2.2.1 and 3.0.0 *(measured)*.
 | 6 | Task crates keyed on chips | HAL-specific task crates are keyed on IP-version features and checked against one representative chip per IP version | Decided |
 
 - Branch FerroForge and bump it to rtic 2.4.0 and rtic-monotonics 3.0.0. rtic-monotonics 3 is a breaking release: FerroForge's `[timer-monotonic] chip-feature` mechanism must change, interrupt-based monotonics take their priority in `start()`, and fugit moves to 0.6, which affects every task crate that reads time.
-- **[Proposal]** FerroForge chooses between the old HAL and FerroHAL through backend data, for example a second backend entry per chip.
 - RTIC itself is not modified.

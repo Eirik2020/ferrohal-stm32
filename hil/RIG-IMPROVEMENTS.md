@@ -14,17 +14,16 @@ closer, not evidence.
 
 ## The rules an upgrade must fit
 
-- **One permanent, hands-free set-up** (owner, 2026-11-14). A procedure that needs a
+- **One permanent, hands-free set-up**. A procedure that needs a
   jumper moved, a cable swapped or a button pressed by hand is not an answer; a switch
   the rig drives itself is.
-- **No soldering for now, allowed later** (owner, 2026-11-14), headers included. The
+- **No soldering for now, allowed later**, headers included. The
   suggestions that need it say so.
 - **The car rule** (`docs/design/requirements-system.md`): one chip proves an IP version
   for every chip that carries it, one chip a family's glue. A second board of a die
   already on the rig adds nothing unless it reaches something the first cannot.
-- **FerroHAL's rig only.** FerroWasp's hardware needs are not folded in (owner,
-  2026-11-14; the toaster rule, `docs/design/scope.md`).
-- **On order** (owner, 2026-11-14, arrival not known): an Adafruit 4682 microSD
+- **FerroHAL's rig only.** FerroWasp's hardware needs are not folded in (the toaster rule, `docs/design/scope.md`).
+- **On order** (arrival not known): an Adafruit 4682 microSD
   breakout, two CAN transceivers, an SPI NOR flash breakout and an external DAC.
 
 ## What the rig cannot reach today
@@ -139,7 +138,7 @@ because they cost nothing and keep the shopping list honest.
     switch on the card's supply and one on a data line, can pull the card mid-transfer
     and force a CRC failure, the two error paths DEBT §4 names. Its on-resistance and
     capacitance have to suit SDMMC's clock; check before choosing a part.
-  - Measured (owner, 2026-11-14): the breakout must carry CMD and DAT0 to DAT3 both
+  - Measured: the breakout must carry CMD and DAT0 to DAT3 both
     ways; an SPI-only one with a one-way level shifter does not fit.
 - **C2. Morpho headers on the Nucleo-H753ZI, and SB7.** Needs soldering (later). Unblocks
   DEBT §4's Zio-only item: UART8 TX, PA8, PA9, PB14, PG9 and the 22 TX/RX entries now
@@ -152,8 +151,7 @@ because they cost nothing and keep the shopping list honest.
   the bridges take the VCP away, so the echo would need a USB-serial adapter of its own.
 - **C4. A crystal on a Nucleo.** Needs soldering (the crystal, its capacitors, and the
   solder bridges that today feed the MCO in). Unblocks DEBT §4's HSE crystal item for
-  that family. Measured: the Discovery cannot isolate crystal mode without rework (R68
-  and R25, owner 2026-11-14), and the flight boards' crystals are proven only at `FLSH`
+  that family. Measured: the Discovery cannot isolate crystal mode without rework (R68 and R25), and the flight boards' crystals are proven only at `FLSH`
   (COVERAGE). D2 is the route without a soldering iron.
 - **C5. SWD on the flight boards.** Wires to the Foxeer's and the Lucid's SWD pads, to a
   spare probe. Needs soldering. Unblocks DEBT §3 (a Foxeer image that fails before USB),

@@ -119,8 +119,7 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   and `stm32f407vg` was added with no hand routing at all. `docs/CHIPS.md`'s silicon and
   instance tables are generated. What stays open: the merge gate (step 6).
 
-- **A port splits into its bonded pins only** (2026-11-14, owner chose the generated
-  shape). `Port::split` handed out all sixteen pins of any port the package bonds at
+- **A port splits into its bonded pins only** (2026-11-14). `Port::split` handed out all sixteen pins of any port the package bonds at
   all (`af65cad`; W7, `8c7c909`, removed phantom ports, not pins), so an unbonded pin
   (PB11 on the F401RE, PD3 to PD15 on the F405RG) could be named and driven to no
   effect. The generated glue now emits one parts type per bonded port, with a field per
@@ -137,10 +136,9 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   handles and the timer lanes are generic over their wiring, and `free()` returns it
   (free.md rule 0); the four lane-assembly bodies are one. GPIO ports and DMA
   controllers keep crate-internal register supertraits: they are infrastructure a
-  driver borrows, not drivers a user opens. Breaking for FerroWasp (owner: allowed,
-  the FerroHAL bump already breaks it). Hardware runs pending with PR #44's.
+  driver borrows, not drivers a user opens. Breaking for FerroWasp (the FerroHAL bump already breaks it). Hardware runs pending with PR #44's.
 
-- **The finished plans are deleted** (2026-11-13, owner). The debt sweep and its gates
+- **The finished plans are deleted** (2026-11-13). The debt sweep and its gates
   (PR #29), the `free()` redesign (PRs #35 to #38), W14 (PR #39) and the documentation
   sweep (PR #30): their facts already lived in the design documents, the decision
   records, the code and this file; the one left, the CI rerun for a gitleaks CDN 504,
@@ -163,7 +161,7 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   no-panic proof" (`9bd9d1e`, 2026-11-02) is that list's first entry, `usb`; a panic-free
   USB core is on the roadmap (`docs/CHIPS.md`).
 
-- **DEBT holds debt only: tagged, each with its recorded origin** (2026-11-13, owner).
+- **DEBT holds debt only: tagged, each with its recorded origin** (2026-11-13).
   Of DEBT's 80 limitation items, 29 stay as debt (as 27 entries) and 51 leave it. Moved:
   silicon limits and documented contracts (UART v2 errata, wait floors, ring and
   vector contracts, H7 clock and memory limits) to `docs/CHIPS.md` Limits; features not

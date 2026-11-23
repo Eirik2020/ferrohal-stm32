@@ -10,7 +10,7 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 
 ## The rules, and what meets them
 
-0. **[Decided 2026-11-13, owner]** `free()` is the inverse of the constructor: it hands
+0. `free()` is the inverse of the constructor: it hands
    back exactly what `new` took, as a refusal already does. A UART opened with its pins
    and DMA streams frees to its token, both pins and both typed stream tokens; a handle
    keeps those parts typed so they come back typed. **Met by every driver:** `Adc` (its
@@ -19,9 +19,9 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
    receive wiring and ring), `Spi` (its wiring and buffers), `BlockingSpi` and `I2c`
    (their wiring), `PwmChannel` (its pin), `CompareLane` (its wiring and buffers),
    `Sampler` (its timer, stream and buffer), `Awg` (its `Pwm`s and lanes), timers. A
-   handle is generic over its whole wiring (`Uart<W>`, owner 2026-11-13), so a board
+   handle is generic over its whole wiring (`Uart<W>`), so a board
    names its route once, as a type alias.
-   **[Decided 2026-11-15, owner]** A handle that owns DMA buffers (`Uart`,
+   A handle that owns DMA buffers (`Uart`,
    `Spi`, `CompareLane`, `Sampler`, `AdcScan`) refuses to free while one of its
    streams does not stop: `free` returns `Result<parts, Refused<StopTimeout, Self>>`,
    so the buffers never leave under a running stream, and the handle comes back to try

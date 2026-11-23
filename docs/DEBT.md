@@ -2,8 +2,7 @@
 
 Debt is work FerroHAL owes on what it already ships: a flaw, an inconsistency, shipped
 code with no hardware proof, or a missing check. Finished items move to
-[resolved/](resolved/README.md). Three things are not debt and live elsewhere (owner,
-2026-11-13):
+[resolved/](resolved/README.md). Three things are not debt and live elsewhere:
 
 - **A feature not built** is the roadmap: [CHIPS.md](CHIPS.md#not-supported-yet).
 - **A listed feature exception** (a feature that can panic, G2) is policy:
@@ -26,7 +25,7 @@ item says so; an origin is never reconstructed after the fact.
 | `code` | library source (`src/`); the changed files' evidence goes stale, so their benches rerun |
 | `api` | a public API change |
 | `bench` | bench firmware or scripts (`hil/`) |
-| `rig` | the physical rig: a board, a wire, a solder bridge, an instrument (upgrades held by the owner, 2026-11-13) |
+| `rig` | the physical rig: a board, a wire, a solder bridge, an instrument (upgrades held by the owner) |
 | `tool` | a checker or tool (`tools/`, `checks/`) |
 | `docs` | documentation only |
 | `errata` | follows from a vendor erratum |
@@ -116,8 +115,7 @@ each leaves for [resolved/](resolved/README.md) when the F401 and H753 benches r
   PB13 needs SB7. Their rows are glue-checked only. *Spawned:* `55025e8` 2026-10-31,
   the bench wired on Zio.
 - `rig` **Low: SDMMC's error paths have no bench.** A CRC failure and a card pulled
-  mid-transfer are untested. SDMMC-003/004 stand on the Lucid's `FLSH` runs (owner,
-  2026-11-16); a Nucleo with a slot would make them `HIL` (queue 2). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
+  mid-transfer are untested. SDMMC-003/004 stand on the Lucid's `FLSH` runs; a Nucleo with a slot would make them `HIL` (queue 2). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
 - `rig` **Low: HSE crystal mode is untested on both Nucleos.** Both run HSE bypass from
   the ST-LINK's MCO. *Spawned:* `af65cad`, the benches clock from the ST-LINK.
 - `rig` **Low: F401 USART2 runs through the ST-LINK,** so its break, baud and parity
@@ -128,7 +126,7 @@ each leaves for [resolved/](resolved/README.md) when the F401 and H753 benches r
   Nucleo-F401RE has no USB device, so its clocks rest on `freeze`'s record, baud rates
   and the host echo. Measuring showed the H753's HSE input, the ST-LINK-V3's MCO, 0.4 %
   below 8 MHz, and 0.6 % on 2026-11-19, so its check allows 1 % (`hil/RIG.md`).
-  *Spawned:* `af65cad`; narrowed 2026-11-15; widened 2026-11-19 (owner).
+  *Spawned:* `af65cad`; narrowed 2026-11-15; widened 2026-11-19.
 - `rig` **Lowest: the rig cannot vary what several ES0392 rules depend on:** the HCLK/8
   SysTick path, WWDG, option bytes, flash ECC, another silicon revision. Every F4 here
   is past revision A, so ES0182 2.2.2's mapping (`resolved/`) stands on host tests

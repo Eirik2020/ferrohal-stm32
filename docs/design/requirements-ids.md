@@ -15,5 +15,4 @@ is [requirements-system.md](requirements-system.md).
 
 - FerroHAL presents its requirements and supplies its verification evidence. A project using it maps its own requirements onto them, and a mapped requirement inherits the evidence. For example, a FerroWasp requirement that UART shall be capable of bidirectional communication using DMA maps to `ferrohal-stm32:UART-001`, that the API shall support bidirectional communication using DMA.
 - The mapping lives in the project using FerroHAL. FerroHAL knows nothing of it, as the toaster rule requires.
-- **[Proposal]** A mapping records the FerroHAL version and the hash of the requirement's text, so a changed requirement flags the mapping.
-- **[Proposal]** A mapped requirement inherits only the evidence for what its image compiles in: the IP versions and the chip's glue.
+- A mapping names the crate and the ID (`ferrohal-stm32:UART-012`). Its status is what the revision of FerroHAL the project builds gives, from that revision's own requirements and evidence; moving the pin flags the files that import the crate.

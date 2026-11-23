@@ -4,7 +4,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
 
 ## Crate-wide
 
-- **API review B1: bench binaries are named by test** (2026-11-17; owner's pick A). A
+- **API review B1: bench binaries are named by test** (2026-11-17). A
   run letter meant a different test on each bench (only S and W matched). Every run file
   on the F401, the H753 and the Discovery is renamed after its test, the same name where
   two benches run the same test (`watchdog`, `refusals`, `i2c-pico`, `usb-cdc`, ...).
@@ -13,13 +13,13 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   read it, so the procedures' commands are unchanged. `design/naming.md` records the
   rule. Spawned by `55025e8`.
 
-- **API review B2: closed with a rule** (2026-11-17; owner's choice). The H753's runs A
+- **API review B2: closed with a rule** (2026-11-17). The H753's runs A
   to D are generated and the F401's written by hand, because the H753's four differ only
   in data while the F401's A to D test different things (each UART, a cross-wired pair,
   the other stream, a receive-only run). `design/naming.md` records when a bench
   generates its runs.
 
-- **API review S2: closed by design** (2026-11-17; owner: keep the directory rule). The
+- **API review S2: closed by design** (2026-11-17). The
   twelve directories holding a lone `mod.rs` are `design/naming.md`'s directory per IP
   version, and the timer's submodules by `#[path]` follow from `timer.rs` being one
   source compiled as two IP versions. `naming.md` now says both. Reversed the same day by
@@ -100,7 +100,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   two RCC modules written separately.
 
 - **API review N5 and N17: "handle" has one meaning; the watchdog's names**
-  (2026-11-17; owner's pick A). `design/naming.md` defines a handle as an ownerless,
+  (2026-11-17). `design/naming.md` defines a handle as an ownerless,
   freely copied view a second context holds. `TimebaseReader` is `TimebaseHandle`, made
   by `Timebase::handle`; `ExtiHandle` and `Watchdog::handle` already fit. N17:
   `Watchdog::start` stays and is recorded as deliberate (an IWDG cannot be stopped);
@@ -108,8 +108,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   The DMA's `FlagHandle` and the UART's `UartIrq` follow with the UART's single-owner
   redesign. Spawned by `b55c640`, `1e1bbdf`.
 
-- **API review N2: no module prefix, with recorded exceptions** (2026-11-17; owner's
-  pick A). `spi::SpiParts`, `i2c::I2cParts`, `adc::AdcWiring`, `adc::AdcDma` and
+- **API review N2: no module prefix, with recorded exceptions** (2026-11-17). `spi::SpiParts`, `i2c::I2cParts`, `adc::AdcWiring`, `adc::AdcDma` and
   `reset::ResetCause` are `spi::Parts`, `i2c::Parts`, `adc::Wiring`, `adc::Dma` and
   `reset::Cause`. `design/naming.md` records the rule and its exceptions: the main
   driver types and their refusals, and the routing traits a glue file imports beside a
@@ -117,7 +116,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   `UartTx`, `UartInterrupts`) and `SpiInterrupts` (D13) move with the single-owner
   redesign. Spawned by `af65cad` onward.
 
-- **API review N1: refusal aliases are `<What>Refused`** (2026-11-17; owner's pick A).
+- **API review N1: refusal aliases are `<What>Refused`** (2026-11-17).
   Four patterns (`<Type>Refused`, `<Type>NewRefused`, `<Type>Refusal`, a `Result`
   alias) become one: `LaneRefusal`, `ComplementaryLaneRefusal`, `SdmmcNewRefused`,
   `UsbNewRefused` and `SamplerNewRefused` are `LaneRefused`, `ComplementaryLaneRefused`,
@@ -126,7 +125,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   `I2cRefused`, so their constructors lose `#[allow(clippy::type_complexity)]`. The
   UART's alias comes with its single-owner redesign. Spawned by `c6c5d23`, `ee05895`.
 
-- **API review N3: one quantity, one word** (2026-11-17; owner's pick A). I2C said
+- **API review N3: one quantity, one word** (2026-11-17). I2C said
   speed, SPI and SDMMC frequency, the PWM `new(rate)` but `set_frequency`, and the UART
   a bare `u32` baudrate. Now, as `design/naming.md` records: I2C's `Config.speed`,
   `Timing::speed` and `ConfigError::Speed` are `frequency`, `frequency()` and
@@ -134,13 +133,12 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   `uart::Config.baudrate` is a `Hertz`. "Speed" is left to GPIO slew. Spawned by
   `ea7a9f8`, `99e6404`, `cdfe190`.
 
-- **API review N4: the erased DMA stream is `dma::AnyStream`** (2026-11-17; owner's pick
-  A). `dma::Channel` was an erased stream in a module where "channel" also meant the
+- **API review N4: the erased DMA stream is `dma::AnyStream`** (2026-11-17). `dma::Channel` was an erased stream in a module where "channel" also meant the
   F4's CHSEL request, and the timers' compare channels beside it. It is
   `dma::AnyStream`; `StreamInstance::into_channel` is `into_any` and the crate's
   `claim_channel` is `claim`. Spawned by `14f7492`.
 
-- **A Foxeer run that stops before USB says why** (2026-11-17; owner's go-ahead). It
+- **A Foxeer run that stops before USB says why** (2026-11-17). It
   restarted into DFU silently: the board has no probe. Before every stop - a step it
   cannot go on from (the source line), a panic (its line), a hard fault, a watchdog
   reset, no host within 30 s - `usb_bench` now writes a four-word stop record to the top
@@ -153,8 +151,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   record, the image is flashed over the ROM DFU, and `STOPREC?` must answer with it. The
   Lucid keeps no record yet (`STOP_RECORD` = `None`). Spawned by `926b210` (2026-11-02).
 
-- **A compare lane refuses the duty step the timer misses** (2026-11-17; owner: measure
-  first). ES0392 2.16.2, ES0299 2.6.3 and ES0182 2.7.3 name a compare match at
+- **A compare lane refuses the duty step the timer misses** (2026-11-17). ES0392 2.16.2, ES0299 2.6.3 and ES0182 2.7.3 name a compare match at
   CNT = CCR = 0 after one at CNT = CCR = ARR. Measured on the H753 (run J, TIM3 at
   DShot600, 200 MHz counter, period 333): after a step to 0 the next duty started one
   period late for every duty from the top down to 8 counts below it, and kept time from
@@ -167,8 +164,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   refusal is the shared lane code, so `timer_v1` refuses the same. Spawned by the ES0392
   row review (2026-11-17).
 
-- **The H7 USB port sends zero-length packets by ES0392 2.25.7** (2026-11-17; owner,
-  pin a fork). `synopsys-usb-otg` 0.4.0 set CNAK and EPENA together for an empty IN
+- **The H7 USB port sends zero-length packets by ES0392 2.25.7** (2026-11-17). `synopsys-usb-otg` 0.4.0 set CNAK and EPENA together for an empty IN
   packet, which on the H7's core can put a wrong packet on the bus. FerroHAL now takes
   0.4.0 from a fork pinned by exact revision (`Eirik2020/synopsys-usb-otg`, branch
   `ferrohal-es0392-2.25.7`, `902ebe9`, one commit on upstream's v0.4.0): with the `hs`
@@ -183,7 +179,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   `Pwm::stop` stop a counter, not a transfer, and stay). Interrupt enables are
   `mask`/`unmask`: `Exti::listen`/`unlisten` are `unmask`/`mask`, so `listen` means
   capture only (`CompareLane`, `Awg`). N16's UART half (`Line::mask`) moves with the
-  UART single-owner redesign (owner, 2026-11-17). The rename showed that
+  UART single-owner redesign. The rename showed that
   `dma::fault::release` had counted as called only through `Exti::release`'s name; it
   is listed in `checks/no-panic/uncalled.txt` beside `stick`. Spawned by `b55c640`,
   `ea7a9f8`, `1ca19a9`.
@@ -298,15 +294,13 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   it as the single exception, sound because the jump is one-way and runs before any
   owner exists. Spawned by `036a7d2`.
 
-- **EXTI takes only SYSCFG's EXTICR part** (2026-11-17; owner's option A,
-  2026-11-16). The new `syscfg` module's `SYSCFG::split(&mut Rcc)` turns on SYSCFG's
+- **EXTI takes only SYSCFG's EXTICR part** (2026-11-17). The new `syscfg` module's `SYSCFG::split(&mut Rcc)` turns on SYSCFG's
   clock and returns `Parts { exticr }`; `EXTI::split(exticr)` takes that part alone and
   no longer needs `&mut Rcc`. The F4's memory remap and the H7's I/O compensation cell
   get parts of their own when a driver needs them. Spawned by `b55c640`, EXTI written
   as SYSCFG's only user.
 
-- **An I2C wiring takes only an open-drain pin** (2026-11-17; owner's option A,
-  2026-11-16). `Alternate<AF, OT = PushPull>` carries the output type:
+- **An I2C wiring takes only an open-drain pin** (2026-11-17). `Alternate<AF, OT = PushPull>` carries the output type:
   `into_alternate` returns `Alternate<AF>` and `into_alternate_open_drain`
   `Alternate<AF, OpenDrain>`. The generated `SclPin` and `SdaPin` rows name the
   open-drain form only (`pins!(SclPin<I2C1>, OpenDrain: ...)`), so a push-pull I2C

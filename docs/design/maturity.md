@@ -31,16 +31,16 @@ The car rule: [requirements-system.md](requirements-system.md).
 | `FLSH` | flashed | flashed and run by any means (USB, debugger, UART, SPI), without full debugger coverage |
 | `INH` | inherited | no run of its own: the axes' evidence |
 
-- **[Decided, built 2026-11-15]** A run is evidence at its bench's tier, stamped into the
+- A run is evidence at its bench's tier, stamped into the
   record: `reqtool.toml` lists `tiers` (`BRD`, `HIL`, `DBG`, `FLSH`) and each board's tier
   (`board_tiers`), and reqtool (#7) stamps every board record with it, so evidence keeps
-  the tier it ran at when a bench is rewired (owner, 2026-11-15: stamped, not mapped at
+  the tier it ran at when a bench is rewired (stamped, not mapped at
   read time). The Nucleos and the STM32F4 Discovery are `HIL`, the Foxeer and the Lucid
   `FLSH`.
 - A capability on a part is as strong as its weakest axis. A part's score is
   its platform's tier; beside it, a table per capability. A capability not listed is not
   covered. No part is gated by its tier.
-- **[Decided, built 2026-11-15]** Tiers are computed from the evidence, never declared:
+- Tiers are computed from the evidence, never declared:
   `glue-gen tiers all` reads `reqtool check --json` and writes `docs/CHIPS.md`'s tier table
   and `hil/COVERAGE.md`'s matrix; the merge gate regenerates both. The rules
   (`tools/glue-gen/src/tiers.rs`):

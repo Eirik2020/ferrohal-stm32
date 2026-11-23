@@ -17,7 +17,7 @@ Normative. Goal **G5** (`requirements/goals.md`). Rationale:
 - `unsafe` required by soundness, not RTIC: a safe steal aliases one peripheral twice and breaks exclusivity; the call sits in a generated `pub unsafe fn new` (`module.rs:294-299`).
 - Safe alternative: `take()`. Internal path: `steal_unchecked()`.
 - Metapac's own `steal()`/`from_ptr` on PAC types = "take the PAC", not a FerroHAL exception.
-- RTIC gets the absolute minimum it needs (owner, 2026-11-13). The `rtic` feature adds this one
+- RTIC gets the absolute minimum it needs. The `rtic` feature adds this one
   item and gates nothing else. Everything else RTIC's generated code names (rtic-macros 2.4.0
   `codegen/module.rs`, `codegen/bindings/cortex.rs`) is `rt`'s `device` module, and `device`
   exports exactly that: `Interrupt` (and its alias `interrupt`, which metapac also gives as

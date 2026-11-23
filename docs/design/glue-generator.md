@@ -16,18 +16,17 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 
 - The user picks a part (its Cargo feature, metapac's name); FerroHAL dedups
   by die.
-- **[Decided]** Every package of a supported line is a registered part (owner,
-  2026-11-17), named by its largest flash size. A part that differs only in flash size is
+- Every package of a supported line is a registered part, named by its largest flash size. A part that differs only in flash size is
   a variant (`VARIANTS`): its own Cargo feature, mounting its package's glue. `model`
   dumps variants too, so one that disagrees with its part on any fact fails the
   generator. A line's hand facts are one chip module under its family, named by the
   lines it serves (`chips/f4/stm32f401.rs`, `chips/f7/stm32f76x_f77x.rs`), which mounts
   each part's glue under that part's features (ADR-012).
-- **[Decided, 2026-11-18]** The chip selection in `src/lib.rs` is generated (`emit all`,
+- The chip selection in `src/lib.rs` is generated (`emit all`,
   ADR-012): the one-chip-feature check from the registry's parts and variants, and each
   line's `chip` mount from the chip file that mounts its parts' glue. Every part of a line
   must be mounted by one file; the merge gate checks `src/lib.rs` with the glue.
-- **[Decided, 2026-11-17]** A part's glue is cut by device and package together, not by
+- A part's glue is cut by device and package together, not by
   device alone: metapac's peripheral list and pin rows can depend on the package. The
   H743VI's LQFP100 has no SPI5, and only the TFBGA240, which bonds PC2 and PC2_C apart,
   routes ADC1's INP12 to PC2. The die table keeps each cut's peripherals and pin rows,
@@ -36,7 +35,7 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 - The device layer exists now, thin, and is pruned if it stays redundant:
   F405 vs F407 and H743 vs H753 differ only in peripherals FerroHAL has no driver for.
 - A package is the bonded-pin set; `Port::split` follows it, so an unbonded
-  pin cannot be named. Built 2026-11-14 (owner chose the shape): the glue emits one parts
+  pin cannot be named. The glue emits one parts
   type per bonded port, a field per bonded pin, behind a sealed `gpio::Split`.
 - Die IDs: F401xD/E 0x433, F405/F407/F415/F417 0x413, F411xC/E 0x431, F722/F723/F732/F733
   0x452, F745/F746/F756 0x449, F765/F767/F768/F769/F777/F778/F779 0x451,
@@ -66,26 +65,26 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 - Offering policy is data in the generator (`tools/glue-gen/src/emit.rs`):
   which DMA controllers routes may use (DMA1, DMA2, DMAMUX1; not BDMA), which IP versions
   have a driver, and the instances left out, each with its reason.
-- **[Decided 2026-11-17]** The F7's rows take the F4's macro shapes (fixed-request stream
+- The F7's rows take the F4's macro shapes (fixed-request stream
   DMA, bus-named RCC registers), its usart_v3 rows included: the usart_v4 module serves
   it (ADR-011). A block on the part that no driver serves shows – (on the part, not
   driven) in the capability table, where it shows n/a for a block the part lacks.
-- **[Decided 2026-11-17]** Where metapac's metadata is incomplete on one device of a
+- Where metapac's metadata is incomplete on one device of a
   die, a peripheral FerroHAL does not drive may be listed in `METADATA_GAPS`
   (`tools/glue-gen/src/registry.rs`), and the merge keeps the die's values for it rather
   than fail. The only entry: the STM32H750's HSEM, which metapac 21 gives no register
   block.
-- **[Decided 2026-11-17]** The coverage matrix (`hil/COVERAGE.md`) gives an IP version
+- The coverage matrix (`hil/COVERAGE.md`) gives an IP version
   no bench carries no tier (–), even where its requirements are verified on a version
   that shares its driver: the usart_v3 registers have no evidence of their own until
   the F767 bench runs.
-- **[Decided 2026-11-14, owner]** The glue offers everything the silicon has for every IP
+- The glue offers everything the silicon has for every IP
   version FerroHAL drives: each instance, pin row and DMA route metapac lists. Left out:
   an instance a driver cannot open without disturbing another (the F4's ADC2 and ADC3,
   reset only by ADC1's ADCRST; the H7's ADC2, sharing ADC12EN; the ADC driver resets on
   open), a block the driver does not carry (LPUART1), and USB_OTG_HS and the F4's SDIO,
   which have no driver.
-- **[Decided, amended 2026-11-14]** Output is checked in, rustfmt'd: one module per part,
+- Output is checked in, rustfmt'd: one module per part,
   `src/chips/gen/<part>.rs`, headed with the metapac version and "do not edit", which the
   part's chip module mounts beside its hand facts. It is the die table cut to the part's
   device and package; separate die and package files were planned, but Rust builds one
@@ -95,11 +94,11 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
   four proven parts is generated, none differs; the additions are the policy above (H7
   SDMMC2 and SPI6, the basic timers' update DMA) and two tokens the H753's hand list
   missed (DFSDM1, SWPMI1).
-- **[Decided, built 2026-11-15]** It runs on demand, and as a check on pull requests into `main`
+- It runs on demand, and as a check on pull requests into `main`
   (`tools/glue-gate.sh`, CI's "Generated glue" job: regenerate, fail on any difference). It
   does not run on development-branch pushes. Making it required is the owner's branch
   protection setting.
-- **[Decided, 2026-11-17]** Speed without narrowing: the gate always regenerates every
+- Speed without narrowing: the gate always regenerates every
   part. Each part's metapac dump is cached under a key that covers everything it depends
   on (the generator's lockfile, `glue-dump` and `glue-model`, that part's feature line),
   and a key mismatch redumps; `GLUE_DUMP_CACHE` moves the cache, `off` disables it. CI
@@ -111,7 +110,7 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
 ## Generated documentation
 
 - Tables that restate the registry, the metadata or the evidence are
-  generated, never hand-edited (owner, 2026-11-13): drift is a check failure.
+  generated, never hand-edited: drift is a check failure.
   - `glue-gen` writes `docs/CHIPS.md`'s silicon table (part, series, die, package, core,
     clock as offered) and capability matrix (per part: each driver, the instances its
     die offers, n/a where the part has none).
@@ -136,8 +135,8 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
   its package bonds; a metadata kind it does not know fails loudly.
 - Migration, once: the generated glue compared row by row with the hand glue
   it replaces, which the benches proved; each difference explained before the swap.
-- **[Decided, built 2026-11-14]** A glue probe per die, from the host through the
-  debugger, the core reset and halted, no firmware (owner chose the host side):
+- A glue probe per die, from the host through the
+  debugger, the core reset and halted, no firmware:
   `glue-gen probe part <part>` with `PROBE_RS_PROBE` set, a `probe` run on each debugger
   bench's script. `DEV_ID` against the die table; for each offered peripheral and bonded
   port, a scratch register (one per IP version, found by name in metapac's register map)
@@ -147,7 +146,7 @@ Plan: finished 2026-11-15 and deleted (PRs #43 to #46). Maturity of what it emit
   die 0x433, 116 on 0x413, 154 on 0x450, all pass. Not probed, by design: a pin's
   alternate function, which AFR accepts on any pin with any value, and a vector being
   raised by its peripheral; the bench runs prove both on the wire.
-- **[Decided, done 2026-11-15]** `tools/check_glue.py` is retired: `tools/glue-gate.sh`, the merge gate, regenerates
+- `tools/check_glue.py` is retired: `tools/glue-gate.sh`, the merge gate, regenerates
   every part's glue and the CHIPS.md tables and fails on any difference, and the glue
   probe checks the facts on the silicon. The generated `BONDED` tables went with it; the
   per-port parts carry the package.

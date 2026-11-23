@@ -10,7 +10,7 @@ What it enforces (docs/policies/safety.md):
 - the feature table keeps that exception opt-in: `default = []`,
   `rtic = ["rt"]`, and no other feature implies `rtic`;
 - the `rtic` feature adds that one item and nothing else: the only mention of
-  `feature = "rtic"` in `src/` is its gate (owner, 2026-11-13: RTIC gets the
+  `feature = "rtic"` in `src/` is its gate (RTIC gets the
   absolute minimum it needs);
 - the `device` module RTIC's `device = ...` names exports exactly what RTIC's
   generated code uses: `Interrupt` (and `interrupt`), `NVIC_PRIO_BITS` and

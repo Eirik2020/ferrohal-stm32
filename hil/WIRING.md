@@ -113,7 +113,6 @@ comment is `stm32f4-discovery/src/board.rs`.
 | D3 | PD8 -> PD9 | P1-40 -> P1-41 | USART3 (AF7) |
 
 PC10 and PC12 also reach the CS43L22 audio DAC's I2S inputs; the runs hold its reset,
-PD4, low (owner, 2026-11-14). The clock is the ST-LINK's 8 MHz MCO in bypass; R68 and
-R25 both feed PH0 from the factory, so crystal mode is not isolated here (no rework,
-owner 2026-11-14).
+PD4, low. The clock is the ST-LINK's 8 MHz MCO in bypass; R68 and
+R25 both feed PH0 from the factory, so crystal mode is not isolated here (no rework).
 
