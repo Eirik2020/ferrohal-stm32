@@ -3,7 +3,7 @@
  "counts": {
   "documents": 101,
   "agent": 66,
-  "bytes": 571345
+  "bytes": 571353
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Supported chips, ",
-   "bytes": 7511
+   "bytes": 7519
   },
   {
    "path": "CLAUDE.md",

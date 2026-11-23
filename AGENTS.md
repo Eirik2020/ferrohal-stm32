@@ -1,7 +1,7 @@
 # FerroHAL - agent entry
 
 STM32 HAL on stm32-metapac. Supported chips, limits and roadmap: `docs/CHIPS.md`.
-Public repo: nothing private, no secrets, no name of a user's firmware.
+Public repo: nothing private, no secrets.
 
 ## Authority
 
@@ -78,9 +78,9 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 
 1. Car rule (`docs/design/requirements-system.md`): one chip proves an IP version for every family, one chip a family's shared glue; exhaustive tests need the owner's accepted rationale. Evidence follows files, not images; three axes (IP, die, series), tiers `BRD`/`HIL`/`DBG`/`FLSH`/`INH` (`docs/design/maturity.md`).
 2. Debt (`docs/DEBT.md`) = owed work on what ships, tagged, with its recorded origin. A
-   feature not built or a silicon limit goes to `docs/CHIPS.md`; nothing names a user
-   firmware (toaster rule, absolute). An item leaves only when hardware proves the fix;
-   one no bench can reach stays in §4 (`rig`).
+   feature not built or a silicon limit goes to `docs/CHIPS.md`; nothing is built, named
+   or specified for one firmware (toaster rule, `docs/design/scope.md`). An item leaves
+   only when hardware proves the fix; one no bench can reach stays in §4 (`rig`).
 3. Safety (G5, `docs/policies/safety.md`): no public `unsafe fn` except `Peripherals::steal` behind `rtic`. No unsafe wrapper around a register write: a user who needs registers takes the metapac. Only the token-owning module touches its registers, and metapac imports stay confined. `tools/check_safe_api.py` holds it.
 4. One `shall` per requirement; module trailer names its IDs.
 5. Reruns: reqtool alone says what a change owes. No bench run for a merge, a conflict fix, a pin or lock-file bump, or a document or comment change; rerun only a bench whose own code path changed.
