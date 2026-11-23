@@ -36,6 +36,12 @@ Measurement wins for what the code does; record both; divergence -> erratum cand
 - A file states its requirements; the `Requirements:` trailer names the IDs; `docs/design/requirements-system.md` hashes it.
 - One `shall` per statement. A single-part requirement gets its own family (`USART-V4-001`).
 
+## Design pages follow code
+
+- `docs/owners.txt` maps each path under `src/` to the design pages that state its rules, or to `none` where its requirements are all it has; the last matching line wins. An owner is a page under `docs/design/`, never a decision record or a catalog: reqtool traces code to requirements.
+- `tools/docs_for.py <files>` names the pages; `--check` fails when code changed against `origin/main` and an owning page did not, unless `--none "<reason>"` states why; the reason goes in the PR.
+- A path with no line fails `tools/check_docs.py`: new code gets its line in the change that adds it.
+
 ## Decision records
 
 Event, not rule. `ADR-NNN - Status:` line; statuses `accepted|promoted|superseded|rejected|obsolete`.
