@@ -3,7 +3,7 @@
  "counts": {
   "documents": 95,
   "agent": 60,
-  "bytes": 573002
+  "bytes": 569442
  },
  "documents": [
   {
@@ -150,7 +150,7 @@
    "class": "agent",
    "title": "ADR-011: One owner per UART, and a scheduler-neutral `Service` trait (2026-11-17)",
    "purpose": "ADR-011 - Status: promoted",
-   "bytes": 7883,
+   "bytes": 2997,
    "adr": "ADR-011",
    "status": "promoted"
   },
@@ -363,7 +363,7 @@
    "class": "agent",
    "title": "UART ownership: one owner, served by `on_interrupt` (2026-11-17)",
    "purpose": "Source: ADR-011, ../decisions/2026-11-17-uart",
-   "bytes": 3459
+   "bytes": 4785
   },
   {
    "path": "docs/errata/ES0182.md",

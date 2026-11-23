@@ -24,4 +24,4 @@
 | a | docs/design/scope.md | 3746 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/structure.md | 2262 B | Source: ADR-006, ../decisions/2026-11-10-doc- |
 | a | docs/design/uart-ferrowasp.md | 1402 B | Source: ADR-005, ../decisions/2026-10-31-ferr |
-| a | docs/design/uart-ownership.md | 3459 B | Source: ADR-011, ../decisions/2026-11-17-uart |
+| a | docs/design/uart-ownership.md | 4785 B | Source: ADR-011, ../decisions/2026-11-17-uart |
