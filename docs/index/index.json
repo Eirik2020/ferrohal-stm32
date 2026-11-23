@@ -3,7 +3,7 @@
  "counts": {
   "documents": 95,
   "agent": 60,
-  "bytes": 567806
+  "bytes": 566726
  },
  "documents": [
   {
@@ -85,9 +85,9 @@
   {
    "path": "docs/decisions/2026-11-08-naming-scheme.md",
    "class": "agent",
-   "title": "Decision: naming scheme (2026-11-08)",
+   "title": "ADR-003: Naming scheme (2026-11-08)",
    "purpose": "ADR-003 - Status: promoted",
-   "bytes": 3234,
+   "bytes": 2602,
    "adr": "ADR-003",
    "status": "promoted"
   },
@@ -105,7 +105,7 @@
    "class": "agent",
    "title": "ADR-008: Generate the chip glue from metapac (2026-11-13)",
    "purpose": "ADR-008 - Status: promoted",
-   "bytes": 3110,
+   "bytes": 2773,
    "adr": "ADR-008",
    "status": "promoted"
   },
@@ -123,7 +123,7 @@
    "class": "agent",
    "title": "ADR-010: Errata as data, matched to the die revision (2026-11-15)",
    "purpose": "ADR-010 - Status: promoted",
-   "bytes": 3068,
+   "bytes": 2957,
    "adr": "ADR-010",
    "status": "promoted"
   },

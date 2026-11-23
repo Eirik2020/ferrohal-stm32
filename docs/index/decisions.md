@@ -7,11 +7,11 @@
 | a | docs/decisions/2026-10-31-ferrowasp-integration.md | 3522 B | ADR-005 - Status: accepted |
 | a | docs/decisions/2026-11-08-free-teardown-brief.md | 1278 B | ADR-002 - Status: promoted |
 | a | docs/decisions/2026-11-08-g5-safe-by-default.md | 1913 B | ADR-001 - Status: promoted |
-| a | docs/decisions/2026-11-08-naming-scheme.md | 3234 B | ADR-003 - Status: promoted |
+| a | docs/decisions/2026-11-08-naming-scheme.md | 2602 B | ADR-003 - Status: promoted |
 | a | docs/decisions/2026-11-13-adapters-behind-features.md | 1832 B | ADR-007 - Status: promoted |
-| a | docs/decisions/2026-11-13-chip-glue-generator.md | 3110 B | ADR-008 - Status: promoted |
+| a | docs/decisions/2026-11-13-chip-glue-generator.md | 2773 B | ADR-008 - Status: promoted |
 | a | docs/decisions/2026-11-13-maturity-tiers.md | 2092 B | ADR-009 - Status: promoted |
-| a | docs/decisions/2026-11-15-errata-as-data.md | 3068 B | ADR-010 - Status: promoted |
+| a | docs/decisions/2026-11-15-errata-as-data.md | 2957 B | ADR-010 - Status: promoted |
 | a | docs/decisions/2026-11-17-src-layout.md | 3570 B | ADR-012 - Status: promoted |
 | a | docs/decisions/2026-11-17-uart-single-owner.md | 2997 B | ADR-011 - Status: promoted |
 | a | docs/decisions/2026-11-19-i2c-interrupt-driver.md | 4421 B | ADR-013 - Status: accepted |

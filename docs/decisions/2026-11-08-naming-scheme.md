@@ -1,17 +1,8 @@
-# Decision: naming scheme (2026-11-08)
+# ADR-003: Naming scheme (2026-11-08)
 
 ADR-003 - Status: promoted
 
-Promoted to: [naming.md](../design/naming.md) (design), when W14 applied it on 2026-11-13.
-
-Applied as **W14**, its own PR since 2026-11-13 (PR #39); scheduled with the `free()` redesign, it did not travel with it. Promotion target when W14 lands: a topic
-design document at `docs/design/naming.md` (the chip-to-feature table and the naming
-rules), linked from `ferrohal-architecture.md` §2 - a **design** promotion. Audit with
-file-and-line evidence: [`../notes/2026-11-08-naming-audit.md`](../notes/2026-11-08-naming-audit.md).
-
-Outcome (owner, 2026-11-13): rule 1 became one catalog per IP or subsystem, holding its part
-families, not one per family; rule 2's part families are hyphenated (`USART-V4-*`, `SPI-V2-*`,
-`I2C-V1-*`), and `USART-005` below is `UART-020`. `naming.md` holds the rules as applied.
+Promoted to: [naming.md](../design/naming.md) (design).
 
 ## Context
 
@@ -21,20 +12,22 @@ names that do not match their contents (`platform.yaml` holds RCC/GPIO/DMA/WAIT/
 peripheral (`UART`, `USART`, `UARTDMA`); `RES-001` beside `RESET-001..004`; wildly uneven
 requirement granularity; `dma_v1`/`dma_v2` numbered opposite to every other IP;
 `rcc_h7rm0433` as the only family+manual feature name; three module patterns; and
-script/crate/document case conventions that do not agree.
+script/crate/document case conventions that do not agree. The audit, with file and line
+evidence: [`../notes/2026-11-08-naming-audit.md`](../notes/2026-11-08-naming-audit.md).
 
 ## Decision
 
-1. **Catalogs**: one family per file, all under `src/requirements/<family>.yaml`; split
-   `platform.yaml` into `rcc`, `gpio`, `dma`, `wait`, `resource`; `SIG-*` ->
-   `signature.yaml`; `GLUE-*` -> `glue.yaml`; the four co-located catalogs move in.
+1. **Catalogs**: one per IP or subsystem, holding its part families, all under
+   `src/requirements/`; `platform.yaml` splits into `rcc`, `gpio`, `dma`, `wait`,
+   `resource`; `SIG-*` -> `signature.yaml`; `GLUE-*` -> `glue.yaml`; the four co-located
+   catalogs move in.
 2. **IDs**: `<FAMILY>-NNN`; `RES-001` -> `RESOURCE-001`; `SIG-001` -> `UID-001`; merge
-   `USART-*` into `UART-*`, keeping per-part families (`USARTV4-*`, `SPIV2-*`, `I2CV1-*`);
-   `UARTDMA-*` stays.
+   `USART-*` into `UART-*`, keeping hyphenated per-part families (`USART-V4-*`,
+   `SPI-V2-*`, `I2C-V1-*`); `UARTDMA-*` stays.
 3. **Features**: `<ip>_v<metapac version>` where metapac versions the IP, `<ip>_<family>`
-   where FerroHAL needs a family shape; a documented chip -> feature table in
-   `ferrohal-architecture.md` §2; `rcc_h7rm0433` -> `rcc_h7_rm0433` (or `rcc_h7`); state
-   explicitly that metapac's `dma_v1`/`dma_v2` numbering is inverted (F4 = v2, H7 = v1).
+   where FerroHAL needs a family shape; a documented chip -> feature table;
+   `rcc_h7rm0433` is renamed; metapac's `dma_v1`/`dma_v2` numbering is stated as
+   inverted (F4 = v2, H7 = v1).
 4. **Modules**: neutral module plus per-IP dirs for every new IP; `iwdg.rs` (one file,
    two names) and `timer*.rs` (split by function) documented as deliberate exceptions.
 5. **Vocabulary**: *channel* (timer compare), *lane* (DMA-fed output), *stream* (DMA),
@@ -47,7 +40,12 @@ script/crate/document case conventions that do not agree.
    resolves to exactly one catalog entry, no duplicate IDs, catalog name matches its
    family, feature names match the documented pattern.
 
-## Consequence now
+## Rejected
 
-The debt sweep's interrupt-masking requirement is **`USART-005`**: `USART-001..004`
-already exist (`src/uart/requirements.yaml:485-542`). This collision is why rule 8 exists.
+No alternative was recorded.
+
+## Consequences
+
+- An ID collision in the UART catalog is why rule 8 exists: a new requirement was about
+  to take a number that was already used.
+- `naming.md` holds the rules as applied.
