@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 99,
-  "agent": 64,
-  "bytes": 568395
+  "documents": 100,
+  "agent": 65,
+  "bytes": 569364
  },
  "documents": [
   {
@@ -164,6 +164,15 @@
    "status": "promoted"
   },
   {
+   "path": "docs/decisions/2026-11-23-glue-offers-everything.md",
+   "class": "agent",
+   "title": "ADR-019: The glue offers everything the silicon has (2026-11-23)",
+   "purpose": "ADR-019 - Status: promoted",
+   "bytes": 836,
+   "adr": "ADR-019",
+   "status": "promoted"
+  },
+  {
    "path": "docs/decisions/2026-11-23-naming-scheme.md",
    "class": "agent",
    "title": "ADR-017: Naming scheme (2026-11-23)",
@@ -243,7 +252,7 @@
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 2737
+   "bytes": 2868
   },
   {
    "path": "docs/design/api-surface.md",
@@ -488,7 +497,7 @@
    "class": "agent",
    "title": "Housekeeping state",
    "purpose": "Cadence: monthly, or immediately when more th",
-   "bytes": 4870
+   "bytes": 4872
   },
   {
    "path": "docs/notes/2026-11-08-naming-audit.md",
