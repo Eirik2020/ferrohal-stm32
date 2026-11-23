@@ -45,6 +45,18 @@ Exactly one `index/<year>.md` row per record; row id+status must match. Supersed
 move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 `docs/decisions/README.md`.
 
+## Decision labels
+
+- A decision is a record under `docs/decisions/`; the label forms that
+  `docs/decisions/AGENTS.md` rule 1 names appear nowhere else, in documents or in code
+  comments.
+- `tools/check_decision_labels.py --diff <base>` fails on a label in a line the change adds,
+  moves or re-dates, and prints the rule: write the record or remove the line, do not reword.
+  Without `--diff` it lists every label in the tree and passes. Wording that may be a
+  reworded label (the owner, then a decision verb) only warns; the owner reviews those.
+- CI runs it on every pull request and keeps one comment there with the flagged lines and
+  the warnings. The comment is edited, never deleted.
+
 ## The repository root
 
 - Owner, 2026-11-13: the root holds only the files a repository is expected to have there
