@@ -3,6 +3,7 @@
 Source: ADR-011, [`../decisions/2026-11-17-uart-single-owner.md`](../decisions/2026-11-17-uart-single-owner.md),
 which superseded ADR-004's line, flag and data handles
 (archived: [`../decisions/archive/2026/2026-11-09-uart-capabilities.md`](../decisions/archive/2026/2026-11-09-uart-capabilities.md)).
+The receive and transmit stream behaviour the engine realizes: [uart-ferrowasp.md](uart-ferrowasp.md).
 
 One `Uart<W>` holds the instance token, both pins, both stream tokens, both buffers and
 all driver state as plain fields. Every operation takes `&mut self`, so the one owner is

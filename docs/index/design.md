@@ -21,7 +21,7 @@
 | a | docs/design/requirements-ids.md | 1826 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-system.md | 4706 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-tooling.md | 2778 B | Source: ADR-006 archived: ../decisions/archiv |
-| a | docs/design/scope.md | 3783 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/scope.md | 3861 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/structure.md | 2299 B | Source: ADR-006 archived: ../decisions/archiv |
-| a | docs/design/uart-ferrowasp.md | 1402 B | Source: ADR-005, ../decisions/2026-10-31-ferr |
-| a | docs/design/uart-ownership.md | 4785 B | Source: ADR-011, ../decisions/2026-11-17-uart |
+| a | docs/design/uart-ferrowasp.md | 1441 B | Source: ADR-005, ../decisions/archive/2026/20 |
+| a | docs/design/uart-ownership.md | 4888 B | Source: ADR-011, ../decisions/2026-11-17-uart |
