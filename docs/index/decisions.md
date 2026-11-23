@@ -1,6 +1,6 @@
 # Document index: decisions (generated)
 
-18 documents in docs/decisions/. Hub: [README.md](README.md).
+19 documents in docs/decisions/. Hub: [README.md](README.md).
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -17,8 +17,9 @@
 | a | docs/decisions/2026-11-17-uart-single-owner.md | 7883 B | ADR-011 - Status: promoted |
 | a | docs/decisions/2026-11-19-i2c-interrupt-driver.md | 4421 B | ADR-013 - Status: accepted |
 | a | docs/decisions/2026-11-19-timer-lanes-round2.md | 4817 B | ADR-014 - Status: promoted |
+| a | docs/decisions/2026-11-23-car-rule-goal.md | 1396 B | ADR-015 - Status: promoted |
 | a | docs/decisions/AGENTS.md | 886 B | These rules bind every decision recorded in t |
 | a | docs/decisions/CLAUDE.md | 11 B |  |
 | a | docs/decisions/README.md | 1418 B | Record = event what, why, rejected, date, not |
 | a | docs/decisions/archive/2026/2026-11-09-uart-capabilities.md | 2455 B | ADR-004 - Status: superseded |
-| a | docs/decisions/index/2026.md | 1978 B | One row per record. The record itself is auth |
+| a | docs/decisions/index/2026.md | 2122 B | One row per record. The record itself is auth |
