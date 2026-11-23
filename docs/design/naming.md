@@ -1,9 +1,8 @@
 # Naming: catalogs, IDs, features, modules, benches
 
-Source: ADR-003, [`../decisions/2026-11-08-naming-scheme.md`](../decisions/2026-11-08-naming-scheme.md).
+Source: ADR-017, [`../decisions/2026-11-23-naming-scheme.md`](../decisions/2026-11-23-naming-scheme.md).
 
-How FerroHAL names what it is made of. Promoted from ADR-003 when W14 applied it
-(2026-11-13); the owner settled the four choices it left open the same day.
+How FerroHAL names what it is made of.
 `tools/check_names.py` holds the rules that a checker can hold (in `checks/run.sh`).
 
 ## Requirement catalogs

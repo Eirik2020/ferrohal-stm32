@@ -1,8 +1,8 @@
 # ADR-003: Naming scheme (2026-11-08)
 
-ADR-003 - Status: promoted
+ADR-003 - Status: superseded by ADR-017
 
-Promoted to: [naming.md](../design/naming.md) (design).
+Promoted to: [naming.md](../../../design/naming.md) (design).
 
 ## Context
 
@@ -13,7 +13,7 @@ peripheral (`UART`, `USART`, `UARTDMA`); `RES-001` beside `RESET-001..004`; wild
 requirement granularity; `dma_v1`/`dma_v2` numbered opposite to every other IP;
 `rcc_h7rm0433` as the only family+manual feature name; three module patterns; and
 script/crate/document case conventions that do not agree. The audit, with file and line
-evidence: [`../notes/2026-11-08-naming-audit.md`](../notes/2026-11-08-naming-audit.md).
+evidence: [`../notes/2026-11-08-naming-audit.md`](../../../notes/2026-11-08-naming-audit.md).
 
 ## Decision
 
