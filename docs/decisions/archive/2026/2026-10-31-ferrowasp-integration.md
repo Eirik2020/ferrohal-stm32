@@ -35,7 +35,7 @@ benches; recorded from the architecture map's section 15 when the map dissolved
 | Clocks, GPIO | everything; HSE on both boards |
 
 The UART design for FerroWasp proposals moved to
-[../design/uart-ferrowasp.md](../../../design/uart-ferrowasp.md) when this record was
+[../design/uart-ferrowasp.md](../../../design/archive/2026/uart-ferrowasp.md) when this record was
 made from the architecture map (2026-11-10); they are realized in the shipped
 UART engine.
 

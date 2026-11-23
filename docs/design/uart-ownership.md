@@ -3,7 +3,7 @@
 Source: ADR-011, [`../decisions/2026-11-17-uart-single-owner.md`](../decisions/2026-11-17-uart-single-owner.md),
 which superseded ADR-004's line, flag and data handles
 (archived: [`../decisions/archive/2026/2026-11-09-uart-capabilities.md`](../decisions/archive/2026/2026-11-09-uart-capabilities.md)).
-The receive and transmit stream behaviour the engine realizes: [uart-ferrowasp.md](uart-ferrowasp.md).
+The proposals the stream engine grew from are archived: [uart-ferrowasp.md](archive/2026/uart-ferrowasp.md).
 
 One `Uart<W>` holds the instance token, both pins, both stream tokens, both buffers and
 all driver state as plain fields. Every operation takes `&mut self`, so the one owner is
@@ -32,6 +32,14 @@ has no atomics, no critical section and no protocol of its own.
   counting, and still-pending half and complete flags count with the served ones, so a
   service up to most of a lap late loses nothing (UARTDMA-002). Transmission likewise
   chains queued frames on any call.
+- **Reception is a circular ring.** The receive DMA never stops between frames: the
+  driver marks where the line went idle and where a line error struck, and a read copies
+  chunks out of the ring.
+- **Data loss is part of the stream.** An overrun, a DMA error, a line error or a restart
+  ends a chunk with a gap and advances a generation counter, so a reader cannot miss a
+  discontinuity. `Health` counts each cause.
+- **Transmit is frame-atomic and queued.** A frame goes in whole or not at all, and
+  queued frames go out whole and in order.
 - **Flag registers are store-only on the write side.** ICR on v4 and SR on v2 are written
   as a whole pattern of write-one-to-clear bits, never read-modify-written. The v2 clear
   reads DR, the byte DMA also reads: the documented cost of SR/DR clearing on v2.

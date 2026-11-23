@@ -36,6 +36,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import adr  # noqa: E402  (decision-record format and tags)
+
 ROOT = Path(__file__).resolve().parent.parent
 
 # Always-loaded files; everything else gets DEFAULT_BYTES.
@@ -350,6 +353,11 @@ def main() -> int:
             f"docs/decisions: {active_count} active records, cap is 20; "
             "promote what binds and archive the rest"
         )
+
+    # Record format (size, one date, the four sections) and index tags. They live
+    # in tools/adr.py, beside the search that reads the same tags, so that both
+    # take a root and are tested on a temporary tree.
+    failures.extend(adr.failures(ROOT))
 
     # Design topic documents name the record(s) they distil.
     design_dir = ROOT / "docs/design"

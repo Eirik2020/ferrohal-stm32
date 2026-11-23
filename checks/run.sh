@@ -138,6 +138,7 @@ shared=$(
     step "safe api (G5)" python3 -I "$root/tools/check_safe_api.py"
     step "names (ADR-003)" python3 -I "$root/tools/check_names.py"
     step "decision label check tests" python3 -I "$root/tools/test_check_decision_labels.py"
+    step "decision record check tests" python3 -I "$root/tools/test_adr.py"
     step "no-metapac probes" bash "$root/checks/no-metapac/run.sh"
     step "evidence recorder tests" python3 -I "$root/tools/test_record_evidence.py"
     step "rig telemetry tests" python3 -I "$root/tools/test_rig_telemetry.py"
