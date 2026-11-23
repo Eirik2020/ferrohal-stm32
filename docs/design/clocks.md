@@ -3,8 +3,6 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's section 6, dissolved 2026-11-10.
-
 - The core is an explicit typed configuration per clock version, ported from embassy, and it is the only path that touches RCC. The user supplies the dividers; FerroHAL checks the limits and returns one frozen frequency record, which drivers must take (like stm32f4xx-hal's `Clocks`).
 - An optional solver may be added later. It would only output an explicit configuration and never configure hardware itself, and should ideally be computed at compile time so its result can be reviewed.
 - The prototype builds the explicit path only.

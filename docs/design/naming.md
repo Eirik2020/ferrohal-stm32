@@ -77,8 +77,7 @@ Which IP versions each series carries, as metapac measured them:
   versions, so each needs a chip per version. A file mounted by `#[path]` owns its
   folder, so `timer/mod.rs`'s `mod pwm;` finds `timer/pwm.rs` under both names. This
   list is complete: these four are every `#[path]` alias in `src/lib.rs` (the chip files'
-  `#[path]`s pull in glue, not drivers). Earlier counts (ADR-003 rule 4, the 2026-11-13
-  debt sweep, API review K4) are superseded by this one. Not a driver alias either: the
+  `#[path]`s pull in glue, not drivers). Not a driver alias either: the
   F4 clock tree's configuration and solver (`rcc_f4/tree.rs`), mounted by `rcc_f4` and by
   `rcc_f7`, which keeps its own register writes.
 - A die with two DMA IPs (the H7: stream DMA, BDMA, MDMA) gives each its own
@@ -122,7 +121,7 @@ Which IP versions each series carries, as metapac measured them:
 - A clock tree's host tests sit in the chip file whose limits they need
   (`src/chips/<family>/<line>.rs`), and are named by the tree they pin, not by a board:
   `solve_gives_168_mhz_and_usb_from_an_8_mhz_crystal`. A comment may say which bench
-  board freezes that tree (API review S5, 2026-11-17).
+  board freezes that tree.
 
 ## Benches and scripts
 

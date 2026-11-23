@@ -3,13 +3,11 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's section 7, dissolved 2026-11-10.
-
 
 
 ```text
 async layer (left to others; assumed to follow embassy-stm32's implementation)
-ferroforge-stm32   RTIC/FerroForge drivers and task groups, built the way FerroWasp does it today
+ferroforge-stm32   RTIC/FerroForge drivers and task groups, built the way FerroWasp does it
 ferrohal-stm32     the neutral HAL
 stm32-metapac
 ```
