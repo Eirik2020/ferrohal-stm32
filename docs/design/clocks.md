@@ -9,3 +9,6 @@ The architecture map's section 6, dissolved 2026-11-10.
 - **[Decided]** An optional solver may be added later. It would only output an explicit configuration and never configure hardware itself, and should ideally be computed at compile time so its result can be reviewed.
 - **[Decided]** The prototype builds the explicit path only.
 - Known trap *(measured)*: embassy-stm32's `rcc/f247.rs` writes `VOS Scale1` on every F4 with a PLL, which is reserved on the F401. Review each ported clock version against its reference manual.
+
+- **[Decided 2026-11-23, owner]** Throwaway line for the label check; this pull request is never merged.
+- The owner decided that this second throwaway line is a reworded label.
