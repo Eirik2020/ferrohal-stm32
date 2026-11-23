@@ -31,7 +31,7 @@ Public repo: nothing private, no secrets, no name of a user's firmware.
 | maturity, tiers, evidence axes | `docs/design/maturity.md` (ADR-009) |
 | API shape/renames/reuse | `docs/notes/2026-11-11-api-review.md` (hub) |
 | unsafe/registers | `docs/policies/safety.md`, `docs/decisions/README.md`, `docs/notes/2026-11-08-rtic-and-hal-comparison.md` |
-| record/find decision | `docs/decisions/README.md` -> `docs/decisions/index/<year>.md` |
+| record/find decision | `docs/decisions/README.md`; find by tag: `python3 -I tools/adr.py find <tag>` |
 | find a document | `docs/index/README.md` -> `docs/index/<area>.md` (generated; `index.json` for tools) |
 | change design | `docs/design/<topic>.md`, decisions hub |
 | after housekeeping date | `docs/housekeeping/README.md`, `state.md`, `tools/housekeeping.py` |
