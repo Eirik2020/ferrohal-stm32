@@ -2,9 +2,9 @@
 
 The options for growing the rig, each tied to the open items it would close. The
 agreed order lives in [CAPABILITIES.md](CAPABILITIES.md#the-improvement-queue); this
-chapter is the wider list behind it, written 2026-11-17 from `docs/DEBT.md`,
+chapter is the wider list behind it, from `docs/DEBT.md`,
 [COVERAGE.md](COVERAGE.md), [RIG.md](RIG.md) and [WIRING.md](WIRING.md). Nothing here is
-approved: rig upgrades are held by the owner (2026-11-13), and an item enters the queue
+approved: rig upgrades are held by the owner, and an item enters the queue
 only when the owner picks it.
 
 Every suggestion keeps two kinds of statement apart. **Measured** is something a run, a
@@ -47,14 +47,10 @@ The items that wait on hardware, from `docs/DEBT.md` as of 2026-11-17 and the ga
 | F401 USART2 runs through the ST-LINK | DEBT §4, Low | the ST-LINK's VCP sits on PA2/PA3 | A6, C3 |
 | The F401's clock tree checked only indirectly | DEBT §4, Low | the Nucleo-F401RE has no USB device to time against | B1 |
 | HCLK/8 SysTick, WWDG, option bytes, flash ECC, another revision | DEBT §4, Lowest | partly firmware work, partly silicon the rig lacks | A2, A3, D1, D2 |
-| Analog margin, soak, environment, wire-level timing | CAPABILITIES queue 5 to 8 | no instruments | B1, B2, B3, E1 |
+| Analog margin, soak, environment, wire-level timing | CAPABILITIES queue 2 to 5 | no instruments | B1, B2, B3, E1 |
 
 Measured as of 2026-11-17: every requirement in `src/requirements/` names a
-verification method, and DEBT's status line records reqtool at 128 of 128 verified. The
-"five requirements with no method" that `AGENTS.md` and the queue's introduction mention
-were closed since; USB-F4-001 and RESET-004 on the F4 now stand on the STM32F4
-Discovery (COVERAGE's generated table: `otg_v1` on `stm32f4-discovery`). Those two
-statements are now stale.
+verification method, and DEBT's status line records reqtool at 128 of 128 verified.
 
 ## A. No new hardware
 
@@ -102,7 +98,7 @@ because they cost nothing and keep the shopping list honest.
     an independent reference the F401 has none of today;
   - FIFO errors (DEBT §3), if A1 fails: a sustained stream at a rate the chip's own
     transmitter cannot give;
-  - queue 8 (wire-level integrity), in part: SCK, SDA and DShot edges at its sample rate.
+  - queue 5 (wire-level integrity), in part: SCK, SDA and DShot edges at its sample rate.
 
   Measured: the I2C simulator Pico uses GP0 to GP3 and its USB port; the rig has spare
   micro-USB cables (the 2026-11-14 delivery). Measured: both MCO pins of the F401 (PA8,
@@ -111,12 +107,12 @@ because they cost nothing and keep the shopping list honest.
   not for SPI at its top rates, and its crystal's tolerance must be looked up before a
   ppm claim rests on it.
 - **B2. A USB hub with per-port power switching** (`uhubctl`). Unblocks the "no automated
-  power cycling" gap and queue 6 (soak runs), and gives a cold boot, not just a reset,
+  power cycling" gap and queue 3 (soak runs), and gives a cold boot, not just a reset,
   hands-free. Inferred: it cannot press a flight board's BOOT button, so it does not
   make DFU entry hands-free on its own (C5 does).
 - **B3. A current and voltage monitor, with the ordered DAC.** An INA226-class shunt
   monitor in a board's supply, read over I2C, and the DAC driving an ADC input with known
-  voltages. Unblocks queue 5 (analog margin): ADC readings against an independent
+  voltages. Unblocks queue 2 (analog margin): ADC readings against an independent
   source rather than VREFINT alone. Inferred: no DEBT item needs it today; it earns its
   place when an ADC accuracy claim does.
 - **B4. A USB protocol analyser.** Only if A5 leaves ES0392 2.25.7 open. Inferred: a
@@ -125,10 +121,10 @@ because they cost nothing and keep the shopping list honest.
 ## C. Breakouts and wiring
 
 - **C1. The ordered microSD breakout on the H753's SDMMC1, through an analog switch.**
-  Unblocks queue 2 and SDMMC-001 to 004 at `HIL` on a Nucleo; SDMMC's `free()` (DEBT §3)
+  Unblocks queue 1 and SDMMC-001 to 004 at `HIL` on a Nucleo; SDMMC's `free()` (DEBT §3)
   on a bench API-002 can name; and, with the switch, SDMMC's error paths (DEBT §4).
   - Measured: SDMMC1's pins (PC8 to PC12, PD2) are on Zio CN8, and PC10/PC11 and
-    PC12/PD2 are already the Z6 and Z8 UART links (`board.rs`; CAPABILITIES queue 2).
+    PC12/PD2 are already the Z6 and Z8 UART links (`board.rs`; CAPABILITIES queue 1).
     FerroHAL drives SDMMC1 only (`src/sdmmc_v2/mod.rs`), and SDMMC2's alternate pins
     collide with S1, S2, Z1 and Z12 in the same way.
   - So under the hands-free rule the card cannot simply replace Z6 and Z8. Two ways out,
@@ -189,7 +185,7 @@ because they cost nothing and keep the shopping list honest.
 
 ## E. Environment
 
-- **E1. Temperature and supply corners** (queue 7). A small heated enclosure or a
+- **E1. Temperature and supply corners** (queue 4). A small heated enclosure or a
   bench supply for the board under test. Inferred: no DEBT item needs it today; take it
   up when a flight-relevant claim does, as the queue says.
 

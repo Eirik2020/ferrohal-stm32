@@ -115,7 +115,7 @@ each leaves for [resolved/](resolved/README.md) when the F401 and H753 benches r
   PB13 needs SB7. Their rows are glue-checked only. *Spawned:* `55025e8` 2026-10-31,
   the bench wired on Zio.
 - `rig` **Low: SDMMC's error paths have no bench.** A CRC failure and a card pulled
-  mid-transfer are untested. SDMMC-003/004 stand on the Lucid's `FLSH` runs; a Nucleo with a slot would make them `HIL` (queue 2). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
+  mid-transfer are untested. SDMMC-003/004 stand on the Lucid's `FLSH` runs; a Nucleo with a slot would make them `HIL` (queue 1). *Spawned:* SDMMC proven on the Lucid alone (`1b42fe4`, 2026-11-02).
 - `rig` **Low: HSE crystal mode is untested on both Nucleos.** Both run HSE bypass from
   the ST-LINK's MCO. *Spawned:* `af65cad`, the benches clock from the ST-LINK.
 - `rig` **Low: F401 USART2 runs through the ST-LINK,** so its break, baud and parity

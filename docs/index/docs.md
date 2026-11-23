@@ -6,4 +6,4 @@
 |---|---|---|---|
 | h | docs/CHIPS.md | 38464 B | What FerroHAL supports on each chip, the limi |
 | h | docs/DEBT.md | 9710 B | Debt is work FerroHAL owes on what it already |
-| h | docs/ROADMAP.md | 2005 B | Split from CHIPS.mdCHIPS.md when it reached i |
+| h | docs/ROADMAP.md | 1926 B | The roadmap: features FerroHAL does not offer |

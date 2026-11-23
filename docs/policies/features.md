@@ -16,7 +16,7 @@ Normative. Goals G1, G2, G5 (`requirements/goals.md`). Record: ADR-007,
   owner's approval. Everything else stays in the no-panic link (`checks/no-panic`).
 - Chip and IP-version features are not options (`docs/design/naming.md`).
 
-## Optional features (2026-11-13)
+## Optional features
 
 | feature | adds | can panic | note |
 |---|---|---|---|

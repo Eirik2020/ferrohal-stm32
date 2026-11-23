@@ -89,7 +89,7 @@ sets voltage scale 3 before `freeze`, which must then read back scale 1 with VOS
 F401's timer run does. Run B is the watchdog across its reset, as the F401's; run C the
 I2C master on I2C1 with no slave fitted, as the H753's. The F7's Cortex-M7 needs its DWT
 unlocked before the cycle counter runs (measured: without it every timed check read 0).
-First pass 2026-11-17: probe 139, A 44, B 7, C 9 checks, none failed. Pass: every check in
+Pass: every check in
 every run passes and the script exits zero.
 
 ## SPI on the Nucleo-F767ZI

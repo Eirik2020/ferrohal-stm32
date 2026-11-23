@@ -1,7 +1,5 @@
 # Not supported yet
 
-Split from [CHIPS.md](CHIPS.md) when it reached its size budget (2026-11-19).
-
 The roadmap: features FerroHAL does not offer. None is debt; the owner sets the order.
 
 - **Chips:** the STM32F411, F722, F745 and G474, in progress: [the plan](plans/2026-11-17-f411-f722-f745.md).
