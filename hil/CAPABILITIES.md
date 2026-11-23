@@ -19,8 +19,8 @@ lists the proof gaps waiting for the rig; when an item here lands, its run moves
 | Host | this machine | `hil/run-*.sh`, `probe.sh`, `usb_cdc_host.py`, `vcp_echo.py`, `dfu-util`, `probe-rs`; logs in `hil/logs/` |
 
 Links, jumpers and shared cables are in `hil/WIRING.md` and each board's
-`board.rs` header. The H753's CN13 and the Pico each keep their own USB cable
-(since 2026-11-13); the Lucid's CN13 is shared by hand with its DFU runs.
+`board.rs` header. The H753's CN13 and the Pico each keep their own USB cable; the
+Lucid's CN13 is shared by hand with its DFU runs.
 
 ## What it can prove today
 
@@ -101,39 +101,22 @@ Grouped by why; each is a candidate for the queue below.
 ## The improvement queue
 
 In order; each names what it unlocks. The wider list of options, each tied to the
-DEBT items it would close, is [RIG-IMPROVEMENTS.md](RIG-IMPROVEMENTS.md). The owner holds rig upgrades for now
-(2026-11-13): item 2 waits on hardware. The first three each gave a requirement
-without a method its proof, one chip per IP version (the car rule,
-`docs/design/requirements-system.md`); every requirement has a method now. The rest
-are cheap ones first, then the ones that unblock a claim.
+DEBT items it would close, is [RIG-IMPROVEMENTS.md](RIG-IMPROVEMENTS.md). Item 1 waits on
+hardware. The rest are cheap ones first, then the ones that unblock a claim.
 
-1. ~~**An F4 USB bench.**~~ Done with #48 (2026-11-16): the STM32F4 Discovery's CN5
-   runs USB-F4-001 (Discovery run B) and RESET-004 on the F4 (run C). As planned: The F4's OTG_FS core then has a bench: USB-F4-001, and
-   RESET-004 on the F4 through the ROM's USB DFU. Either a USB breakout on the
-   F401's PA11/PA12 (morpho CN10, with VBUS and ground), or the STM32F407
-   Discovery the owner has, whose USB connector serves the same F4 IP versions.
-   Both need one more USB cable than the rig has. The
-   Nucleo-F401RE has no USB connector of its own.
-2. **A microSD breakout module wired to the H753's SDMMC1 pins** (PC8 to
+1. **A microSD breakout module wired to the H753's SDMMC1 pins** (PC8 to
    PC12 and PD2, on the Zio CN8 header; the Nucleo has the pins but no card
    slot). `sdmmc_v2` then has a Nucleo bench: SDMMC-001 to 004, empty slot
    included, which only the Lucid's flashed bench (`FLSH`) reaches today. The owner has no
-   such module (2026-11-13). PC10/PC11 are Z6 and PC12/PD2 Z8, so it would be
+   such module. PC10/PC11 are Z6 and PC12/PD2 Z8, so it would be
    its own procedure with those links lifted.
-3. ~~**The H753's ROM DFU, no hardware needed.**~~ Done 2026-11-15: run Z ends in the
-   ROM and `dfu-util` lists it on CN13 (RESET-004 on the H7). Run N had left no DFU
-   device because it ends halted, never in the ROM.
-4. **Every bench says what it is**. Over the
-   debug probe where there is one, over USB serial where there is not; `hil/RIG.md`,
-   Identity. Done 2026-11-15 for every board: the Nucleos and the Discovery over their
-   probes, the Pico, the Foxeer and the Lucid over USB serial (`hil/rig_status.py`).
-5. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
+2. **Analog margin.** VDDA/VREFINT at their limits and a current shunt where a
    flight claim depends on it.
-6. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
+3. **Soak runs.** Hours-long per board with the watchdog and USB live, to catch
    the drift and lock-up classes a 300 s run cannot.
-7. **Environmental corners.** Temperature and supply extremes only where a
+4. **Environmental corners.** Temperature and supply extremes only where a
    flight-relevant claim needs them.
-8. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
+5. **Wire-level integrity.** A scope on SCK, SDA and DShot edges when timing
    claims get tight enough that read-back is not enough.
 
 ## Using it

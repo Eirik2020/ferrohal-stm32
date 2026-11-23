@@ -12,15 +12,14 @@ The simulator's own documentation - register map, build and flashing - is
 
 ## Power: the Pico and the Nucleo-H753ZI's CN13 cable
 
-Since 2026-11-13 both stay connected, each on its own USB cable to the host:
+Both stay connected, each on its own USB cable to the host:
 
 - Pico 1 `VBUS` (physical pin 40) is fed by its own micro-USB socket, which
   also flashes it; no 3V3 jumper from either Nucleo is needed. The grounds
   below still tie the I2C return paths short.
 - The H753's CN13 (USB OTG) carries its OTG_FS device, which run M (the USB
   device bench) speaks through: it is always connected unless the owner says
-  otherwise, so run M is back on `hil/run-h753.sh`'s default list. (Before
-  2026-11-13 one cable served both, moved between them.)
+  otherwise, so run M is back on `hil/run-h753.sh`'s default list.
 
 ## Pico 1 (I2C0) to Nucleo-F401RE — I2C3
 

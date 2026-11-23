@@ -3,7 +3,7 @@
  "counts": {
   "documents": 101,
   "agent": 66,
-  "bytes": 573021
+  "bytes": 570654
  },
  "documents": [
   {
@@ -52,8 +52,8 @@
    "path": "docs/ROADMAP.md",
    "class": "human",
    "title": "Not supported yet",
-   "purpose": "Split from CHIPS.mdCHIPS.md when it reached i",
-   "bytes": 2005
+   "purpose": "The roadmap: features FerroHAL does not offer",
+   "bytes": 1926
   },
   {
    "path": "docs/decisions/2026-11-08-free-teardown-brief.md",
@@ -315,7 +315,7 @@
    "class": "agent",
    "title": "`free()`: handing tokens back",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3517
+   "bytes": 3143
   },
   {
    "path": "docs/design/glue-generator.md",
@@ -630,7 +630,7 @@
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 2789
+   "bytes": 2776
   },
   {
    "path": "docs/policies/safety.md",
@@ -679,7 +679,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9301
+   "bytes": 7954
   },
   {
    "path": "hil/COVERAGE.md",
@@ -693,21 +693,21 @@
    "class": "human",
    "title": "Rig improvements: what each upgrade would unblock",
    "purpose": "The options for growing the rig, each tied to",
-   "bytes": 15339
+   "bytes": 15026
   },
   {
    "path": "hil/RIG.md",
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 8461
+   "bytes": 8372
   },
   {
    "path": "hil/WIRING.md",
    "class": "human",
    "title": "Bench wiring: the Pico 1 I2C simulator",
    "purpose": "The two Nucleo benches prove FerroHAL's I2C m",
-   "bytes": 5403
+   "bytes": 5321
   },
   {
    "path": "hil/pico-i2c-sim/README.md",
@@ -742,7 +742,7 @@
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 26936
+   "bytes": 26866
   },
   {
    "path": "requirements/goals.md",

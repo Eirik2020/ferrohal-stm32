@@ -48,11 +48,3 @@ stable Rust cannot read the channel off the wiring's type.
 Proof: `checks/no-metapac` probes that a receive-only UART frees only to its
 `RxWiring` (E0308) and has no transmit operations (E0599); `checks/no-panic` runs every
 `free()` on all five chips.
-
-## Gate
-
-W4b moved the six "second use" checks into fresh-boot runs (F401 run U, H753 run T) and
-deleted `tokens!::steal`. With `free()` landed they folded back into runs H and I —
-TIM4 reopens at 8 kHz, TIM2 and TIM5 as 1 MHz timebases, from the freed token — and
-the fresh-boot runs are gone. `Peripherals::steal` stays the only unsafe hatch, W6
-gated behind `rtic`.
