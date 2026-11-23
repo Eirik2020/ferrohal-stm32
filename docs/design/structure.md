@@ -3,7 +3,7 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's section 2, dissolved 2026-11-10. The module and feature
+The module and feature
 naming scheme is [ADR-017](../decisions/2026-11-23-naming-scheme.md).
 
 - Hierarchy, bottom up: **IP modules → glue → chips → families → vendors**. Each level is a feature-flag bundle of the level below. Only one vendor exists for now.

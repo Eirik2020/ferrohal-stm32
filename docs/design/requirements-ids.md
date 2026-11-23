@@ -3,7 +3,7 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's section 9's catalog half, dissolved 2026-11-10. The model
+The model
 is [requirements-system.md](requirements-system.md).
 
 ## Requirement IDs

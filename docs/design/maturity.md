@@ -8,8 +8,7 @@ The car rule: [requirements-system.md](requirements-system.md).
 
 - A part's **platform** is what FerroHAL needs to run on it at all: the die's
   glue, the clock module for its die, GPIO, reset and system (cause, UID, revision),
-  flash latency, the memory map. A part without its platform is unsupported (the G474
-  today: no G4 clock module).
+  flash latency, the memory map. A part without its platform is unsupported.
 - Everything else is a **capability**: one per driver whose IP version the
   die carries. Optional: a part runs without any. DMA and the watchdog are capabilities.
 

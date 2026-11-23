@@ -3,7 +3,7 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's section 8, dissolved 2026-11-10. The rtic-monotonics
+The rtic-monotonics
 versions referred to below are 2.1.0, 2.2.1 and 3.0.0 *(measured)*.
 
 | # | Foot-gun | Fix | Status |

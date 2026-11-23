@@ -3,7 +3,7 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's section 9's model, dissolved 2026-11-10. The catalog half is [requirements-ids.md](requirements-ids.md);
+The catalog half is [requirements-ids.md](requirements-ids.md);
 the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
 
 ## The general rule
@@ -14,9 +14,9 @@ the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
 - One first pass tests everything. After it, only what changed is retested: an IP change retests the IP, a glue change retests the glue.
 - The car rule across chips. IP versions are separate from chip families, so an IP version proven on one chip is proven for every family that uses it, and glue a family shares is proven on one chip of that family. Only glue particular to one chip needs that chip. A second chip proving the same layer is exhaustive testing, which is forbidden unless a rationale is presented to the owner and accepted.
 - A run is evidence at its bench's tier (`HIL`, `DBG`, `FLSH`, ...); the flashed boards' runs are `FLSH` evidence, and evidence has three axes, IP version, die and series ([maturity.md](maturity.md)).
-- The dev boards come first, not alone: a flight board's runs count where no dev board reaches the IP. Today that is the Lucid's SD slot (SDMMC-003/004).
+- The dev boards come first, not alone: a flight board's runs count where no dev board reaches the IP. For example the Lucid's SD slot (SDMMC-003/004).
 - Verification before a merge runs only the benches whose
-  runs would re-owe evidence for what changed: today the two Nucleos and the STM32F4
+  runs would re-owe evidence for what changed: the two Nucleos and the STM32F4
   Discovery. The flashed boards (Foxeer F405 V2, TBS Lucid H7) run only when something
   they alone reach changes: crystal-mode clocks, DFU flashing, the SD slot. Running a
   bench out of habit is exhaustive testing.
