@@ -6,20 +6,20 @@ The car rule: [requirements-system.md](requirements-system.md).
 
 ## Required vs supported
 
-- **[Decided]** A part's **platform** is what FerroHAL needs to run on it at all: the die's
+- A part's **platform** is what FerroHAL needs to run on it at all: the die's
   glue, the clock module for its die, GPIO, reset and system (cause, UID, revision),
   flash latency, the memory map. A part without its platform is unsupported (the G474
   today: no G4 clock module).
-- **[Decided]** Everything else is a **capability**: one per driver whose IP version the
+- Everything else is a **capability**: one per driver whose IP version the
   die carries. Optional: a part runs without any. DMA and the watchdog are capabilities.
 
 ## Evidence axes
 
-- **[Decided]** **IP version**, die-independent: proven on any die that carries it, for
+- **IP version**, die-independent: proven on any die that carries it, for
   every die and series that does.
-- **[Decided]** **Die**: its glue (routing, RCC bits, vectors, memory map, bonding read from
+- **Die**: its glue (routing, RCC bits, vectors, memory map, bonding read from
   the package), proven on a board with that die.
-- **[Decided]** **Series**: code a series shares, proven by any member.
+- **Series**: code a series shares, proven by any member.
 
 ## Tiers
 
@@ -37,7 +37,7 @@ The car rule: [requirements-system.md](requirements-system.md).
   the tier it ran at when a bench is rewired (owner, 2026-11-15: stamped, not mapped at
   read time). The Nucleos and the STM32F4 Discovery are `HIL`, the Foxeer and the Lucid
   `FLSH`.
-- **[Decided]** A capability on a part is as strong as its weakest axis. A part's score is
+- A capability on a part is as strong as its weakest axis. A part's score is
   its platform's tier; beside it, a table per capability. A capability not listed is not
   covered. No part is gated by its tier.
 - **[Decided, built 2026-11-15]** Tiers are computed from the evidence, never declared:
