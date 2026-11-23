@@ -5,7 +5,7 @@ Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissol
 
 The architecture map's section 3, dissolved 2026-11-10.
 
-**[Decided]** FerroHAL drives peripherals; the scheduler owns execution.
+FerroHAL drives peripherals; the scheduler owns execution.
 
 - It never defines interrupt handlers, never sets NVIC priorities and never enables vectors in the NVIC. It may set a peripheral's own interrupt-enable bits.
 - Drivers expose plain service methods (read and clear flags, `on_interrupt` on the one owner, the `Service` trait: ADR-011) that the scheduler's handlers, or a task, call.

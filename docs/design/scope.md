@@ -15,13 +15,13 @@ were measured against: [`../notes/2026-11-10-reference-implementations.md`](../n
 
 ## Identity (was section 1)
 
-- **[Decided]** FerroHAL is a general-purpose STM32 HAL usable from RTIC, async, bare metal or an equivalent. It is RTIC-first, but RTIC is never required.
-- **[Decided]** Crate name `ferrohal-stm32`, in its own repository, independent of FerroForge and FerroWasp.
-- **[Decided]** It is built only on `stm32-metapac`. Scope is limited to what metapac covers; anything metapac does not support is out of scope.
-- **[Decided]** `embassy-stm32` is a reference to port from, never a dependency. Keep MIT/Apache attribution for ported code.
-- **[Decided]** The "toaster rule": FerroHAL does not know whether it runs in a toaster or an aircraft. It contains no safety-tier, certification-class or FerroWasp-specific logic.
+- FerroHAL is a general-purpose STM32 HAL usable from RTIC, async, bare metal or an equivalent. It is RTIC-first, but RTIC is never required.
+- Crate name `ferrohal-stm32`, in its own repository, independent of FerroForge and FerroWasp.
+- It is built only on `stm32-metapac`. Scope is limited to what metapac covers; anything metapac does not support is out of scope.
+- `embassy-stm32` is a reference to port from, never a dependency. Keep MIT/Apache attribution for ported code.
+- The "toaster rule": FerroHAL does not know whether it runs in a toaster or an aircraft. It contains no safety-tier, certification-class or FerroWasp-specific logic.
 - FerroWasp is FerroHAL's first-class supported user: its needs drive what FerroHAL builds and in what order, and a gap that blocks FerroWasp ranks first. The toaster rule still holds: each need lands as a generic capability, named, specified and tested in FerroHAL's terms, so any other firmware gets it too; FerroHAL never depends on a user's firmware and holds no transition code for one ([ADR-016](../decisions/2026-11-23-first-supported-user.md)).
-- **[Decided]** FerroHAL's main goals are: scheduler agnostic; no panic; a single unified HAL; requirement tracing and verification. These are the roots its requirements trace to ([goals](../../requirements/goals.md)); it does not trace to FerroWasp's W1-W7.
+- FerroHAL's main goals are: scheduler agnostic; no panic; a single unified HAL; requirement tracing and verification. These are the roots its requirements trace to ([goals](../../requirements/goals.md)); it does not trace to FerroWasp's W1-W7.
 
 ## Code generator, parked (was section 10)
 

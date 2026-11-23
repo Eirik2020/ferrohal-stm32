@@ -15,6 +15,6 @@ versions referred to below are 2.1.0, 2.2.1 and 3.0.0 *(measured)*.
 | 5 | Two metapac versions in one build | rtic-monotonics 3 accepts stm32-metapac `>=16`, so it unifies with FerroHAL's copy | Dissolved by the version bump |
 | 6 | Task crates keyed on chips | HAL-specific task crates are keyed on IP-version features and checked against one representative chip per IP version | Decided |
 
-- **[Decided]** Branch FerroForge and bump it to rtic 2.4.0 and rtic-monotonics 3.0.0. rtic-monotonics 3 is a breaking release: FerroForge's `[timer-monotonic] chip-feature` mechanism must change, interrupt-based monotonics take their priority in `start()`, and fugit moves to 0.6, which affects every task crate that reads time.
+- Branch FerroForge and bump it to rtic 2.4.0 and rtic-monotonics 3.0.0. rtic-monotonics 3 is a breaking release: FerroForge's `[timer-monotonic] chip-feature` mechanism must change, interrupt-based monotonics take their priority in `start()`, and fugit moves to 0.6, which affects every task crate that reads time.
 - **[Proposal]** FerroForge chooses between the old HAL and FerroHAL through backend data, for example a second backend entry per chip.
-- **[Decided]** RTIC itself is not modified.
+- RTIC itself is not modified.
