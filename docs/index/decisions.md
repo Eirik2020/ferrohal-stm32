@@ -19,8 +19,8 @@
 | a | docs/decisions/2026-11-23-first-supported-user.md | 1114 B | ADR-016 - Status: promoted |
 | a | docs/decisions/AGENTS.md | 886 B | These rules bind every decision recorded in t |
 | a | docs/decisions/CLAUDE.md | 11 B |  |
-| a | docs/decisions/README.md | 1481 B | Record = event what, why, rejected, date, not |
-| a | docs/decisions/archive/2026/2026-10-31-ferrowasp-integration.md | 3547 B | ADR-005 - Status: superseded by ADR-016 |
+| a | docs/decisions/README.md | 1735 B | Record = event what, why, rejected, date, not |
+| a | docs/decisions/archive/2026/2026-10-31-ferrowasp-integration.md | 3560 B | ADR-005 - Status: superseded by ADR-016 |
 | a | docs/decisions/archive/2026/2026-11-09-uart-capabilities.md | 2455 B | ADR-004 - Status: superseded |
 | a | docs/decisions/archive/2026/2026-11-10-doc-map-dissolution.md | 1578 B | ADR-006 - Status: obsolete |
-| a | docs/decisions/index/2026.md | 2310 B | One row per record. The record itself is auth |
+| a | docs/decisions/index/2026.md | 2482 B | One row per record. The record itself is auth |

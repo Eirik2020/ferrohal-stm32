@@ -3,7 +3,7 @@
  "counts": {
   "documents": 97,
   "agent": 62,
-  "bytes": 565845
+  "bytes": 566850
  },
  "documents": [
   {
@@ -191,14 +191,14 @@
    "class": "agent",
    "title": "Decision records (ADR hub)",
    "purpose": "Record = event what, why, rejected, date, not",
-   "bytes": 1481
+   "bytes": 1735
   },
   {
    "path": "docs/decisions/archive/2026/2026-10-31-ferrowasp-integration.md",
    "class": "agent",
    "title": "ADR-005: FerroWasp integration and scope (2026-10-31)",
    "purpose": "ADR-005 - Status: superseded by ADR-016",
-   "bytes": 3547,
+   "bytes": 3560,
    "adr": "ADR-005",
    "status": "superseded"
   },
@@ -225,7 +225,7 @@
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 2310
+   "bytes": 2482
   },
   {
    "path": "docs/design/api-surface.md",
@@ -233,6 +233,13 @@
    "title": "Public API surface",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
    "bytes": 3096
+  },
+  {
+   "path": "docs/design/archive/2026/uart-ferrowasp.md",
+   "class": "agent",
+   "title": "UART design for FerroWasp",
+   "purpose": "Source: ADR-005, ../decisions/archive/2026/20",
+   "bytes": 1453
   },
   {
    "path": "docs/design/clocks.md",
@@ -361,18 +368,11 @@
    "bytes": 2187
   },
   {
-   "path": "docs/design/uart-ferrowasp.md",
-   "class": "agent",
-   "title": "UART design for FerroWasp",
-   "purpose": "Source: ADR-005, ../decisions/archive/2026/20",
-   "bytes": 1441
-  },
-  {
    "path": "docs/design/uart-ownership.md",
    "class": "agent",
    "title": "UART ownership: one owner, served by `on_interrupt` (2026-11-17)",
    "purpose": "Source: ADR-011, ../decisions/2026-11-17-uart",
-   "bytes": 4888
+   "bytes": 5442
   },
   {
    "path": "docs/errata/ES0182.md",
