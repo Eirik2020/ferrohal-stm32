@@ -3,9 +3,7 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's sections 1, 10, 12 and 13, dissolved 2026-11-10. Tags:
-**[Decided]** settled by the owner, follow it; **[Proposal]** current
-direction, raise it before building on it.
+The architecture map's sections 1, 10, 12 and 13, dissolved 2026-11-10.
 
 The design's other topics: [execution-model.md](execution-model.md) (scheduler-agnostic
 execution), [layering.md](layering.md) (crate layering and the async hooks),
@@ -25,8 +23,7 @@ were measured against: [`../notes/2026-11-10-reference-implementations.md`](../n
 
 ## Code generator, parked (was section 10)
 
-**[Superseded 2026-11-13, ADR-008]** ~~The generator is not part of the current work.~~ It is
-unparked: [glue-generator.md](glue-generator.md). What kept it open still holds:
+The generator is built: [glue-generator.md](glue-generator.md). What kept it open still holds:
 
 - keep board facts as data, not code;
 - keep routing traits typed per IP and per instance;

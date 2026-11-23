@@ -112,7 +112,7 @@ are cheap ones first, then the ones that unblock a claim.
    RESET-004 on the F4 through the ROM's USB DFU. Either a USB breakout on the
    F401's PA11/PA12 (morpho CN10, with VBUS and ground), or the STM32F407
    Discovery the owner has, whose USB connector serves the same F4 IP versions.
-   Both need one more USB cable than the rig has (owner, 2026-11-13). The
+   Both need one more USB cable than the rig has. The
    Nucleo-F401RE has no USB connector of its own.
 2. **A microSD breakout module wired to the H753's SDMMC1 pins** (PC8 to
    PC12 and PD2, on the Zio CN8 header; the Nucleo has the pins but no card
@@ -123,7 +123,7 @@ are cheap ones first, then the ones that unblock a claim.
 3. ~~**The H753's ROM DFU, no hardware needed.**~~ Done 2026-11-15: run Z ends in the
    ROM and `dfu-util` lists it on CN13 (RESET-004 on the H7). Run N had left no DFU
    device because it ends halted, never in the ROM.
-4. **Every bench says what it is** (owner, 2026-11-13; option C, 2026-11-15). Over the
+4. **Every bench says what it is**. Over the
    debug probe where there is one, over USB serial where there is not; `hil/RIG.md`,
    Identity. Done 2026-11-15 for every board: the Nucleos and the Discovery over their
    probes, the Pico, the Foxeer and the Lucid over USB serial (`hil/rig_status.py`).

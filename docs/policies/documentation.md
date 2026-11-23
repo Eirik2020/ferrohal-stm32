@@ -9,7 +9,7 @@ Normative. Two classes:
   `docs/{policies,decisions,notes,housekeeping,design}/**`.
 - **Plans are human-readable**: `docs/plans/**` uses prose. A finished plan is deleted: its
   useful facts move into the documents that own them first, and its commits and PR keep
-  the record (owner, 2026-11-13).
+  the record.
 
 ## Where behaviour lives
 
@@ -59,7 +59,7 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 
 ## The repository root
 
-- Owner, 2026-11-13: the root holds only the files a repository is expected to have there
+- The root holds only the files a repository is expected to have there
   (`README.md`, `AGENTS.md`, `THIRD-PARTY.md`, the licences, the Cargo and tool
   manifests) and temporary markdown that is never committed. Review records and
   architecture drafts go in `review/`, which git ignores whole and agents may not write
@@ -76,7 +76,7 @@ move verbatim to `archive/<year>/`. Active records capped at 20. Lifecycle:
 
 ## Limits
 
-- Bytes only, set by the owner 2026-11-13: always-loaded files (`AGENTS.md`) 20000 B;
+- Bytes only: always-loaded files (`AGENTS.md`) 20000 B;
   every other document 40000 B. No line or token caps, no ratchets.
 - Over a limit: **split into a second document**, linked from the first; never
   compress, never drop a fact.

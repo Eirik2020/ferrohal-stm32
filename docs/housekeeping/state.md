@@ -31,8 +31,7 @@ last review. The owner changes the cadence by editing the two dates above.
   `hil/COVERAGE.md`, `docs/policies/features.md`, ADR-007 to ADR-009 with
   `docs/design/glue-generator.md` and `maturity.md`, the generator plan, DEBT and
   RESOLVED moved into `docs/`). No orphans. One duplicate-title hint, `benches-analysis.md`
-  and `benches-refusals.md`: different procedures, kept. ADR-002, ADR-005 and ADR-006
-  stay accepted (owner, 2026-11-13). `hil/CAPABILITIES.md`'s "What it can prove today"
+  and `benches-refusals.md`: different procedures, kept. `hil/CAPABILITIES.md`'s "What it can prove today"
   overlaps `hil/COVERAGE.md` (prose per capability against a matrix per IP version):
   cross-linked, kept. The five finished plans (debt sweep and its gates, `free()`, W14,
   doc sweep) stay: decision records cite them as their plans of record; retiring them

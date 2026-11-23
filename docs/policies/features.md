@@ -30,7 +30,7 @@ Normative. Goals G1, G2, G5 (`requirements/goals.md`). Record: ADR-007,
 | `profile-start` | `profile-listen`, plus an exchange's start (each load, play) and the frame-end turn by part | no | benches only |
 | `usb` | a `usb-device` bus over `synopsys-usb-otg` (0.4.0 from a fork pinned by revision, for ES0392 2.25.7, no panics and bounded waits), and `UsbVector`'s deferred service | no | in the no-panic link: every `UsbBus` trait method and the vector's service. `usb-device` itself is re-exported for the firmware's stack and classes, which are protocol code, the firmware's, outside G2 |
 
-## Allowed, not built (owner 2026-11-13: not now)
+## Allowed, not built
 
 - rtic-time: a FerroHAL timer as rtic-monotonics' monotonic (`docs/design/ferroforge-seam.md`, foot-gun 1).
 - embassy-time: a time driver over a FerroHAL timer.

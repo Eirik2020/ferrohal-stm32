@@ -3,8 +3,7 @@
 Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissolution.md`](../decisions/archive/2026/2026-11-10-doc-map-dissolution.md)).
 
 
-The architecture map's section 9's model, dissolved 2026-11-10; decided by the
-owner on 2026-11-03. The catalog half is [requirements-ids.md](requirements-ids.md);
+The architecture map's section 9's model, dissolved 2026-11-10. The catalog half is [requirements-ids.md](requirements-ids.md);
 the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
 
 ## The general rule
@@ -13,22 +12,22 @@ the format and reqtool are [requirements-tooling.md](requirements-tooling.md).
 - A layer's interface to the layer below is the requirements it sets there. A change to a part that still fulfils them re-owes only that part. A change to the requirements re-owes the layer that set them.
 - The layers, each with its own requirements and verification: IP block, engine, chip glue, HAL API.
 - One first pass tests everything. After it, only what changed is retested: an IP change retests the IP, a glue change retests the glue.
-- **[Decided 2026-11-13]** The car rule across chips. IP versions are separate from chip families, so an IP version proven on one chip is proven for every family that uses it, and glue a family shares is proven on one chip of that family. Only glue particular to one chip needs that chip. A second chip proving the same layer is exhaustive testing, which is forbidden unless a rationale is presented to the owner and accepted.
-- **[Superseded 2026-11-13, ADR-009]** ~~The flight-controller benches (Foxeer F405 V2, TBS Lucid H7) are smoke tests: they sanity-check the F405 and the H743 and carry no requirement's evidence. Requirements are proven on the Nucleos, one chip per IP version or family glue.~~ A run is evidence at its bench's tier (`HIL`, `DBG`, `FLSH`, ...); the flashed boards' runs are `FLSH` evidence, and evidence has three axes, IP version, die and series ([maturity.md](maturity.md)).
-- **[Decided 2026-11-16, owner]** The dev boards come first, not alone: a flight board's runs count where no dev board reaches the IP. Today that is the Lucid's SD slot (SDMMC-003/004).
-- **[Decided 2026-11-14, owner]** Verification before a merge runs only the benches whose
+- The car rule across chips. IP versions are separate from chip families, so an IP version proven on one chip is proven for every family that uses it, and glue a family shares is proven on one chip of that family. Only glue particular to one chip needs that chip. A second chip proving the same layer is exhaustive testing, which is forbidden unless a rationale is presented to the owner and accepted.
+- A run is evidence at its bench's tier (`HIL`, `DBG`, `FLSH`, ...); the flashed boards' runs are `FLSH` evidence, and evidence has three axes, IP version, die and series ([maturity.md](maturity.md)).
+- The dev boards come first, not alone: a flight board's runs count where no dev board reaches the IP. Today that is the Lucid's SD slot (SDMMC-003/004).
+- Verification before a merge runs only the benches whose
   runs would re-owe evidence for what changed: today the two Nucleos and the STM32F4
   Discovery. The flashed boards (Foxeer F405 V2, TBS Lucid H7) run only when something
   they alone reach changes: crystal-mode clocks, DFU flashing, the SD slot. Running a
   bench out of habit is exhaustive testing.
-- **[Decided 2026-11-13]** Evidence follows files, not images. A requirement verified on a bench stands while the files that bench exercised for it are unchanged; another file added to the image, another run's code, or a rebuilt binary does not re-owe it. reqtool does this since reqtool#4 and #5 (2026-11-13): board evidence holds while its declaring files, and the external crates they import, are unchanged; CI pins that revision (`.github/workflows/ci.yml`).
+- Evidence follows files, not images. A requirement verified on a bench stands while the files that bench exercised for it are unchanged; another file added to the image, another run's code, or a rebuilt binary does not re-owe it. reqtool does this: board evidence holds while its declaring files, and the external crates they import, are unchanged; CI pins that revision (`.github/workflows/ci.yml`).
 
 ## Files and hashes
 
 - Things are grouped into files, for example `usart_v2`. The file states its requirements and is hashed. Verification evidence records the hash, and evidence that does not match the hash is flagged as unverified.
 - Another local file is not part of a file's hash; the requirements cover that link. A consequence: a file serving two IP versions, such as `dma/mod.rs`, has one hash, so changing it re-owes both unless it is split.
-- **[Proposal]** The tool keeps two labels for the flag: `stale` when a pass exists and the hash has changed, `unverified` when none ever passed. Both count as not verified and hold a gate closed.
-- **[Proposal]** A file's evidence also covers the `macro_rules!` definitions it expands, since a macro changes what a file compiles to without changing its hash. `chips/macros.rs` expands in all four chip files. Requirement docs and markers for internal macros go inside the macro body, so each expansion carries them.
+- reqtool keeps two labels for the flag: `stale` when a pass exists and the hash has changed, `unverified` when none ever passed. Both count as not verified and hold a gate closed.
+- A file's evidence also covers the `macro_rules!` definitions it expands (reqtool traces a macro to the files that define it), since a macro changes what a file compiles to without changing its hash. `chips/macros.rs` expands in all four chip files. Requirement docs and markers for internal macros go inside the macro body, so each expansion carries them.
 
 ## Dependencies
 

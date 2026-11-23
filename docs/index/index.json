@@ -3,7 +3,7 @@
  "counts": {
   "documents": 97,
   "agent": 62,
-  "bytes": 566865
+  "bytes": 563597
  },
  "documents": [
   {
@@ -46,7 +46,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 9775
+   "bytes": 9713
   },
   {
    "path": "docs/ROADMAP.md",
@@ -267,7 +267,7 @@
    "class": "agent",
    "title": "The FerroForge seam: foot-guns and fixes",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2093
+   "bytes": 1957
   },
   {
    "path": "docs/design/free-shapes.md",
@@ -281,14 +281,14 @@
    "class": "agent",
    "title": "`free()`: handing tokens back (2026-11-09, landed 2026-11-13)",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3498
+   "bytes": 3416
   },
   {
    "path": "docs/design/glue-generator.md",
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 10615
+   "bytes": 10175
   },
   {
    "path": "docs/design/h7-errata.md",
@@ -316,14 +316,14 @@
    "class": "agent",
    "title": "Maturity: capability, evidence axes and tiers",
    "purpose": "Source: ADR-009, ../decisions/2026-11-13-matu",
-   "bytes": 3290
+   "bytes": 3207
   },
   {
    "path": "docs/design/naming.md",
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-003, ../decisions/2026-11-08-nami",
-   "bytes": 9813
+   "bytes": 9375
   },
   {
    "path": "docs/design/ownership.md",
@@ -337,28 +337,28 @@
    "class": "agent",
    "title": "Requirement IDs and what a user maps onto",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 1770
+   "bytes": 1740
   },
   {
    "path": "docs/design/requirements-system.md",
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 4580
+   "bytes": 4140
   },
   {
    "path": "docs/design/requirements-tooling.md",
    "class": "agent",
    "title": "Requirement format and reqtool",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2708
+   "bytes": 2188
   },
   {
    "path": "docs/design/scope.md",
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 3777
+   "bytes": 3578
   },
   {
    "path": "docs/design/structure.md",
@@ -463,14 +463,14 @@
    "class": "agent",
    "title": "Housekeeping",
    "purpose": "Documents rot by addition. An agent adds a no",
-   "bytes": 2093
+   "bytes": 2073
   },
   {
    "path": "docs/housekeeping/state.md",
    "class": "agent",
    "title": "Housekeeping state",
    "purpose": "Cadence: monthly, or immediately when more th",
-   "bytes": 4046
+   "bytes": 3980
   },
   {
    "path": "docs/notes/2026-11-08-naming-audit.md",
@@ -575,7 +575,7 @@
    "class": "human",
    "title": "Plan: the STM32F411, F722, F745 and G474",
    "purpose": "Opened 2026-11-17. The owner's fifth and last",
-   "bytes": 12918
+   "bytes": 12864
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -589,28 +589,28 @@
    "class": "agent",
    "title": "Documentation policy",
    "purpose": "Normative. Two classes:",
-   "bytes": 5864
+   "bytes": 5796
   },
   {
    "path": "docs/policies/features.md",
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 2817
+   "bytes": 2789
   },
   {
    "path": "docs/policies/safety.md",
    "class": "agent",
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
-   "bytes": 3028
+   "bytes": 3008
   },
   {
    "path": "docs/resolved/README.md",
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.md../DEBT.md",
-   "bytes": 22374
+   "bytes": 22079
   },
   {
    "path": "docs/resolved/chips-and-features.md",
@@ -624,7 +624,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
    "purpose": "The crate-wide entries of README.mdREADME.md ",
-   "bytes": 21922
+   "bytes": 21855
   },
   {
    "path": "docs/resolved/crate-wide-to-2026-11-09.md",
@@ -645,7 +645,7 @@
    "class": "human",
    "title": "HIL rig: capabilities and improvements",
    "purpose": "The rig turns requirement claims into measure",
-   "bytes": 9356
+   "bytes": 9294
   },
   {
    "path": "hil/COVERAGE.md",
@@ -659,7 +659,7 @@
    "class": "human",
    "title": "Rig improvements: what each upgrade would unblock",
    "purpose": "The options for growing the rig, each tied to",
-   "bytes": 15459
+   "bytes": 15339
   },
   {
    "path": "hil/RIG.md",
@@ -673,7 +673,7 @@
    "class": "human",
    "title": "Bench wiring: the Pico 1 I2C simulator",
    "purpose": "The two Nucleo benches prove FerroHAL's I2C m",
-   "bytes": 5441
+   "bytes": 5403
   },
   {
    "path": "hil/pico-i2c-sim/README.md",

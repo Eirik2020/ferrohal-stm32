@@ -4,7 +4,7 @@
 
 checks/no-panic proves no panic is reachable through the calls it makes, and
 only those (docs/DEBT.md had it as "proves only the paths it calls"). This
-check closes the gap the stable way (owner, 2026-11-16): it lists every `pub fn`
+check closes the gap the stable way: it lists every `pub fn`
 under src/ and requires checks/no-panic/src/main.rs to name it, or
 checks/no-panic/uncalled.txt to list it with a reason a reviewer accepted.
 

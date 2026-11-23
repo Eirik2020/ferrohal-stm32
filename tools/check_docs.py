@@ -7,7 +7,7 @@ context window and hides the one fact a reader needed. The rule is: a document
 has a budget, and when it needs more it is *split into a second document*, never
 compressed and never left to grow (see docs/policies/documentation.md).
 
-Budgets, in bytes (set by the owner 2026-11-13):
+Budgets, in bytes:
 - always-loaded files (AGENTS.md): 20000 B - they are read the moment an agent
   enters the repository, so their budget is the strictest;
 - every other document: 40000 B.
@@ -72,7 +72,7 @@ ENTRY = {
 HUBS = ("docs/decisions/index/",)
 LINK = re.compile(r"\]\(([^)\s#]+\.md)(?:#[^)]*)?\)")
 
-# The only markdown a commit may hold at the repository root (owner, 2026-11-13).
+# The only markdown a commit may hold at the repository root.
 # Any other root `.md` is temporary - a review record, a draft - and stays
 # uncommitted: no budget, no index.
 ROOT_FILES = {"README.md", "AGENTS.md", "CLAUDE.md", "THIRD-PARTY.md"}
