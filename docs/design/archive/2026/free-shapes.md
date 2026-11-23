@@ -1,9 +1,11 @@
 # `free()`: the landed shapes, driver by driver
 
-What blocked each driver's teardown, and the shape that landed. The rules these
-shapes meet are in [`free.md`](free.md).
+Archived 2026-11-23 from `docs/design/free-shapes.md`; what still binds was promoted out first. History, not rules.
 
-Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions/2026-11-08-free-teardown-brief.md).
+What blocked each driver's teardown, and the shape that landed. The rules these
+shapes meet are in [`free.md`](../../free.md).
+
+Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../../../decisions/2026-11-08-free-teardown-brief.md).
 
 - ~~`Pwm<T>` held only `PhantomData<T>`~~ **done (2026-11-10):** it stores the token;
   `free()` stops the counter, closes the compare requests and hands it back.
@@ -17,7 +19,7 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
   and hand it back with `free()`. The bench seals a running tick in a per-run enum
   (`hil/common/timers.rs`); `Link` reads the timebase through a `TimebaseReader`.
 - UART: the next two entries are superseded by ADR-011 (2026-11-17): one `Uart<W>`, no
-  halves, and `free` hands back the wiring and buffers ([uart-ownership](uart-ownership.md)).
+  halves, and `free` hands back the wiring and buffers ([uart-ownership](../../uart-ownership.md)).
 - ~~`Uart`/`UartRx` stored `&'static Info`, and the halves needed a rejoin~~
   **done (2026-11-11):** the token rides in `Line<U>`; `split()`/`join()`; `free()` —
   the whole `Uart`, or `UartRx::free(self, line)` — returns it.

@@ -38,7 +38,7 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
 /// block while a controller delays accepting a transfer. The fix,
 /// `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE`, costs read throughput and metapac
 /// doesn't carry the register, so DEBT.md holds the decision. The SRAM1 to 4
-/// blocks are outside the erratum; `docs/design/h7-errata.md` has the review.
+/// blocks are outside the erratum; the table is `docs/errata/ES0392.md`.
 const DMA_RAM: [(usize, usize); 3] = [
     (0x2400_0000, 512 * 1024),
     (0x3000_0000, 288 * 1024),

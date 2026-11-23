@@ -3,8 +3,6 @@
 Every driver handle that owns a peripheral token hands it back with `free(self) -> T`,
 stopping what it ran as a `Drop` would: requirement `API-002`, proven on both Nucleos
 (runs V/U free each UART, SPI and I2C and read them off; the timer runs reopen theirs).
-Driver by driver, what blocked each and the shape that landed:
-[`free-shapes.md`](free-shapes.md).
 
 Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions/2026-11-08-free-teardown-brief.md).
 
@@ -39,6 +37,13 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 3. A channel or lane that outlives `Pwm::free` must not be constructible. **Met:**
    `PwmChannel<'a, ..>` borrows; a `CompareLane` holds no timer access and writes
    only through a `&Pwm` it is handed.
+4. A freed or aborted timer leaves its outputs inactive at once. The duties are
+   preloaded and a stopped counter makes no update to load them, so without one an
+   output stopped mid-pulse would hold high: `Pwm::free` and `Awg::abort` write duty 0
+   and raise the update event themselves.
+
+A lane names its channel as a const generic beside its wiring (`CompareLane<T, C, W>`):
+stable Rust cannot read the channel off the wiring's type.
 
 Proof: `checks/no-metapac` probes that a receive-only UART frees only to its
 `RxWiring` (E0308) and has no transmit operations (E0599); `checks/no-panic` runs every

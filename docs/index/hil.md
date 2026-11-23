@@ -4,7 +4,7 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| h | hil/CAPABILITIES.md | 9294 B | The rig turns requirement claims into measure |
+| h | hil/CAPABILITIES.md | 9301 B | The rig turns requirement claims into measure |
 | h | hil/COVERAGE.md | 6883 B | Which bench proves what, per IP version: the  |
 | h | hil/RIG-IMPROVEMENTS.md | 15339 B | The options for growing the rig, each tied to |
 | h | hil/RIG.md | 8461 B | What every bench script and firmware crate re |

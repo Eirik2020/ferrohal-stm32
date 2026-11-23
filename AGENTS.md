@@ -93,6 +93,8 @@ capabilities, blind spots and improvement queue are in `hil/CAPABILITIES.md`.
 12. Root: README, AGENTS, CLAUDE, THIRD-PARTY, licences, manifests, and uncommitted temporary `.md` only; docs live in `docs/`.
 13. Don't touch `flash-backups/`, `requirements/evidence/`.
 14. `review/` (owner's reviews + drafts, uncommitted): read only; no write of any kind without the owner's explicit permission.
+15. Docs follow code: before changing a file under `src/`, run `python3 -I tools/docs_for.py <files>` and read what it lists; update those pages in the same change.
+16. Before finishing, run `python3 -I tools/docs_for.py --check`. It must pass: update each page it names, or state why it does not change with `--none "<reason>"` and put that line in the PR.
 
 ## Style
 

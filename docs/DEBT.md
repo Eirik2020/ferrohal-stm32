@@ -51,7 +51,7 @@ Severity: **High** gives wrong behaviour. **Medium** is a gap a user will hit so
 - `code` `errata` `rig` **Medium: no ES0392 2.2.10 workaround for rev-Y/W H7s.** DMA
   buffers sit in AXI SRAM, where those revisions can corrupt reads;
   `AXI_TARG7_FN_MOD.READ_ISS_OVERRIDE` fixes it and metapac lacks the register. Both H7s
-  here are rev V, so no bench can show it (`docs/design/h7-errata.md`). *Spawned:* the
+  here are rev V, so no bench can show it (`docs/errata/ES0392.md`). *Spawned:* the
   W11 errata review (`3702336`, 2026-11-09).
 - `code` **Low: kernel clock is assumed equal to bus clock.** True on the F4, and on the H7
   only because `freeze` forces the muxes; with review D2. *Spawned:* `af65cad`, the
