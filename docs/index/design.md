@@ -1,6 +1,6 @@
 # Document index: design (generated)
 
-21 documents in docs/design/. Hub: [README.md](README.md).
+22 documents in docs/design/. Hub: [README.md](README.md).
 
 | class | path | size | purpose |
 |---|---|---|---|
@@ -14,6 +14,7 @@
 | a | docs/design/free.md | 3416 B | Every driver handle that owns a peripheral to |
 | a | docs/design/glue-generator.md | 10175 B | Source: ADR-008, ../decisions/2026-11-13-chip |
 | a | docs/design/h7-errata.md | 1405 B | W11 of the debt sweep. Read against ES0392 Re |
+| a | docs/design/i2c-interrupt.md | 3209 B | Source: ADR-013, ../decisions/2026-11-19-i2c- |
 | a | docs/design/lanes.md | 8422 B | Source: ADR-014, ../decisions/2026-11-19-time |
 | a | docs/design/layering.md | 1644 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/maturity.md | 3207 B | Source: ADR-009, ../decisions/2026-11-13-matu |

@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 100,
-  "agent": 65,
-  "bytes": 569438
+  "documents": 101,
+  "agent": 66,
+  "bytes": 572644
  },
  "documents": [
   {
@@ -131,10 +131,10 @@
    "path": "docs/decisions/2026-11-19-i2c-interrupt-driver.md",
    "class": "agent",
    "title": "ADR-013: An interrupt-driven I2C master on lent buffers (2026-11-19)",
-   "purpose": "ADR-013 - Status: accepted",
-   "bytes": 2995,
+   "purpose": "ADR-013 - Status: promoted",
+   "bytes": 2992,
    "adr": "ADR-013",
-   "status": "accepted"
+   "status": "promoted"
   },
   {
    "path": "docs/decisions/2026-11-19-timer-lanes-round2.md",
@@ -323,6 +323,13 @@
    "title": "ES0392 review: cache, system, flash ECC",
    "purpose": "W11 of the debt sweep. Read against ES0392 Re",
    "bytes": 1405
+  },
+  {
+   "path": "docs/design/i2c-interrupt.md",
+   "class": "agent",
+   "title": "I2C: the interrupt-driven master on lent buffers",
+   "purpose": "Source: ADR-013, ../decisions/2026-11-19-i2c-",
+   "bytes": 3209
   },
   {
    "path": "docs/design/lanes.md",
