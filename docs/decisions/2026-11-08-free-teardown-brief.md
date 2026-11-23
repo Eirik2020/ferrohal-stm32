@@ -1,9 +1,8 @@
-# Decision: ownership and `free()` (the teardown brief, 2026-11-08)
+# ADR-002: Ownership and `free()` (2026-11-08)
 
-ADR-002 - Status: accepted
+ADR-002 - Status: promoted
 
-Scheduled 2026-11-08, after the debt sweep. Plan:
-PRs #35 to #38 (the plan file was deleted on 2026-11-13; git history keeps it).
+Promoted to: [free.md](../design/free.md) (design).
 
 ## Context
 
@@ -16,36 +15,19 @@ contract. Ecosystem precedent exists: `stm32h7xx-hal-0.16` has 11 `free(...)` me
 ## Decision
 
 1. Handles own their tokens and can hand them back (`free()`), across the drivers.
-2. Sub-handles are lifetime-bound or joinable: `PwmChannel`/`CompareLane`/`TwoWayLane`
-   borrow their timer (or a split timer handle), `UartRx`/`UartTx` rejoin into `Uart`.
-3. Until then, the six bench "second use" checks move into fresh-boot runs so
-   `tokens!::steal` can be deleted in the debt sweep (W4b).
-4. The naming normalisation (W14) travels with this project, not the sweep. (Went
-   otherwise: W14 became its own PR, #39, 2026-11-13.)
+2. Sub-handles are lifetime-bound or joinable, so a handle cannot outlive the token it
+   uses.
+3. Until `free()` exists, the six bench "second use" checks move into fresh-boot runs so
+   `tokens!::steal` can be deleted.
 
-## Proven blockers (do not rediscover)
+## Rejected
 
-- `Pwm<T>` (`src/timer_pwm.rs:131`) keeps only `PhantomData<T>`; `PwmChannel<T, C>`
-  (`:366`) and `CompareLane<T, C>` (`:613`) hold register blocks and no borrow, so a safe
-  `Pwm::free()` would be callable while a lane still drives the timer. Binding them by
-  lifetime conflicts with `start`/`stage` taking `&mut Pwm` while lanes live - hence a
-  redesign, not a method.
-- ~~`Tick`/`Timebase` are **non-generic**; the token is erased~~ **done (2026-11-10):**
-  they are `Tick<T>`/`Timebase<T>` and hand the token back with `free()`; the bench's
-  `TickBench<E>` holds a per-run enum of benched ticks so the token stays sealed while
-  the vector runs.
-- ~~`I2c` (`src/i2c/mod.rs:256`) and `Spi`/`Uart` store `&'static Info`, not their tokens.~~
-  **done (2026-11-11/12):** all three carry the token in the handle and hand it back
-  with `free()`.
-- ~~`UartRx`/`UartTx` must rejoin before `Uart::free()`.~~ **done (2026-11-11):**
-  `split`/`join` pair; `free()` takes the whole `Uart`. Since 2026-11-13 the halves
-  carry their instance and a receive-only UART frees through its own `RxLine`
-  ([`../design/free-shapes.md`](../design/free-shapes.md)).
+No alternative was recorded.
 
 ## Consequences
 
-- Every affected file's evidence is re-owed (architecture §9 hashes).
-- The fresh-boot bench runs stay valid; they simply become redundant and can be folded
-  back once `free()` exists.
-- `DEBT.md`'s "no `release()`/`free()`" entry closes only when the redesign lands
-  (closed 2026-11-12, moved to [RESOLVED.md](../resolved/README.md)).
+- A safe `free()` needs a redesign of the handles, not one added method: a channel or
+  lane that held register access without a borrow could outlive its timer's `free()`.
+  What blocked each driver and the shape that landed are in
+  [free-shapes.md](../design/free-shapes.md).
+- The fresh-boot bench runs become redundant once `free()` exists.

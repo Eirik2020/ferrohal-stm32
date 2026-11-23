@@ -13,7 +13,7 @@
 | a | docs/design/free.md | 3498 B | Every driver handle that owns a peripheral to |
 | a | docs/design/glue-generator.md | 10783 B | Source: ADR-008, ../decisions/2026-11-13-chip |
 | a | docs/design/h7-errata.md | 1405 B | W11 of the debt sweep. Read against ES0392 Re |
-| a | docs/design/lanes.md | 6954 B | Source: ADR-014, ../decisions/2026-11-19-time |
+| a | docs/design/lanes.md | 8422 B | Source: ADR-014, ../decisions/2026-11-19-time |
 | a | docs/design/layering.md | 1671 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/maturity.md | 3374 B | Source: ADR-009, ../decisions/2026-11-13-matu |
 | a | docs/design/naming.md | 10107 B | Source: ADR-003, ../decisions/2026-11-08-nami |
@@ -21,7 +21,7 @@
 | a | docs/design/requirements-ids.md | 1826 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-system.md | 4706 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-tooling.md | 2778 B | Source: ADR-006 archived: ../decisions/archiv |
-| a | docs/design/scope.md | 3783 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/scope.md | 3861 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/structure.md | 2299 B | Source: ADR-006 archived: ../decisions/archiv |
-| a | docs/design/uart-ferrowasp.md | 1402 B | Source: ADR-005, ../decisions/2026-10-31-ferr |
-| a | docs/design/uart-ownership.md | 4785 B | Source: ADR-011, ../decisions/2026-11-17-uart |
+| a | docs/design/uart-ferrowasp.md | 1441 B | Source: ADR-005, ../decisions/archive/2026/20 |
+| a | docs/design/uart-ownership.md | 4888 B | Source: ADR-011, ../decisions/2026-11-17-uart |

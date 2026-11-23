@@ -1,7 +1,7 @@
 # IP versions across families (stm32-metapac 21, measured)
 
 From the architecture map's section 11, dissolved 2026-11-10. Its decided scope
-items are superseded by [ADR-005](../decisions/2026-10-31-ferrowasp-integration.md),
+items are superseded by [ADR-005](../decisions/archive/2026/2026-10-31-ferrowasp-integration.md),
 and its two open questions - the prototype's kill condition, and how to measure
 reuse - closed when FerroWasp adopted FerroHAL ([RESOLVED](../resolved/README.md),
 2026-11-10).

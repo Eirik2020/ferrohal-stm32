@@ -1,17 +1,17 @@
 # Document index (generated)
 
-Metadata only - read after choosing. 95 documents, 569961 B. One file per area, in this directory; `index.json` for tools. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read after choosing. 97 documents, 567300 B. One file per area, in this directory; `index.json` for tools. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | area | file | documents | covers |
 |---|---|---|---|
-| decisions | [decisions.md](decisions.md) | 19 | docs/decisions/ |
+| decisions | [decisions.md](decisions.md) | 20 | docs/decisions/ |
 | design | [design.md](design.md) | 21 | docs/design/ |
 | docs | [docs.md](docs.md) | 3 | docs/ |
 | errata | [errata.md](errata.md) | 12 | docs/errata/ |
 | examples | [examples.md](examples.md) | 1 | examples/ |
 | hil | [hil.md](hil.md) | 6 | hil/ |
 | housekeeping | [housekeeping.md](housekeeping.md) | 2 | docs/housekeeping/ |
-| notes | [notes.md](notes.md) | 13 | docs/notes/ |
+| notes | [notes.md](notes.md) | 14 | docs/notes/ |
 | plans | [plans.md](plans.md) | 1 | docs/plans/ |
 | policies | [policies.md](policies.md) | 4 | docs/policies/ |
 | requirements | [requirements.md](requirements.md) | 5 | requirements/ |

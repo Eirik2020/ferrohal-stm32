@@ -1,9 +1,9 @@
 {
  "docs_schema": 1,
  "counts": {
-  "documents": 95,
-  "agent": 60,
-  "bytes": 569961
+  "documents": 97,
+  "agent": 62,
+  "bytes": 567300
  },
  "documents": [
   {
@@ -56,38 +56,29 @@
    "bytes": 2005
   },
   {
-   "path": "docs/decisions/2026-10-31-ferrowasp-integration.md",
-   "class": "agent",
-   "title": "ADR-005: FerroWasp integration and scope (2026-10-31)",
-   "purpose": "ADR-005 - Status: accepted",
-   "bytes": 3522,
-   "adr": "ADR-005",
-   "status": "accepted"
-  },
-  {
    "path": "docs/decisions/2026-11-08-free-teardown-brief.md",
    "class": "agent",
-   "title": "Decision: ownership and `free()` (the teardown brief, 2026-11-08)",
-   "purpose": "ADR-002 - Status: accepted",
-   "bytes": 2750,
+   "title": "ADR-002: Ownership and `free()` (2026-11-08)",
+   "purpose": "ADR-002 - Status: promoted",
+   "bytes": 1278,
    "adr": "ADR-002",
-   "status": "accepted"
+   "status": "promoted"
   },
   {
    "path": "docs/decisions/2026-11-08-g5-safe-by-default.md",
    "class": "agent",
    "title": "ADR-001: G5, safe by default (2026-11-08)",
    "purpose": "ADR-001 - Status: promoted",
-   "bytes": 2606,
+   "bytes": 1913,
    "adr": "ADR-001",
    "status": "promoted"
   },
   {
    "path": "docs/decisions/2026-11-08-naming-scheme.md",
    "class": "agent",
-   "title": "Decision: naming scheme (2026-11-08)",
+   "title": "ADR-003: Naming scheme (2026-11-08)",
    "purpose": "ADR-003 - Status: promoted",
-   "bytes": 3234,
+   "bytes": 2602,
    "adr": "ADR-003",
    "status": "promoted"
   },
@@ -105,7 +96,7 @@
    "class": "agent",
    "title": "ADR-008: Generate the chip glue from metapac (2026-11-13)",
    "purpose": "ADR-008 - Status: promoted",
-   "bytes": 3110,
+   "bytes": 2773,
    "adr": "ADR-008",
    "status": "promoted"
   },
@@ -123,7 +114,7 @@
    "class": "agent",
    "title": "ADR-010: Errata as data, matched to the die revision (2026-11-15)",
    "purpose": "ADR-010 - Status: promoted",
-   "bytes": 3068,
+   "bytes": 2957,
    "adr": "ADR-010",
    "status": "promoted"
   },
@@ -132,7 +123,7 @@
    "class": "agent",
    "title": "ADR-012: The `src/` layout, clean slate (2026-11-17)",
    "purpose": "ADR-012 - Status: promoted",
-   "bytes": 3570,
+   "bytes": 2881,
    "adr": "ADR-012",
    "status": "promoted"
   },
@@ -150,7 +141,7 @@
    "class": "agent",
    "title": "ADR-013: An interrupt-driven I2C master on lent buffers (2026-11-19)",
    "purpose": "ADR-013 - Status: accepted",
-   "bytes": 4421,
+   "bytes": 2995,
    "adr": "ADR-013",
    "status": "accepted"
   },
@@ -159,7 +150,7 @@
    "class": "agent",
    "title": "ADR-014: Timer lanes as the lane port needs them (2026-11-19)",
    "purpose": "ADR-014 - Status: promoted",
-   "bytes": 4817,
+   "bytes": 2880,
    "adr": "ADR-014",
    "status": "promoted"
   },
@@ -170,6 +161,15 @@
    "purpose": "ADR-015 - Status: promoted",
    "bytes": 1396,
    "adr": "ADR-015",
+   "status": "promoted"
+  },
+  {
+   "path": "docs/decisions/2026-11-23-first-supported-user.md",
+   "class": "agent",
+   "title": "ADR-016: FerroHAL's first supported user (2026-11-23)",
+   "purpose": "ADR-016 - Status: promoted",
+   "bytes": 1114,
+   "adr": "ADR-016",
    "status": "promoted"
   },
   {
@@ -194,6 +194,15 @@
    "bytes": 1481
   },
   {
+   "path": "docs/decisions/archive/2026/2026-10-31-ferrowasp-integration.md",
+   "class": "agent",
+   "title": "ADR-005: FerroWasp integration and scope (2026-10-31)",
+   "purpose": "ADR-005 - Status: superseded by ADR-016",
+   "bytes": 3547,
+   "adr": "ADR-005",
+   "status": "superseded"
+  },
+  {
    "path": "docs/decisions/archive/2026/2026-11-09-uart-capabilities.md",
    "class": "agent",
    "title": "Decision: UART control and flag capabilities (2026-11-09)",
@@ -216,7 +225,7 @@
    "class": "agent",
    "title": "Decision index, 2026",
    "purpose": "One row per record. The record itself is auth",
-   "bytes": 2146
+   "bytes": 2310
   },
   {
    "path": "docs/design/api-surface.md",
@@ -286,7 +295,7 @@
    "class": "agent",
    "title": "Timer lanes: frames, the switch and the readers",
    "purpose": "Source: ADR-014, ../decisions/2026-11-19-time",
-   "bytes": 6954
+   "bytes": 8422
   },
   {
    "path": "docs/design/layering.md",
@@ -342,7 +351,7 @@
    "class": "agent",
    "title": "Scope: what FerroHAL is and is not",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 3783
+   "bytes": 3861
   },
   {
    "path": "docs/design/structure.md",
@@ -355,15 +364,15 @@
    "path": "docs/design/uart-ferrowasp.md",
    "class": "agent",
    "title": "UART design for FerroWasp",
-   "purpose": "Source: ADR-005, ../decisions/2026-10-31-ferr",
-   "bytes": 1402
+   "purpose": "Source: ADR-005, ../decisions/archive/2026/20",
+   "bytes": 1441
   },
   {
    "path": "docs/design/uart-ownership.md",
    "class": "agent",
    "title": "UART ownership: one owner, served by `on_interrupt` (2026-11-17)",
    "purpose": "Source: ADR-011, ../decisions/2026-11-17-uart",
-   "bytes": 4785
+   "bytes": 4888
   },
   {
    "path": "docs/errata/ES0182.md",
@@ -482,7 +491,7 @@
    "class": "agent",
    "title": "IP versions across families (stm32-metapac 21, measured)",
    "purpose": "From the architecture map's section 11, disso",
-   "bytes": 1266
+   "bytes": 1279
   },
   {
    "path": "docs/notes/2026-11-10-reference-implementations.md",
@@ -555,6 +564,13 @@
    "bytes": 3213
   },
   {
+   "path": "docs/notes/2026-11-19-i2c-interrupt-bench.md",
+   "class": "agent",
+   "title": "Interrupt-driven I2C: what the prototypes measured (2026-11-19)",
+   "purpose": "Source: ADR-013, ../decisions/2026-11-19-i2c-",
+   "bytes": 1619
+  },
+  {
    "path": "docs/plans/2026-11-17-f411-f722-f745.md",
    "class": "human",
    "title": "Plan: the STM32F411, F722, F745 and G474",
@@ -608,7 +624,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
    "purpose": "The crate-wide entries of README.mdREADME.md ",
-   "bytes": 21909
+   "bytes": 21922
   },
   {
    "path": "docs/resolved/crate-wide-to-2026-11-09.md",

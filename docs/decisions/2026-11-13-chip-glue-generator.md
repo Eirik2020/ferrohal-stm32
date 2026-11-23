@@ -2,17 +2,16 @@
 
 ADR-008 - Status: promoted
 
-Promoted to: [glue-generator.md](../design/glue-generator.md) (design). Its plan finished on
-2026-11-15 and was deleted; PRs #43 to #46 hold its record.
+Promoted to: [glue-generator.md](../design/glue-generator.md) (design).
 
 ## Context
 
 About 3,100 lines of chip glue (four part files, shared macros, shared H7 facts) are
 copied by hand from stm32-metapac's metadata and checked by `tools/check_glue.py`, which
-parses the rows as text. Owner, 2026-11-13: the Python check is as likely to fail as a
-generator would, so replace the hand copy with a Rust generator and verify by analysis
-(probing memory on target) and bench runs. `docs/design/scope.md` had parked the
-generator; this record unparks it.
+parses the rows as text. The Python check is as likely to fail as a generator would, so
+the hand copy is replaced with a Rust generator, verified by analysis (probing memory on
+target) and bench runs. `docs/design/scope.md` had parked the generator; this record
+unparks it.
 
 ## Decision
 
@@ -30,21 +29,10 @@ generator; this record unparks it.
 6. Verification: the generator's self-checks, a one-time row-by-row comparison with the
    hand glue it replaces, a glue probe run per die on target, and the bench runs.
    `tools/check_glue.py` retires once the generator is merged into `main`.
-7. The documentation tables come from the same sources, so they cannot drift (owner,
-   2026-11-13): the generator writes `docs/CHIPS.md`'s silicon and capability tables
-   from its registry, the metadata and the driver table; the tier command writes the
-   tier tables and `hil/COVERAGE.md`'s matrix from the evidence. Both are checked at
-   the merge gate with the glue. Prose (limits, roadmap, notes) stays hand-written.
-
-## Consequences
-
-- Closes on landing: DEBT's "the routing generator doesn't exist", the bonded-pin item,
-  review findings S1, U1, D9, D10; the chip-pair `compile_error!` becomes generated.
-- Review D1-D3 and D2 (instance shape, kernel clock) change what the generator emits:
-  done with it, after `free()` for the remaining drivers and the shared DMA error (D6,
-  D7).
-- Die 0x413 (F405/F407) has no debugger bench: its glue rests on flashed runs until the
-  F407 Discovery is wired (owner accepted, 2026-11-13; `docs/DEBT.md`).
+7. The documentation tables come from the same sources, so they cannot drift: the
+   generator writes `docs/CHIPS.md`'s silicon and capability tables; the tier command
+   writes the tier tables and `hil/COVERAGE.md`'s matrix from the evidence. Both are
+   checked at the merge gate with the glue. Prose stays hand-written.
 
 ## Rejected
 
@@ -52,3 +40,12 @@ generator; this record unparks it.
   user build pays for the metadata, and a metapac bump changes glue silently.
 - Keeping `check_glue.py` beside the generator: two readings of one source, either as
   likely to be wrong; the probe and the benches check the generator instead.
+
+## Consequences
+
+- Closes on landing: DEBT's "the routing generator doesn't exist" and the bonded-pin
+  item; the chip-pair `compile_error!` becomes generated.
+- The instance shape and kernel clock change what the generator emits, so they are done
+  with it.
+- Die 0x413 (F405/F407) has no debugger bench: its glue rests on flashed runs until the
+  F407 Discovery is wired (`docs/DEBT.md`).
