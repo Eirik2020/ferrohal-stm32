@@ -1,11 +1,11 @@
 # Document index (generated)
 
-Metadata only - read after choosing. 100 documents, 569364 B. One file per area, in this directory; `index.json` for tools. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
+Metadata only - read after choosing. 101 documents, 572573 B. One file per area, in this directory; `index.json` for tools. Regenerate: `python3 -I tools/docs_index.py`; `--check` fails when stale.
 
 | area | file | documents | covers |
 |---|---|---|---|
 | decisions | [decisions.md](decisions.md) | 23 | docs/decisions/ |
-| design | [design.md](design.md) | 21 | docs/design/ |
+| design | [design.md](design.md) | 22 | docs/design/ |
 | docs | [docs.md](docs.md) | 3 | docs/ |
 | errata | [errata.md](errata.md) | 12 | docs/errata/ |
 | examples | [examples.md](examples.md) | 1 | examples/ |
