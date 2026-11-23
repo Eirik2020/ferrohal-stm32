@@ -9,7 +9,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   on the F401, the H753 and the Discovery is renamed after its test, the same name where
   two benches run the same test (`watchdog`, `refusals`, `i2c-pico`, `usb-cdc`, ...).
   The letters stay as each bench's aliases: `hil/<crate>/runs.tsv` maps them, and the run
-  scripts, `tools/record_evidence.py`, `tools/stale_runs.py` and `tools/gen_h753_runs.py`
+  scripts, `tools/record_evidence.py` and `tools/gen_h753_runs.py`
   read it, so the procedures' commands are unchanged. `design/naming.md` records the
   rule. Spawned by `55025e8`.
 

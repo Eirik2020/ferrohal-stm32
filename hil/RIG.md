@@ -118,7 +118,7 @@ from that repository, and its telemetry record carries that repository's commit.
 
 Where the rig's time goes, so a slow bench or a flaky run shows before it is guessed at.
 `tools/rig_run.py` wraps a bench script without changing it (`python3 -I tools/rig_run.py
-hil/run-h753.sh a b`; `tools/stale_runs.py --shell` prints its commands that way): the
+hil/run-h753.sh a b`): the
 output passes through, the script's exit status is kept, and a run's time is split from
 the lines the scripts already print and the logs they already write — cargo's build time,
 probe-rs's flash time (`Finished in`), and the rest as execution, which includes the

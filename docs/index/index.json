@@ -3,7 +3,7 @@
  "counts": {
   "documents": 94,
   "agent": 59,
-  "bytes": 571592
+  "bytes": 570850
  },
  "documents": [
   {
@@ -11,7 +11,7 @@
    "class": "agent",
    "title": "FerroHAL - agent entry",
    "purpose": "STM32 HAL on stm32-metapac. Chips: every pack",
-   "bytes": 7716
+   "bytes": 7505
   },
   {
    "path": "CLAUDE.md",
@@ -46,7 +46,7 @@
    "class": "human",
    "title": "FerroHAL: open debt",
    "purpose": "Debt is work FerroHAL owes on what it already",
-   "bytes": 10101
+   "bytes": 10068
   },
   {
    "path": "docs/ROADMAP.md",
@@ -319,7 +319,7 @@
    "class": "agent",
    "title": "The requirements and verification model",
    "purpose": "Source: ADR-006, ../decisions/2026-11-10-doc-",
-   "bytes": 5084
+   "bytes": 4669
   },
   {
    "path": "docs/design/requirements-tooling.md",
@@ -585,7 +585,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.md../DEBT.md",
-   "bytes": 22397
+   "bytes": 22374
   },
   {
    "path": "docs/resolved/chips-and-features.md",
@@ -641,7 +641,7 @@
    "class": "human",
    "title": "Rig set-up",
    "purpose": "What every bench script and firmware crate re",
-   "bytes": 8521
+   "bytes": 8461
   },
   {
    "path": "hil/WIRING.md",
