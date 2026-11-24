@@ -12,10 +12,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: spi-and-exti
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
         - level: target
           environment: development
+          part: spi-and-exti
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
 
@@ -31,10 +33,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: spi-and-exti
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
         - level: target
           environment: development
+          part: spi-and-exti
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
 
@@ -49,10 +53,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: spi-and-exti
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
         - level: target
           environment: development
+          part: spi-and-exti
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
 
@@ -68,9 +74,11 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: spi-and-exti
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-F401RE
         - level: target
           environment: development
+          part: spi-and-exti
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI

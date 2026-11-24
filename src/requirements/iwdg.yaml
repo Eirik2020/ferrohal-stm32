@@ -11,10 +11,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
 
@@ -30,10 +32,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
 
@@ -63,10 +67,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
 
@@ -102,10 +108,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
         - level: unit

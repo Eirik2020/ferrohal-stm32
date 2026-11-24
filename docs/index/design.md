@@ -22,7 +22,7 @@
 | a | docs/design/ownership.md | 2607 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-ids.md | 1669 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-system.md | 4068 B | Source: ADR-006 archived: ../decisions/archiv |
-| a | docs/design/requirements-tooling.md | 2078 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/requirements-tooling.md | 2418 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/scope.md | 3505 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/structure.md | 2131 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/uart-ownership.md | 5429 B | Source: ADR-011, ../decisions/2026-11-17-uart |

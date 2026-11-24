@@ -17,10 +17,12 @@ requirements:
             procedure: requirements/benches-analysis.md#No reachable panic
         - level: target
           environment: development
+          part: constructor-refusals
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-F401RE
         - level: target
           environment: development
+          part: constructor-refusals
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
 
@@ -39,26 +41,32 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
         - level: target
           environment: development
+          part: constructor-refusals
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-F401RE
         - level: target
           environment: development
+          part: constructor-refusals
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-F401RE
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
         - level: target

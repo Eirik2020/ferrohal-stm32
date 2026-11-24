@@ -13,10 +13,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -32,10 +34,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -52,10 +56,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -90,10 +96,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -110,10 +118,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -129,10 +139,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -147,10 +159,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -166,10 +180,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -186,10 +202,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -205,10 +223,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -225,10 +245,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -243,10 +265,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -261,10 +285,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -281,10 +307,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: fault-injection
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-F401RE
         - level: target
           environment: development
+          part: fault-injection
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI
 
@@ -324,10 +352,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -459,10 +489,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -511,10 +543,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: fault-injection
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-F401RE
         - level: target
           environment: development
+          part: fault-injection
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI
 
@@ -530,10 +564,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: fault-injection
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-F401RE
         - level: target
           environment: development
+          part: fault-injection
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI
 
@@ -600,10 +636,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -619,10 +657,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -638,10 +678,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -657,10 +699,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: fault-injection
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-F401RE
         - level: target
           environment: development
+          part: fault-injection
           method:
             procedure: requirements/benches-faults.md#Fault injection on the Nucleo-H753ZI
 
@@ -677,10 +721,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -696,10 +742,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
@@ -733,10 +781,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
+          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 

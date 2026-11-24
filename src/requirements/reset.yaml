@@ -12,18 +12,22 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-F401RE
         - level: target
           environment: development
+          part: watchdog
           method:
             procedure: requirements/benches.md#Watchdog on the Nucleo-H753ZI
         - level: target
           environment: development
+          part: bootloader-request
           method:
             procedure: requirements/benches.md#Bootloader request on the Nucleo-F401RE
         - level: target
           environment: development
+          part: bootloader-request
           method:
             procedure: requirements/benches.md#Bootloader request on the Nucleo-H753ZI
 
@@ -87,9 +91,11 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: the-rom-bootloader
           method:
             procedure: requirements/benches.md#The ROM bootloader on the STM32F4 Discovery
         - level: target
           environment: development
+          part: the-rom-bootloader
           method:
             procedure: requirements/benches.md#The ROM bootloader on the Nucleo-H753ZI

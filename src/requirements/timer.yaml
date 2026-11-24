@@ -12,10 +12,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -30,10 +32,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -49,10 +53,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -84,10 +90,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -121,10 +129,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -141,10 +151,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -161,10 +173,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -179,10 +193,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -198,10 +214,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -231,10 +249,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -290,10 +310,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -310,10 +332,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -328,10 +352,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -348,10 +374,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -367,10 +395,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -387,18 +417,22 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: constructor-refusals
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
         - level: target
           environment: development
+          part: constructor-refusals
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
 
@@ -428,10 +462,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -447,10 +483,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
@@ -510,10 +548,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
   - id: AWG-012
@@ -601,10 +641,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
         - level: target
           environment: development
+          part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
 
