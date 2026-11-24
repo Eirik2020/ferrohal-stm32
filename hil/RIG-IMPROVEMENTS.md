@@ -58,8 +58,8 @@ Some items read like rig work but need only firmware or a host tool. They come f
 because they cost nothing and keep the shopping list honest.
 
 - **A1. Provoke the DMA FIFO errors in firmware first** (DEBT §3, FIFO error handling).
-  Inferred from RM0090/RM0433: in direct mode a FIFO error means the stream could not
-  keep up with its peripheral, so a high-priority memory-to-memory stream on the same
+  Inferred from RM0090/RM0433: in direct mode a FIFO error means the DMA channel could not
+  keep up with its peripheral, so a high-priority memory-to-memory DMA channel on the same
   controller, run against a UART at its top baud, may starve it on purpose. If it
   cannot be made to fail, B1's stimulus is the fallback.
 - **A2. The HCLK/8 SysTick path and WWDG** (DEBT §4, Lowest). Inferred: neither needs
@@ -96,7 +96,7 @@ because they cost nothing and keep the shopping list honest.
     the question;
   - the F401 clock item (DEBT §4): it can count a timer output against its own crystal,
     an independent reference the F401 has none of today;
-  - FIFO errors (DEBT §3), if A1 fails: a sustained stream at a rate the chip's own
+  - FIFO errors (DEBT §3), if A1 fails: a sustained DMA channel at a rate the chip's own
     transmitter cannot give;
   - queue 5 (wire-level integrity), in part: SCK, SDA and DShot edges at its sample rate.
 

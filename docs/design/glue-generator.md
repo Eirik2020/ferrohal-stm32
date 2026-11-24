@@ -43,7 +43,7 @@ Maturity of what it emits:
 - **[Measured 2026-11-13, metapac 21]** What the die fixes and parts agree on: each
   peripheral's address, IP and register block, RCC fields, a pin's alternate function for
   a signal, and the set of DMAMUX requests per signal. What does not: a fixed-request
-  DMA stream can serve one signal through two channel selections (the F405's TIM1 CH3,
+  DMA channel can serve one signal through two requests (the F405's TIM1 CH3,
   TIM8 CH1), so a route's request is part of the route; metapac gives several requests
   one signal name (HRTIM1's five `TIMER`s), so requests compare as sets; a vector's name
   can be the device's (RNG's is `HASH_RNG` on the H753, `RNG` on the H743); the H7's
@@ -65,7 +65,7 @@ Maturity of what it emits:
 - Offering policy is data in the generator (`tools/glue-gen/src/emit.rs`):
   which DMA controllers routes may use (DMA1, DMA2, DMAMUX1; not BDMA), which IP versions
   have a driver, and the instances left out, each with its reason.
-- The F7's rows take the F4's macro shapes (fixed-request stream
+- The F7's rows take the F4's macro shapes (fixed-request
   DMA, bus-named RCC registers), its usart_v3 rows included: the usart_v4 module serves
   it (ADR-011). A block on the part that no driver serves shows – (on the part, not
   driven) in the capability table, where it shows n/a for a block the part lacks.
@@ -142,7 +142,7 @@ Maturity of what it emits:
   port, a scratch register (one per IP version, found by name in metapac's register map)
   ignores a write with its RCC enable bit clear, keeps it once set, and returns to its
   earlier value when its reset bit is pulsed; each vector the offered peripherals and DMA
-  streams raise pends and clears in the NVIC, so its number exists. Measured: 87 checks on
+  channels raise pends and clears in the NVIC, so its number exists. Measured: 87 checks on
   die 0x433, 116 on 0x413, 154 on 0x450, all pass. Not probed, by design: a pin's
   alternate function, which AFR accepts on any pin with any value, and a vector being
   raised by its peripheral; the bench runs prove both on the wire.

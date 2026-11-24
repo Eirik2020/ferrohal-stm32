@@ -342,10 +342,10 @@ names where the code documents it.
 - DMAMUX overruns are not watched; ES0392 2.5.1 says CFR writes do not raise them.
 
 **DMA, memory and caches (F7)**
-- The streams reach the DTCM (through the core's AHBS port), SRAM1 and SRAM2, not the
+- The DMA channels reach the DTCM (through the core's AHBS port), SRAM1 and SRAM2, not the
   ITCM. With the data cache on, a buffer in SRAM1 or SRAM2 must be in a region the MPU
   marks non-cacheable; the DTCM is never cached (`check_dma_buffer`).
-- The F767's DTCM is 128 KiB, the F722's and F745's 64. On the F767's revision A a stream
+- The F767's DTCM is 128 KiB, the F722's and F745's 64. On the F767's revision A a DMA channel
   reads zeros from the DTCM while the core sleeps (ES0334 2.2.4), so there
   `check_dma_buffer` refuses DTCM buffers.
 

@@ -35,7 +35,7 @@ How FerroHAL names what it is made of.
   chronology), `<ip>_<family>` where FerroHAL needs a family shape, and the RCC by its
   reference manual where one family has several shapes: `rcc_h7_rm0433` covers only the
   H742/743/750/753.
-- metapac numbers DMA backwards: the F4's stream DMA is `dma_v2`, the H7's
+- metapac numbers DMA backwards: the F4's DMA is `dma_v2`, the H7's
   `dma_v1`. The numbers are metapac's, not an order.
 - A chip feature is metapac's chip name and turns on every IP version the
   chip carries, through its line's private feature (`_line-stm32f401`); every part of a
@@ -84,14 +84,16 @@ Which IP versions each series carries, as metapac measured them:
   `#[path]`s pull in glue, not drivers). Not a driver alias either: the
   F4 clock tree's configuration and solver (`rcc_f4/tree.rs`), mounted by `rcc_f4` and by
   `rcc_f7`, which keeps its own register writes.
-- A die with two DMA IPs (the H7: stream DMA, BDMA, MDMA) gives each its own
-  folder and neutral name, as metapac does (`dma`, `bdma`), not one name for both.
+- A die with several DMA IPs (the H7: DMA, BDMA, MDMA) gives each its own
+  folder and neutral name, as metapac does (`dma`, `bdma`), not one name for both. A
+  driver's engine on one of them takes that IP's name: `uart/dma/` and `spi/dma.rs`
+  run on the DMA, and an engine on the BDMA would be `bdma`.
 - The RCC's shared code is a neutral module like `uart/`: `rcc/` holds what
   every RCC version shares (`kernel.rs`, `shared.rs`) and re-exports the chip's version
   (`rcc_f4`, `rcc_f7`, `rcc_h7_rm0433`).
 - Not an exception: a neutral module's engine serving every IP version
   through that version's register wrapper (`Unit`, the UART's too since N7)
-  (`uart/stream_dma/`, `spi/stream_dma.rs`,
+  (`uart/dma/`, `spi/dma.rs`,
   `spi/polled.rs`, `i2c/mod.rs`, `adc/mod.rs`). That is the neutral-module pattern
   itself, so these are never counted as shared sources.
 
@@ -102,6 +104,19 @@ Which IP versions each series carries, as metapac measured them:
   it differently between chips (F4, F7, H7, G4), or has no name for it, the next
   source decides, so a thing has one name on every chip. Code yields to this: that the
   code already says something is no reason to keep it.
+- DMA: a *channel* moves the data and a *request* is what it serves, on every chip.
+  metapac's metadata names them so on the F4, F7, H7 and G4 alike (`DMA1_CH0`, its
+  `request`); ST's manuals say "stream" on the F4, F7 and H7 and "channel" on the G4,
+  and call the F4's request select "channel selection" (CHSEL). So the types are
+  `dma::Channel`, `Channels`, `AnyChannel`, `ChannelInstance` and `ChannelInterrupt`, a
+  controller's channels are `ch0` to `ch7`, and every routing trait's number is its
+  `REQUEST`. metapac's own names stay (`DMA1_STREAM0`, `st(n)`), and a comment citing a
+  register or a manual keeps ST's words (`DMA_SxCR`).
+- Where a DMA channel meets a timer's or an ADC's channel, the module path tells them
+  apart (`dma::Channel`, `adc::Channel`), and a field or parameter holding the DMA
+  channel there is `dma`, as the UART's `tx_dma`: `LaneWiring::dma`,
+  `adc::Wiring::dma`, `Sampler::new(rcc, timer, dma, ..)`; the timer's reader channels
+  come back in a `ReaderDma`. Prose there says "DMA channel", never "channel" alone.
 - Kept against that order: *IP* and *IP version*, where metapac says "peripheral
   version".
 - FerroHAL's own terms. *lane*: a DMA-fed timer output. *handle*: an ownerless view

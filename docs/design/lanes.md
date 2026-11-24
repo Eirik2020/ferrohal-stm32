@@ -18,12 +18,12 @@ build option changes it, beyond the profiling features (`docs/policies/features.
 - A lane plays a frame in place (`CompareLane::arm`, `LaneGroup::load`), and only a lent
   frame: nothing is copied, and `take_frame` hands the memory back once the lane has
   stopped. A start checks only that
-  the lane is free, the frame's limits are the timer's, and a DMA stream reaches its
+  the lane is free, the frame's limits are the timer's, and a DMA channel reaches its
   memory, one compare each; the lane's send transfer is prepared once, at assembly, and a
   start sets only its memory and length.
 - A receive fills memory the caller lends (`lend_samples`, `take_samples`); a listen with
   none lent is refused (`Error::NotLent`). A lane keeps no memory of its own: assembly
-  takes the pin and the stream only, and `free` gives back the wiring with whatever is
+  takes the pin and the DMA channel only, and `free` gives back the wiring with whatever is
   still lent.
 
 ## The prepared switch
@@ -45,29 +45,29 @@ Chosen per port by what the board has free; the lane API is the same for all thr
 
 | form | call | needs | when |
 |---|---|---|---|
-| armed ahead | `read_ahead_first_update`, `_second_update`, `_first_compare`, `_second_compare` | a spare request of a lane timer (its update, or a compare channel no lane uses), one stream that reaches GPIO, its vector | a stream with such a request is free |
-| the lane's own stream | none: the port's first lane reads on its own stream, started at the switch | the lane's stream reaches GPIO | nothing else is free |
-| paced | `read_ahead_paced` | a timer that is not a lane timer, running at the capture rate; one stream that reaches GPIO on its update request; its vector | the lanes' own streams cannot reach GPIO |
+| armed ahead | `read_ahead_first_update`, `_second_update`, `_first_compare`, `_second_compare` | a spare request of a lane timer (its update, or a compare channel no lane uses), one DMA channel that reaches GPIO, its vector | a DMA channel with such a request is free |
+| the lane's own DMA channel | none: the port's first lane reads on its own DMA channel, started at the switch | the lane's DMA channel reaches GPIO | nothing else is free |
+| paced | `read_ahead_paced` | a timer that is not a lane timer, running at the capture rate; one DMA channel that reaches GPIO on its update request; its vector | the lanes' own DMA channels cannot reach GPIO |
 
 A reader armed ahead is enabled while the frame plays, its request closed, so the switch
 opens one DIER bit. A paced reader's timer runs from setup with its update request and
 interrupt off; the switch opens the request (`timer::pwm::Pacer`). The pacer stays the
 caller's.
 
-A reader takes its stream's token, and a refused registration gives it back. `LaneGroup::free`
-returns every reader's stream, stopped, in a `ReaderStreams`, from which each comes out
+A reader takes its DMA channel's token, and a refused registration gives it back. `LaneGroup::free`
+returns every reader's DMA channel, stopped, in a `ReaderDma`, from which each comes out
 once as the token it went in as (`take::<D, N>()`).
 
 Which form a board gets:
 
 - F4: only DMA2 reaches GPIO (RM0090 figure 33 note 1), and on the F405/F407 only TIM1
   and TIM8 have requests on DMA2 (RM0090 table 44). Lanes on TIM1 or TIM8 read on their
-  own streams, or are armed ahead where a DMA2 stream with a spare TIM1 or TIM8 request
+  own DMA channels, or are armed ahead where a DMA2 channel with a spare TIM1 or TIM8 request
   is free. Lanes on any other timer send on DMA1 and need a reader paced by TIM1 or TIM8
-  on a free DMA2 stream, one per GPIO port the lanes use. A board with neither cannot
+  on a free DMA2 channel, one per GPIO port the lanes use. A board with neither cannot
   receive.
-- H7: every DMA1 and DMA2 stream reaches GPIO and DMAMUX routes any request, so a reader
-  can be armed ahead whenever a stream is free.
+- H7: every DMA1 and DMA2 channel reaches GPIO and DMAMUX routes any request, so a reader
+  can be armed ahead whenever a DMA channel is free.
 
 ## Timers left running
 
@@ -104,7 +104,7 @@ prototypes' sweep step or past it (theirs in brackets).
 | form | F407 F / T | F407 switch F / T | H753 F / T | H753 switch F / T |
 |---|---|---|---|---|
 | armed ahead | 10.84 / 10.84 us (10.8 / 9.2) | 686 / 639 | 14.18 / 12.52 us (14.2 / 12.5) | 1513 / 1440 |
-| the lane's own stream | 5.84 / 4.18 us (5.8 / 4.2) | 1661 / 1611 | 10.85 / 9.19 us (9.2 / 7.5) | 2958 / 2860 |
+| the lane's own DMA channel | 5.84 / 4.18 us (5.8 / 4.2) | 1661 / 1611 | 10.85 / 9.19 us (9.2 / 7.5) | 2958 / 2860 |
 | paced (TIM8, lanes on TIM3 and TIM2) | 10.84 / 9.18 us (10.8 / 9.2) | 711 / 715 | not built | not built |
 
 ## Left out
@@ -137,8 +137,8 @@ are the only behaviour; none is a feature.
   `ComplementaryLaneRefused`; `TwoWayLaneRefused` is gone). `CompareLane::arm` and
   `LaneGroup::load` take a `Frame` (the copying forms and `arm_frame`, `load_frame` are gone);
   `CompareLane::free` returns the wiring with the lent frame and samples.
-- `read_ahead_*` refuse with their stream (`Refused<Error, S>`); `LaneGroup::free` returns a
-  fifth element, the `ReaderStreams`.
+- `read_ahead_*` refuse with their DMA channel (`Refused<Error, S>`); `LaneGroup::free` returns a
+  fifth element, the `ReaderDma`.
 - A listen with no samples memory lent is refused with `Error::NotLent`.
 - At a frame's end the timers keep running (outputs at duty 0) until the next listen,
   load or play.
