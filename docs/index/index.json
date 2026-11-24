@@ -3,7 +3,7 @@
  "counts": {
   "documents": 101,
   "agent": 66,
-  "bytes": 570994
+  "bytes": 571143
  },
  "documents": [
   {
@@ -385,7 +385,7 @@
    "class": "agent",
    "title": "Requirement format and reqtool",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2418
+   "bytes": 2567
   },
   {
    "path": "docs/design/scope.md",
