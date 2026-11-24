@@ -1,0 +1,51 @@
+# PROTOTYPE (audit step 6, candidate B): the bench keeps its own `main` (RTIC
+# unchanged) and prints `stage <name> start <limit>` and `<ID> pass|fail`;
+# the host (tools/proto_harness_b.py) holds each stage's limit. Never
+# requirement evidence.
+[package]
+name = "proto-discovery-b"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "die"
+path = "src/bin/die.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "route"
+path = "src/bin/route.rs"
+test = false
+bench = false
+
+[features]
+# Planted hangs: in the clock stage, or in one check.
+hang-clocks = []
+hang-check = []
+# Section 17 claims, asked of B too: a check that resets, one that faults.
+reset-check = []
+fault-check = []
+
+[dependencies]
+ferrohal-stm32 = { path = "../..", features = ["stm32f407vg", "rt", "defmt", "rtic"] }
+stm32-metapac = { version = "=21.0.0", default-features = false, features = ["stm32f407vg"] }
+embedded-io = "0.7.1"
+embedded-hal = "1.0.0"
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.6"
+cortex-m-semihosting = "0.5.0"
+semihosting = { version = "=0.1.25", features = ["fs"] }
+rtic = { version = "2.4.0", features = ["thumbv7-backend"] }
+defmt = "1.0.1"
+defmt-rtt = "1.3.0"
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = true
+opt-level = "s"
+
+[workspace]

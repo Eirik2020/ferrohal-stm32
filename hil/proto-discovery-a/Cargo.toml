@@ -1,0 +1,43 @@
+# PROTOTYPE (audit step 6, candidate A): checks are embedded-test test
+# functions; the host (probe-rs run) runs each by name after a reset and holds
+# its timeout. The die's glue probe, no RTIC. Never requirement evidence.
+[package]
+name = "proto-discovery-a"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+harness = false
+test = false
+
+[[test]]
+name = "die"
+harness = false
+
+[features]
+# Planted hangs: in the clock setup (embedded-test's init), or in one check.
+hang-clocks = []
+hang-check = []
+# Section 17 claims: a test that resets the chip, and one that faults.
+reset-check = []
+fault-check = []
+
+[dependencies]
+ferrohal-stm32 = { path = "../..", features = ["stm32f407vg", "rt", "defmt"] }
+stm32-metapac = { version = "=21.0.0", default-features = false, features = ["stm32f407vg"] }
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.6"
+defmt = "1.0.1"
+defmt-rtt = "1.3.0"
+
+[dev-dependencies]
+embedded-test = { version = "=0.7.3", features = ["defmt"] }
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = true
+opt-level = "s"
+
+[workspace]
