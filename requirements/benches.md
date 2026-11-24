@@ -74,11 +74,11 @@ replace. `FERROHAL_SERIAL_GLOB` overrides the by-id pattern the host matches.
 
 ## SPI and EXTI on the Nucleo-F401RE
 
-`hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Run E also samples port A with TIM1's update request on DMA2 stream 5 while SPI1 runs at its slowest: SCK (PA5) and S1's MISO end (PA6) show the wire, and in all four modes and both bit orders the 16 bits at the capture edges must be the two bytes in the order set, with no MOSI change off the launch edge [SPI-010]. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh e f g k`. With the links in its `board.rs` fitted. Run E also samples port A with TIM1's update request on DMA2 channel 5 while SPI1 runs at its slowest: SCK (PA5) and S1's MISO end (PA6) show the wire, and in all four modes and both bit orders the 16 bits at the capture edges must be the two bytes in the order set, with no MOSI change off the launch edge [SPI-010]. Pass: every check in every run passes and the script exits zero.
 
 ## SPI and EXTI on the Nucleo-H753ZI
 
-`hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Run F also samples port A with TIM2's update request on DMA1 stream 1 while SPI1 runs at its slowest, as the F401's run E does [SPI-010]. Run H then turns both caches on and runs SPI2's suite again, its buffers in the MPU's non-cacheable block. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh f g h l`. With the links in its `board.rs` fitted. Run F also samples port A with TIM2's update request on DMA1 channel 1 while SPI1 runs at its slowest, as the F401's run E does [SPI-010]. Run H then turns both caches on and runs SPI2's suite again, its buffers in the MPU's non-cacheable block. Pass: every check in every run passes and the script exits zero.
 
 ## Clocks, timers, watchdog and I2C on the Nucleo-F767ZI
 
@@ -102,11 +102,11 @@ sampled between them [SPI-V3-001]. Pass: every check passes and the script exits
 
 ## Timers on the Nucleo-F401RE
 
-`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Every tick in run H, TIM10's on the `TIM1_UP_TIM10` vector it shares with TIM1 among them, is then served twice for one update with its vector held off, which must report true and then false, and once stopped has its vector pended by hand, as another timer sharing it would raise it: the handler must run and the tick must not count the pass [TIMER-006]. Run I stops its TIM3 lane group mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the lane group's period [TIMER-LANES-007 API-002]. Run I then runs one pulse on TIM4 channel 1 (PB6), read by the same sampler [TIMER-PWM-007]. Run R ends with its four lanes as one lane group, TIM3 starting TIM2 through its trigger, and every lane of both must finish [TIMER-LANES-005]. Then TIM1 leaves the sampler and paces one reader of port B on DMA2 stream 5 for that lane group: the reader must register and `prepare_listen` return TIM1's rate [TIMER-LANES-017]; every lane must name lane 0's reader, and after a play with a listen at the end each lane's samples must be that reader's 64 port words [TIMER-LANES-014]; right after the play only TIM2 CH2's stream (DMA1 stream 6) may have TCIE set, and every lane's frame must still end [TIMER-LANES-020]. Pass: every check in every run passes and the script exits zero.
+`hil/run-f401.sh h i n o p r`, with J3 and S1 fitted for O and P; run R needs no links. Measures each timer against the cycle counter, sends waveforms over those wires — run O plays one out over J3 and reads it back, then plays with the lane's output off and checks nothing crosses to the pulled-up far end — and drives the SpeedyBee's four motor lanes from one start, every pin read back by the sampler. Run H first sets scale 3 before `freeze`, for it to replace, and then reads back PWR: the voltage scale `freeze` wrote must be scale 2 (VOS bits 15:14 at 0b10) with VOSRDY set. Run H then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Every tick in run H, TIM10's on the `TIM1_UP_TIM10` vector it shares with TIM1 among them, is then served twice for one update with its vector held off, which must report true and then false, and once stopped has its vector pended by hand, as another timer sharing it would raise it: the handler must run and the tick must not count the pass [TIMER-006]. Run I stops its TIM3 lane group mid-waveform by `abort` and then by `free`; each time no sample of PB0/PB1 may read high, and the freed token must reopen TIM3 at the lane group's period [TIMER-LANES-007 API-002]. Run I then runs one pulse on TIM4 channel 1 (PB6), read by the same sampler [TIMER-PWM-007]. Run R ends with its four lanes as one lane group, TIM3 starting TIM2 through its trigger, and every lane of both must finish [TIMER-LANES-005]. Then TIM1 leaves the sampler and paces one reader of port B on DMA2 channel 5 for that lane group: the reader must register and `prepare_listen` return TIM1's rate [TIMER-LANES-017]; every lane must name lane 0's reader, and after a play with a listen at the end each lane's samples must be that reader's 64 port words [TIMER-LANES-014]; right after the play only TIM2 CH2's DMA channel (DMA1 channel 6) may have TCIE set, and every lane's frame must still end [TIMER-LANES-020]. Pass: every check in every run passes and the script exits zero.
 
 ## Timers on the Nucleo-H753ZI
 
-`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Run I first reads back PWR: the voltage scale `freeze` wrote must be the configuration's scale 1 (D3CR VOS 0b11, from the reset's 0b01) with VOSRDY set [RCC-003]. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [TIMER-PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 lane group as run I does on the F401 [TIMER-LANES-007 API-002]. Run J's TIM3 CH3 lane refuses a waveform stepping from the period's top (ARR) to 0 with `TopToZero`, and the same waveform just clear of `Pwm::top_margin` plays every later duty in its own period, against CH4's steady reference [TIMER-PWM-009]. Run P ends with a lane group over TIM1 and TIM8, linked, a lane on each with its output off, and every lane of both must finish [TIMER-LANES-005]. Run Q then runs four reader rounds over Z2: TIM3's lane plays an 8-duty frame from lent memory, TIM8's lane answers once it has ended, and the reply must be recovered from memory TIM3's lane was lent, each sample within a sixteenth. Round 1 reads on the lane's own stream after the frame's end [TIMER-LANES-016]: the frame and the lent memory must come back and the reply must lie in the lent memory [TIMER-LANES-012]; `prepared` must name the rate `prepare_listen` returned [TIMER-LANES-013]; right after the frame's end TIM3's counter must still be enabled with compare 1 at 0 [TIMER-LANES-018]; CC1E must be set before the listen, CC1E, CC1P and CC1NP clear while listening, and CC1E and CC1P set again after `speak` [TIMER-LANES-021]. Round 2 listens in the run that sees the frame end, and that run must have turned to listening [TIMER-LANES-019]. Round 3 reads through a reader paced by TIM5 at 6 MHz on DMA2 stream 7, at TIM5's rate [TIMER-LANES-017]. Round 4, on the lane group rebuilt, reads through a reader armed ahead on TIM3's update on DMA2 stream 6 [TIMER-LANES-015]. Pass: every check in every run passes and the script exits zero.
+`hil/run-h753.sh i j p q`, with Z2 fitted for Q. Run I first reads back PWR: the voltage scale `freeze` wrote must be the configuration's scale 1 (D3CR VOS 0b11, from the reset's 0b01) with VOSRDY set [RCC-003]. Measures each timer against the cycle counter, and sends waveforms both ways over that wire. Run J also starts TIM1 CH3N for one pulse: the sampler sees one period at the set duty and the counter stopped itself [TIMER-PWM-007]. Run I then frees TIM4, reopening it as the 8 kHz control tick, and frees TIM2 and TIM5 as 1 MHz timebases: the token returns from `free`, so none is stolen. Run J stops its TIM3 lane group as run I does on the F401 [TIMER-LANES-007 API-002]. Run J's TIM3 CH3 lane refuses a waveform stepping from the period's top (ARR) to 0 with `TopToZero`, and the same waveform just clear of `Pwm::top_margin` plays every later duty in its own period, against CH4's steady reference [TIMER-PWM-009]. Run P ends with a lane group over TIM1 and TIM8, linked, a lane on each with its output off, and every lane of both must finish [TIMER-LANES-005]. Run Q then runs four reader rounds over Z2: TIM3's lane plays an 8-duty frame from lent memory, TIM8's lane answers once it has ended, and the reply must be recovered from memory TIM3's lane was lent, each sample within a sixteenth. Round 1 reads on the lane's own DMA channel after the frame's end [TIMER-LANES-016]: the frame and the lent memory must come back and the reply must lie in the lent memory [TIMER-LANES-012]; `prepared` must name the rate `prepare_listen` returned [TIMER-LANES-013]; right after the frame's end TIM3's counter must still be enabled with compare 1 at 0 [TIMER-LANES-018]; CC1E must be set before the listen, CC1E, CC1P and CC1NP clear while listening, and CC1E and CC1P set again after `speak` [TIMER-LANES-021]. Round 2 listens in the run that sees the frame end, and that run must have turned to listening [TIMER-LANES-019]. Round 3 reads through a reader paced by TIM5 at 6 MHz on DMA2 channel 7, at TIM5's rate [TIMER-LANES-017]. Round 4, on the lane group rebuilt, reads through a reader armed ahead on TIM3's update on DMA2 channel 6 [TIMER-LANES-015]. Pass: every check in every run passes and the script exits zero.
 
 ## Watchdog on the Nucleo-F401RE
 
@@ -126,11 +126,11 @@ sampled between them [SPI-V3-001]. Pass: every check passes and the script exits
 
 ## ADC on the Nucleo-F401RE
 
-`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDCODE REV_ID, read directly, and a code RM0368 lists [GLUE-012]. Pass: every check in every run passes and the script exits zero. Last, the scan is freed: the ADC, its stream and its buffer come back and run a sequence again, then ADC1 is freed, reads as powered down (ADON, read directly), and its token reopens it with VDDA about 3.3 V [API-002].
+`hil/run-f401.sh m`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDCODE REV_ID, read directly, and a code RM0368 lists [GLUE-012]. Pass: every check in every run passes and the script exits zero. Last, the scan is freed: the ADC, its DMA channel and its buffer come back and run a sequence again, then ADC1 is freed, reads as powered down (ADON, read directly), and its token reopens it with VDDA about 3.3 V [API-002].
 
 ## ADC on the Nucleo-H753ZI
 
-`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDC REV_ID, read directly, and a code RM0433 lists [GLUE-012]. Pass: every check in every run passes and the script exits zero. Last, ADC3's scan is freed: the ADC, its stream and its buffer come back and run a sequence again, then ADC3 is freed, reads as powered down (ADEN, read directly), and its token reopens it with VDDA about 3.3 V [API-002].
+`hil/run-h753.sh o`. Drives an analog pin from a GPIO through its link. It also reads the die revision through the glue and requires it to equal DBGMCU's IDC REV_ID, read directly, and a code RM0433 lists [GLUE-012]. Pass: every check in every run passes and the script exits zero. Last, ADC3's scan is freed: the ADC, its DMA channel and its buffer come back and run a sequence again, then ADC3 is freed, reads as powered down (ADEN, read directly), and its token reopens it with VDDA about 3.3 V [API-002].
 
 ## The Foxeer F405 V2 board bench
 
@@ -233,7 +233,7 @@ board's debug probe, the core reset and halted, no firmware. `DEV_ID` is the die
 every peripheral the generated glue offers and every bonded GPIO port, a scratch register
 ignores a write while its RCC enable bit is clear, keeps it once set, and returns to its
 earlier value when its reset bit is pulsed; every vector those peripherals and the DMA
-streams raise pends and clears in the NVIC. Pass: every check passes and the script exits
+channels raise pends and clears in the NVIC. Pass: every check passes and the script exits
 zero.
 
 ## The glue probe on the Nucleo-H753ZI
@@ -243,7 +243,7 @@ board's debug probe, the core reset and halted, no firmware. `DEV_ID` is the die
 every peripheral the generated glue offers and every bonded GPIO port, a scratch register
 ignores a write while its RCC enable bit is clear, keeps it once set, and returns to its
 earlier value when its reset bit is pulsed; every vector those peripherals and the DMA
-streams raise pends and clears in the NVIC. Pass: every check passes and the script exits
+channels raise pends and clears in the NVIC. Pass: every check passes and the script exits
 zero.
 
 ## The glue probe on the STM32F4 Discovery
@@ -253,13 +253,13 @@ board's debug probe, the core reset and halted, no firmware. `DEV_ID` is the die
 every peripheral the generated glue offers and every bonded GPIO port, a scratch register
 ignores a write while its RCC enable bit is clear, keeps it once set, and returns to its
 earlier value when its reset bit is pulsed; every vector those peripherals and the DMA
-streams raise pends and clears in the NVIC. Pass: every check passes and the script exits
+channels raise pends and clears in the NVIC. Pass: every check passes and the script exits
 zero.
 
 ## Complementary outputs on the STM32F4 Discovery
 
 `hil/run-discovery.sh d`. No links. TIM1 drives its complementary output CH1N on PE8 at a
-quarter duty, 100 kHz, and TIM8's update request has DMA2 stream 1 copy port E's input
+quarter duty, 100 kHz, and TIM8's update request has DMA2 channel 1 copy port E's input
 register at 2 MHz: the F401 cannot sample CHxN, its only break timer being its only
 timer whose update reaches DMA2, the one DMA that reaches the GPIO ports. Checks: the
 duty on the pin, to 1/16, and one one-pulse period. Pass: both checks pass and the
@@ -280,17 +280,17 @@ exits zero.
 `hil/run-f401.sh x`. Run X drives `InterruptI2c` on I2C3 over
 PA8 and PC9 against the Pico 1 simulator, wired as run S, twice: opened
 from the plain wiring, every byte moved by the event interrupt, then from
-a DMA wiring of DMA1 stream 4 (TX) and stream 2 (RX), channel 3 (RM0368
+a DMA wiring of DMA1 channel 4 (TX) and channel 2 (RX), request 3 (RM0368
 Table 28). Before each open, an open at a speed the IP cannot time is
 refused with the wiring, which then opens. Each mode runs a write, a write
 then a read, and a read, of 1, 2, 3, 6, 16 and 32 bytes, ten times each,
 every one checked against the simulator (its ECHO register, its pattern
-stream) and every phase's path (DMA or interrupt) against the driver's
+DMA channel) and every phase's path (DMA or interrupt) against the driver's
 thresholds through its health counts; then each refusal of `start`, with
 the transaction handed back and the bus untouched; a vacant address's
 NACK and the next transaction; a stretch past the caller's bound aborted
 with its buffers, and the bus running again; and the driver's health
-against the run's own counts. A DMA buffer the stream cannot reach is not
+against the run's own counts. A DMA buffer the DMA channel cannot reach is not
 exercised: every F401 RAM is reachable. Pass: every check passes and the
 script exits zero.
 
@@ -298,7 +298,7 @@ script exits zero.
 
 `hil/run-f401.sh y`, built with `profile-listen` (the script passes it). No links. Run
 R's four lanes as one lane group, TIM3 starting TIM2, read through one reader of port B
-paced by TIM1 on DMA2 stream 5. Two listens are prepared, of 32 then 64 samples:
+paced by TIM1 on DMA2 channel 5. Two listens are prepared, of 32 then 64 samples:
 `prepared` must name the second, at the rate it returned, and each of 200 exchanges,
 listening in the run that sees the frames end, must read 64 samples on every lane
 [TIMER-LANES-013]. Over those exchanges the listen's cycle count (`timer::profile`, from entry

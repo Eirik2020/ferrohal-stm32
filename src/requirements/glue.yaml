@@ -7,7 +7,7 @@ requirements:
       register crate.
     rationale: >-
       The rows are written by hand, and a wrong one routes a signal to the
-      wrong pin or stream.
+      wrong pin or DMA channel.
     derived_from: [G3]
     verification:
       entries:
@@ -31,7 +31,7 @@ requirements:
   - id: GLUE-002
     title: A wiring describes itself
     statement: >-
-      A UART wiring shall report the instance, pins and DMA streams the
+      A UART wiring shall report the instance, pins and DMA channels the
       board chose.
     rationale: >-
       A board can then be checked against its manifest without running.
@@ -82,7 +82,7 @@ requirements:
   - id: GLUE-005
     title: An SPI wiring describes itself
     statement: >-
-      An SPI wiring shall report the instance, pins and streams it was
+      An SPI wiring shall report the instance, pins and DMA channels it was
       built from.
     rationale: >-
       A board can then be checked against its manifest without running.

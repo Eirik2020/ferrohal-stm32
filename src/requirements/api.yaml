@@ -75,14 +75,14 @@ requirements:
             procedure: requirements/benches.md#USB on the Nucleo-H753ZI
 
   - id: API-003
-    title: A handle whose stream will not stop refuses to free
+    title: A handle whose DMA channel will not stop refuses to free
     statement: >-
       A handle that owns DMA buffers shall refuse to free while one of its
-      DMA streams does not stop, and keep the buffers.
+      DMA channels does not stop, and keep the buffers.
     rationale: >-
-      A stream still running writes the buffers; handing them back would give
+      A DMA channel still running writes the buffers; handing them back would give
       the caller memory the DMA still owns. The refusal returns the handle,
-      so the free can be tried again once the stream stops.
+      so the free can be tried again once the DMA channel stops.
     derived_from: [API-002]
     verification:
       entries:

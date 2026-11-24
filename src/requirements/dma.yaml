@@ -1,9 +1,9 @@
 schema_version: 2
 requirements:
   - id: DMA-001
-    title: Streams move what they are set to
+    title: Channels move what they are set to
     statement: >-
-      A DMA stream shall move data for the peripheral request it is set to.
+      A DMA channel shall move data for the peripheral request it is set to.
     rationale: >-
       Every DMA driver depends on it.
     derived_from: [G3]
