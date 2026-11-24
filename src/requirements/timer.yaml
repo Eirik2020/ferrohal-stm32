@@ -300,7 +300,7 @@ requirements:
   - id: TIMER-LANES-001
     title: Each lane plays its own samples
     statement: >-
-      Each lane of a waveform generator shall play its own samples in order,
+      Each lane of a lane group shall play its own samples in order,
       one for each timer period.
     rationale: >-
       A protocol or a signal is whatever its samples say, so the samples
@@ -362,9 +362,9 @@ requirements:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
   - id: TIMER-LANES-004
-    title: The generator refuses what it cannot do
+    title: The lane group refuses what it cannot do
     statement: >-
-      The generator shall refuse a lane it does not have, a load or play
+      The lane group shall refuse a lane it does not have, a load or play
       while playing, and a play with nothing loaded.
     rationale: >-
       Overlapping a running waveform would corrupt it, so it cannot be left
@@ -384,12 +384,12 @@ requirements:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
   - id: TIMER-LANES-007
-    title: An abort leaves the generator ready
+    title: An abort leaves the lane group ready
     statement: >-
-      An abort shall stop every lane at duty 0 and leave the generator ready
+      An abort shall stop every lane at duty 0 and leave the lane group ready
       to load again.
     rationale: >-
-      A fault must not leave an output driven, or the generator stuck.
+      A fault must not leave an output driven, or the lane group stuck.
     derived_from: [G2]
     verification:
       entries:
@@ -407,7 +407,7 @@ requirements:
   - id: TIMER-LANES-005
     title: Two timers play together
     statement: >-
-      A generator on two timers shall finish every lane's waveform, started
+      A lane group on two timers shall finish every lane's waveform, started
       by trigger or in software.
     rationale: >-
       Boards spread their outputs over timers, and not every pair has a
@@ -448,7 +448,7 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::each_channel_has_its_own_request_bit
+            test: ferrohal_stm32::timer_v1::lane_group::tests::each_channel_has_its_own_request_bit
 
   - id: TIMER-LANES-008
     title: A waveform crosses a wire intact
@@ -506,35 +506,35 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::samples_come_back_as_sent
+            test: ferrohal_stm32::timer_v1::lane_group::tests::samples_come_back_as_sent
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::a_zero_between_samples_reads_as_zero
+            test: ferrohal_stm32::timer_v1::lane_group::tests::a_zero_between_samples_reads_as_zero
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::active_low_reads_the_low_part_as_the_pulse
+            test: ferrohal_stm32::timer_v1::lane_group::tests::active_low_reads_the_low_part_as_the_pulse
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::other_pins_change_nothing
+            test: ferrohal_stm32::timer_v1::lane_group::tests::other_pins_change_nothing
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::a_line_active_at_the_start_waits_for_its_next_edge
+            test: ferrohal_stm32::timer_v1::lane_group::tests::a_line_active_at_the_start_waits_for_its_next_edge
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::a_fraction_of_a_capture_per_sample_stays_in_step
+            test: ferrohal_stm32::timer_v1::lane_group::tests::a_fraction_of_a_capture_per_sample_stays_in_step
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::nothing_to_read_gives_nothing
+            test: ferrohal_stm32::timer_v1::lane_group::tests::nothing_to_read_gives_nothing
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::timer_v1::awg::tests::it_stops_at_the_end_of_out
+            test: ferrohal_stm32::timer_v1::lane_group::tests::it_stops_at_the_end_of_out
 
   - id: TIMER-LANES-011
     title: An output turned off sends nothing

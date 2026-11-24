@@ -101,8 +101,8 @@ test = false
 bench = false
 
 [[bin]]
-name = "awg-both-ways"
-path = "src/bin/awg_both_ways.rs"
+name = "lane-group-both-ways"
+path = "src/bin/lane_group_both_ways.rs"
 test = false
 bench = false
 

@@ -30,7 +30,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         time::Hertz,
-        timer::{Awg, Pwm, Sampler},
+        timer::{LaneGroup, Pwm, Sampler},
     };
 
     use crate::{
@@ -202,29 +202,29 @@ mod app {
         // TIM1's complementary output at a quarter duty, 100 kHz.
         let name = "TIM1 CH3N PB15, 100 kHz, 1/4 duty";
         // The last rates above are still set: DShot600's, with the samplers at 12 times.
-        let mut awg3 = Awg::single(tim3, (ch3, ch4));
-        pwm::awg_check(
+        let mut lane_group3 = LaneGroup::single(tim3, (ch3, ch4));
+        pwm::lane_group_check(
             &mut report,
             "TIM3 CH3/CH4 PB0/PB1 (Lucid)",
-            &mut awg3,
+            &mut lane_group3,
             (0, 1),
             &mut sampler_b,
             cpu,
         );
-        pwm::awg_free_check(
+        pwm::lane_group_free_check(
             &mut report,
             "TIM3 CH3/CH4 PB0/PB1 (Lucid), freed",
-            awg3,
+            lane_group3,
             (0, 1),
             &mut sampler_b,
             &mut run.rcc,
             cpu,
         );
-        let mut awg5 = Awg::single(tim5, (ch1, ch4_5));
-        pwm::awg_check(
+        let mut lane_group5 = LaneGroup::single(tim5, (ch1, ch4_5));
+        pwm::lane_group_check(
             &mut report,
             "TIM5 CH1/CH4 PA0/PA3",
-            &mut awg5,
+            &mut lane_group5,
             (0, 3),
             &mut sampler_a,
             cpu,

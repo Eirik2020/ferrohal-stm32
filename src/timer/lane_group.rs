@@ -1,4 +1,4 @@
-//! The arbitrary waveform generator, [`Awg`]; its documentation is on the type,
+//! The lane group, [`LaneGroup`]; its documentation is on the type,
 //! since this module is private. Part of the timer module, for both IP versions.
 //!
 //! Requirements: TIMER-LANES-001, TIMER-LANES-002, TIMER-LANES-003, TIMER-LANES-004, TIMER-LANES-005, TIMER-LANES-006, TIMER-LANES-007, TIMER-LANES-008, TIMER-LANES-009, TIMER-LANES-010, TIMER-LANES-011, TIMER-LANES-012, TIMER-LANES-013, TIMER-LANES-014, TIMER-LANES-015, TIMER-LANES-016, TIMER-LANES-017, TIMER-LANES-018, TIMER-LANES-019, TIMER-LANES-020, TIMER-LANES-021, API-002, RESOURCE-002
@@ -7,9 +7,10 @@ use super::pwm::{CompareLane, Error, Frame, FrameLimits, PreparedRate, Pwm, lane
 use super::{ChannelTimer, ConfigError, TriggeredBy};
 use crate::{chip::Interrupt, resource::Refused, time::Hertz};
 
-/// What the generator's constructors hand back when they refuse: the reason,
+/// What the lane group's constructors hand back when they refuse: the reason,
 /// and both timers with both lane groups.
-pub type AwgRefused<A, B, LA, LB> = crate::resource::Refused<ConfigError, (Pwm<A>, Pwm<B>, LA, LB)>;
+pub type LaneGroupRefused<A, B, LA, LB> =
+    crate::resource::Refused<ConfigError, (Pwm<A>, Pwm<B>, LA, LB)>;
 
 /// The compare lanes of one timer, as a tuple: none, or one to four.
 pub trait Lanes<T: ChannelTimer> {
@@ -255,7 +256,7 @@ const fn channel_bit(channel: u8) -> u8 {
     }
 }
 
-/// What the generator's lanes are doing, one bit per lane. Lanes number at most
+/// What the lane group's lanes are doing, one bit per lane. Lanes number at most
 /// eight, so a byte holds them.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct Playing {
@@ -287,7 +288,7 @@ enum Opening {
     /// A compare request of a channel no lane uses, numbered from 1.
     Compare(u8),
     /// The update request of a timer no lane uses,
-    /// kept running at the capture rate (`Awg::read_ahead_paced`).
+    /// kept running at the capture rate (`LaneGroup::read_ahead_paced`).
     Paced,
 }
 
@@ -298,7 +299,7 @@ enum Opening {
 struct AheadReader {
     dma: crate::dma::AnyStream,
     /// The stream's controller and number: its token, which
-    /// [`Awg::free`] gives back through [`ReaderStreams`].
+    /// [`LaneGroup::free`] gives back through [`ReaderStreams`].
     id: (u8, u8),
     request: u8,
     /// The port's input register.
@@ -330,7 +331,7 @@ impl AheadReader {
             return Err(Refused::new(Error::Dma, stream));
         }
         dma.clear_flags(crate::dma::Flags::ALL);
-        // The token becomes its id: `Awg::free` mints it back once, through
+        // The token becomes its id: `LaneGroup::free` mints it back once, through
         // `ReaderStreams::take`, so the stream has one owner throughout.
         drop(stream);
         Ok(Self {
@@ -358,8 +359,8 @@ impl AheadReader {
 
 const AHEAD: usize = 4;
 
-/// The DMA streams a generator's readers held, handed back by
-/// [`Awg::free`]: each one taken out once, as the token it was given as.
+/// The DMA streams a lane group's readers held, handed back by
+/// [`LaneGroup::free`]: each one taken out once, as the token it was given as.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ReaderStreams {
     ids: [Option<(u8, u8)>; AHEAD],
@@ -383,7 +384,7 @@ impl ReaderStreams {
     }
 }
 
-/// How a two-timer generator starts its second timer.
+/// How a two-timer lane group starts its second timer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Start {
     /// There is no second timer.
@@ -394,32 +395,32 @@ enum Start {
     Independent,
 }
 
-/// An arbitrary waveform generator: compare lanes on one or two timers, each
+/// A lane group: compare lanes on one or two timers, each
 /// playing its own sequence of samples, all from one start. Part of the timer
 /// module, for both IP versions.
 ///
 /// A sample is a duty in timer counts, held for one period of the timer, so the
-/// sample rate is the timer's rate and full scale is [`Awg::period`]. A waveform
+/// sample rate is the timer's rate and full scale is [`LaneGroup::period`]. A waveform
 /// ends at duty 0: the lane appends it, so the output falls and stays low. What
 /// the samples mean is the caller's. A protocol encodes its frames as samples.
 ///
-/// Lanes built two-way read as well. [`Awg::listen`] releases the outputs, runs
+/// Lanes built two-way read as well. [`LaneGroup::listen`] releases the outputs, runs
 /// the timers at the capture rate and has each lane's stream copy its port's input
 /// register into memory, paced by its own channel's compare request, so a lane can
-/// answer on the pin it sends on. [`Awg::speak`] turns them back. [`recover`] turns
+/// answer on the pin it sends on. [`LaneGroup::speak`] turns them back. [`recover`] turns
 /// what was read back into samples. Outputs can be active low, for a line that
 /// idles high.
 ///
 /// With two timers, either the first starts the second through its trigger
-/// output, on one edge ([`Awg::linked`]), or both start in software, one after
+/// output, on one edge ([`LaneGroup::linked`]), or both start in software, one after
 /// the other, for timers with no trigger route between them
-/// ([`Awg::independent`]). Both timers must run at one period, so a sample means
+/// ([`LaneGroup::independent`]). Both timers must run at one period, so a sample means
 /// the same on every lane.
 ///
 /// Lanes are numbered in the order they were given: the first timer's, then the
 /// second's. The firmware binds each lane's stream vector, or polls, and calls
-/// [`Awg::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
-pub struct Awg<A: ChannelTimer, B: ChannelTimer, LA, LB> {
+/// [`LaneGroup::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
+pub struct LaneGroup<A: ChannelTimer, B: ChannelTimer, LA, LB> {
     first: Pwm<A>,
     second: Option<Pwm<B>>,
     first_lanes: LA,
@@ -433,7 +434,7 @@ pub struct Awg<A: ChannelTimer, B: ChannelTimer, LA, LB> {
     /// Each timer's CCER bits for its lanes: (owned, send), per
     /// [`lane_ccer_bits`], for `active_low`.
     ccer: [(u16, u16); 2],
-    /// What [`prepare_listen`](Awg::prepare_listen) computed.
+    /// What [`prepare_listen`](LaneGroup::prepare_listen) computed.
     plan: Option<Plan>,
     /// Readers on their own streams.
     ahead: [Option<AheadReader>; AHEAD],
@@ -465,10 +466,10 @@ struct Plan {
     asked: (Hertz, usize),
 }
 
-impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
-    /// A generator on one timer.
+impl<A: ChannelTimer, LA: Lanes<A>> LaneGroup<A, A, LA, ()> {
+    /// A lane group on one timer.
     pub fn single(first: Pwm<A>, lanes: LA) -> Self {
-        let mut awg = Self {
+        let mut lane_group = Self {
             first,
             second: None,
             first_lanes: lanes,
@@ -482,13 +483,13 @@ impl<A: ChannelTimer, LA: Lanes<A>> Awg<A, A, LA, ()> {
             ahead: [const { None }; AHEAD],
             pacer: None,
         };
-        awg.refresh_ccer();
-        awg
+        lane_group.refresh_ccer();
+        lane_group
     }
 }
 
-impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA, LB> {
-    /// A generator on two timers at one period, the first starting the second
+impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, B, LA, LB> {
+    /// A lane group on two timers at one period, the first starting the second
     /// through its trigger output, so every lane begins on one edge. Refuses
     /// timers at different periods, with both timers and both lane groups
     /// handed back.
@@ -497,7 +498,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         second: Pwm<B>,
         first_lanes: LA,
         second_lanes: LB,
-    ) -> Result<Self, AwgRefused<A, B, LA, LB>>
+    ) -> Result<Self, LaneGroupRefused<A, B, LA, LB>>
     where
         B: TriggeredBy<A>,
     {
@@ -509,7 +510,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         }
         first.lead();
         second.follow(&first);
-        let mut awg = Self {
+        let mut lane_group = Self {
             first,
             second: Some(second),
             first_lanes,
@@ -523,11 +524,11 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             ahead: [const { None }; AHEAD],
             pacer: None,
         };
-        awg.refresh_ccer();
-        Ok(awg)
+        lane_group.refresh_ccer();
+        Ok(lane_group)
     }
 
-    /// A generator on two timers at one period, started in software one after
+    /// A lane group on two timers at one period, started in software one after
     /// the other, for timers with no trigger route between them. The second
     /// begins a few instructions after the first. Refuses timers at different
     /// periods, with both timers and both lane groups handed back.
@@ -536,14 +537,14 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
         second: Pwm<B>,
         first_lanes: LA,
         second_lanes: LB,
-    ) -> Result<Self, AwgRefused<A, B, LA, LB>> {
+    ) -> Result<Self, LaneGroupRefused<A, B, LA, LB>> {
         if first.period() != second.period() {
             return Err(Refused::new(
                 ConfigError::PeriodMismatch,
                 (first, second, first_lanes, second_lanes),
             ));
         }
-        let mut awg = Self {
+        let mut lane_group = Self {
             first,
             second: Some(second),
             first_lanes,
@@ -557,8 +558,8 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             ahead: [const { None }; AHEAD],
             pacer: None,
         };
-        awg.refresh_ccer();
-        Ok(awg)
+        lane_group.refresh_ccer();
+        Ok(lane_group)
     }
 
     /// How many lanes.
@@ -831,7 +832,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// Loads a checked frame on `lane`, played in place, for the next
     /// [`play`](Self::play): its first duty is the lane's from the first
     /// period on. Refuses with the frame while a waveform plays or is read,
-    /// or for a lane the generator does not have.
+    /// or for a lane the lane group does not have.
     pub fn load(&mut self, lane: usize, frame: Frame) -> Result<(), Refused<Error, Frame>> {
         super::start_mark!(begin);
         if self.state.started || self.state.listening {
@@ -1414,7 +1415,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// `Some(Ok(ended))` once one or more waveforms have ended, bit `n` of
     /// `ended` set for lane `n`; `None` if none did. When the last lane
     /// ends, the timers stop and their requests close. A lane that fails
-    /// stops the whole generator, since its waveforms belong together.
+    /// stops the whole lane group, since its waveforms belong together.
     pub fn on_interrupt(&mut self) -> Option<Result<u8, Error>> {
         #[cfg(feature = "profile-start")]
         let t0 = cortex_m::peripheral::DWT::cycle_count();
@@ -1553,15 +1554,15 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
     /// (every lane at duty 0 with its stream stopped, the timers stopped,
     /// their compare requests closed). Each lane then frees to its wiring and
     /// buffers ([`CompareLane::free`]), and each timer to its token
-    /// ([`Pwm::free`]). The second timer is `None` on a generator built with
-    /// [`single`](Awg::single). Every reader's stream comes back in the
+    /// ([`Pwm::free`]). The second timer is `None` on a lane group built with
+    /// [`single`](LaneGroup::single). Every reader's stream comes back in the
     /// [`ReaderStreams`], stopped; a paced reader's timer stayed the caller's.
     #[allow(clippy::type_complexity)]
     pub fn free(self) -> (Pwm<A>, Option<Pwm<B>>, LA, LB, ReaderStreams) {
-        let mut awg = self;
-        awg.abort();
+        let mut lane_group = self;
+        lane_group.abort();
         let mut streams = ReaderStreams { ids: [None; AHEAD] };
-        for (slot, reader) in streams.ids.iter_mut().zip(awg.ahead.iter_mut()) {
+        for (slot, reader) in streams.ids.iter_mut().zip(lane_group.ahead.iter_mut()) {
             if let Some(mut reader) = reader.take() {
                 reader.disarm();
                 *slot = Some(reader.id);
@@ -1573,7 +1574,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
             first_lanes,
             second_lanes,
             ..
-        } = awg;
+        } = lane_group;
         (first, second, first_lanes, second_lanes, streams)
     }
 
@@ -1616,14 +1617,14 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> Awg<A, B, LA,
 }
 
 impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> crate::resource::Service
-    for Awg<A, B, LA, LB>
+    for LaneGroup<A, B, LA, LB>
 {
-    /// Which lanes ended (bit `n` for lane `n`), or why the generator
+    /// Which lanes ended (bit `n` for lane `n`), or why the lane group
     /// stopped; `None` if nothing ended.
     type Event = Option<Result<u8, Error>>;
 
     fn on_interrupt(&mut self) -> Self::Event {
-        Awg::on_interrupt(self)
+        LaneGroup::on_interrupt(self)
     }
 }
 

@@ -26,7 +26,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         time::Hertz,
-        timer::{Awg, Pwm, Sampler},
+        timer::{LaneGroup, Pwm, Sampler},
     };
 
     use crate::{
@@ -135,19 +135,19 @@ mod app {
             );
         }
         // The last rate above is still set: DShot600's, with the sampler at 12 times.
-        let mut awg = Awg::single(pwm, (lane3, lane4));
-        pwm::awg_check(
+        let mut lane_group = LaneGroup::single(pwm, (lane3, lane4));
+        pwm::lane_group_check(
             &mut report,
             "TIM3 CH3/CH4 PB0/PB1",
-            &mut awg,
+            &mut lane_group,
             (0, 1),
             &mut sampler,
             cpu,
         );
-        pwm::awg_free_check(
+        pwm::lane_group_free_check(
             &mut report,
             "TIM3 CH3/CH4 PB0/PB1, freed",
-            awg,
+            lane_group,
             (0, 1),
             &mut sampler,
             &mut run.rcc,

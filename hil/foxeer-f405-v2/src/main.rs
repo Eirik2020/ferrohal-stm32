@@ -43,7 +43,7 @@ use ferrohal_stm32::{
     rcc::ClockError,
     spi::{self, BlockingSpi, BlockingWiring, Buffers, Spi, Wiring},
     time::Hertz,
-    timer::{Awg, ComplementaryLaneWiring, LaneWiring, Pwm, Timebase},
+    timer::{LaneGroup, ComplementaryLaneWiring, LaneWiring, Pwm, Timebase},
     usb::UsbFs,
 };
 
@@ -618,7 +618,7 @@ fn main() -> ! {
     };
     let (Ok(mut tim1), Ok(mut tim8)) = (
         Pwm::new(&mut rcc, tim1, Hertz::khz(600)),
-        // A different rate on purpose, for the waveform generator's refusal.
+        // A different rate on purpose, for the lane group's refusal.
         Pwm::new(&mut rcc, p.TIM8, Hertz::khz(300)),
     ) else {
         usb_bench::stop(line!())
@@ -688,11 +688,11 @@ fn main() -> ! {
     tim8.set_output::<3>(false);
     tim8.set_output::<4>(false);
     let (timer_still, timer_missed, timer_apart) = measure_motor_timers(&mut tim1, &mut tim8);
-    // The waveform generator: TIM1 and TIM8 at different periods refuse;
+    // The lane group: TIM1 and TIM8 at different periods refuse;
     // both PWMs and both lane pairs come back, TIM8 re-rated, and the
     // linked pair is what the lane checks use.
-    let (awg_refused, tim1, tim8, first, second) =
-        match Awg::linked(tim1, tim8, (lane1, lane2), (lane3, lane4)) {
+    let (lane_group_refused, tim1, tim8, first, second) =
+        match LaneGroup::linked(tim1, tim8, (lane1, lane2), (lane3, lane4)) {
             Err(refused) => {
                 let refused_mismatch = matches!(
                     refused.error(),
@@ -704,7 +704,7 @@ fn main() -> ! {
             }
             Ok(_) => usb_bench::stop(line!()),
         };
-    let Ok(mut motors) = Awg::linked(tim1, tim8, first, second) else {
+    let Ok(mut motors) = LaneGroup::linked(tim1, tim8, first, second) else {
         usb_bench::stop(line!())
     };
 
@@ -782,7 +782,7 @@ fn main() -> ! {
         check!(
             report,
             link,
-            awg_refused,
+            lane_group_refused,
             "refusals: mismatched periods refuse, and the pair linked after re-rating [API-001]"
         );
         rcc_suite(report, link);

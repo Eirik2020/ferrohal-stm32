@@ -1,4 +1,4 @@
-//! Run O: the waveform generator out over a wire. Needs J3.
+//! Run O: the lane group out over a wire. Needs J3.
 //!
 //! TIM4 channel 1 plays on PB6. TIM1 reads port C, where J3 brings it to PC7, and
 //! the check recovers each sample from what crossed the wire.
@@ -20,7 +20,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         time::Hertz,
-        timer::{Awg, Pwm, Sampler},
+        timer::{LaneGroup, Pwm, Sampler},
     };
 
     use crate::{
@@ -87,11 +87,11 @@ mod app {
         let (Ok(lane), Ok(mut sampler)) = (lane, sampler) else {
             defmt::panic!("the TIM4 lane or the TIM1 sampler")
         };
-        let mut awg = Awg::single(pwm, (lane,));
-        pwm::awg_wire_out_check(
+        let mut lane_group = LaneGroup::single(pwm, (lane,));
+        pwm::lane_group_wire_out_check(
             &mut report,
             "TIM4 CH1 PB6 -> J3 -> PC7",
-            &mut awg,
+            &mut lane_group,
             &mut sampler,
             7,
             cpu,

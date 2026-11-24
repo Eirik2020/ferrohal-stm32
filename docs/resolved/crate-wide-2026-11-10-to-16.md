@@ -23,7 +23,7 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   and the fault-injection hook). It works from the source text on stable Rust (the
   owner's choice over rustdoc JSON on nightly), so a method counts by its name. It found
   27 uncalled; the 24 now called (clock solving, I2C timing, errata, the ADC's
-  calibration maths, `set_frequency`, `complementary`, `Awg::linked` and
+  calibration maths, `set_frequency`, `complementary`, `LaneGroup::linked` and
   `independent`, `set_rate` among them) link on every chip with no panic path.
 
 - **The clock trees are measured against the host** (2026-11-15). H753 run M and
@@ -194,7 +194,7 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
 - **rustdoc is clean on all four chips, and `checks/run.sh` keeps it so** (2026-11-13).
   Nine warnings no ledger held: links to the crate-internal `enter_bootloader`, to a
   `UartIrq::verify` that is `UartInterrupts::verify`, to the H7-only
-  `start_windowed` from shared docs, register bit ranges read as links, and `Awg`'s
+  `start_windowed` from shared docs, register bit ranges read as links, and `LaneGroup`'s
   docs pointing at its private module (moved onto the type). New step
   `rustdoc (<chip>)` denies warnings. Comments only: no requirement went stale.
 - **Two items reclassified as not FerroHAL debt** (2026-11-13). "No requirement covers
@@ -227,8 +227,8 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   parity into odd reaches UART4's reader as a parity error [UART-014], half the
   baud rate as a framing error, and a line crosses again after both go back to
   8N1. Measured: run Y 5 of 5.
-- **An `Awg` frees its timers, and a stop holds the lines low** (2026-11-13).
-  DEBT's "an `Awg` has no teardown" closed: `Awg::free` runs `abort` and hands
+- **A `LaneGroup` frees its timers, and a stop holds the lines low** (2026-11-13).
+  DEBT's "a `LaneGroup` has no teardown" closed: `LaneGroup::free` runs `abort` and hands
   both timer tokens back. Its bench check found a worse fault: a stopped timer
   makes no update, so the duty 0 that `abort` and `Pwm::free` wrote never loaded
   and an output stopped mid-pulse stayed high. Both now latch the duties. Measured

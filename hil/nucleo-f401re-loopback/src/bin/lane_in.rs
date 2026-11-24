@@ -21,7 +21,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         time::Hertz,
-        timer::{Awg, Pwm},
+        timer::{LaneGroup, Pwm},
     };
 
     use crate::{
@@ -92,9 +92,9 @@ mod app {
         let (Ok(near), Ok(far)) = (near, far) else {
             defmt::panic!("the lanes")
         };
-        let mut near = Awg::single(tim1, (near,));
-        let mut far = Awg::single(tim3, (far,));
-        pwm::awg_wire_in_check(
+        let mut near = LaneGroup::single(tim1, (near,));
+        let mut far = LaneGroup::single(tim3, (far,));
+        pwm::lane_group_wire_in_check(
             &mut report,
             "TIM3 CH1 PA6 -> S1 -> TIM1 CH1N PA7",
             &mut near,
