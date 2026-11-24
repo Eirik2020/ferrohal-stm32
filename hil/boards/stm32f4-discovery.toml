@@ -1,0 +1,112 @@
+# The STM32F4 Discovery (MB997, STM32F407VGT6) as the rig holds it: the one
+# file a wiring check and an identity check read (tools/rig_check.py).
+# PROTOTYPE (audit step 6, 2026-11-24): not yet the owner of these facts;
+# hil/WIRING.md and stm32f4-discovery/src/board.rs still are.
+#
+# Pins are `P<port><n>` names; header positions are UM1472 Rev 9 table 7's
+# P1/P2 numbers. `checked` says how a fact was last confirmed on the board.
+
+schema = 1
+board = "stm32f4-discovery"
+part = "STM32F407VG"
+chip = "STM32F407VGTx"           # probe-rs's target name
+
+[identity]
+# The die's 96-bit UID at 0x1FFF7A10, as hil/rig_status.py prints it: word 2,
+# word 1, word 0, in hex. Read over the probe below, 2026-11-24; the same
+# value as the run A log of 2026-11-18 (bytes 39 00 41 00 07 51 35 32 36 34 36 36).
+uid = "363634363235510700410039"
+dev_id = 0x413
+uid_address = 0x1FFF7A10
+# The ST-LINK/V2-1 on the board (CN1), as `probe-rs list` prints it after `--`;
+# hil/rig.env's DISCOVERY_PROBE.
+probe = "0483:374b:0673FF495170535067225844"
+
+# A pin held at a level for the whole check, and why.
+[[hold]]
+pin = "PD4"
+level = "low"
+why = "the CS43L22's reset: low powers the DAC down, so PC10 and PC12 drive no live I2S input"
+
+# Each jumper between two header pins. `from` is driven, `to` is read.
+# Measured 2026-11-24: all seven carry both levels and no listed pin follows
+# another's. Series resistors are read from the documents: a GPIO check cannot
+# measure them.
+[[link]]
+name = "D1"
+from = { pin = "PC10", header = "P2-37" }
+to = { pin = "PC11", header = "P2-38" }
+resistor_ohm = 0
+used_by = ["ferrohal: stm32f4-discovery run A (USART3, UART4)"]
+
+[[link]]
+name = "D2"
+from = { pin = "PC12", header = "P2-35" }
+to = { pin = "PD2", header = "P2-34" }
+resistor_ohm = 0
+used_by = ["ferrohal: stm32f4-discovery run A (UART5)"]
+
+[[link]]
+name = "D3"
+from = { pin = "PD8", header = "P1-40" }
+to = { pin = "PD9", header = "P1-41" }
+resistor_ohm = 0
+used_by = ["ferrohal: stm32f4-discovery run A (USART3, LQFP100 pins)"]
+
+[[link]]
+name = "PB0-PC9"                 # unnamed where it is described
+from = { pin = "PB0", header = "P1-22" }
+to = { pin = "PC9", header = "P2-46" }
+resistor_ohm = 1000
+used_by = ["ferroforge-stm32: stm32f4-discovery-lane-port, layouts reader-ahead and own-streams (src/layout_three_ports.rs)"]
+
+[[link]]
+name = "PA1-PB1"                 # unnamed where it is described
+from = { pin = "PA1", header = "P1-11" }
+to = { pin = "PB1", header = "P1-21" }
+resistor_ohm = 1000
+used_by = ["ferroforge-stm32: stm32f4-discovery-lane-port, layout paced-reader (src/layout_paced.rs)"]
+
+[[link]]
+name = "E1"
+from = { pin = "PC4", header = "P1-20" }
+to = { pin = "PC5", header = "P1-19" }
+resistor_ohm = 0
+used_by = ["ferroforge-stm32: stm32f4-discovery-event-adc (src/lib.rs; not on its main)"]
+
+[[link]]
+name = "A1"
+from = { pin = "PA2", header = "P1-14" }
+to = { pin = "PA3", header = "P1-13" }
+resistor_ohm = 0
+used_by = ["ferroforge-stm32: stm32f4-discovery-event-adc (src/lib.rs; not on its main)"]
+
+# Devices on the board or wired to it that a bench depends on, and the
+# register read that proves each answers. The Discovery has no Pico wired
+# (hil/WIRING.md); the CS43L22 stands in for one: same protocol, same check.
+[[slave]]
+name = "cs43l22"
+what = "the on-board audio DAC (UM1472 6.13), I2C1"
+bus = "i2c"
+scl = "PB6"
+sda = "PB9"
+address = 0x4A
+register = 0x01                  # ID: chip ID 11100b in bits 7..3
+expect = 0xE0
+mask = 0xF8
+release = { pin = "PD4", level = "high" }   # out of reset only while it is asked
+
+# Each USB cable to the host, and how the host tells it is there.
+[[usb]]
+name = "CN1"
+what = "the ST-LINK/V2-1"
+expect = "probe"                 # `probe-rs list` shows identity.probe
+
+[[usb]]
+name = "CN5"
+what = "the F407's own OTG_FS port (runs B, C, E)"
+# The ROM bootloader's DFU device, whose serial the ROM derives from the UID
+# (hil/run-discovery.sh, rom_serial). The check jumps to the ROM over the
+# probe, flashes nothing, and resets the chip after.
+expect = "rom-dfu"
+vbus = "PA9"                     # high with the cable in (UM1472 6.10, LD7)
