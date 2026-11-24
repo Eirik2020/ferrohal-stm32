@@ -174,24 +174,24 @@ mod app {
         let _ = near.take_samples(0);
         // 1. The lane's own stream, turning to read after the frame's end.
         if let Some(seen) = reader_round(&mut report, name,
-            "the reply read whole on the lane's own stream [AWG-016]",
+            "the reply read whole on the lane's own stream [TIMER-LANES-016]",
             &mut near, &mut far, &mut frame, &mut lent, false, cpu)
         {
-            report.check(name, "a frame plays from lent memory and comes back; the reply fills lent memory, which comes back [AWG-012]",
+            report.check(name, "a frame plays from lent memory and comes back; the reply fills lent memory, which comes back [TIMER-LANES-012]",
                 holds(seen.read_lent && seen.frame_back && seen.samples_back));
-            report.check(name, "prepare_listen's rate is the one the read ran at, and `prepared` names it [AWG-013]",
+            report.check(name, "prepare_listen's rate is the one the read ran at, and `prepared` names it [TIMER-LANES-013]",
                 holds(seen.prepared_names_it));
-            report.check(name, "at the frame's end the timer runs on with the lane's compare at 0 [AWG-018]",
+            report.check(name, "at the frame's end the timer runs on with the lane's compare at 0 [TIMER-LANES-018]",
                 holds(seen.ran_on && seen.duty_zero));
-            report.check(name, "the listen turns the output off with CCxP and CCxNP clear; speak turns it back on, active low [AWG-021]",
+            report.check(name, "the listen turns the output off with CCxP and CCxNP clear; speak turns it back on, active low [TIMER-LANES-021]",
                 holds(seen.on_before && seen.released_clear && seen.restored));
         }
         // 2. Turning to read in the run that sees the frame end.
         if let Some(seen) = reader_round(&mut report, name,
-            "the reply read whole after a listen at the frame's end [AWG-019]",
+            "the reply read whole after a listen at the frame's end [TIMER-LANES-019]",
             &mut near, &mut far, &mut frame, &mut lent, true, cpu)
         {
-            report.check(name, "the run that saw the frame end had turned to read [AWG-019]",
+            report.check(name, "the run that saw the frame end had turned to read [TIMER-LANES-019]",
                 holds(seen.listening_at_end && seen.released_clear));
         }
         // 3. A reader paced by TIM5, a timer no lane uses.
@@ -200,17 +200,17 @@ mod app {
             Ok(pacer) => {
                 let registered = near.read_ahead_paced::<_, _, 'C'>(&pacer, run.paced);
                 pacer.start();
-                report.check(name, "a reader paced by TIM5 registers [AWG-017]", holds(registered.is_ok()));
+                report.check(name, "a reader paced by TIM5 registers [TIMER-LANES-017]", holds(registered.is_ok()));
                 if let Some(seen) = reader_round(&mut report, name,
-                    "the reply read whole by a reader paced by TIM5 [AWG-017]",
+                    "the reply read whole by a reader paced by TIM5 [TIMER-LANES-017]",
                     &mut near, &mut far, &mut frame, &mut lent, true, cpu)
                 {
-                    report.check(name, "the paced reader reads at its pacer's rate [AWG-017]",
+                    report.check(name, "the paced reader reads at its pacer's rate [TIMER-LANES-017]",
                         holds(seen.rate == pacer.rate()));
                 }
                 pacer.stop();
             }
-            Err(error) => report.check(name, "the TIM5 pacer [AWG-017]", Err(Fail::Timer(error.error()))),
+            Err(error) => report.check(name, "the TIM5 pacer [TIMER-LANES-017]", Err(Fail::Timer(error.error()))),
         }
         // 4. A reader armed ahead on TIM3's update, on a generator rebuilt
         // without the paced reader.
@@ -221,9 +221,9 @@ mod app {
         near.set_active_low(true);
         near.set_outputs(true);
         let registered = near.read_ahead_first_update::<_, 'C'>(run.ahead);
-        report.check(name, "a reader armed ahead on TIM3's update registers [AWG-015]", holds(registered.is_ok()));
+        report.check(name, "a reader armed ahead on TIM3's update registers [TIMER-LANES-015]", holds(registered.is_ok()));
         reader_round(&mut report, name,
-            "the reply read whole by a reader armed ahead on TIM3's update [AWG-015]",
+            "the reply read whole by a reader armed ahead on TIM3's update [TIMER-LANES-015]",
             &mut near, &mut far, &mut frame, &mut lent, true, cpu);
         tests::finish(&report, || {});
     }

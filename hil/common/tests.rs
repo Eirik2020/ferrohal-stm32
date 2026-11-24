@@ -20,8 +20,8 @@ use ferrohal_stm32::{
     time::CycleClock,
     uart::{
         Chunk, ChunkEnd, Config, ConfigError, Error, Health, Instance, IrqError, Parity, Parts,
-        RxDma, RxPin, RxWiring, SendError, StopBits, TX_FRAMES, TxDma, TxHealth, TxOutcome, TxPin, Uart,
-        Vectors, Wiring,
+        RxDma, RxPin, RxWiring, SendError, StopBits, TX_FRAMES, TxDma, TxHealth, TxOutcome, TxPin,
+        Uart, Vectors, Wiring,
     },
 };
 
@@ -412,7 +412,7 @@ enum Held {
 ///
 /// Passes if every delay is within the time half the receive ring takes to
 /// fill at `baud`: the margin within which a late service of the receive
-/// stream still counts every half-lap (UARTDMA-002). The transmit queue
+/// stream still counts every half-lap (UART-DMA-002). The transmit queue
 /// must be idle on entry and is again on exit; the frame sent comes back
 /// into the ring on a looped link, so the caller drains it after.
 pub fn lock_delay<M: rtic::Mutex>(
@@ -1446,15 +1446,11 @@ fn quiet_by_interrupt(link: &mut dyn Link) -> Result<(), Fail> {
             return if got == LEN || !link.direct() {
                 Ok(())
             } else {
-                Err(Fail::EarlyIdle {
-                    missing: LEN - got,
-                })
+                Err(Fail::EarlyIdle { missing: LEN - got })
             };
         }
         if cortex_m::peripheral::DWT::cycle_count().wrapping_sub(start) > limit {
-            return Err(Fail::Silent {
-                missing: LEN - got,
-            });
+            return Err(Fail::Silent { missing: LEN - got });
         }
     }
 }
@@ -1842,7 +1838,7 @@ pub fn full_suite(
     );
     report.check_for(
         name,
-        "UART-006 WAIT-001",
+        "UART-006 WAIT-M4-001 or WAIT-M7-001",
         "counted and clocked waits within their bounds",
         wait_bounds(
             link,
@@ -1852,7 +1848,7 @@ pub fn full_suite(
     );
     report.check_for(
         name,
-        "UARTDMA-002",
+        "UART-DMA-002",
         "receive interrupt late by most of a lap",
         late_interrupt(link, ring_len, mask_rx_irq),
     );
@@ -1894,7 +1890,7 @@ pub fn full_suite(
     );
     report.check_for(
         name,
-        "UARTDMA-013 UARTDMA-014",
+        "UART-DMA-013 UART-DMA-014",
         "each frame's outcome comes back once, in order",
         frames_have_outcomes(link, tx_len),
     );
@@ -1906,13 +1902,13 @@ pub fn full_suite(
     );
     report.check_for(
         name,
-        "UART-003 UARTDMA-008",
+        "UART-003 UART-DMA-008",
         "the interrupt chains queued frames",
         frames_chain_from_the_interrupt(link, tx_len),
     );
     report.check_for(
         name,
-        "UARTDMA-008",
+        "UART-DMA-008",
         "frames go out by polling with the vectors masked",
         frames_go_out_by_polling(link, tx_len, mask_all_irqs),
     );

@@ -1,7 +1,7 @@
 //! The receive engine: the circular ring, the marks where the line went
 //! idle or a fault struck, and the reads that copy chunks out.
 //!
-//! Requirements: UART-005, UART-007, UART-008, UART-009, UART-014, UART-015, UARTDMA-002, UARTDMA-009, UARTDMA-011
+//! Requirements: UART-005, UART-007, UART-008, UART-009, UART-014, UART-015, UART-DMA-002, UART-DMA-009, UART-DMA-011
 
 use core::{
     ptr,
@@ -226,7 +226,7 @@ impl Rx {
     /// The half-lap count is what has been served plus the half and complete
     /// flags still pending, read before the stream's remaining count. The
     /// flags are sticky, so this holds while the service is less than a
-    /// full lap late (UARTDMA-002); a crossing between the flag read and the
+    /// full lap late (UART-DMA-002); a crossing between the flag read and the
     /// count read shows in the position, which `ring::written` accounts for.
     fn count_written(&self) -> (u32, u16) {
         let flags = self.dma.flags();
@@ -455,7 +455,7 @@ fn line_error(kind: MarkKind) -> Option<Error> {
 impl<W: Parts> Uart<W> {
     /// Moves the transmit queue on, as every call does: a reader on a link
     /// whose transmit stream's vector is unbound must not leave the frames
-    /// it waits for unsent (UARTDMA-008).
+    /// it waits for unsent (UART-DMA-008).
     fn serve_tx(&mut self) {
         if let Some(tx) = self.tx.as_mut() {
             tx.service(self.unit);

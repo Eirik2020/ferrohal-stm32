@@ -8,8 +8,8 @@
 //! tier is the weakest tier among the boards that verified it, each of which
 //! may have covered a different file. A requirement applies to a part unless
 //! a version suffix (`USART-V2`) ties it to another IP version, a series
-//! suffix (`RESET-H7`) to another series, or `SCOPED` to another die or
-//! series. A capability on a part is as strong as its weakest requirement and
+//! suffix (`RESET-H7`) to another series, a core suffix (`WAIT-M7`) to another
+//! core, or `SCOPED` to another die or series. A capability on a part is as strong as its weakest requirement and
 //! its die axis (a board of its die whose glue probe, GLUE-001, is verified);
 //! the platform likewise. A part with no verified board evidence of its own
 //! inherits (`INH`). A capability whose IP version FerroHAL does not drive on
@@ -24,16 +24,17 @@ use crate::silicon::Die;
 
 /// A capability: its name in the tables, the IP kind it rests on, and its
 /// requirement families. A family with a `-V<n>` suffix holds for that IP
-/// version only; one with a series suffix (`-F4`, `-H7`) for that series only.
+/// version only; one with a series suffix (`-F4`, `-H7`) for that series only;
+/// one with a core suffix (`-M4`, `-M7`) for the series built on that core.
 const CAPABILITIES: &[(&str, &str, &[&str])] = &[
     (
         "UART",
         "usart",
-        &["UART", "UARTDMA", "USART-V2", "USART-V4"],
+        &["UART", "UART-DMA", "USART-V2", "USART-V4"],
     ),
-    ("SPI", "spi", &["SPI", "SPIPOLL", "SPI-V2", "SPI-V4"]),
+    ("SPI", "spi", &["SPI", "SPI-POLL", "SPI-V2", "SPI-V4"]),
     ("I2C", "i2c", &["I2C", "I2C-V1", "I2C-V2"]),
-    ("Timers", "timer", &["TIMER", "PWM", "AWG"]),
+    ("Timers", "timer", &["TIMER", "TIMER-PWM", "TIMER-LANES"]),
     ("ADC", "adc", &["ADC"]),
     ("USB", "otg", &["USB", "USB-F4"]),
     ("SDMMC", "sdmmc", &["SDMMC"]),
@@ -44,7 +45,7 @@ const CAPABILITIES: &[(&str, &str, &[&str])] = &[
 
 /// The platform's families: what every part needs to run at all.
 const PLATFORM: &[&str] = &[
-    "RCC", "GPIO", "RESET", "RESET-H7", "UID", "REVISION", "GLUE", "WAIT", "API", "RESOURCE",
+    "RCC", "GPIO", "RESET", "RESET-H7", "GLUE", "WAIT-M4", "WAIT-M7", "API", "RESOURCE",
 ];
 
 /// Requirements whose ID does not say their scope: the die or series they
@@ -68,7 +69,8 @@ fn family(id: &str) -> &str {
 }
 
 /// Whether a family applies to a part: its version suffix matches the part's
-/// IP version, and its series suffix the part's series.
+/// IP version, its series suffix the part's series, and its core suffix the
+/// series' core (the F4 and G4 are Cortex-M4, the F7 and H7 Cortex-M7).
 fn applies(family: &str, version: Option<&str>, series: &str) -> bool {
     match family.rsplit_once('-') {
         Some((_, suffix))
@@ -77,6 +79,8 @@ fn applies(family: &str, version: Option<&str>, series: &str) -> bool {
             version.is_some_and(|v| v.split('_').next() == Some(&suffix.to_ascii_lowercase()))
         }
         Some((_, suffix)) if matches!(suffix, "F4" | "H7" | "G4" | "F7") => suffix == series,
+        Some((_, "M4")) => matches!(series, "F4" | "G4"),
+        Some((_, "M7")) => matches!(series, "F7" | "H7"),
         _ => true,
     }
 }

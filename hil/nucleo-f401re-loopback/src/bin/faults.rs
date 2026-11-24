@@ -314,7 +314,7 @@ fn inject_dma_transfer<T: tests::Full, R: tests::Receiver>(
     );
     report.check_for(
         name,
-        "UARTDMA-011",
+        "UART-DMA-011",
         "dma transfer: reported once and the ring restarted",
         if let Some(error) = other {
             Err(Fail::Uart(error))
@@ -372,7 +372,7 @@ fn inject_timeout<T: tests::Full, R: tests::Receiver>(
     );
     report.check_for(
         name,
-        "UARTDMA-012",
+        "UART-DMA-012",
         "timeout: the bound expired, the queue dropped and counted",
         match (&flushed, after.timeouts.wrapping_sub(before)) {
             (Err(Error::Timeout), 1) => Ok(()),

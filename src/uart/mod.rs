@@ -19,7 +19,7 @@
 //! The driver for the enabled chip is re-exported here, so firmware names
 //! `ferrohal_stm32::uart::Uart` whatever the IP version.
 //!
-//! Requirements: UART-001, UART-002, UART-003, UART-004, UART-005, UART-007, UART-008, UART-009, UART-010, UART-012, UART-013, UART-014, UART-015, UART-021, UARTDMA-014
+//! Requirements: UART-001, UART-002, UART-003, UART-004, UART-005, UART-007, UART-008, UART-009, UART-010, UART-012, UART-013, UART-014, UART-015, UART-021, UART-DMA-014
 
 use core::fmt;
 

@@ -581,9 +581,9 @@ pub struct RunQ {
     pub tim8: TIM8,
     pub pc7: Pin<'C', 7, Alternate<3>>,
     pub far_lane: Stream<2, 5>,
-    /// The near lane's reader armed ahead on TIM3's update (AWG-015).
+    /// The near lane's reader armed ahead on TIM3's update (TIMER-LANES-015).
     pub ahead: Stream<2, 6>,
-    /// The near lane's reader paced by TIM5, a timer no lane uses (AWG-017).
+    /// The near lane's reader paced by TIM5, a timer no lane uses (TIMER-LANES-017).
     pub tim5: TIM5,
     pub paced: Stream<2, 7>,
 }

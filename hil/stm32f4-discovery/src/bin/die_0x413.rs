@@ -12,7 +12,7 @@
 //! The routes are polled: no vector is bound, so RTIC leaves every one
 //! masked, and each route runs on the service its own calls make (queued
 //! frames chained by the next call, the receive stream served by each read:
-//! UARTDMA-008). The four routes are four `Uart` types, which no one shared
+//! UART-DMA-008). The four routes are four `Uart` types, which no one shared
 //! slot could hold; what this run proves is the die's routing glue, which
 //! the interrupt path does not change.
 

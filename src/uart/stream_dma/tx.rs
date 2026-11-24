@@ -5,7 +5,7 @@
 //! USART's transmission complete after the last frame is reported once as
 //! [`Events::tx_idle`](super::Events::tx_idle).
 //!
-//! Requirements: UART-006, UART-010, UART-011, UART-013, UARTDMA-008, UARTDMA-009, UARTDMA-012, UARTDMA-013, UART-023
+//! Requirements: UART-006, UART-010, UART-011, UART-013, UART-DMA-008, UART-DMA-009, UART-DMA-012, UART-DMA-013, UART-023
 
 use core::{
     ptr,

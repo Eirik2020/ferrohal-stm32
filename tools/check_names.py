@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Checks FerroHAL's names against docs/design/naming.md (ADR-003, W14).
+"""Checks FerroHAL's names against docs/design/naming.md (ADR-021).
 
     python3 -I tools/check_names.py
 
-- Every requirement ID is <FAMILY>-<NNN> or <FAMILY>-<PART>-<NNN>, upper case.
+- Every requirement ID is <FAMILY>-<NNN> or <FAMILY>-<SUB>-<NNN>, upper case.
 - Every ID is defined once, in the catalog its family belongs to: FAMILIES below
   lists each catalog's families, and a family belongs to exactly one catalog.
   Every catalog in src/requirements/ is listed, and nothing else is.
@@ -15,8 +15,7 @@
   underscore), a named option, or an IP version: <ip>_v<N> or <ip>_<family>
   (the H7 RCC adds its manual: rcc_h7_rm0433).
 
-Exits non-zero naming each failure; it would have caught the USART-001
-collision ADR-003 records.
+Exits non-zero naming each failure.
 """
 
 from __future__ import annotations
@@ -41,12 +40,11 @@ FAMILIES: dict[str, list[str]] = {
     "reset": ["RESET", "RESET-H7"],
     "resource": ["RESOURCE"],
     "sdmmc": ["SDMMC"],
-    "signature": ["UID", "REVISION"],
-    "spi": ["SPI", "SPIPOLL", "SPI-V2", "SPI-V3", "SPI-V4"],
-    "timer": ["TIMER", "PWM", "AWG"],
-    "uart": ["UART", "UARTDMA", "USART-V2", "USART-V4"],
+    "spi": ["SPI", "SPI-POLL", "SPI-V2", "SPI-V3", "SPI-V4"],
+    "timer": ["TIMER", "TIMER-PWM", "TIMER-LANES"],
+    "uart": ["UART", "UART-DMA", "USART-V2", "USART-V4"],
     "usb": ["USB", "USB-F4"],
-    "wait": ["WAIT"],
+    "wait": ["WAIT-M4", "WAIT-M7"],
 }
 
 # Features that are neither a chip, an internal one nor an IP version.
@@ -123,7 +121,7 @@ def main() -> int:
         relative = path.relative_to(ROOT).as_posix()
         for ident in DEFINED.findall(path.read_text(encoding="utf-8")):
             if not ID.match(ident):
-                failures.append(f"{relative}: {ident} is not <FAMILY>-<NNN> or <FAMILY>-<PART>-<NNN>")
+                failures.append(f"{relative}: {ident} is not <FAMILY>-<NNN> or <FAMILY>-<SUB>-<NNN>")
             if ident in defined:
                 failures.append(f"{ident} is defined in {defined[ident]} and {relative}")
                 continue

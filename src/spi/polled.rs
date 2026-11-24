@@ -8,7 +8,7 @@
 //! the wire plus a margin, measured with a [`CycleClock`] when one is set,
 //! otherwise counted as register polls of at least a cycle each.
 //!
-//! Requirements: SPIPOLL-001, SPIPOLL-002, API-002
+//! Requirements: SPI-POLL-001, SPI-POLL-002, API-002
 
 use crate::{
     rcc::Rcc,

@@ -156,12 +156,12 @@ mod app {
         };
         let registered = awg.read_ahead_paced::<_, _, 'B'>(&pacer, run.sampler);
         pacer.start();
-        report.check(name, "a reader paced by TIM1 registers [AWG-017]", holds(registered.is_ok()));
+        report.check(name, "a reader paced by TIM1 registers [TIMER-LANES-017]", holds(registered.is_ok()));
         let first = awg.prepare_listen(pacer.rate(), FIRST);
         let last = awg.prepare_listen(pacer.rate(), LAST);
         report.check(
             name,
-            "the last prepare_listen is the one prepared, at the rate it returned [AWG-013]",
+            "the last prepare_listen is the one prepared, at the rate it returned [TIMER-LANES-013]",
             holds(first.is_ok() && matches!((last, awg.prepared()),
                 (Ok(rate), Some((_, LAST, at))) if at == rate)),
         );
@@ -202,7 +202,7 @@ mod app {
         }
         report.check(
             name,
-            "every exchange reads the last prepared count [AWG-013]",
+            "every exchange reads the last prepared count [TIMER-LANES-013]",
             if whole == EXCHANGES {
                 Ok(())
             } else {
@@ -219,7 +219,7 @@ mod app {
         );
         report.check(
             name,
-            "every switch takes the same cycles, within an eighth of the least [AWG-013]",
+            "every switch takes the same cycles, within an eighth of the least [TIMER-LANES-013]",
             holds(count == EXCHANGES && most - least <= least / 8),
         );
         pacer.stop();

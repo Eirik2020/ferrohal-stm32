@@ -5,7 +5,7 @@
 //!
 //! - USART6 over Z2: the transmit stream sticks with DMAT off, so it waits
 //!   for requests; the flush times out, cannot stop it and reports Halted
-//!   [UARTDMA-009]. DMAT back on, the stuck stream drains its frame into
+//!   [UART-DMA-009]. DMAT back on, the stuck stream drains its frame into
 //!   the receiver, which carries on; once it has stopped, the transmit side
 //!   still refuses, until a free and a reopen. Then the receive ring sticks:
 //!   `free` refuses and hands the UART back, its reads Halted, the buffers
@@ -202,7 +202,7 @@ mod app {
                 .and_then(|()| link.tx().flush());
             report.check_for(
                 UART,
-                "UARTDMA-009",
+                "UART-DMA-009",
                 "a transmit stream that will not stop: the flush reports Halted",
                 match flushed {
                     Err(Error::Halted) if running(DMA1, 6) => Ok(()),
@@ -229,7 +229,7 @@ mod app {
             defmt::info!("{=str}: after the stuck flush, {=usize} byte(s): {=[u8]:02x}", UART, len, &got[..len]);
             report.check_for(
                 UART,
-                "UARTDMA-009",
+                "UART-DMA-009",
                 "reception carries on: the stuck stream's frame arrives whole",
                 held(got[..len] == frame),
             );
@@ -238,7 +238,7 @@ mod app {
             let again = link.tx().write_all(b"x").and_then(|()| link.tx().flush());
             report.check_for(
                 UART,
-                "UARTDMA-009",
+                "UART-DMA-009",
                 "once the stream has stopped, the transmit side still refuses",
                 match again {
                     Err(Error::Halted) if stopped && !running(DMA1, 6) => Ok(()),
@@ -269,7 +269,7 @@ mod app {
             };
             report.check_for(
                 UART,
-                "UARTDMA-009",
+                "UART-DMA-009",
                 "a free and a reopen bring transmission back",
                 tests::echo(&mut link, b"reopened\n"),
             );
@@ -297,7 +297,7 @@ mod app {
         let read = usart6.try_read(&mut byte);
         report.check_for(
             UART,
-            "API-003 UARTDMA-009",
+            "API-003 UART-DMA-009",
             "free refuses while the receive stream will not stop; the UART comes back, reads Halted",
             held(error == StopTimeout && still && read == Err(Error::Halted)),
         );
@@ -321,13 +321,13 @@ mod app {
         fault::release(1, 1);
         let (wiring, buffers) = match refusal {
             Ok(_) => {
-                report.check_for(UART, "UARTDMA-009", "an open refuses a stream that will not stop", Err(Fail::NotRefused(ConfigError::DmaBusy)));
+                report.check_for(UART, "UART-DMA-009", "an open refuses a stream that will not stop", Err(Fail::NotRefused(ConfigError::DmaBusy)));
                 tests::finish(&report, || {})
             }
             Err(refused) => {
                 report.check_for(
                     UART,
-                    "UARTDMA-009",
+                    "UART-DMA-009",
                     "an open refuses a stream that will not stop (DmaBusy)",
                     if refused.error() == ConfigError::DmaBusy {
                         Ok(())
@@ -348,7 +348,7 @@ mod app {
                 };
                 report.check_for(
                     UART,
-                    "UARTDMA-009",
+                    "UART-DMA-009",
                     "released, the same parts open and echo",
                     tests::echo(&mut link, b"opened\n"),
                 );

@@ -70,7 +70,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.8.2", "No DMA transfer complete generated at the end of the encoding process after clearing the HDR bit", [0x1000, 0x1001], Workaround, NotReached("no JPEG driver"), []),
     erratum!("2.8.3", "JPEG FIFO might be corrupted", [0x1000, 0x1001], Workaround, NotReached("no JPEG driver"), []),
     erratum!("2.10.1", "One-pulse mode trigger not detected in master-slave reset + trigger configuration", [0x1000, 0x1001], Partial, Avoided("MSM is never set"), []),
-    erratum!("2.10.2", "Consecutive compare event missed in specific conditions", [0x1000, 0x1001], None, Workaround("a lane refuses a duty within `Pwm::top_margin` of the period's end followed by 0 (PWM-009)"), []),
+    erratum!("2.10.2", "Consecutive compare event missed in specific conditions", [0x1000, 0x1001], None, Workaround("a lane refuses a duty within `Pwm::top_margin` of the period's end followed by 0 (TIMER-PWM-009)"), []),
     erratum!("2.10.3", "Output compare clear not working with external counter reset", [0x1000, 0x1001], Partial, Avoided("no ocref_clr and no reset slave mode"), []),
     erratum!("2.11.1", "Device may remain stuck in LPTIM interrupt when entering Stop mode", [0x1000, 0x1001], Workaround, NotReached("no LPTIM driver, and no Stop entry"), []),
     erratum!("2.11.2", "Device may remain stuck in LPTIM interrupt when clearing event flag", [0x1000, 0x1001], Partial, NotReached("no LPTIM driver"), []),

@@ -4,7 +4,7 @@
 //! count, which `docs/design/lanes.md` requires after any change to the
 //! switch path. The bench enables DWT CYCCNT; this only reads it.
 //!
-//! Requirements: AWG-013
+//! Requirements: TIMER-LANES-013
 
 use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
 

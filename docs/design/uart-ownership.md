@@ -30,7 +30,7 @@ has no atomics, no critical section and no protocol of its own.
   filled, sent, fault). The handler acts on them (spawns the reader); it reads nothing.
 - **Reception does not need its vector.** A read serves the receive stream's flags before
   counting, and still-pending half and complete flags count with the served ones, so a
-  service up to most of a lap late loses nothing (UARTDMA-002). Transmission likewise
+  service up to most of a lap late loses nothing (UART-DMA-002). Transmission likewise
   chains queued frames on any call.
 - **Reception is a circular ring.** The receive DMA never stops between frames: the
   driver marks where the line went idle and where a line error struck, and a read copies

@@ -2,7 +2,7 @@
 //! timers start. No links: no output is enabled. Then the waveform generator
 //! over the same pair, linked: a lane on TIM1 channel 1 (PE9) and one on TIM8
 //! channel 1 (PC6), DMA1 streams 0 and 1, outputs off, and every lane of both
-//! must finish [AWG-005].
+//! must finish [TIMER-LANES-005].
 
 #![no_std]
 #![no_main]
@@ -81,13 +81,13 @@ fn main() -> ! {
             }
             Err(refused) => report.check(
                 name,
-                "AWG: every lane on both timers finishes [AWG-005]",
+                "AWG: every lane on both timers finishes [TIMER-LANES-005]",
                 Err(tests::Fail::Timer(refused.error())),
             ),
         },
         _ => report.check(
             name,
-            "AWG: every lane on both timers finishes [AWG-005]",
+            "AWG: every lane on both timers finishes [TIMER-LANES-005]",
             Err(tests::Fail::Count {
                 expected: 2,
                 got: 0,
