@@ -18,7 +18,7 @@ env:
   # board tiers (#7), and a configuration no longer records which binary cargo
   # built last (#9), and a `#[path]` file owns its own directory, as rustc
   # treats it (#10, for ADR-012's `timer/`). Bump it on purpose.
-  REQTOOL_REV: fd264172989820eab7a2a933fcaa9c8ce4cc1803
+  REQTOOL_REV: 9ddf7d5e41f21dac772e704980eaa2486081ad93
 
 jobs:
   # A pull request that adds a decision label outside docs/decisions/ fails here
