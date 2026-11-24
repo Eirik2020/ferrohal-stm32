@@ -14,7 +14,7 @@ k	spi-polled
 l	bootloader-request
 m	adc
 n	timer-trigger
-o	awg-out
+o	lane-group-out
 p	lane-in
 q	i2c-master
 r	motor-lanes

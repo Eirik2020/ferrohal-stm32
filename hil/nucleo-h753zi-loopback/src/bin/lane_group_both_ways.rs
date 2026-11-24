@@ -1,4 +1,4 @@
-//! Run Q: the waveform generator both ways over one wire, as a bidirectional
+//! Run Q: the lane group both ways over one wire, as a bidirectional
 //! protocol runs. Needs Z2.
 //!
 //! TIM3 channel 1 on PC6 and TIM8 channel 2 on PC7 are the two ends of Z2, both
@@ -29,7 +29,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         time::Hertz,
-        timer::{Awg, Pwm},
+        timer::{LaneGroup, Pwm},
     };
     use stm32_metapac as pac;
 
@@ -99,8 +99,8 @@ mod app {
         report: &mut Report,
         name: &str,
         form: &str,
-        near: &mut Awg<N, N, (ferrohal_stm32::timer::CompareLane<N, NC, WN>,), ()>,
-        far: &mut Awg<F, F, (ferrohal_stm32::timer::CompareLane<F, FC, WF>,), ()>,
+        near: &mut LaneGroup<N, N, (ferrohal_stm32::timer::CompareLane<N, NC, WN>,), ()>,
+        far: &mut LaneGroup<F, F, (ferrohal_stm32::timer::CompareLane<F, FC, WF>,), ()>,
         frame: &mut Option<&'static mut [u32]>,
         lent: &mut Option<&'static mut [u16]>,
         at_end: bool,
@@ -110,7 +110,7 @@ mod app {
         N: ferrohal_stm32::timer::ChannelTimer,
         F: ferrohal_stm32::timer::ChannelTimer,
     {
-        let seen = pwm::awg_reader_round(near, 6, far, frame, lent, at_end, &tim3_regs, cpu);
+        let seen = pwm::lane_group_reader_round(near, 6, far, frame, lent, at_end, &tim3_regs, cpu);
         let kept = seen.as_ref().ok().copied();
         report.check(name, form, seen.map(|_| ()));
         kept
@@ -152,9 +152,9 @@ mod app {
         let (Ok(near), Ok(far)) = (near, far) else {
             defmt::panic!("the lanes")
         };
-        let mut near = Awg::single(tim3, (near,));
-        let mut far = Awg::single(tim8, (far,));
-        pwm::awg_two_way_check(
+        let mut near = LaneGroup::single(tim3, (near,));
+        let mut far = LaneGroup::single(tim8, (far,));
+        pwm::lane_group_two_way_check(
             &mut report,
             "TIM3 CH1 PC6 <-> Z2 <-> TIM8 CH2 PC7",
             &mut near,
@@ -212,12 +212,12 @@ mod app {
             }
             Err(error) => report.check(name, "the TIM5 pacer [TIMER-LANES-017]", Err(Fail::Timer(error.error()))),
         }
-        // 4. A reader armed ahead on TIM3's update, on a generator rebuilt
+        // 4. A reader armed ahead on TIM3's update, on a lane group rebuilt
         // without the paced reader.
         let (tim3, _, lanes, (), mut streams) = near.free();
         report.check(name, "free gives back the paced reader's stream, DMA2 stream 7, once [API-002]",
             holds(streams.take::<2, 7>().is_some() && streams.take::<2, 7>().is_none() && streams.is_empty()));
-        let mut near = Awg::single(tim3, lanes);
+        let mut near = LaneGroup::single(tim3, lanes);
         near.set_active_low(true);
         near.set_outputs(true);
         let registered = near.read_ahead_first_update::<_, 'C'>(run.ahead);

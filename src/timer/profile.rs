@@ -1,4 +1,4 @@
-//! Core-cycle stamps through the lane switch (`Awg::listen`, `Awg::speak`),
+//! Core-cycle stamps through the lane switch (`LaneGroup::listen`, `LaneGroup::speak`),
 //! an exchange's start and the frame-end turn, behind the profiling features
 //! (`docs/policies/features.md`). They measure the prepared switch's cycle
 //! count, which `docs/design/lanes.md` requires after any change to the
@@ -20,14 +20,14 @@ pub const S_PARKED: usize = 19;
 pub const S_RETIMED: usize = 20;
 pub const S_DONE: usize = 21;
 pub const ENTRY2: usize = 22;
-/// Per lane n (0 to 7, the generator's numbering): entry of
+/// Per lane n (0 to 7, the lane group's numbering): entry of
 /// `CompareLane::listen`, before `dma.start`, after it: 23 + 3 n + 0, 1, 2.
 /// Keyed by lane, not channel, so lanes on two timers' same channel do not
 /// share a slot.
 pub const LANE: usize = 23;
 pub const SLOTS: usize = LANE + 3 * 8;
 
-/// The lane `Awg::listen` is starting, for `CompareLane::listen`'s stamps.
+/// The lane `LaneGroup::listen` is starting, for `CompareLane::listen`'s stamps.
 #[cfg(feature = "profile-lanes")]
 static CURRENT: AtomicU32 = AtomicU32::new(0);
 
@@ -207,11 +207,11 @@ static START_ON: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool
 
 #[cfg(feature = "profile-start")]
 pub static START_STAGES: [Stage; 10] = [
-    Stage::new("load: into arm (Awg and the lanes' dispatch)"),
+    Stage::new("load: into arm (LaneGroup and the lanes' dispatch)"),
     Stage::new("arm: checks (busy, limits, DMA reach)"),
     Stage::new("arm: first duty, transfer built"),
     Stage::new("arm: dma.start"),
-    Stage::new("load: out of arm and Awg::load"),
+    Stage::new("load: out of arm and LaneGroup::load"),
     Stage::new("play: arm readers ahead"),
     Stage::new("play: masks"),
     Stage::new("play: stage first timer"),

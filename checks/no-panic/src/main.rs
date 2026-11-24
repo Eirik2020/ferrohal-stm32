@@ -700,32 +700,32 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     pwm.close_requests();
     pwm.stop();
     // The generator over the same lane.
-    let mut awg = ferrohal_stm32::timer::Awg::single(pwm, (lane,));
-    keep(awg.lanes());
-    keep(awg.period());
-    keep(awg.sample_rate());
-    awg.set_outputs(black_box(true));
-    awg.abort();
-    keep(awg.take_frame(black_box(0)).map(ferrohal_stm32::timer::Frame::into_words));
+    let mut lane_group = ferrohal_stm32::timer::LaneGroup::single(pwm, (lane,));
+    keep(lane_group.lanes());
+    keep(lane_group.period());
+    keep(lane_group.sample_rate());
+    lane_group.set_outputs(black_box(true));
+    lane_group.abort();
+    keep(lane_group.take_frame(black_box(0)).map(ferrohal_stm32::timer::Frame::into_words));
     // SAFETY: as TX and RX in `main`; the lane's frame came back above.
     let words = black_box(unsafe { &mut *addr_of_mut!(LANE) });
-    if let Some(limits) = awg.frame_limits(0) {
+    if let Some(limits) = lane_group.frame_limits(0) {
         match ferrohal_stm32::timer::Frame::new(words, black_box(3), limits) {
-            Ok(frame) => keep(awg.load(black_box(0), frame).map_err(|r| r.error())),
+            Ok(frame) => keep(lane_group.load(black_box(0), frame).map_err(|r| r.error())),
             Err(refused) => keep(refused.error()),
         }
     }
-    keep(awg.is_busy());
-    keep(awg.play());
-    keep(awg.on_interrupt());
-    keep(ferrohal_stm32::Service::on_interrupt(&mut awg));
-    keep(awg.vectors().verify());
-    awg.abort();
-    awg.set_active_low(black_box(true));
-    keep(awg.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
-    keep(awg.listen());
-    keep(awg.samples(black_box(0)).len());
-    keep(awg.speak());
+    keep(lane_group.is_busy());
+    keep(lane_group.play());
+    keep(lane_group.on_interrupt());
+    keep(ferrohal_stm32::Service::on_interrupt(&mut lane_group));
+    keep(lane_group.vectors().verify());
+    lane_group.abort();
+    lane_group.set_active_low(black_box(true));
+    keep(lane_group.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
+    keep(lane_group.listen());
+    keep(lane_group.samples(black_box(0)).len());
+    keep(lane_group.speak());
     let mut out = [0u32; 4];
     keep(ferrohal_stm32::timer::recover(
         black_box(&[0u16, 4, 4, 0][..]),
@@ -735,7 +735,7 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
         black_box(100),
         &mut out,
     ));
-    keep(awg.free());
+    keep(lane_group.free());
 }
 
 /// A lane that reads as well, on channel 1.
@@ -811,30 +811,30 @@ pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
         pwm.apply_rate(&rate);
     }
     // The generator's frame and lent-memory calls over the same lane.
-    let mut awg = ferrohal_stm32::timer::Awg::single(pwm, (lane,));
-    keep(awg.frame_limits(black_box(0)));
+    let mut lane_group = ferrohal_stm32::timer::LaneGroup::single(pwm, (lane,));
+    keep(lane_group.frame_limits(black_box(0)));
     // SAFETY: as TX and RX in `main`; the frame above came back or was
     // refused, so the memory is free again.
     let words = black_box(unsafe { &mut *addr_of_mut!(FRAME) });
-    if let Some(limits) = awg.frame_limits(0) {
+    if let Some(limits) = lane_group.frame_limits(0) {
         match ferrohal_stm32::timer::Frame::new(words, black_box(3), limits) {
-            Ok(frame) => keep(awg.load(black_box(0), frame).map_err(|r| r.error())),
+            Ok(frame) => keep(lane_group.load(black_box(0), frame).map_err(|r| r.error())),
             Err(refused) => keep(refused.error()),
         }
     }
-    keep(awg.play());
-    keep(awg.listen_on_end());
-    keep(awg.on_interrupt());
-    awg.abort();
-    keep(awg.take_frame(black_box(0)).map(ferrohal_stm32::timer::Frame::into_words));
+    keep(lane_group.play());
+    keep(lane_group.listen_on_end());
+    keep(lane_group.on_interrupt());
+    lane_group.abort();
+    keep(lane_group.take_frame(black_box(0)).map(ferrohal_stm32::timer::Frame::into_words));
     // SAFETY: as TX and RX in `main`.
     let lent = black_box(unsafe { &mut *addr_of_mut!(LENT) });
-    keep(awg.lend_samples(black_box(0), lent).map_err(|r| r.error()));
-    keep(awg.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
-    keep(awg.prepared());
-    keep(awg.reader_of(black_box(0)));
-    keep(awg.is_listening());
-    keep(awg.take_samples(black_box(0)));
+    keep(lane_group.lend_samples(black_box(0), lent).map_err(|r| r.error()));
+    keep(lane_group.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
+    keep(lane_group.prepared());
+    keep(lane_group.reader_of(black_box(0)));
+    keep(lane_group.is_listening());
+    keep(lane_group.take_samples(black_box(0)));
 }
 
 /// The three reader forms: a reader armed ahead on the lane timer's update
@@ -878,19 +878,19 @@ pub fn exercise_readers<T, P, U, const CD: u8, const SN: u8, SA, SC, SP, S2, S3,
     // SAFETY: as TX and RX in `main`.
     let reads = black_box(unsafe { &mut *addr_of_mut!(READER_READS) });
     keep(lane.lend_samples(reads).map_err(|r| r.error()));
-    let mut awg = ferrohal_stm32::timer::Awg::single(pwm, (lane,));
-    keep(awg.read_ahead_first_update::<_, PORT>(ahead).map_err(|r| r.error()));
-    keep(awg.read_ahead_first_compare::<2, _, PORT>(compare).map_err(|r| r.error()));
-    keep(awg.read_ahead_paced::<_, _, PORT>(&pace, paced).map_err(|r| r.error()));
+    let mut lane_group = ferrohal_stm32::timer::LaneGroup::single(pwm, (lane,));
+    keep(lane_group.read_ahead_first_update::<_, PORT>(ahead).map_err(|r| r.error()));
+    keep(lane_group.read_ahead_first_compare::<2, _, PORT>(compare).map_err(|r| r.error()));
+    keep(lane_group.read_ahead_paced::<_, _, PORT>(&pace, paced).map_err(|r| r.error()));
     // A one-timer generator has no second timer: both are refused, linked.
-    keep(awg.read_ahead_second_update::<_, PORT>(second.0).map_err(|r| r.error()));
-    keep(awg.read_ahead_second_compare::<3, _, PORT>(second.1).map_err(|r| r.error()));
-    keep(awg.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
-    keep(awg.listen());
-    keep(awg.speak());
-    awg.abort();
+    keep(lane_group.read_ahead_second_update::<_, PORT>(second.0).map_err(|r| r.error()));
+    keep(lane_group.read_ahead_second_compare::<3, _, PORT>(second.1).map_err(|r| r.error()));
+    keep(lane_group.prepare_listen(black_box(Hertz::mhz(1)), black_box(4)));
+    keep(lane_group.listen());
+    keep(lane_group.speak());
+    lane_group.abort();
     // Every reader's stream comes back, each once.
-    let (_, _, _, (), mut streams) = awg.free();
+    let (_, _, _, (), mut streams) = lane_group.free();
     keep(streams.take::<1, 0>());
     keep(streams.is_empty());
 }
@@ -2214,29 +2214,29 @@ where
     slave.stop();
     // The generator over both timers: linked by the trigger, then freed and
     // built again started in software.
-    use ferrohal_stm32::timer::Awg;
-    let mut awg = match Awg::linked(master, slave, (), ()) {
-        Ok(awg) => awg,
+    use ferrohal_stm32::timer::LaneGroup;
+    let mut lane_group = match LaneGroup::linked(master, slave, (), ()) {
+        Ok(lane_group) => lane_group,
         Err(refused) => {
             keep(refused.error());
             let (master, slave, a, b) = refused.into_parts();
-            match Awg::linked(master, slave, a, b) {
-                Ok(awg) => awg,
+            match LaneGroup::linked(master, slave, a, b) {
+                Ok(lane_group) => lane_group,
                 Err(_) => park(),
             }
         }
     };
-    keep(awg.play());
-    awg.abort();
-    let (master, Some(slave), a, b, _) = awg.free() else {
+    keep(lane_group.play());
+    lane_group.abort();
+    let (master, Some(slave), a, b, _) = lane_group.free() else {
         park()
     };
-    let mut awg = match Awg::independent(master, slave, a, b) {
-        Ok(awg) => awg,
+    let mut lane_group = match LaneGroup::independent(master, slave, a, b) {
+        Ok(lane_group) => lane_group,
         Err(_) => park(),
     };
-    keep(awg.play());
-    keep(awg.free());
+    keep(lane_group.play());
+    keep(lane_group.free());
 }
 
 /// The SD card driver, on the chips that have it.

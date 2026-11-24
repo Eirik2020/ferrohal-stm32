@@ -16,7 +16,7 @@
 //!   channel and stream come back and play on PB0.
 //! - Sampler: a 0 rate refuses; the timer, stream and buffer come back and
 //!   decode the lane playing on PB0.
-//! - AWG: two timers at different periods refuse; both PWMs and both lanes
+//! - lane group: two timers at different periods refuse; both PWMs and both lanes
 //!   come back, the second re-rated, and the pair plays PB0.
 //! - Tick and Timebase: rates the clock cannot divide to refuse; the
 //!   timers come back and run. The tick pauses right away, its vector
@@ -162,7 +162,7 @@ mod app {
                 self, Buffers as SpiBuffers, Config as SpiConfig, ConfigError as SpiConfigError,
             },
             time::Hertz,
-            timer::{Awg, ConfigError as TimerConfigError, Pwm, Sampler, Tick, Timebase},
+            timer::{LaneGroup, ConfigError as TimerConfigError, Pwm, Sampler, Tick, Timebase},
         };
 
         tests::set_cpu_hz(board::CLOCKS.cpu.0);
@@ -603,7 +603,7 @@ mod app {
             lane_use,
         );
 
-        // AWG: two timers at different periods refuse; both PWMs and both
+        // lane group: two timers at different periods refuse; both PWMs and both
         // lanes come back, the second re-rated, and the pair plays PB0.
         let pwm5 = match Pwm::new(&mut run.rcc, run.tim5, Hertz::khz(100)) {
             Ok(pwm) => pwm,
@@ -619,7 +619,7 @@ mod app {
                 Ok(lane) => lane,
                 Err(refused) => defmt::panic!("the TIM5 lane: {}", refused.error()),
             };
-        let (mut awg, awg_refusal) = match Awg::independent(pwm3, pwm5, (lane3,), (lane5,)) {
+        let (mut lane_group, lane_group_refusal) = match LaneGroup::independent(pwm3, pwm5, (lane3,), (lane5,)) {
             Ok(_) => defmt::panic!("mismatched periods were accepted"),
             Err(refused) => {
                 let error = refused.error();
@@ -627,42 +627,42 @@ mod app {
                 if pwm5.set_rate(Hertz::khz(500)).is_err() {
                     defmt::panic!("re-rating TIM5");
                 }
-                match Awg::independent(pwm3, pwm5, lane3, lane5) {
-                    Ok(awg) => (awg, Some(error)),
-                    Err(refused) => defmt::panic!("the AWG: {}", refused.error()),
+                match LaneGroup::independent(pwm3, pwm5, lane3, lane5) {
+                    Ok(lane_group) => (lane_group, Some(error)),
+                    Err(refused) => defmt::panic!("the lane group: {}", refused.error()),
                 }
             }
         };
-        let awg_pattern: u16 = 0xa5c3;
-        let awg_use = (|| {
-            if awg_refusal != Some(TimerConfigError::PeriodMismatch) {
+        let lane_group_pattern: u16 = 0xa5c3;
+        let lane_group_use = (|| {
+            if lane_group_refusal != Some(TimerConfigError::PeriodMismatch) {
                 return Err(Fail::Timer(TimerConfigError::PeriodMismatch));
             }
             sampler
-                .set_rate(Hertz(awg.sample_rate().0 * 12))
+                .set_rate(Hertz(lane_group.sample_rate().0 * 12))
                 .map_err(Fail::Timer)?;
-            let period = awg.period();
-            if crate::pwm::load(&mut awg, 0, &pwm::duties(awg_pattern, period)).is_err() {
+            let period = lane_group.period();
+            if crate::pwm::load(&mut lane_group, 0, &pwm::duties(lane_group_pattern, period)).is_err() {
                 return Err(Fail::Count {
                     expected: 16,
                     got: 0,
                 });
             }
-            let awg_per_bit16 =
-                (u64::from(sampler.rate().0) * 16 / u64::from(awg.sample_rate().0)) as u32;
-            let count = (awg_per_bit16 as usize * (16 + 8)) / 16;
+            let lane_group_per_bit16 =
+                (u64::from(sampler.rate().0) * 16 / u64::from(lane_group.sample_rate().0)) as u32;
+            let count = (lane_group_per_bit16 as usize * (16 + 8)) / 16;
             sampler.start(count).map_err(|_| Fail::Count {
                 expected: count as u32,
                 got: 0,
             })?;
-            if awg.play().is_err() {
+            if lane_group.play().is_err() {
                 return Err(Fail::Count {
                     expected: 1,
                     got: 0,
                 });
             }
             if !matches!(
-                pwm::wait(budget, || awg.on_interrupt().map(|r| r.map(|_| ()))),
+                pwm::wait(budget, || lane_group.on_interrupt().map(|r| r.map(|_| ()))),
                 Some(Ok(()))
             ) {
                 return Err(Fail::Count {
@@ -677,16 +677,16 @@ mod app {
                     got: 0,
                 });
             }
-            pwm::decode(sampler.samples(), 0, awg_pattern, awg_per_bit16, false)
+            pwm::decode(sampler.samples(), 0, lane_group_pattern, lane_group_per_bit16, false)
         })();
         report.check(
-            "TIM3 CH3 PB0 (AWG)",
+            "TIM3 CH3 PB0 (lane group)",
             "mismatched periods refuse; the parts play after re-rating [API-001]",
-            awg_use,
+            lane_group_use,
         );
-        // The same generator, TIM5 started in software beside TIM3: every
+        // The same lane group, TIM5 started in software beside TIM3: every
         // lane of both finishes.
-        pwm::awg_pair_check(&mut report, "TIM3 + TIM5, software start", &mut awg, cpu);
+        pwm::lane_group_pair_check(&mut report, "TIM3 + TIM5, software start", &mut lane_group, cpu);
 
         // Tick: a rate the clock cannot divide to refuses; the timer comes
         // back. Its vector is unbound, so it pauses right away.

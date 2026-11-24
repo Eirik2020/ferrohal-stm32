@@ -18,7 +18,7 @@ use cortex_m::{
 use ferrohal_stm32::{
     time::Hertz,
     timer::{
-        Awg, ChannelTimer, CompareLane, Error as PwmError, Frame, FrameLimits, Lanes, Pwm, Sampler,
+        LaneGroup, ChannelTimer, CompareLane, Error as PwmError, Frame, FrameLimits, Lanes, Pwm, Sampler,
     },
 };
 
@@ -94,9 +94,9 @@ pub fn arm<T: ChannelTimer, const C: u8, W>(
     })
 }
 
-/// Loads `duties` on the generator's `lane`, as [`arm`] does on a lane.
+/// Loads `duties` on the lane group's `lane`, as [`arm`] does on a lane.
 pub fn load<A, B, LA, LB>(
-    awg: &mut Awg<A, B, LA, LB>,
+    lane_group: &mut LaneGroup<A, B, LA, LB>,
     lane: usize,
     duties: &[u32],
 ) -> Result<(), PwmError>
@@ -106,10 +106,10 @@ where
     LA: Lanes<A>,
     LB: Lanes<B>,
 {
-    reclaim(awg.take_frame(lane));
-    let limits = awg.frame_limits(lane).ok_or(PwmError::Empty)?;
+    reclaim(lane_group.take_frame(lane));
+    let limits = lane_group.frame_limits(lane).ok_or(PwmError::Empty)?;
     let frame = frame(duties, limits)?;
-    awg.load(lane, frame).map_err(|refused| {
+    lane_group.load(lane, frame).map_err(|refused| {
         let (error, frame) = refused.into_inner();
         reclaim(Some(frame));
         error
@@ -445,9 +445,9 @@ pub fn top_to_zero_check<
     );
 }
 
-/// The waveform generator on two lanes of one timer, read back by `sampler`:
+/// The lane group on two lanes of one timer, read back by `sampler`:
 /// each lane's own samples, a ramp, one lane alone, and what it refuses.
-pub fn awg_check<
+pub fn lane_group_check<
     T: ChannelTimer,
     U: ferrohal_stm32::timer::Instance,
     const A: u8,
@@ -458,19 +458,19 @@ pub fn awg_check<
 >(
     report: &mut Report,
     name: &str,
-    awg: &mut Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
+    lane_group: &mut LaneGroup<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
     pins: (u8, u8),
     sampler: &mut Sampler<U, SU>,
     cpu: Hertz,
 ) {
-    let period = awg.period();
-    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(awg.sample_rate().0)) as u32;
+    let period = lane_group.period();
+    let per_bit16 = (u64::from(sampler.rate().0) * 16 / u64::from(lane_group.sample_rate().0)) as u32;
     let count = (per_bit16 as usize * (BITS + 8)) / 16;
     let patterns = (0x3c96u16, 0xe14du16);
     let budget = cpu.0 / 100;
 
     // Plays what's loaded, sampling it; `Err` if anything didn't finish.
-    let play = |awg: &mut Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
+    let play = |lane_group: &mut LaneGroup<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
                 sampler: &mut Sampler<U, SU>,
                 lanes: u8|
      -> Result<(), Fail> {
@@ -482,15 +482,15 @@ pub fn awg_check<
             expected: count as u32,
             got: 0,
         })?;
-        if awg.play().is_err() {
+        if lane_group.play().is_err() {
             sampler.abort();
-            awg.abort();
+            lane_group.abort();
             return Err(unfinished);
         }
         // Each service reports every lane that ended since the last, as a
         // mask; wait until the loaded lanes have all ended.
         let mut ended = 0u8;
-        let all = wait(budget, || match awg.on_interrupt() {
+        let all = wait(budget, || match lane_group.on_interrupt() {
             Some(Ok(mask)) => {
                 ended |= mask;
                 (ended & lanes as u8 == lanes as u8).then_some(true)
@@ -500,7 +500,7 @@ pub fn awg_check<
         });
         if all != Some(true) {
             sampler.abort();
-            awg.abort();
+            lane_group.abort();
             return Err(unfinished);
         }
         match wait(budget, || sampler.on_interrupt()) {
@@ -510,10 +510,10 @@ pub fn awg_check<
     };
 
     // Each lane its own waveform, from one start.
-    let loaded = load(awg, 0, &duties(patterns.0, period)).is_ok()
-        && load(awg, 1, &duties(patterns.1, period)).is_ok();
+    let loaded = load(lane_group, 0, &duties(patterns.0, period)).is_ok()
+        && load(lane_group, 1, &duties(patterns.1, period)).is_ok();
     let played = if loaded {
-        play(awg, sampler, 0b11)
+        play(lane_group, sampler, 0b11)
     } else {
         Err(Fail::Count {
             expected: 2,
@@ -522,7 +522,7 @@ pub fn awg_check<
     };
     report.check(
         name,
-        "AWG: each lane plays its own samples [TIMER-LANES-001 TIMER-LANES-002]",
+        "lane group: each lane plays its own samples [TIMER-LANES-001 TIMER-LANES-002]",
         played.and_then(|()| {
             decode(sampler.samples(), pins.0, patterns.0, per_bit16, false)?;
             decode(sampler.samples(), pins.1, patterns.1, per_bit16, false)
@@ -531,8 +531,8 @@ pub fn awg_check<
 
     // Samples hold their duty for one period each: a ramp reads back rising.
     let ramp: [u32; 7] = core::array::from_fn(|i| period * (2 + 2 * i as u32) / 16);
-    let played = match load(awg, 0, &ramp) {
-        Ok(()) => play(awg, sampler, 0b01),
+    let played = match load(lane_group, 0, &ramp) {
+        Ok(()) => play(lane_group, sampler, 0b01),
         Err(_) => Err(Fail::Count {
             expected: 1,
             got: 0,
@@ -540,7 +540,7 @@ pub fn awg_check<
     };
     report.check(
         name,
-        "AWG: a ramp reads back in order, and ends low [TIMER-LANES-001 TIMER-LANES-003]",
+        "lane group: a ramp reads back in order, and ends low [TIMER-LANES-001 TIMER-LANES-003]",
         played.and_then(|()| {
             let mut found = [(0, 0); 32];
             let pulses = pulses(sampler.samples(), pins.0, false, &mut found);
@@ -570,8 +570,8 @@ pub fn awg_check<
     );
 
     // One lane alone leaves the other low.
-    let played = match load(awg, 1, &duties(patterns.1, period)) {
-        Ok(()) => play(awg, sampler, 0b10),
+    let played = match load(lane_group, 1, &duties(patterns.1, period)) {
+        Ok(()) => play(lane_group, sampler, 0b10),
         Err(_) => Err(Fail::Count {
             expected: 1,
             got: 0,
@@ -579,7 +579,7 @@ pub fn awg_check<
     };
     report.check(
         name,
-        "AWG: an unloaded lane stays low [TIMER-LANES-002]",
+        "lane group: an unloaded lane stays low [TIMER-LANES-002]",
         played.and_then(|()| {
             let high = sampler
                 .samples()
@@ -597,16 +597,16 @@ pub fn awg_check<
     );
 
     // Refusals, and a clean run after an abort.
-    let nothing = awg.play().is_err();
-    let past_end = load(awg, 2, &[1, 2]).is_err();
-    let _ = load(awg, 0, &duties(patterns.0, period));
-    let started = awg.play().is_ok();
-    let while_playing = load(awg, 1, &[1, 2]).is_err() && awg.play().is_err();
-    awg.abort();
-    let idle = !awg.is_busy();
+    let nothing = lane_group.play().is_err();
+    let past_end = load(lane_group, 2, &[1, 2]).is_err();
+    let _ = load(lane_group, 0, &duties(patterns.0, period));
+    let started = lane_group.play().is_ok();
+    let while_playing = load(lane_group, 1, &[1, 2]).is_err() && lane_group.play().is_err();
+    lane_group.abort();
+    let idle = !lane_group.is_busy();
     report.check(
         name,
-        "AWG: refuses what it can't do, and an abort leaves it ready [TIMER-LANES-004 TIMER-LANES-007]",
+        "lane group: refuses what it can't do, and an abort leaves it ready [TIMER-LANES-004 TIMER-LANES-007]",
         if nothing && past_end && started && while_playing && idle {
             Ok(())
         } else {
@@ -622,25 +622,25 @@ pub fn awg_check<
     );
 }
 
-/// A generator on two timers, however it starts the second, plays a waveform
+/// A lane group on two timers, however it starts the second, plays a waveform
 /// on every lane of both and every lane finishes, ten rounds over [TIMER-LANES-005].
 /// It needs no wire: finishing is what the requirement asks, and a second
 /// timer that never started would leave its lanes unfinished.
-pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>>(
+pub fn lane_group_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>>(
     report: &mut Report,
     name: &str,
-    awg: &mut Awg<A, B, LA, LB>,
+    lane_group: &mut LaneGroup<A, B, LA, LB>,
     cpu: Hertz,
 ) {
     const ROUNDS: u32 = 10;
-    let lanes = awg.lanes();
+    let lanes = lane_group.lanes();
     let budget = cpu.0 / 100;
     let mut done = 0;
     for round in 0..ROUNDS {
-        let samples = duties(0x8421u16.rotate_left(round), awg.period());
-        let loaded = (0..lanes).all(|lane| load(awg, lane, &samples).is_ok());
-        if !loaded || awg.play().is_err() {
-            awg.abort();
+        let samples = duties(0x8421u16.rotate_left(round), lane_group.period());
+        let loaded = (0..lanes).all(|lane| load(lane_group, lane, &samples).is_ok());
+        if !loaded || lane_group.play().is_err() {
+            lane_group.abort();
             continue;
         }
         // Every lane polled in turn until all have finished: one finishing
@@ -651,7 +651,7 @@ pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<
         while finished.count_ones() < lanes as u32
             && DWT::cycle_count().wrapping_sub(start) < budget
         {
-            match awg.on_interrupt() {
+            match lane_group.on_interrupt() {
                 Some(Ok(ended)) => finished |= u32::from(ended),
                 Some(Err(_)) => {
                     failed = true;
@@ -663,12 +663,12 @@ pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<
         if finished.count_ones() == lanes as u32 && !failed {
             done += 1;
         } else {
-            awg.abort();
+            lane_group.abort();
         }
     }
     report.check(
         name,
-        "AWG: every lane on both timers finishes [TIMER-LANES-005]",
+        "lane group: every lane on both timers finishes [TIMER-LANES-005]",
         if done == ROUNDS {
             Ok(())
         } else {
@@ -680,12 +680,12 @@ pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<
     );
 }
 
-/// Stops a two-lane generator mid-waveform, by `abort` and then by `free`,
+/// Stops a two-lane group mid-waveform, by `abort` and then by `free`,
 /// and reopens its timer from the token `free` handed back. Each stop must
 /// leave both lines quiet at once - every lane at duty 0, latched though the
 /// timer is stopped - so nothing high reaches the sampler; and the token must
-/// open the timer again at the generator's rate, with its period.
-pub fn awg_free_check<
+/// open the timer again at the lane group's rate, with its period.
+pub fn lane_group_free_check<
     T: ChannelTimer,
     U: ferrohal_stm32::timer::Instance,
     const A: u8,
@@ -696,21 +696,21 @@ pub fn awg_free_check<
 >(
     report: &mut Report,
     name: &str,
-    awg: Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
+    lane_group: LaneGroup<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>,
     pins: (u8, u8),
     sampler: &mut Sampler<U, SU>,
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     cpu: Hertz,
 ) {
-    let mut awg = awg;
-    let period = awg.period();
-    let rate = awg.sample_rate();
+    let mut lane_group = lane_group;
+    let period = lane_group.period();
+    let rate = lane_group.sample_rate();
     let mask = (1u16 << pins.0) | (1u16 << pins.1);
     // Every bit a 1, so each period is mostly high: a stop lands mid-pulse.
-    let start = |awg: &mut Awg<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>| {
-        load(awg, 0, &duties(0xffff, period)).is_ok()
-            && load(awg, 1, &duties(0xffff, period)).is_ok()
-            && awg.play().is_ok()
+    let start = |lane_group: &mut LaneGroup<T, T, (CompareLane<T, A, WA>, CompareLane<T, B, WB>), ()>| {
+        load(lane_group, 0, &duties(0xffff, period)).is_ok()
+            && load(lane_group, 1, &duties(0xffff, period)).is_ok()
+            && lane_group.play().is_ok()
     };
     let quiet = |sampler: &mut Sampler<U, SU>, started: bool| -> Result<(), Fail> {
         if !started {
@@ -740,19 +740,19 @@ pub fn awg_free_check<
         Ok(())
     };
 
-    let started = start(&mut awg);
-    awg.abort();
+    let started = start(&mut lane_group);
+    lane_group.abort();
     report.check(
         name,
-        "AWG: abort mid-waveform holds both lines low [TIMER-LANES-007]",
+        "lane group: abort mid-waveform holds both lines low [TIMER-LANES-007]",
         quiet(sampler, started),
     );
 
-    let started = start(&mut awg);
-    let (pwm, _, (lane_a, lane_b), (), _) = awg.free();
+    let started = start(&mut lane_group);
+    let (pwm, _, (lane_a, lane_b), (), _) = lane_group.free();
     report.check(
         name,
-        "AWG: free mid-waveform holds both lines low [API-002]",
+        "lane group: free mid-waveform holds both lines low [API-002]",
         quiet(sampler, started),
     );
     // The lanes free to their wirings and lent frames, the timer to its
@@ -766,7 +766,7 @@ pub fn awg_free_check<
     let token = pwm.free();
     report.check(
         name,
-        "the freed token opens the timer again, at the generator's period [API-002]",
+        "the freed token opens the timer again, at the lane group's period [API-002]",
         match Pwm::new(rcc, token, rate) {
             Ok(pwm) if pwm.period() == period => {
                 let _ = pwm.free();
@@ -838,9 +838,9 @@ fn recovered(
     Ok(())
 }
 
-/// Plays `wave` on one lane of `awg`, waiting for it to end.
+/// Plays `wave` on one lane of `lane_group`, waiting for it to end.
 fn play_one<T: ChannelTimer, const C: u8, WC>(
-    awg: &mut Awg<T, T, (CompareLane<T, C, WC>,), ()>,
+    lane_group: &mut LaneGroup<T, T, (CompareLane<T, C, WC>,), ()>,
     samples: &[u32; 8],
     budget: u32,
 ) -> Result<(), Fail> {
@@ -848,24 +848,24 @@ fn play_one<T: ChannelTimer, const C: u8, WC>(
         expected: 1,
         got: 0,
     };
-    if load(awg, 0, samples).is_err() || awg.play().is_err() {
-        awg.abort();
+    if load(lane_group, 0, samples).is_err() || lane_group.play().is_err() {
+        lane_group.abort();
         return Err(failed);
     }
     if matches!(
-        wait(budget, || awg.on_interrupt().map(|r| r.map(|_| ()))),
+        wait(budget, || lane_group.on_interrupt().map(|r| r.map(|_| ()))),
         Some(Ok(()))
     ) {
         Ok(())
     } else {
-        awg.abort();
+        lane_group.abort();
         Err(failed)
     }
 }
 
-/// Out over a wire: `awg`'s lane plays, and `sampler` reads the far end of the
+/// Out over a wire: `lane_group`'s lane plays, and `sampler` reads the far end of the
 /// wire, on bit `far_pin` of its port.
-pub fn awg_wire_out_check<
+pub fn lane_group_wire_out_check<
     T: ChannelTimer,
     U: ferrohal_stm32::timer::Instance,
     const C: u8,
@@ -874,19 +874,19 @@ pub fn awg_wire_out_check<
 >(
     report: &mut Report,
     name: &str,
-    awg: &mut Awg<T, T, (CompareLane<T, C, WC>,), ()>,
+    lane_group: &mut LaneGroup<T, T, (CompareLane<T, C, WC>,), ()>,
     sampler: &mut Sampler<U, SU>,
     far_pin: u8,
     cpu: Hertz,
 ) {
-    let sent = scaled(&WAVE, awg.period());
+    let sent = scaled(&WAVE, lane_group.period());
     let budget = cpu.0 / 100;
     let result = (|| {
         sampler.start(CAPTURES).map_err(|_| Fail::Count {
             expected: CAPTURES as u32,
             got: 0,
         })?;
-        play_one(awg, &sent, budget)?;
+        play_one(lane_group, &sent, budget)?;
         if !matches!(wait(budget, || sampler.on_interrupt()), Some(Ok(_))) {
             sampler.abort();
             return Err(Fail::Count {
@@ -899,26 +899,26 @@ pub fn awg_wire_out_check<
             far_pin,
             false,
             sampler.rate(),
-            awg.sample_rate(),
-            awg.period(),
+            lane_group.sample_rate(),
+            lane_group.period(),
             &sent,
         )
     })();
     report.check(
         name,
-        "AWG out over the wire: samples read back at the far end [TIMER-LANES-008]",
+        "lane group out over the wire: samples read back at the far end [TIMER-LANES-008]",
         result,
     );
 
     // With the sender's output off, nothing crosses: the far end reads
     // only its pull-up, the whole capture through.
-    awg.set_outputs(false);
+    lane_group.set_outputs(false);
     let result = (|| {
         sampler.start(CAPTURES).map_err(|_| Fail::Count {
             expected: CAPTURES as u32,
             got: 0,
         })?;
-        play_one(awg, &sent, budget)?;
+        play_one(lane_group, &sent, budget)?;
         if !matches!(wait(budget, || sampler.on_interrupt()), Some(Ok(_))) {
             sampler.abort();
             return Err(Fail::Count {
@@ -942,20 +942,20 @@ pub fn awg_wire_out_check<
     })();
     report.check(
         name,
-        "AWG: with the output off, nothing crosses the wire [TIMER-LANES-011]",
+        "lane group: with the output off, nothing crosses the wire [TIMER-LANES-011]",
         result,
     );
-    awg.set_outputs(true);
+    lane_group.set_outputs(true);
 }
 
 /// In over a wire: `far` plays active low, and `near` listens on its own lane's
 /// pin, at bit `near_pin` of its port.
-pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8, WFC, WNC>(
+pub fn lane_group_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8, WFC, WNC>(
     report: &mut Report,
     name: &str,
-    near: &mut Awg<N, N, (CompareLane<N, NC, WNC>,), ()>,
+    near: &mut LaneGroup<N, N, (CompareLane<N, NC, WNC>,), ()>,
     near_pin: u8,
-    far: &mut Awg<F, F, (CompareLane<F, FC, WFC>,), ()>,
+    far: &mut LaneGroup<F, F, (CompareLane<F, FC, WFC>,), ()>,
     cpu: Hertz,
 ) {
     near.set_active_low(true);
@@ -991,12 +991,12 @@ pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     })();
     report.check(
         name,
-        "AWG in over the wire: a lane reads the samples on its own pin [TIMER-LANES-009]",
+        "lane group in over the wire: a lane reads the samples on its own pin [TIMER-LANES-009]",
         result,
     );
     report.check(
         name,
-        "AWG: a lane turns back to sending after listening [TIMER-LANES-009]",
+        "lane group: a lane turns back to sending after listening [TIMER-LANES-009]",
         near.speak().map_err(|_| Fail::Count {
             expected: 1,
             got: 0,
@@ -1007,12 +1007,12 @@ pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
 /// One wire, both ways, both ends two-way and active low, as a bidirectional
 /// protocol runs: `near` sends and `far` listens, then they swap. And with `near`'s
 /// output off, nothing crosses.
-pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8, WFC, WNC>(
+pub fn lane_group_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const FC: u8, WFC, WNC>(
     report: &mut Report,
     name: &str,
-    near: &mut Awg<N, N, (CompareLane<N, NC, WNC>,), ()>,
+    near: &mut LaneGroup<N, N, (CompareLane<N, NC, WNC>,), ()>,
     near_pin: u8,
-    far: &mut Awg<F, F, (CompareLane<F, FC, WFC>,), ()>,
+    far: &mut LaneGroup<F, F, (CompareLane<F, FC, WFC>,), ()>,
     far_pin: u8,
     cpu: Hertz,
 ) {
@@ -1048,7 +1048,7 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     })();
     report.check(
         name,
-        "AWG out over the wire: the far lane reads the samples [TIMER-LANES-008 TIMER-LANES-009]",
+        "lane group out over the wire: the far lane reads the samples [TIMER-LANES-008 TIMER-LANES-009]",
         result,
     );
     let spoke = far.speak().map_err(|_| short(1));
@@ -1077,7 +1077,7 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     });
     report.check(
         name,
-        "AWG in over the wire: the near lane reads the reply on its own pin [TIMER-LANES-009]",
+        "lane group in over the wire: the near lane reads the reply on its own pin [TIMER-LANES-009]",
         result,
     );
     let spoke = near.speak().map_err(|_| short(1));
@@ -1111,7 +1111,7 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     });
     report.check(
         name,
-        "AWG: with the output off, nothing crosses the wire [TIMER-LANES-011]",
+        "lane group: with the output off, nothing crosses the wire [TIMER-LANES-011]",
         result,
     );
     near.set_outputs(true);
@@ -1157,10 +1157,10 @@ pub struct TimerRegs {
 /// frame has ended; the reply must come back whole. `regs` reads `near`'s
 /// timer. The frame and lent memory go in and come back through the slots.
 #[allow(clippy::too_many_arguments)]
-pub fn awg_reader_round<N: ChannelTimer, const NC: u8, WNC, F: ChannelTimer, const FC: u8, WFC>(
-    near: &mut Awg<N, N, (CompareLane<N, NC, WNC>,), ()>,
+pub fn lane_group_reader_round<N: ChannelTimer, const NC: u8, WNC, F: ChannelTimer, const FC: u8, WFC>(
+    near: &mut LaneGroup<N, N, (CompareLane<N, NC, WNC>,), ()>,
     near_pin: u8,
-    far: &mut Awg<F, F, (CompareLane<F, FC, WFC>,), ()>,
+    far: &mut LaneGroup<F, F, (CompareLane<F, FC, WFC>,), ()>,
     frame_slot: &mut Option<&'static mut [u32]>,
     rx_slot: &mut Option<&'static mut [u16]>,
     at_end: bool,

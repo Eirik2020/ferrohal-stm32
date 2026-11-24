@@ -16,7 +16,7 @@
 //! stream: DMA1's AHB peripheral port is not connected to the bus matrix
 //! (RM0090).
 //!
-//! Then the four lanes as one generator turn to read port B through one
+//! Then the four lanes as one lane group turn to read port B through one
 //! reader paced by TIM1's update on DMA2 stream 5 (`docs/design/lanes.md`): every lane on
 //! the port shares that reader, only the last lane raises its end-of-transfer
 //! interrupt, and the read runs at the pacer's rate.
@@ -361,11 +361,11 @@ mod app {
                 true,
                 cpu,
             );
-            // The four lanes as one generator, TIM3 starting TIM2 through its
+            // The four lanes as one lane group, TIM3 starting TIM2 through its
             // trigger: every lane of both finishes.
-            match ferrohal_stm32::timer::Awg::linked(pwm3, pwm2, (lane3, lane4), (lane23, lane22)) {
-                Ok(mut awg) => {
-                    pwm::awg_pair_check(&mut report, "TIM3 starts TIM2, linked", &mut awg, cpu);
+            match ferrohal_stm32::timer::LaneGroup::linked(pwm3, pwm2, (lane3, lane4), (lane23, lane22)) {
+                Ok(mut lane_group) => {
+                    pwm::lane_group_pair_check(&mut report, "TIM3 starts TIM2, linked", &mut lane_group, cpu);
                     // TIM1 leaves the sampler to pace the lanes' one reader.
                     let paced = match sampler.free() {
                         Ok((tim1, stream, _)) => Pwm::new(&mut run.rcc, tim1, Hertz::mhz(4))
@@ -376,40 +376,40 @@ mod app {
                     let name = "four lanes on TIM3 and TIM2, port B, paced by TIM1";
                     match paced {
                         Ok((pacer, stream)) => {
-                            let registered = awg.read_ahead_paced::<_, _, 'B'>(&pacer, stream);
+                            let registered = lane_group.read_ahead_paced::<_, _, 'B'>(&pacer, stream);
                             pacer.start();
                             report.check(name, "a reader paced by TIM1 registers [TIMER-LANES-017]", holds(registered.is_ok()));
-                            let rate = awg.prepare_listen(pacer.rate(), 64);
+                            let rate = lane_group.prepare_listen(pacer.rate(), 64);
                             report.check(name, "the paced reader reads at its pacer's rate [TIMER-LANES-017]",
                                 holds(rate.ok() == Some(pacer.rate())));
                             report.check(name, "every lane on port B shares the one reader [TIMER-LANES-014]",
-                                holds((0..4).all(|lane| awg.reader_of(lane) == 0)));
-                            let period = awg.period();
+                                holds((0..4).all(|lane| lane_group.reader_of(lane) == 0)));
+                            let period = lane_group.period();
                             let frames = [
                                 [period / 4, period / 2, period / 4],
                                 [period / 2, period / 4, period / 2],
                                 [period / 4, period / 4, period / 2],
                                 [period / 2, period / 2, period / 4],
                             ];
-                            let loaded = (0..4).all(|lane| crate::pwm::load(&mut awg, lane, &frames[lane]).is_ok());
-                            awg.listen_on_end();
-                            let played = loaded && awg.play().is_ok();
+                            let loaded = (0..4).all(|lane| crate::pwm::load(&mut lane_group, lane, &frames[lane]).is_ok());
+                            lane_group.listen_on_end();
+                            let played = loaded && lane_group.play().is_ok();
                             // Only the last lane (TIM2 CH2, DMA1 stream 6)
                             // raises its end: streams 7, 2 and 1 are quiet.
                             let tcie = [7usize, 2, 1, 6].map(|n| pac::DMA1.st(n).cr().read().tcie());
                             report.check(name, "only the last lane raises its end-of-transfer interrupt [TIMER-LANES-020]",
                                 holds(played && tcie == [false, false, false, true]));
                             let budget = cpu.0 / 100;
-                            let ended = played && matches!(pwm::wait(budget, || awg.on_interrupt()), Some(Ok(_)));
-                            let read = ended && matches!(pwm::wait(budget, || awg.on_interrupt()), Some(Ok(_)));
-                            let first = awg.samples(0);
+                            let ended = played && matches!(pwm::wait(budget, || lane_group.on_interrupt()), Some(Ok(_)));
+                            let read = ended && matches!(pwm::wait(budget, || lane_group.on_interrupt()), Some(Ok(_)));
+                            let first = lane_group.samples(0);
                             let shared = read
                                 && first.len() == 64
-                                && (1..4).all(|lane| awg.samples(lane).as_ptr() == first.as_ptr()
-                                    && awg.samples(lane).len() == first.len());
+                                && (1..4).all(|lane| lane_group.samples(lane).as_ptr() == first.as_ptr()
+                                    && lane_group.samples(lane).len() == first.len());
                             report.check(name, "every lane's frame ends, and every lane's samples are the one reader's 64 port words [TIMER-LANES-014 TIMER-LANES-020]",
                                 holds(shared));
-                            let _ = awg.speak();
+                            let _ = lane_group.speak();
                             pacer.stop();
                         }
                         Err(fail) => report.check(name, "the TIM1 pacer [TIMER-LANES-017]", Err(fail)),
@@ -417,7 +417,7 @@ mod app {
                 }
                 Err(refused) => report.check(
                     "TIM3 starts TIM2, linked",
-                    "AWG: every lane on both timers finishes [TIMER-LANES-005]",
+                    "lane group: every lane on both timers finishes [TIMER-LANES-005]",
                     Err(Fail::Timer(refused.error())),
                 ),
             }

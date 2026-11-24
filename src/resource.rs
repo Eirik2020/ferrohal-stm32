@@ -120,7 +120,7 @@ pub trait Service {
     fn on_interrupt(&mut self) -> Self::Event;
 }
 
-/// The most vectors one driver needs: an arbitrary waveform generator's
+/// The most vectors one driver needs: a lane group's
 /// eight lanes.
 pub const MAX_VECTORS: usize = 8;
 

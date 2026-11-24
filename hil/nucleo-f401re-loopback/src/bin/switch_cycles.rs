@@ -1,7 +1,7 @@
 //! Run Y: the prepared switch, built with `profile-listen`.
 //!
 //! Run R's four lanes (TIM3 CH3/CH4 on PB0/PB1, TIM2 CH3/CH2 on PB10/PB3,
-//! DMA1 streams 7, 2, 1 and 6) as one generator, TIM3 starting TIM2 through
+//! DMA1 streams 7, 2, 1 and 6) as one lane group, TIM3 starting TIM2 through
 //! its trigger, and one reader of port B paced by TIM1 on DMA2 stream 5, as
 //! run R ends. Two listens are prepared, the second with another count: every
 //! exchange must read the second's count at the rate it returned, and the
@@ -29,7 +29,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         time::Hertz,
-        timer::{Awg, LaneWiring, Pwm, profile},
+        timer::{LaneGroup, LaneWiring, Pwm, profile},
     };
 
     use crate::{
@@ -150,22 +150,22 @@ mod app {
         pwm3.lead();
 
         pwm2.follow(&pwm3);
-        let mut awg = match Awg::linked(pwm3, pwm2, (lane3, lane4), (lane23, lane22)) {
-            Ok(awg) => awg,
-            Err(_) => defmt::panic!("the generator"),
+        let mut lane_group = match LaneGroup::linked(pwm3, pwm2, (lane3, lane4), (lane23, lane22)) {
+            Ok(lane_group) => lane_group,
+            Err(_) => defmt::panic!("the lane group"),
         };
-        let registered = awg.read_ahead_paced::<_, _, 'B'>(&pacer, run.sampler);
+        let registered = lane_group.read_ahead_paced::<_, _, 'B'>(&pacer, run.sampler);
         pacer.start();
         report.check(name, "a reader paced by TIM1 registers [TIMER-LANES-017]", holds(registered.is_ok()));
-        let first = awg.prepare_listen(pacer.rate(), FIRST);
-        let last = awg.prepare_listen(pacer.rate(), LAST);
+        let first = lane_group.prepare_listen(pacer.rate(), FIRST);
+        let last = lane_group.prepare_listen(pacer.rate(), LAST);
         report.check(
             name,
             "the last prepare_listen is the one prepared, at the rate it returned [TIMER-LANES-013]",
-            holds(first.is_ok() && matches!((last, awg.prepared()),
+            holds(first.is_ok() && matches!((last, lane_group.prepared()),
                 (Ok(rate), Some((_, LAST, at))) if at == rate)),
         );
-        let period = awg.period();
+        let period = lane_group.period();
         let frames = [
             [period / 4, period / 2, period / 4],
             [period / 2, period / 4, period / 2],
@@ -176,9 +176,9 @@ mod app {
         let budget = cpu.0 / 100;
         let mut whole = 0;
         for _ in 0..EXCHANGES {
-            let loaded = (0..4).all(|lane| crate::pwm::load(&mut awg, lane, &frames[lane]).is_ok());
-            awg.listen_on_end();
-            let played = loaded && awg.play().is_ok();
+            let loaded = (0..4).all(|lane| crate::pwm::load(&mut lane_group, lane, &frames[lane]).is_ok());
+            lane_group.listen_on_end();
+            let played = loaded && lane_group.play().is_ok();
             // The switch runs inside the call that sees the last lane end,
             // so the read's end is the first event a call reports that began
             // already listening; the second timer's lanes may end in a call
@@ -186,8 +186,8 @@ mod app {
             let read = played
                 && matches!(
                     pwm::wait(budget, || {
-                        let listening = awg.is_listening();
-                        match awg.on_interrupt() {
+                        let listening = lane_group.is_listening();
+                        match lane_group.on_interrupt() {
                             Some(Ok(_)) if listening => Some(Ok(())),
                             Some(Err(error)) => Some(Err(error)),
                             _ => None,
@@ -195,10 +195,10 @@ mod app {
                     }),
                     Some(Ok(()))
                 );
-            if read && (0..4).all(|lane| awg.samples(lane).len() == LAST) {
+            if read && (0..4).all(|lane| lane_group.samples(lane).len() == LAST) {
                 whole += 1;
             }
-            let _ = awg.speak();
+            let _ = lane_group.speak();
         }
         report.check(
             name,

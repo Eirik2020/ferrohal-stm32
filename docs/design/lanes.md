@@ -4,7 +4,7 @@ Source: ADR-014, [`../decisions/2026-11-19-timer-lanes-round2.md`](../decisions/
 
 A compare lane plays one duty per timer period from memory over DMA, and a two-way lane
 then releases its pin and reads the line it sent on (`timer::CompareLane`). A waveform
-generator (`timer::Awg`) runs the lanes of one or two timers from one start. The lanes are
+lane group (`timer::LaneGroup`) runs the lanes of one or two timers from one start. The lanes are
 for one-wire protocols that send a frame on a pin and read the reply on the same pin
 within tens of microseconds; any such protocol is the user's, never FerroHAL's, and none
 has run on these lanes against a real device yet. The behaviour below is the only one: no
@@ -15,7 +15,7 @@ build option changes it, beyond the profiling features (`docs/policies/features.
 - A `Frame` is checked and closed where it is written (`Frame::new`): at least one duty,
   room for the closing 0, no duty near the top before a 0 or last (`Error::TopToZero`).
   The closing 0 is written then. `Frame::new` is pure, so a frame builds anywhere.
-- A lane plays a frame in place (`CompareLane::arm`, `Awg::load`), and only a lent
+- A lane plays a frame in place (`CompareLane::arm`, `LaneGroup::load`), and only a lent
   frame: nothing is copied, and `take_frame` hands the memory back once the lane has
   stopped. A start checks only that
   the lane is free, the frame's limits are the timer's, and a DMA stream reaches its
@@ -54,7 +54,7 @@ opens one DIER bit. A paced reader's timer runs from setup with its update reque
 interrupt off; the switch opens the request (`timer::pwm::Pacer`). The pacer stays the
 caller's.
 
-A reader takes its stream's token, and a refused registration gives it back. `Awg::free`
+A reader takes its stream's token, and a refused registration gives it back. `LaneGroup::free`
 returns every reader's stream, stopped, in a `ReaderStreams`, from which each comes out
 once as the token it went in as (`take::<D, N>()`).
 
@@ -97,7 +97,7 @@ Margin from a frame's end to the latest reply read whole, against 30 us, with no
 profiling feature: ferroforge-stm32's lane port benches at this crate's c723b1c, four
 lanes on the STM32F4 Discovery (F407) and two on the Nucleo-H753ZI, 600 kHz, a sweep step
 1.67 us. F is the interrupt run's switch (`listen_on_end`, through the lane port), T the
-caller's (these lanes under RTIC, no port). The switch is `Awg::listen` whole, measured with
+caller's (these lanes under RTIC, no port). The switch is `LaneGroup::listen` whole, measured with
 `profile-listen` alone: DWT cycles, mean of 37,000. Each margin is at the round 2
 prototypes' sweep step or past it (theirs in brackets).
 
@@ -128,16 +128,16 @@ The prototypes' build options (`lane-reader-ahead`, `lane-retime-running`,
 `lane-listen-at-end`, `lane-last-interrupts`, `lane-paced-reader`, `lane-shared-reader`)
 are the only behaviour; none is a feature.
 
-- `Awg::listen(rate, count)` became `Awg::prepare_listen(rate, count)` then
-  `Awg::listen()`; `CompareLane::listen(pwm, count, duty)` became
+- `LaneGroup::listen(rate, count)` became `LaneGroup::prepare_listen(rate, count)` then
+  `LaneGroup::listen()`; `CompareLane::listen(pwm, count, duty)` became
   `CompareLane::prepare_listen(count)` then `CompareLane::listen(pwm, duty)`.
 - Lanes on one timer and port share one reader: `samples(lane)` is that reader's words.
 - Lane assembly takes no buffers (`assemble`, `assemble_two_way`, `assemble_paced` take
   the timer only), and its refusal is the wiring alone (`LaneRefused`,
   `ComplementaryLaneRefused`; `TwoWayLaneRefused` is gone). `CompareLane::arm` and
-  `Awg::load` take a `Frame` (the copying forms and `arm_frame`, `load_frame` are gone);
+  `LaneGroup::load` take a `Frame` (the copying forms and `arm_frame`, `load_frame` are gone);
   `CompareLane::free` returns the wiring with the lent frame and samples.
-- `read_ahead_*` refuse with their stream (`Refused<Error, S>`); `Awg::free` returns a
+- `read_ahead_*` refuse with their stream (`Refused<Error, S>`); `LaneGroup::free` returns a
   fifth element, the `ReaderStreams`.
 - A listen with no samples memory lent is refused with `Error::NotLent`.
 - At a frame's end the timers keep running (outputs at duty 0) until the next listen,

@@ -16,7 +16,7 @@ m	usb-cdc
 n	bootloader-request
 o	adc
 p	timer-trigger
-q	awg-both-ways
+q	lane-group-both-ways
 r	i2c-master
 s	i2c-pico
 t	stuck-streams

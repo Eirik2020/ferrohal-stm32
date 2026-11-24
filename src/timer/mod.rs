@@ -35,7 +35,7 @@ pub use pwm::{
     nearest,
 };
 
-mod awg;
+mod lane_group;
 #[cfg(feature = "profile-listen")]
 pub mod profile;
 /// PROFILING ONLY: a cycle stamp with `profile-listen`, nothing without.
@@ -45,7 +45,7 @@ macro_rules! stamp {
         super::profile::stamp($slot);
     };
 }
-pub use awg::{Awg, Lanes, ReaderStreams, recover};
+pub use lane_group::{LaneGroup, Lanes, ReaderStreams, recover};
 pub(crate) use stamp;
 
 /// PROFILING ONLY: a mark of an exchange's start (`profile-start`).
@@ -273,7 +273,7 @@ pub enum ConfigError {
     /// The rate is too slow for the prescaler and reload together, or too
     /// fast for the clock.
     OutOfRange,
-    /// A waveform generator's two timers run at different periods.
+    /// A lane group's two timers run at different periods.
     PeriodMismatch,
     /// A DMA stream was left running by an earlier owner and did not stop.
     DmaBusy,

@@ -31,12 +31,12 @@ frame's end and restarted at the listen.
    leaves that state first.
 6. Listen at the end, in the last lane's interrupt: one CCER store per timer, CCxP and
    CCxNP clear while off.
-7. TIM5's trigger from TIM3 on die 0x413 (RM0090 table 98, ITR1), so a generator on
+7. TIM5's trigger from TIM3 on die 0x413 (RM0090 table 98, ITR1), so a lane group on
    TIM3 and TIM2 can start the responder or a third timer on the same edge.
 8. A start rebuilds no transfer. The lane's send transfer is prepared at assembly, so a
    start sets only memory and length.
 9. A reader's stream comes back (API-002): every refused registration hands the stream
-   back, and `Awg::free` returns each reader's stream once, typed.
+   back, and `LaneGroup::free` returns each reader's stream once, typed.
 
 ## Rejected
 
@@ -51,5 +51,5 @@ frame's end and restarted at the listen.
 ## Consequences
 
 - The lane API breaks; the changes are listed in the design document.
-- The lane requirements AWG-012 to AWG-021 state the behaviour above; the lane port names
-  them as its library requirements.
+- The lane requirements TIMER-LANES-012 to TIMER-LANES-021 state the behaviour above; the
+  lane port names them as its library requirements.

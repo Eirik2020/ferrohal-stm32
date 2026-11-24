@@ -698,7 +698,7 @@ pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
     })
 }
 
-// Run O: the waveform generator out over J3, read at the far end.
+// Run O: the lane group out over J3, read at the far end.
 
 /// TIM4 channel 1 on PB6, on DMA1 stream 0, plays into J3. TIM1's update request
 /// on DMA2 stream 5 reads port C, where J3 reaches PC7, left an input
@@ -742,7 +742,7 @@ pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
     })
 }
 
-// Run P: the waveform generator in over S1, read by a lane on its own pin.
+// Run P: the lane group in over S1, read by a lane on its own pin.
 
 /// TIM1's channel 1, complementary output on PA7, listens on DMA2 stream 1, the
 /// only DMA here that reaches GPIO. TIM3 channel 1 on PA6, on DMA1 stream 4, plays
