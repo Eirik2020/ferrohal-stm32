@@ -35,7 +35,7 @@
 //!   `start` returns at once, the event and error vectors carry the
 //!   transaction, and its bytes move by DMA from a `DmaWiring` or from the
 //!   event interrupt, on buffers the caller lends. The routing traits
-//!   `I2cTxDma` and `I2cRxDma` name each I2C's streams.
+//!   `I2cTxDma` and `I2cRxDma` name each I2C's channels.
 //!
 //! Requirements: I2C-001, I2C-002, I2C-003, I2C-004, I2C-005, I2C-006, API-002
 
@@ -90,23 +90,23 @@ pub trait SclPin<U: Instance>: crate::Sealed {}
 /// A pin, in the right alternate function, that carries `U`'s SDA.
 pub trait SdaPin<U: Instance>: crate::Sealed {}
 
-/// A DMA stream that serves `U`'s transmit requests.
+/// A DMA channel that serves `U`'s transmit requests.
 ///
 /// # Safety
 ///
-/// `REQUEST` must be the request that routes `U`'s TX to this stream.
+/// `REQUEST` must be the request that routes `U`'s TX to this channel.
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
-pub unsafe trait I2cTxDma<U: Instance>: crate::dma::StreamInstance {
+pub unsafe trait I2cTxDma<U: Instance>: crate::dma::ChannelInstance {
     const REQUEST: u8;
 }
 
-/// A DMA stream that serves `U`'s receive requests.
+/// A DMA channel that serves `U`'s receive requests.
 ///
 /// # Safety
 ///
 /// As [`I2cTxDma`], for RX.
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
-pub unsafe trait I2cRxDma<U: Instance>: crate::dma::StreamInstance {
+pub unsafe trait I2cRxDma<U: Instance>: crate::dma::ChannelInstance {
     const REQUEST: u8;
 }
 

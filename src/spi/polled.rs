@@ -1,6 +1,6 @@
 //! The SPI master without DMA: [`BlockingSpi`], for a bus whose DMA routes
-//! are taken or not worth a stream, such as the Foxeer F405 V2's SPI NOR on
-//! SPI2, whose only streams (DMA1 3 and 4) its UARTs use.
+//! are taken or not worth a channel, such as the Foxeer F405 V2's SPI NOR on
+//! SPI2, whose only channels (DMA1 3 and 4) its UARTs use.
 //!
 //! One byte is in flight at a time: written, its reply waited for, read.
 //! The bus pauses between bytes, which an SPI slave doesn't mind, and the

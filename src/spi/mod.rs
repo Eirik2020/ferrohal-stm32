@@ -6,7 +6,7 @@
 //!
 //! - **init**: `Spi::new(&mut rcc, wiring, &config, buffers)`. The
 //!   [`Wiring`] comes from the board file and names the instance, its three
-//!   pins and two DMA streams; the routing traits reject a wrong
+//!   pins and two DMA channels; the routing traits reject a wrong
 //!   combination at compile time. Chip select is not the driver's: it is a
 //!   GPIO output the firmware drives around each transfer. A refusal is a
 //!   [`Refused`]: the reason, with the wiring and buffers handed back
@@ -19,23 +19,23 @@
 //! - **without DMA**: [`BlockingSpi`], a polled `SpiBus` for a bus whose
 //!   DMA routes are taken, from a [`BlockingWiring`] of the instance and
 //!   its pins alone.
-//! - **interrupts**: the receive stream's vector only. FerroHAL never
+//! - **interrupts**: the receive channel's vector only. FerroHAL never
 //!   touches the NVIC.
 //!
 //! Requirements: SPI-001, SPI-002, SPI-003, SPI-004, SPI-005, SPI-007, SPI-009, SPI-010
 
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub(crate) mod dma;
 #[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 mod instance;
 mod polled;
-#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
-pub(crate) mod stream_dma;
 
+#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
+pub use dma::Spi;
 #[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 pub use instance::{Info, Instance, MisoPin, MosiPin, Parts, SckPin, SpiRxDma, SpiTxDma, check};
 #[cfg(any(feature = "spi_v2", feature = "spi_v3", feature = "spi_v4"))]
 pub use polled::BlockingSpi;
-#[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
-pub use stream_dma::Spi;
 
 pub use embedded_hal::spi::{MODE_0, MODE_1, MODE_2, MODE_3, Mode, Phase, Polarity};
 
@@ -123,7 +123,7 @@ impl Config {
 }
 
 /// What the board file hands to `Spi::new`: one SPI instance, its three
-/// pins and its two DMA streams. The driver's trait bounds check that they
+/// pins and its two DMA channels. The driver's trait bounds check that they
 /// belong together; this struct only carries them.
 pub struct Wiring<U, Sck, Miso, Mosi, TxDma, RxDma> {
     pub spi: U,
@@ -135,7 +135,7 @@ pub struct Wiring<U, Sck, Miso, Mosi, TxDma, RxDma> {
 }
 
 /// What the board file hands to `BlockingSpi::new`: one SPI instance and
-/// its three pins, no DMA streams.
+/// its three pins, no DMA channels.
 pub struct BlockingWiring<U, Sck, Miso, Mosi> {
     pub spi: U,
     pub sck: Sck,
@@ -157,18 +157,18 @@ pub struct Buffers {
     any(feature = "dma_v1", feature = "dma_v2")
 ))]
 impl<U, Sck, Miso, Mosi, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
-    Wiring<U, Sck, Miso, Mosi, crate::dma::Stream<TD, TN>, crate::dma::Stream<RD, RN>>
+    Wiring<U, Sck, Miso, Mosi, crate::dma::Channel<TD, TN>, crate::dma::Channel<RD, RN>>
 where
     U: Instance,
     Sck: SckPin<U> + crate::gpio::AltPin,
     Miso: MisoPin<U> + crate::gpio::AltPin,
     Mosi: MosiPin<U> + crate::gpio::AltPin,
-    crate::dma::Stream<TD, TN>: SpiTxDma<U>,
-    crate::dma::Stream<RD, RN>: SpiRxDma<U>,
+    crate::dma::Channel<TD, TN>: SpiTxDma<U>,
+    crate::dma::Channel<RD, RN>: SpiRxDma<U>,
 {
     /// Everything this wiring uses, as data: the instance, its three pins
-    /// with their alternate functions, both streams with their requests,
-    /// and the receive stream's vector.
+    /// with their alternate functions, both channels with their requests,
+    /// and the receive channel's vector.
     pub const RESOURCES: [Resource; 7] = [
         Resource::Peripheral(U::NAME),
         Resource::pin::<Sck>(Signal::Sck),
@@ -177,17 +177,17 @@ where
         Resource::Dma {
             signal: Signal::Tx,
             controller: TD,
-            stream: TN,
-            request: <crate::dma::Stream<TD, TN> as SpiTxDma<U>>::REQUEST,
+            channel: TN,
+            request: <crate::dma::Channel<TD, TN> as SpiTxDma<U>>::REQUEST,
         },
         Resource::Dma {
             signal: Signal::Rx,
             controller: RD,
-            stream: RN,
-            request: <crate::dma::Stream<RD, RN> as SpiRxDma<U>>::REQUEST,
+            channel: RN,
+            request: <crate::dma::Channel<RD, RN> as SpiRxDma<U>>::REQUEST,
         },
         Resource::Interrupt(
-            <crate::dma::Stream<RD, RN> as crate::dma::StreamInterrupt>::INTERRUPT_NAME,
+            <crate::dma::Channel<RD, RN> as crate::dma::ChannelInterrupt>::INTERRUPT_NAME,
         ),
     ];
 }
@@ -201,7 +201,7 @@ where
     Mosi: MosiPin<U> + crate::gpio::AltPin,
 {
     /// Everything this wiring uses, as data: the instance and its three pins
-    /// with their alternate functions. No streams, no vectors.
+    /// with their alternate functions. No channels, no vectors.
     pub const RESOURCES: [Resource; 4] = [
         Resource::Peripheral(U::NAME),
         Resource::pin::<Sck>(Signal::Sck),
@@ -233,7 +233,7 @@ pub enum ConfigError {
     KernelClock,
     /// A transfer is running; settings change only between transfers.
     Busy,
-    /// A DMA stream was left running by an earlier owner and did not stop.
+    /// A DMA channel was left running by an earlier owner and did not stop.
     DmaBusy,
     /// The transmit buffer is empty or longer than one DMA transfer.
     TxBuffer,
@@ -253,7 +253,7 @@ pub enum Error {
     Empty,
     /// Longer than the driver's buffers.
     TooLarge,
-    /// A DMA stream reported a transfer or direct-mode error. The transfer
+    /// A DMA channel reported a transfer or direct-mode error. The transfer
     /// was stopped and the bus reset; the next one can start.
     Dma,
     /// A received byte was overwritten before DMA took it.

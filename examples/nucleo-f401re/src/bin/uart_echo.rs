@@ -3,8 +3,8 @@
 //! (`/dev/ttyACM*` on Linux, a COM port on Windows) at 115200 8N1 and type.
 //!
 //! - TX PA2, RX PA3, alternate function 7 (DS10086).
-//! - DMA1 stream 6 transmits, stream 5 receives (RM0368, DMA1 request
-//!   mapping, channel 4).
+//! - DMA1 channel 6 transmits, channel 5 receives (RM0368, DMA1 request
+//!   mapping, request 4).
 //!
 //! No wiring: SB13 and SB14 connect USART2 to the ST-LINK as shipped
 //! (UM1724, USART communication).
@@ -47,14 +47,14 @@ fn main() -> ! {
     // Pulled up, so an unconnected RX idles rather than reading noise.
     let mut rx: Pin<'A', 3, Alternate<7>> = gpioa.p3.into_alternate(&mut gpioa.ctrl);
     rx.set_pull(&mut gpioa.ctrl, Pull::Up);
-    // The driver's bounds check every part against USART2: a pin or stream
+    // The driver's bounds check every part against USART2: a pin or DMA channel
     // that cannot carry it does not build.
     let wiring = Wiring {
         uart: p.USART2,
         tx,
         rx,
-        tx_dma: dma1.s6,
-        rx_dma: dma1.s5,
+        tx_dma: dma1.ch6,
+        rx_dma: dma1.ch5,
     };
 
     // The DMA buffers live for the whole program: `singleton!` hands each

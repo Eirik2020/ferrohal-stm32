@@ -27,7 +27,7 @@ def file_of(run):
 RUNS = {
     "a": (
         [
-            "Run A: the TBS Lucid H7's UARTs at its rates, on its DMA streams,",
+            "Run A: the TBS Lucid H7's UARTs at its rates, on its DMA channels,",
             "under its clock tree, from HSE as the Lucid runs it (the other runs",
             "use HSI). USART6 (CRSF) is on the Lucid's pins, PC6 and",
             "PC7; USART1 (SBUS) and USART3 (MSP) are on pins the Zio headers carry.",
@@ -47,7 +47,7 @@ RUNS = {
     ),
     "b": (
         ["Run B: UART4, UART5, UART7 and USART3 on their first pin pairs, and",
-         "the DMA streams run A leaves free. The full check list on each, then",
+         "the DMA channels run A leaves free. The full check list on each, then",
          "all four streaming at once. USART3 also runs with TX and RX swapped.",
          "[USART-V4-002]"],
         [
@@ -58,7 +58,7 @@ RUNS = {
         ],
     ),
     "c": (
-        ["Run C: UART4 and UART7 on alternate pins, UART7 with its streams on",
+        ["Run C: UART4 and UART7 on alternate pins, UART7 with its channels on",
          "different controllers. The full check list on each, then both",
          "streaming at once. (UART5's PB13 would belong here, but this board",
          "does not route it to the Zio header.)"],
@@ -292,7 +292,7 @@ for run, (summary, uarts) in RUNS.items():
 {doc}
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
-//! streams' own interrupt bits. Each UART is one shared resource, served by
+//! channels' own interrupt bits. Each UART is one shared resource, served by
 //! its handlers and used by the `checks` task under RTIC's lock, one call at
 //! a time (`tests::Locked`; `docs/design/uart-ownership.md`). Each vector in
 //! use, and what serves it:

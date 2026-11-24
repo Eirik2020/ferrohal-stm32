@@ -8,16 +8,16 @@
 //!   overrun flag fires. v4 clears through ICR, which costs no byte, so
 //!   A survives; whether B is discarded or lands once the request returns
 //!   is the shift register's timing, and the check accepts both.
-//! - DMA transfer error: the receive stream is stopped, re-pointed at
+//! - DMA transfer error: the receive DMA channel is stopped, re-pointed at
 //!   DTCM — which DMA1 and DMA2 cannot reach, the same fact
 //!   `ConfigError::Buffer(BufferError::Unreachable)` refuses at construction — and
-//!   restarted. The next byte is a bus error; the stream stops, the
+//!   restarted. The next byte is a bus error; the DMA channel stops, the
 //!   driver reports `Error::Dma` and restarts the ring on its own buffer.
 //!   What the outage costs is timing, so the bytes right after the gap go
 //!   to the log unnamed and an echo after it carries the check.
 //! - Timeout: the DMA transmit request is disconnected before a frame is
 //!   queued, so nothing drains. The queue's bound expires, the driver
-//!   stops the stream, drops the queue and reports Timeout; the next
+//!   stops the DMA channel, drops the queue and reports Timeout; the next
 //!   frame goes out whole.
 //!
 //! | Vector | Owner | Priority |
@@ -43,13 +43,13 @@ use stm32_metapac::dma::St;
 
 use tests::{Fail, Link, Loop, Report};
 
-/// Where the receive stream must not write: DTCM, which DMA1 and DMA2
+/// Where the receive DMA channel must not write: DTCM, which DMA1 and DMA2
 /// cannot reach on this chip.
 const UNREACHABLE: u32 = 0x2000_0000;
 
-/// Stops a DMA stream and waits for the enable to land, so a following
+/// Stops a DMA channel and waits for the enable to land, so a following
 /// register write cannot race it.
-fn stop_stream(st: St) {
+fn stop_channel(st: St) {
     st.cr().modify(|w| w.set_en(false));
     while st.cr().read().en() {}
 }
@@ -173,14 +173,14 @@ fn inject_overrun<T: tests::Full>(report: &mut Report, loop_: &mut Loop<'_, T>) 
     );
 }
 
-/// DMA transfer error: the receive stream re-pointed at DTCM.
+/// DMA transfer error: the receive DMA channel re-pointed at DTCM.
 fn inject_dma_transfer<T: tests::Full>(report: &mut Report, loop_: &mut Loop<'_, T>) {
     let name = loop_.name();
     tests::drain(loop_);
     let health = loop_.rx().health();
     let (transfers, restarts) = (health.dma_errors, health.restarts);
     let rx = stm32_metapac::DMA1.st(0);
-    stop_stream(rx);
+    stop_channel(rx);
     rx.m0ar().write(|w| *w = UNREACHABLE);
     rx.cr().modify(|w| w.set_en(true));
     let sent = loop_.tx().write_all(b"X").and_then(|()| loop_.tx().flush());
@@ -220,7 +220,7 @@ fn inject_dma_transfer<T: tests::Full>(report: &mut Report, loop_: &mut Loop<'_,
         },
     );
     // What the outage costs is timing: a frame completed into a dead
-    // stream raises overrun, and the restart wipes its mark (marks carry
+    // DMA channel raises overrun, and the restart wipes its mark (marks carry
     // the ring's run), so the bytes right after the gap are not named
     // here — the log has them. That reception carries on is the claim.
     report.check(

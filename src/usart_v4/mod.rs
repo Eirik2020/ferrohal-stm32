@@ -18,7 +18,7 @@ use stm32_metapac::usart::{
 
 use crate::uart::{
     Config, Parity, StopBits,
-    stream_dma::{ERR_FRAMING, ERR_NOISE, ERR_OVERRUN, ERR_PARITY},
+    dma::{ERR_FRAMING, ERR_NOISE, ERR_OVERRUN, ERR_PARITY},
 };
 
 /// The register block of a USART or UART (not LPUART, whose BRR differs).

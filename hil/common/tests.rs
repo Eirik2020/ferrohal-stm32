@@ -412,7 +412,7 @@ enum Held {
 ///
 /// Passes if every delay is within the time half the receive ring takes to
 /// fill at `baud`: the margin within which a late service of the receive
-/// stream still counts every half-lap (UART-DMA-002). The transmit queue
+/// DMA channel still counts every half-lap (UART-DMA-002). The transmit queue
 /// must be idle on entry and is again on exit; the frame sent comes back
 /// into the ring on a looped link, so the caller drains it after.
 pub fn lock_delay<M: rtic::Mutex>(
@@ -1020,7 +1020,7 @@ pub fn stream(link: &mut dyn Link, total: usize) -> Result<(), Fail> {
 }
 
 /// Streams `total` bytes through every link at once, interleaved, so their
-/// DMA streams and interrupts run side by side.
+/// DMA channels and interrupts run side by side.
 pub fn streams(links: &mut [&mut dyn Link], total: usize) -> Result<(), Fail> {
     const MAX: usize = 4;
     let mut progress = [const {
@@ -1456,7 +1456,7 @@ fn quiet_by_interrupt(link: &mut dyn Link) -> Result<(), Fail> {
 }
 
 /// With nothing calling the transmit half after the frames are queued, the
-/// transmit stream's interrupt alone starts each next frame.
+/// transmit DMA channel's interrupt alone starts each next frame.
 pub fn frames_chain_from_the_interrupt(link: &mut dyn Link, tx_len: usize) -> Result<(), Fail> {
     drain(link);
     let queued = queue_frames(link, 0, tx_len)?;
@@ -1557,7 +1557,7 @@ pub fn line_mask<L: Maskable>(link: &mut L) -> Result<(), Fail> {
     drain(link);
     let generation = link.rx().generation();
     link.mask();
-    // One byte, short of the receive stream's half lap and followed by
+    // One byte, short of the receive DMA channel's half lap and followed by
     // nothing: only the USART's idle interrupt could end its chunk.
     send_pattern(link, 0, 1)?;
     delay_ms(5);
@@ -1958,7 +1958,7 @@ pub fn full_suite(
     );
 }
 
-/// The HAL's per-pass cycle floor for the read loop (`uart::stream_dma`);
+/// The HAL's per-pass cycle floor for the read loop (`uart::dma`);
 /// a counted wait is only as long as promised while no pass is faster.
 const RX_PASS_CYCLES: u32 = 378;
 const TX_PASS_CYCLES: u32 = 48;

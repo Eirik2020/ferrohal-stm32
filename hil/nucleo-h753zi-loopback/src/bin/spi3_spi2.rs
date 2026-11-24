@@ -1,8 +1,8 @@
 //! Run H: SPI3, and SPI2 with SCK on PD3.
 //!
-//! - SPI3: PB3, PB4, PB5 (MOSI in function 7), DMA2 streams 6 and 7, over
+//! - SPI3: PB3, PB4, PB5 (MOSI in function 7), DMA2 channels 6 and 7, over
 //!   S2: the pins SPI1 has in run G.
-//! - SPI2: PD3, PC2, PC3, DMA1 streams 6 and 7, over S3.
+//! - SPI2: PD3, PC2, PC3, DMA1 channels 6 and 7, over S3.
 //!
 //! Both SCKs are line 3, on ports B and D: the line is routed to PB3 for
 //! SPI3, then released and routed to PD3 for SPI2.
@@ -13,7 +13,7 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `DMA2_STREAM7`, `DMA1_STREAM7` | the open `Spi`'s receive stream | 2 |
+//! | `DMA2_STREAM7`, `DMA1_STREAM7` | the open `Spi`'s receive DMA channel | 2 |
 //! | `EXTI3` (line 3) | EXTI edge counting | 2 |
 //! | `CEC` | RTIC, dispatching the priority 1 `checks` task | 1 |
 

@@ -17,8 +17,8 @@ test = false
 bench = false
 
 [[bin]]
-name = "uart-other-stream"
-path = "src/bin/uart_other_stream.rs"
+name = "uart-other-channel"
+path = "src/bin/uart_other_channel.rs"
 test = false
 bench = false
 

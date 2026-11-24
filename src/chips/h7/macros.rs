@@ -1,5 +1,5 @@
 //! Macros the H7 parts' generated glue (`src/chips/gen/`) is written in:
-//! DMAMUX1, one request ID per instance and direction, any DMA1 or DMA2 stream.
+//! DMAMUX1, one request ID per instance and direction, any DMA1 or DMA2 channel.
 //!
 //! Requirements: GLUE-001
 
@@ -45,19 +45,19 @@ macro_rules! dma {
         $(
             // SAFETY: the DMAMUX1 request IDs for this instance, from
             // stm32-metapac 21's metadata (RM0433 table 121).
-            unsafe impl<const D: u8, const N: u8> $rx_trait<$usart> for Stream<D, N>
+            unsafe impl<const D: u8, const N: u8> $rx_trait<$usart> for Channel<D, N>
             where
                 Dma<D>: DmaInstance,
-                Stream<D, N>: crate::dma::StreamInterrupt,
+                Channel<D, N>: crate::dma::ChannelInterrupt,
             {
                 const REQUEST: u8 = $rx;
             }
 
             // SAFETY: as above.
-            unsafe impl<const D: u8, const N: u8> $tx_trait<$usart> for Stream<D, N>
+            unsafe impl<const D: u8, const N: u8> $tx_trait<$usart> for Channel<D, N>
             where
                 Dma<D>: DmaInstance,
-                Stream<D, N>: crate::dma::StreamInterrupt,
+                Channel<D, N>: crate::dma::ChannelInterrupt,
             {
                 const REQUEST: u8 = $tx;
             }

@@ -18,7 +18,7 @@ use stm32_metapac as pac;
 pub use stm32_metapac::Interrupt;
 
 use crate::{
-    dma::{Dma, DmaInstance, Stream},
+    dma::{Channel, Dma, DmaInstance},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{I2cRxDma, I2cTxDma, SclPin, SdaPin},
     rcc_f4::{Bus, Limits, RCC, RccBit},
@@ -67,8 +67,8 @@ mod tests {
         USART2,
         Pin<'A', 2, Alternate<7>>,
         Pin<'A', 3, Alternate<7>>,
-        Stream<1, 6>,
-        Stream<1, 5>,
+        Channel<1, 6>,
+        Channel<1, 5>,
     >;
 
     #[test]
@@ -94,13 +94,13 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Tx,
                     controller: 1,
-                    stream: 6,
+                    channel: 6,
                     request: 4
                 },
                 Resource::Dma {
                     signal: Signal::Rx,
                     controller: 1,
-                    stream: 5,
+                    channel: 5,
                     request: 4
                 },
                 Resource::Interrupt("USART2"),
@@ -112,7 +112,7 @@ mod tests {
 
     /// Every UART and timer-lane route an example board manifest names is one this
     /// glue offers, on the pin and alternate function it names and with its
-    /// DMA channel. That it compiles is half the check.
+    /// DMA channel and request. That it compiles is half the check.
     #[test]
     fn example_manifest_routes_exist() {
         use crate::{
@@ -135,17 +135,17 @@ mod tests {
             D::REQUEST
         }
 
-        assert_eq!(rx::<USART2, Af<'A', 3, 7>, Stream<1, 5>>(), 4);
-        assert_eq!(tx::<USART2, Af<'A', 2, 7>, Stream<1, 6>>(), 4);
-        assert_eq!(rx::<USART3, Af<'C', 11, 7>, Stream<1, 1>>(), 4);
-        assert_eq!(tx::<USART3, Af<'C', 10, 7>, Stream<1, 3>>(), 4);
-        assert_eq!(rx::<UART4, Af<'A', 1, 8>, Stream<1, 2>>(), 4);
-        assert_eq!(tx::<UART4, Af<'A', 0, 8>, Stream<1, 4>>(), 4);
-        assert_eq!(rx::<USART1, Af<'A', 10, 7>, Stream<2, 5>>(), 4);
-        assert_eq!(lane::<TIM1, 1, Af<'A', 8, 1>, Stream<2, 1>>(), 6);
-        assert_eq!(lane::<TIM8, 4, Af<'C', 9, 3>, Stream<2, 7>>(), 7);
-        assert_eq!(lane::<TIM8, 3, Af<'C', 8, 3>, Stream<2, 2>>(), 0);
-        assert_eq!(lane_n::<TIM1, 3, Af<'B', 15, 1>, Stream<2, 6>>(), 6);
+        assert_eq!(rx::<USART2, Af<'A', 3, 7>, Channel<1, 5>>(), 4);
+        assert_eq!(tx::<USART2, Af<'A', 2, 7>, Channel<1, 6>>(), 4);
+        assert_eq!(rx::<USART3, Af<'C', 11, 7>, Channel<1, 1>>(), 4);
+        assert_eq!(tx::<USART3, Af<'C', 10, 7>, Channel<1, 3>>(), 4);
+        assert_eq!(rx::<UART4, Af<'A', 1, 8>, Channel<1, 2>>(), 4);
+        assert_eq!(tx::<UART4, Af<'A', 0, 8>, Channel<1, 4>>(), 4);
+        assert_eq!(rx::<USART1, Af<'A', 10, 7>, Channel<2, 5>>(), 4);
+        assert_eq!(lane::<TIM1, 1, Af<'A', 8, 1>, Channel<2, 1>>(), 6);
+        assert_eq!(lane::<TIM8, 4, Af<'C', 9, 3>, Channel<2, 7>>(), 7);
+        assert_eq!(lane::<TIM8, 3, Af<'C', 8, 3>, Channel<2, 2>>(), 0);
+        assert_eq!(lane_n::<TIM1, 3, Af<'B', 15, 1>, Channel<2, 6>>(), 6);
     }
 
     /// An SPI bus, as an example board manifest names it.
@@ -156,8 +156,8 @@ mod tests {
             Pin<'A', 5, Alternate<5>>,
             Pin<'A', 6, Alternate<5>>,
             Pin<'A', 7, Alternate<5>>,
-            Stream<2, 3>,
-            Stream<2, 0>,
+            Channel<2, 3>,
+            Channel<2, 0>,
         >;
         assert_eq!(
             Spi1Example::RESOURCES,
@@ -185,13 +185,13 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Tx,
                     controller: 2,
-                    stream: 3,
+                    channel: 3,
                     request: 3
                 },
                 Resource::Dma {
                     signal: Signal::Rx,
                     controller: 2,
-                    stream: 0,
+                    channel: 0,
                     request: 3
                 },
                 Resource::Interrupt("DMA2_STREAM0"),

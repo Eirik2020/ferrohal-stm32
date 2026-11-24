@@ -1,10 +1,10 @@
-//! The UART driver on a stream DMA (`dma_v1`, `dma_v2`), for any USART IP
+//! The UART driver on the DMA (`dma_v1`, `dma_v2`), for any USART IP
 //! version. The IP module (`usart_v2`, `usart_v4`) supplies `Unit`, its
 //! register operations; everything here is the same on every chip.
 //!
 //! # One owner
 //!
-//! A [`Uart`] holds everything: the instance token, the pins, the stream
+//! A [`Uart`] holds everything: the instance token, the pins, the channel
 //! tokens, both buffers and every piece of state, as plain fields. Every
 //! operation takes it `&mut`, [`Uart::on_interrupt`] included. A task and a
 //! handler that both use it share it under the scheduler's lock (RTIC's
@@ -15,24 +15,24 @@
 //!
 //! - **Transmit** ([`tx`]): `try_send` and `write` copy a frame into the
 //!   transmit buffer and queue it; one DMA transfer per frame, chained by
-//!   [`Uart::on_interrupt`] from the transmit stream's vector, or by the next
+//!   [`Uart::on_interrupt`] from the transmit channel's vector, or by the next
 //!   call that touches the queue when that vector is unbound.
-//! - **Receive** ([`rx`]): one DMA stream runs for ever in circular mode,
-//!   filling the receive ring. A read serves the stream's half and complete
+//! - **Receive** ([`rx`]): one DMA channel runs for ever in circular mode,
+//!   filling the receive ring. A read serves the channel's half and complete
 //!   flags itself, then copies out what has arrived; the flags still
 //!   pending are counted with the served ones, so a service up to most of a
 //!   lap late loses nothing.
 //! - **Errors**: line errors (overrun, framing, parity, noise) raise the
-//!   USART interrupt, and DMA errors the stream's. The service records each
+//!   USART interrupt, and DMA errors the channel's. The service records each
 //!   one; reads report them in turn, and reception carries on. A DMA bus
-//!   error stops the stream; the next read reports it and restarts the ring.
+//!   error stops the channel; the next read reports it and restarts the ring.
 //!
 //! # Interrupts
 //!
 //! FerroHAL enables the peripheral's own interrupt bits (USART: idle,
 //! parity, errors, and, when asked with `set_tx_idle_interrupt`,
 //! transmission complete while the end of the last queued frame is
-//! awaited; receive stream: half, complete, errors; transmit stream:
+//! awaited; receive channel: half, complete, errors; transmit channel:
 //! complete, errors) and nothing else. The scheduler binds the vectors in
 //! [`Uart::vectors`] and calls [`Uart::on_interrupt`] from each.
 //!
@@ -57,8 +57,8 @@
 //!
 //! # DMA engines
 //!
-//! The engine reaches DMA only through the erased stream's start, stop,
-//! flags, clear, remaining count and interrupt enables. A channel DMA
+//! The engine reaches DMA only through the erased channel's start, stop,
+//! flags, clear, remaining count and interrupt enables. The BDMA
 //! (`bdma_v1` behind DMAMUX) slots in by offering the same operations
 //! (ADR-011, forward compatibility).
 //!
@@ -70,7 +70,7 @@ mod tx;
 
 use crate::{
     chip::Interrupt,
-    dma::{StopTimeout, Stream, StreamInstance, StreamInterrupt},
+    dma::{Channel, ChannelInstance, ChannelInterrupt, StopTimeout},
     gpio::AltPin,
     rcc::{Clocks, Rcc, RccBit},
     resource::{Service, Vectors},
@@ -130,28 +130,28 @@ pub trait TxPin<U: Instance>: crate::Sealed {}
 /// A pin, in the right alternate function, that carries `U`'s RX.
 pub trait RxPin<U: Instance>: crate::Sealed {}
 
-/// A DMA stream that serves `U`'s transmit requests.
+/// A DMA channel that serves `U`'s transmit requests.
 ///
 /// # Safety
 ///
-/// `REQUEST` must be the request that routes `U`'s TX to this stream
-/// (`dma_v2`: its CHSEL channel; `dma_v1`: `U`'s DMAMUX request ID): the
-/// stream writes `U`'s data register.
-pub unsafe trait TxDma<U: Instance>: StreamInstance + StreamInterrupt {
+/// `REQUEST` must be the request that routes `U`'s TX to this channel
+/// (`dma_v2`: its CHSEL number; `dma_v1`: `U`'s DMAMUX request ID): the
+/// channel writes `U`'s data register.
+pub unsafe trait TxDma<U: Instance>: ChannelInstance + ChannelInterrupt {
     const REQUEST: u8;
 }
 
-/// A DMA stream that serves `U`'s receive requests.
+/// A DMA channel that serves `U`'s receive requests.
 ///
 /// # Safety
 ///
 /// As [`TxDma`], for `U`'s RX request.
-pub unsafe trait RxDma<U: Instance>: StreamInstance + StreamInterrupt {
+pub unsafe trait RxDma<U: Instance>: ChannelInstance + ChannelInterrupt {
     const REQUEST: u8;
 }
 
 /// What a UART was opened from, by role: the instance, the pins and the
-/// streams the [`Uart`] keeps, and [`Uart::free`] hands back. Implemented by
+/// channels the [`Uart`] keeps, and [`Uart::free`] hands back. Implemented by
 /// [`Wiring`] and [`RxWiring`] only, so a UART's type names the board's
 /// whole route.
 pub trait Parts: crate::Sealed {
@@ -208,7 +208,7 @@ pub struct Events {
     /// The line went idle: a frame has ended, and
     /// [`read_chunk`](Uart::read_chunk) has a chunk to give.
     pub idle: bool,
-    /// The receive stream crossed half or the end of the ring: a reader of a
+    /// The receive channel crossed half or the end of the ring: a reader of a
     /// continuous stream should read before another half fills.
     pub filled: bool,
     /// A transmit frame left the wire, or failed: there is room to queue
@@ -232,7 +232,7 @@ impl Events {
 /// A UART: both directions on a full [`Wiring`], receive only on an
 /// [`RxWiring`]. The one owner of everything it was opened from: the
 /// instance token (a second `Uart` for the same instance cannot be built),
-/// the pins, the stream tokens and the buffers, all handed back by
+/// the pins, the channel tokens and the buffers, all handed back by
 /// [`free`](Self::free).
 ///
 /// Implements `embedded_io`'s `Read` and `ReadReady`, and on a full wiring
@@ -270,12 +270,12 @@ pub struct Uart<W: Parts> {
     vectors: Vectors,
     token: W::Instance,
     rx_pin: W::RxPin,
-    rx_stream: W::RxDma,
+    rx_dma: W::RxDma,
     tx_pin: W::TxPin,
-    tx_stream: W::TxDma,
+    tx_dma: W::TxDma,
 }
 
-// SAFETY: the only owner of its buffers, its streams and its USART; moving
+// SAFETY: the only owner of its buffers, its channels and its USART; moving
 // it to another context moves that ownership. Its tokens move with it.
 unsafe impl<W: Parts> Send for Uart<W>
 where
@@ -295,7 +295,7 @@ where
     TxD: TxDma<U>,
     RxD: RxDma<U>,
 {
-    /// Configures the USART and both DMA streams, and starts reception.
+    /// Configures the USART and both DMA channels, and starts reception.
     ///
     /// `wiring` comes from the board file; its pins must already be in
     /// their alternate function, which their types guarantee. Every check
@@ -306,15 +306,15 @@ where
     /// retry or use elsewhere. Every reason but [`ConfigError::DmaBusy`]
     /// leaves the hardware untouched.
     ///
-    /// `DmaBusy` means a stream an earlier owner left running did not
+    /// `DmaBusy` means a channel an earlier owner left running did not
     /// report itself stopped in time. Its EN is cleared, so it may still
-    /// stop later. Neither stream was ever pointed at `buffers`, so they
+    /// stop later. Neither channel was ever pointed at `buffers`, so they
     /// are safe to reuse. By then the USART has been enabled and reset in
     /// RCC, and:
-    /// - if the transmit stream is the one, nothing else was touched: the
+    /// - if the transmit channel is the one, nothing else was touched: the
     ///   USART's registers are at their reset values, and the receive
-    ///   stream is as the earlier owner left it;
-    /// - if the receive stream is the one, the transmit stream has
+    ///   channel is as the earlier owner left it;
+    /// - if the receive channel is the one, the transmit channel has
     ///   stopped, and the frame is written: UE, DMAT, DMAR and EIE set, PCE
     ///   and PEIE too with parity, and RE and TE off.
     ///
@@ -327,7 +327,7 @@ where
         config: &Config,
         mut buffers: Buffers,
     ) -> Result<Self, UartRefused<Wiring<U, TxP, RxP, TxD, RxD>>> {
-        // After `Ok` the driver is the only user of the streams and of the
+        // After `Ok` the driver is the only user of the channels and of the
         // buffers' memory: it keeps raw pointers into `buffers`, so nothing
         // here may touch `buffers` again once the open succeeds.
         match Self::open(rcc, wiring, config, &mut buffers) {
@@ -369,14 +369,14 @@ where
             buffers.rx,
             checked.rx_len,
         );
-        // Streams left running by an earlier owner must stop before they
+        // Channels left running by an earlier owner must stop before they
         // are pointed at new memory.
-        if tx.reset_stream().is_err() {
+        if tx.reset_dma().is_err() {
             return Err((ConfigError::DmaBusy, wiring));
         }
         let vectors = Vectors::one(U::INTERRUPT)
-            .with(<RxD as StreamInterrupt>::INTERRUPT)
-            .with(<TxD as StreamInterrupt>::INTERRUPT);
+            .with(<RxD as ChannelInterrupt>::INTERRUPT)
+            .with(<TxD as ChannelInterrupt>::INTERRUPT);
         let Wiring {
             uart,
             tx: tx_pin,
@@ -396,9 +396,9 @@ where
             vectors,
             token: uart,
             rx_pin,
-            rx_stream: rx_dma,
+            rx_dma,
             tx_pin,
-            tx_stream: tx_dma,
+            tx_dma,
         };
         if opened.start(config, checked.brr).is_err() {
             return Err((ConfigError::DmaBusy, opened.into_wiring()));
@@ -412,14 +412,14 @@ where
             uart: self.token,
             tx: self.tx_pin,
             rx: self.rx_pin,
-            tx_dma: self.tx_stream,
-            rx_dma: self.rx_stream,
+            tx_dma: self.tx_dma,
+            rx_dma: self.rx_dma,
         }
     }
 
-    /// Stops the line and both streams, and hands back what
+    /// Stops the line and both channels, and hands back what
     /// [`new`](Self::new) took: the wiring (the instance, both pins, both
-    /// stream tokens) and the buffers. What a `Drop` would do, made
+    /// channel tokens) and the buffers. What a `Drop` would do, made
     /// explicit so the parts can move out. The transmit queue is dropped.
     /// A reopen runs `Uart::new` again on the same parts.
     ///
@@ -428,13 +428,13 @@ where
     /// the `Uart` has left the handlers' reach raises its vector with
     /// nothing left to clear it.
     ///
-    /// A stream that does not stop in time could still write the buffers,
+    /// A channel that does not stop in time could still write the buffers,
     /// so they are not handed out: the refusal returns the UART, closed and
     /// both directions halted (sends and reads report `Halted`), still owning
-    /// them. `free` may be tried again; it succeeds once both streams have
+    /// them. `free` may be tried again; it succeeds once both channels have
     /// stopped.
     // The refusal hands back the UART itself, which still owns buffers a
-    // stream may write: it cannot be boxed without an allocator, and a
+    // channel may write: it cannot be boxed without an allocator, and a
     // caller holds one either way.
     #[allow(clippy::type_complexity, clippy::result_large_err)]
     pub fn free(
@@ -451,7 +451,7 @@ where
         let (rx, rx_len) = self.rx.buffer();
         // SAFETY: both were the caller's `'static` buffers, of these lengths
         // (`check_open` refuses longer ones), and the driver was their only
-        // user since `new`; both streams have stopped (checked above), so
+        // user since `new`; both channels have stopped (checked above), so
         // nothing else will touch them again. A full UART always has `tx`.
         let buffers = unsafe {
             Buffers {
@@ -471,7 +471,7 @@ where
     /// is lost.
     pub fn set_config(&mut self, config: &Config) -> Result<(), ConfigError> {
         let brr = config.divider(self.kernel_clock, self.fractional_stop)?;
-        // A failed flush has already stopped the stream or halted the
+        // A failed flush has already stopped the channel or halted the
         // transmit side, and the next write reports it.
         let _ = self.flush();
         self.write_frame(config, brr, true);
@@ -498,13 +498,13 @@ where
     RxP: RxPin<U>,
     RxD: RxDma<U>,
 {
-    /// Opens a receive-only UART: no TX pin, no transmit stream, the
+    /// Opens a receive-only UART: no TX pin, no transmit channel, the
     /// transmitter left off. The same `Uart` as a full one, without the
     /// transmit operations.
     ///
     /// A refusal hands back `wiring` and `ring` with the reason, as
     /// [`Uart::new`] does. A `DmaBusy` leaves the hardware as that
-    /// describes for the receive stream, with no transmit stream.
+    /// describes for the receive channel, with no transmit channel.
     pub fn new_rx(
         rcc: &mut Rcc,
         wiring: RxWiring<U, RxP, RxD>,
@@ -544,7 +544,7 @@ where
             ring,
             checked.rx_len,
         );
-        let vectors = Vectors::one(U::INTERRUPT).with(<RxD as StreamInterrupt>::INTERRUPT);
+        let vectors = Vectors::one(U::INTERRUPT).with(<RxD as ChannelInterrupt>::INTERRUPT);
         let RxWiring {
             uart,
             rx: rx_pin,
@@ -562,9 +562,9 @@ where
             vectors,
             token: uart,
             rx_pin,
-            rx_stream: rx_dma,
+            rx_dma,
             tx_pin: (),
-            tx_stream: (),
+            tx_dma: (),
         };
         if opened.start(config, checked.brr).is_err() {
             return Err((ConfigError::DmaBusy, opened.into_wiring()));
@@ -576,15 +576,15 @@ where
         RxWiring {
             uart: self.token,
             rx: self.rx_pin,
-            rx_dma: self.rx_stream,
+            rx_dma: self.rx_dma,
         }
     }
 
-    /// Stops the receive stream and closes the line, and hands back what
+    /// Stops the receive channel and closes the line, and hands back what
     /// [`new_rx`](Self::new_rx) took: the wiring (the instance, the pin, the
-    /// stream token) and the ring, as [`Uart::free`] does for a full UART.
+    /// channel token) and the ring, as [`Uart::free`] does for a full UART.
     // The refusal hands back the UART itself, which still owns buffers a
-    // stream may write: it cannot be boxed without an allocator, and a
+    // channel may write: it cannot be boxed without an allocator, and a
     // caller holds one either way.
     #[allow(clippy::type_complexity, clippy::result_large_err)]
     pub fn free(
@@ -595,7 +595,7 @@ where
         }
         let (ring, len) = self.rx.buffer();
         // SAFETY: the caller's `'static` ring, of this length, whose only
-        // user since `new_rx` was the driver; the stream has stopped
+        // user since `new_rx` was the driver; the channel has stopped
         // (checked above).
         let ring = unsafe { core::slice::from_raw_parts_mut(ring, len) };
         Ok((self.into_wiring(), ring))
@@ -629,11 +629,11 @@ impl<W: Parts> Uart<W> {
         self.frame_cycles = frame_cycles(self.cpu, config.baudrate);
     }
 
-    /// Stops both streams and the line, and drops the transmit queue: what
-    /// `free` runs. Both directions are halted if a stream does not stop.
+    /// Stops both channels and the line, and drops the transmit queue: what
+    /// `free` runs. Both directions are halted if a channel does not stop.
     fn close(&mut self) -> Result<(), StopTimeout> {
         // The line's enables go first. An event that lands while the
-        // streams stop (an idle line right after the last byte, TC after
+        // channels stop (an idle line right after the last byte, TC after
         // the last frame) would otherwise raise the USART's vector, and a
         // caller that has already moved this `Uart` out of its handlers'
         // reach has nothing left to clear it: the vector would fire for
@@ -649,14 +649,14 @@ impl<W: Parts> Uart<W> {
         tx_stopped.and(rx_stopped)
     }
 
-    /// Serves the USART, the receive stream and the transmit stream: records
+    /// Serves the USART, the receive channel and the transmit channel: records
     /// where the line went idle and where faults struck, counts the ring's
     /// half-laps, finishes the frame that went and starts the next. Call it
     /// from every vector in [`vectors`](Self::vectors), or from a task to
     /// poll; it is safe with nothing pending.
     pub fn on_interrupt(&mut self) -> Events {
         let mut events = Events::default();
-        let (filled, dma_fault) = self.rx.serve_stream();
+        let (filled, dma_fault) = self.rx.serve_dma();
         events.filled = filled;
         let (idle, line_fault) = self.rx.serve_line(self.unit);
         events.idle = idle;
@@ -671,8 +671,8 @@ impl<W: Parts> Uart<W> {
     }
 
     /// The vectors to bind to [`on_interrupt`](Self::on_interrupt): the
-    /// USART's, the receive stream's and, with a transmit side, the transmit
-    /// stream's. Binding the transmit stream's is optional: queued frames
+    /// USART's, the receive channel's and, with a transmit side, the transmit
+    /// channel's. Binding the transmit channel's is optional: queued frames
     /// also move on whenever the UART is called.
     pub fn vectors(&self) -> Vectors {
         self.vectors
@@ -794,16 +794,16 @@ fn frame_cycles(cpu: Hertz, baudrate: Hertz) -> u32 {
 }
 
 impl<U, TxP, RxP, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
-    Wiring<U, TxP, RxP, Stream<TD, TN>, Stream<RD, RN>>
+    Wiring<U, TxP, RxP, Channel<TD, TN>, Channel<RD, RN>>
 where
     U: Instance,
     TxP: TxPin<U> + AltPin,
     RxP: RxPin<U> + AltPin,
-    Stream<TD, TN>: TxDma<U>,
-    Stream<RD, RN>: RxDma<U>,
+    Channel<TD, TN>: TxDma<U>,
+    Channel<RD, RN>: RxDma<U>,
 {
     /// Everything this wiring uses, as data: the instance, both pins with
-    /// their alternate functions, both streams with their requests, and the
+    /// their alternate functions, both channels with their requests, and the
     /// three vectors to bind (line, receive, transmit).
     pub const RESOURCES: [Resource; 8] = [
         Resource::Peripheral(U::NAME),
@@ -812,26 +812,26 @@ where
         Resource::Dma {
             signal: Signal::Tx,
             controller: TD,
-            stream: TN,
-            request: <Stream<TD, TN> as TxDma<U>>::REQUEST,
+            channel: TN,
+            request: <Channel<TD, TN> as TxDma<U>>::REQUEST,
         },
         Resource::Dma {
             signal: Signal::Rx,
             controller: RD,
-            stream: RN,
-            request: <Stream<RD, RN> as RxDma<U>>::REQUEST,
+            channel: RN,
+            request: <Channel<RD, RN> as RxDma<U>>::REQUEST,
         },
         Resource::Interrupt(U::INTERRUPT_NAME),
-        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::INTERRUPT_NAME),
-        Resource::Interrupt(<Stream<TD, TN> as StreamInterrupt>::INTERRUPT_NAME),
+        Resource::Interrupt(<Channel<RD, RN> as ChannelInterrupt>::INTERRUPT_NAME),
+        Resource::Interrupt(<Channel<TD, TN> as ChannelInterrupt>::INTERRUPT_NAME),
     ];
 }
 
-impl<U, RxP, const RD: u8, const RN: u8> RxWiring<U, RxP, Stream<RD, RN>>
+impl<U, RxP, const RD: u8, const RN: u8> RxWiring<U, RxP, Channel<RD, RN>>
 where
     U: Instance,
     RxP: RxPin<U> + AltPin,
-    Stream<RD, RN>: RxDma<U>,
+    Channel<RD, RN>: RxDma<U>,
 {
     /// Everything this receive-only wiring uses, as data.
     pub const RESOURCES: [Resource; 5] = [
@@ -840,11 +840,11 @@ where
         Resource::Dma {
             signal: Signal::Rx,
             controller: RD,
-            stream: RN,
-            request: <Stream<RD, RN> as RxDma<U>>::REQUEST,
+            channel: RN,
+            request: <Channel<RD, RN> as RxDma<U>>::REQUEST,
         },
         Resource::Interrupt(U::INTERRUPT_NAME),
-        Resource::Interrupt(<Stream<RD, RN> as StreamInterrupt>::INTERRUPT_NAME),
+        Resource::Interrupt(<Channel<RD, RN> as ChannelInterrupt>::INTERRUPT_NAME),
     ];
 }
 

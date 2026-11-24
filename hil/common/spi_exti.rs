@@ -6,7 +6,7 @@
 //! UART link.
 //!
 //! The firmware keeps the open `Spi` in a [`Bus`] shared with its handlers:
-//! the receive stream's calls [`Bus::on_dma`], each EXTI vector's
+//! the receive DMA channel's calls [`Bus::on_dma`], each EXTI vector's
 //! [`Bus::on_exti`].
 
 // Each run binary compiles this file and uses the checks its links need.
@@ -33,7 +33,7 @@ const PASS_FLOOR: u32 = 112;
 /// What the handlers share with the checks task.
 pub struct Bus<U: spi::Parts> {
     pub spi: Option<Spi<U>>,
-    /// The last transfer the receive stream's handler ended.
+    /// The last transfer the receive DMA channel's handler ended.
     pub done: Option<Result<usize, Error>>,
     /// The line whose edges the EXTI handler counts.
     pub counted: Option<ExtiHandle>,
@@ -50,7 +50,7 @@ impl<U: spi::Parts> Bus<U> {
         }
     }
 
-    /// For the receive stream's handler.
+    /// For the receive DMA channel's handler.
     pub fn on_dma(&mut self) {
         if let Some(spi) = self.spi.as_mut()
             && let Some(result) = spi.on_interrupt()
@@ -100,7 +100,7 @@ fn spin(cycles: u32) {
     cortex_m::asm::delay(cycles);
 }
 
-/// Waits for the receive stream's handler to end the transfer: at most
+/// Waits for the receive DMA channel's handler to end the transfer: at most
 /// `cycles` of the DWT counter. A transfer still running then is aborted,
 /// so one failed check leaves the bus ready for the next.
 fn wait_done<U: spi::Parts, B: Mutex<T = Bus<U>>>(bus: &mut B, cycles: u32) -> Result<usize, Fail> {
@@ -180,7 +180,7 @@ pub fn spi_suite<U: spi::Parts, B: Mutex<T = Bus<U>>, const P: char, const N: u8
 {
     sck.mask(ctrl);
     let cap = bus.lock(|b| b.spi.as_ref().map_or(0, Spi::capacity));
-    report.check(name, "receive-stream vector enabled [RESOURCE-001]", {
+    report.check(name, "receive DMA channel vector enabled [RESOURCE-001]", {
         bus.lock(|b| b.spi.as_ref().map(|s| s.vectors().verify()))
             .unwrap_or(Ok(()))
             .map_err(|error| Fail::Irq(Some(error)))

@@ -26,8 +26,8 @@ pub struct DiePeripheral {
     pub rcc: Option<Rcc>,
     /// (pin, signal) -> alternate function.
     pub pins: BTreeMap<(String, String), Option<u8>>,
-    /// Every DMA route. On a fixed-request DMA (the F4's) one stream can
-    /// serve a signal through two channel selections, so the request is part
+    /// Every DMA route. On a fixed-request DMA (the F4's) one channel can
+    /// serve a signal through two requests, so the request is part
     /// of a route, not a value parts must agree on; on a DMAMUX it is fixed
     /// per signal, and `merge` checks that.
     pub dma: BTreeSet<PeripheralDma>,

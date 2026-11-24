@@ -42,7 +42,7 @@ static FERRO_IDENT: [u8; ident::LEN] = ident::block(concat!(
 
 use ferrohal_stm32::{
     chip::{Peripherals, TIM1, TIM2, TIM3, TIM5, TIM8, UART4, UART5, USART3, USB_OTG_FS},
-    dma::Stream,
+    dma::Channel,
     gpio::{Alternate, Ctrl, Output, Pin, Speed},
     rcc::{
         AhbPrescaler, ApbPrescaler, ClockError, Clocks, Config, Hse, HseMode, Pll, PllP, PllSource,
@@ -80,15 +80,15 @@ pub const CLOCKS: Clocks = match CLOCK_CONFIG.validate() {
 type Af7<const P: char, const N: u8> = Pin<P, N, Alternate<7>>;
 type Af8<const P: char, const N: u8> = Pin<P, N, Alternate<8>>;
 
-/// USART3 over D1. DMA1 stream 3 (channel 4) transmits, stream 1 receives.
-pub type Usart3C = Wiring<USART3, Af7<'C', 10>, Af7<'C', 11>, Stream<1, 3>, Stream<1, 1>>;
-/// UART4 over D1. DMA1 stream 4 (channel 4) transmits, stream 2 receives.
-pub type Uart4C = Wiring<UART4, Af8<'C', 10>, Af8<'C', 11>, Stream<1, 4>, Stream<1, 2>>;
-/// USART3 over D3, the LQFP100's pins. DMA1 stream 4 (channel 7) transmits,
-/// stream 1 receives.
-pub type Usart3D = Wiring<USART3, Af7<'D', 8>, Af7<'D', 9>, Stream<1, 4>, Stream<1, 1>>;
-/// UART5 over D2. DMA1 stream 7 transmits, stream 0 receives.
-pub type Uart5D2 = Wiring<UART5, Af8<'C', 12>, Af8<'D', 2>, Stream<1, 7>, Stream<1, 0>>;
+/// USART3 over D1. DMA1 channel 3 (request 4) transmits, channel 1 receives.
+pub type Usart3C = Wiring<USART3, Af7<'C', 10>, Af7<'C', 11>, Channel<1, 3>, Channel<1, 1>>;
+/// UART4 over D1. DMA1 channel 4 (request 4) transmits, channel 2 receives.
+pub type Uart4C = Wiring<UART4, Af8<'C', 10>, Af8<'C', 11>, Channel<1, 4>, Channel<1, 2>>;
+/// USART3 over D3, the LQFP100's pins. DMA1 channel 4 (request 7) transmits,
+/// DMA channel 1 receives.
+pub type Usart3D = Wiring<USART3, Af7<'D', 8>, Af7<'D', 9>, Channel<1, 4>, Channel<1, 1>>;
+/// UART5 over D2. DMA1 channel 7 transmits, channel 0 receives.
+pub type Uart5D2 = Wiring<UART5, Af8<'C', 12>, Af8<'D', 2>, Channel<1, 7>, Channel<1, 0>>;
 
 /// LD4, the green user LED, on PD12.
 pub type Led = Pin<'D', 12, Output>;
@@ -101,8 +101,8 @@ pub struct RunA {
     pub ctrl_c: Ctrl<'C'>,
     pub usart3: Usart3C,
     pub uart4: UART4,
-    pub s4: Stream<1, 4>,
-    pub s2: Stream<1, 2>,
+    pub ch4: Channel<1, 4>,
+    pub ch2: Channel<1, 2>,
     pub pd8: Af7<'D', 8>,
     pub pd9: Af7<'D', 9>,
     pub uart5: Uart5D2,
@@ -133,20 +133,20 @@ pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
             uart: p.USART3,
             tx,
             rx,
-            tx_dma: dma1.s3,
-            rx_dma: dma1.s1,
+            tx_dma: dma1.ch3,
+            rx_dma: dma1.ch1,
         },
         uart4: p.UART4,
-        s4: dma1.s4,
-        s2: dma1.s2,
+        ch4: dma1.ch4,
+        ch2: dma1.ch2,
         pd8,
         pd9,
         uart5: Wiring {
             uart: p.UART5,
             tx: tx5,
             rx: rx5,
-            tx_dma: dma1.s7,
-            rx_dma: dma1.s0,
+            tx_dma: dma1.ch7,
+            rx_dma: dma1.ch0,
         },
     })
 }
@@ -189,7 +189,7 @@ pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
 }
 
 /// Run D: TIM1's complementary output CH1N on PE8 (AF1), read back by a
-/// sampler: TIM8's update request has DMA2 stream 1 copy port E's input
+/// sampler: TIM8's update request has DMA2 channel 1 copy port E's input
 /// register. Only DMA2 reaches the GPIO ports on the F4, and TIM8's update is
 /// on DMA2, which the F401 lacks: its only break timer, TIM1, is also its only
 /// timer whose update reaches DMA2. No links.
@@ -198,7 +198,7 @@ pub struct RunD {
     pub tim1: TIM1,
     pub pe8: Pin<'E', 8, Alternate<1>>,
     pub tim8: TIM8,
-    pub port_e: Stream<2, 1>,
+    pub port_e: Channel<2, 1>,
 }
 
 pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
@@ -212,7 +212,7 @@ pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
         tim1: p.TIM1,
         pe8: e.p8.into_alternate::<1>(&mut e.ctrl),
         tim8: p.TIM8,
-        port_e: dma2.s1,
+        port_e: dma2.ch1,
         rcc,
     })
 }

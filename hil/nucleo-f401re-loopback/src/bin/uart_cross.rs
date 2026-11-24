@@ -1,5 +1,5 @@
 //! Run B: USART1 and USART6 wired to each other, each on its other pins and
-//! other receive stream.
+//! other receive DMA channel.
 //!
 //! - USART1 TX (PB6) over J3 to USART6 RX (PC7), and USART6 TX (PC6) over
 //!   J4 to USART1 RX (PB7): echo, stream and break, each way.
@@ -18,7 +18,7 @@
 //!   ones is a parity error and one with an even count is good, with no
 //!   change of frame between them: one bad byte, then a good frame straight
 //!   after it. Every vector of the receiving `on_interrupt` reads SR first,
-//!   through stm32-metapac, and notes RXNE, and the receive stream's NDTR,
+//!   through stm32-metapac, and notes RXNE, and the receive DMA channel's NDTR,
 //!   whenever PE is set; the good frame must arrive whole and in order,
 //!   with the one parity error right after the bad byte; PE must be seen,
 //!   counted and reported once. At 115200 and 1 Mbaud: a faster line leaves
@@ -56,7 +56,7 @@ static WATCH: AtomicBool = AtomicBool::new(false);
 /// those RXNE was set too.
 static PE_SEEN: AtomicU32 = AtomicU32::new(0);
 static PE_WITH_RXNE: AtomicU32 = AtomicU32::new(0);
-/// The receive stream's NDTR just before SR was first found with PE set,
+/// The receive DMA channel's NDTR just before SR was first found with PE set,
 /// or `NONE`.
 static PE_NDTR: AtomicU32 = AtomicU32::new(NONE);
 const NONE: u32 = u32::MAX;
@@ -77,32 +77,32 @@ const _: () = {
 };
 
 /// What every vector bound to a UART runs: [`watch`], then `on_interrupt`,
-/// which serves the receive stream, then the USART, then the transmit
-/// stream. Any of the three vectors can be the one that finds PE, since
+/// which serves the receive DMA channel, then the USART, then the transmit
+/// DMA channel. Any of the three vectors can be the one that finds PE, since
 /// each serves the USART, so all three watch.
 fn serve<W: Parts>(uart: &mut Uart<W>, usart: Usart, rx: St) {
     watch(usart, rx);
     tests::serve(uart);
 }
 
-/// USART1's vectors: its receive stream is DMA2 stream 5 (`board::run_b`).
+/// USART1's vectors: its receive DMA channel is DMA2 channel 5 (`board::run_b`).
 fn serve_usart1<W: Parts>(uart: &mut Uart<W>) {
     serve(uart, stm32_metapac::USART1, stm32_metapac::DMA2.st(5));
 }
 
-/// USART6's vectors: its receive stream is DMA2 stream 2.
+/// USART6's vectors: its receive DMA channel is DMA2 channel 2.
 fn serve_usart6<W: Parts>(uart: &mut Uart<W>) {
     serve(uart, stm32_metapac::USART6, stm32_metapac::DMA2.st(2));
 }
 
-/// Notes PE, with RXNE and the receive stream's NDTR, as they stand just
+/// Notes PE, with RXNE and the receive DMA channel's NDTR, as they stand just
 /// before the driver's `on_interrupt` reads SR and then DR, which clears
 /// PE.
 ///
 /// The extra SR read leaves the clear being measured as it was. An SR read
 /// clears nothing by itself; a flag clears when a DR access follows an SR
 /// read made while it was set. `on_interrupt`'s own SR read comes a few
-/// cycles after this one, with only its receive-stream service (DMA flag
+/// cycles after this one, with only its receive DMA channel service (DMA flag
 /// registers, never the USART's) between them, and its DR read follows,
 /// so the driver's SR-then-DR sequence clears PE as it does unwatched. What remains is a window of those few cycles: if the receive
 /// DMA reads DR inside it, which RM0368's case allows when PE is raised
@@ -135,7 +135,7 @@ fn watch(usart: Usart, rx: St) {
 /// RXNE was then, and whether the DMA had taken the bad byte, go to the
 /// log), the good frame arrived whole and in order after the one parity
 /// error, and PE was seen, counted and reported once. A fourth, naming no
-/// requirement, restores 8N1. `rx` is the receiver's stream, a circular
+/// requirement, restores 8N1. `rx` is the receiver's DMA channel, a circular
 /// ring of `ring` bytes; `baud` the line's rate for the check, `name` the
 /// link and that rate.
 fn pe_clear<T: tests::Full, R: tests::Receiver>(
@@ -165,7 +165,7 @@ fn pe_clear<T: tests::Full, R: tests::Receiver>(
     }
     tests::drain(cross);
     let counted_before = cross.to.health().parity_errors;
-    // The line is quiet, so the stream stands still until the bad byte.
+    // The line is quiet, so the DMA channel stands still until the bad byte.
     let ndtr_before = u32::from(rx.ndtr().read().ndt());
     PE_SEEN.store(0, Ordering::Relaxed);
     PE_WITH_RXNE.store(0, Ordering::Relaxed);
@@ -315,7 +315,7 @@ fn cross_checks<T: tests::Full, R: tests::Receiver>(
     ring: u32,
 ) {
     let name = cross.name;
-    // The receiving USART's stream, as `board::run_b` wires it.
+    // The receiving USART's DMA channel, as `board::run_b` wires it.
     tests::drain(cross);
     report.check_for(
         name,

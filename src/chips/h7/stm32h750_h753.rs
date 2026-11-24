@@ -16,7 +16,7 @@ use stm32_metapac as pac;
 pub use stm32_metapac::Interrupt;
 
 use crate::{
-    dma::{Dma, DmaInstance, Stream},
+    dma::{Channel, Dma, DmaInstance},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{I2cRxDma, I2cTxDma, SclPin, SdaPin},
     rcc_h7_rm0433::{Bus, RCC, RccBit},
@@ -124,7 +124,7 @@ pub(crate) fn watchdog_frozen() -> bool {
 /// SYSCFG's clock enable, which EXTI's port selection (EXTICR) needs.
 pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb4, 1);
 
-// Every DMA1 and DMA2 stream reaches the GPIO ports (RM0433 figure 1).
+// Every DMA1 and DMA2 channel reaches the GPIO ports (RM0433 figure 1).
 gpio_dma!(
     1: [0, 1, 2, 3, 4, 5, 6, 7];
     2: [0, 1, 2, 3, 4, 5, 6, 7];
@@ -147,8 +147,8 @@ mod tests {
         USART6,
         Pin<'C', 6, Alternate<7>>,
         Pin<'C', 7, Alternate<7>>,
-        Stream<1, 6>,
-        Stream<1, 0>,
+        Channel<1, 6>,
+        Channel<1, 0>,
     >;
 
     #[test]
@@ -174,13 +174,13 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Tx,
                     controller: 1,
-                    stream: 6,
+                    channel: 6,
                     request: 72
                 },
                 Resource::Dma {
                     signal: Signal::Rx,
                     controller: 1,
-                    stream: 0,
+                    channel: 0,
                     request: 71
                 },
                 Resource::Interrupt("USART6"),

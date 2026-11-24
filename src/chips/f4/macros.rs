@@ -1,5 +1,5 @@
 //! Macros the F4 parts' generated glue (`src/chips/gen/`) is written in:
-//! fixed-request DMA, one routing row per (controller, stream, channel).
+//! fixed-request DMA, one routing row per (controller, DMA channel, request).
 //!
 //! Requirements: GLUE-001
 
@@ -51,11 +51,11 @@ macro_rules! fractional_stop {
 }
 
 macro_rules! dma {
-    ($trait:ident<$usart:ident>: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
+    ($trait:ident<$usart:ident>: $(($dma:literal, $channel:literal, $request:literal)),+ $(,)?) => {
         $(
             // SAFETY: RM0090 tables 42 and 43 (DMA1 and DMA2 request
             // mapping), matching stm32-metapac 21's metadata.
-            unsafe impl $trait<$usart> for Stream<$dma, $stream> {
+            unsafe impl $trait<$usart> for Channel<$dma, $channel> {
                 const REQUEST: u8 = $request;
             }
         )+

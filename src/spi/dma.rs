@@ -1,19 +1,19 @@
-//! The SPI master on a stream DMA (`dma_v1`, `dma_v2`), for any SPI IP
+//! The SPI master on the DMA (`dma_v1`, `dma_v2`), for any SPI IP
 //! version. The IP module (`spi_v2`, `spi_v4`) supplies `Unit`, its
 //! register operations; everything here is the same on every chip.
 //!
 //! # How a transfer runs
 //!
 //! `start` copies the bytes to send into the transmit buffer, arms the
-//! receive stream, then the transmit stream, then lets the SPI request
+//! receive channel, then the transmit channel, then lets the SPI request
 //! (the order both reference manuals give). Every byte sent clocks one in,
-//! so the receive stream completes last: its complete interrupt, served by
-//! [`Spi::on_interrupt`], ends the transfer. The transmit stream raises no
+//! so the receive channel completes last: its complete interrupt, served by
+//! [`Spi::on_interrupt`], ends the transfer. The transmit channel raises no
 //! interrupt; its error flags are read at the same time.
 //!
 //! One owner: the firmware shares the `Spi` between the task that starts
-//! transfers and the receive stream's handler (an RTIC lock, or one task at
-//! the stream's priority). FerroHAL takes no lock.
+//! transfers and the receive channel's handler (an RTIC lock, or one task at
+//! the channel's priority). FerroHAL takes no lock.
 //!
 //! # Waits
 //!
@@ -35,7 +35,7 @@ use core::sync::atomic::{Ordering, fence};
 
 use crate::{
     chip::Interrupt,
-    dma::{AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, Transfer, WordSize},
+    dma::{AnyChannel, Direction, Flags, Interrupts, Priority, StopTimeout, Transfer, WordSize},
     rcc::Rcc,
     resource::Refused,
     spi::{
@@ -53,14 +53,14 @@ enum State {
     Done(u16),
 }
 
-/// An SPI master, full duplex over two DMA streams. It keeps the board's
-/// whole wiring, the instance, its three pins and both stream tokens, and
+/// An SPI master, full duplex over two DMA channels. It keeps the board's
+/// whole wiring, the instance, its three pins and both channel tokens, and
 /// [`free`](Spi::free) hands it back with the buffers, so the same parts
 /// open again.
 pub struct Spi<W: Parts> {
     info: &'static Info,
-    tx: AnyStream,
-    rx: AnyStream,
+    tx: AnyChannel,
+    rx: AnyChannel,
     tx_request: u8,
     rx_request: u8,
     tx_buf: &'static mut [u8],
@@ -85,19 +85,19 @@ where
     RxD: SpiRxDma<U>,
 {
     /// Opens `wiring` with `config`: enables and resets the SPI, claims
-    /// both streams and configures the bus as a master. Chip select is the
+    /// both channels and configures the bus as a master. Chip select is the
     /// firmware's GPIO. Returns the SCK in use through
     /// [`frequency`](Self::frequency).
     ///
     /// A refusal hands back `wiring` and `buffers` with the reason, to
     /// retry or use elsewhere. Every reason but [`ConfigError::DmaBusy`]
-    /// leaves the hardware untouched. `DmaBusy` means a stream an earlier
+    /// leaves the hardware untouched. `DmaBusy` means a channel an earlier
     /// owner left running did not report itself stopped in time. Its EN is
-    /// cleared, so it may still stop later. Neither stream was pointed at
+    /// cleared, so it may still stop later. Neither channel was pointed at
     /// `buffers`, so they are safe to reuse. By then the SPI has been
     /// enabled and reset in RCC, with its registers at their reset values.
-    /// If the receive stream is the one, the transmit stream has stopped; if
-    /// the transmit stream is, the receive stream is as it was left.
+    /// If the receive channel is the one, the transmit channel has stopped; if
+    /// the transmit channel is, the receive channel is as it was left.
     ///
     /// On success the handle keeps the wiring; [`free`](Self::free) returns
     /// it with the buffers.
@@ -148,7 +148,7 @@ where
         rcc.open(U::ENABLE);
         let mut tx = crate::dma::claim(&wiring.tx_dma);
         let mut rx = crate::dma::claim(&wiring.rx_dma);
-        // Streams left running by an earlier owner must stop before they
+        // Channels left running by an earlier owner must stop before they
         // are pointed at new memory.
         if tx.stop(crate::dma::STOP_SPINS).is_err() {
             return Err((ConfigError::DmaBusy, wiring));
@@ -182,19 +182,19 @@ where
         })
     }
 
-    /// Stops both streams and closes the SPI, and hands back what
+    /// Stops both channels and closes the SPI, and hands back what
     /// [`new`](Self::new) took: the wiring (the instance, the pins, both
-    /// stream tokens) and the buffers. What a `Drop` would do, made
+    /// channel tokens) and the buffers. What a `Drop` would do, made
     /// explicit so the parts can move out. A transfer still running is
-    /// abandoned mid-frame: the streams stop and SPE drops, with ES0299
+    /// abandoned mid-frame: the channels stop and SPE drops, with ES0299
     /// 2.11.1 / ES0287 2.11.1 / ES0182 2.12.1's BSY caveat on the dead peripheral, and the
     /// vector finds an idle, disabled SPI that raises nothing. A reopen runs
     /// `Spi::new` again on the same parts.
     ///
-    /// A stream that does not stop in time could still use the buffers, so
+    /// A channel that does not stop in time could still use the buffers, so
     /// they are not handed out: the refusal returns the SPI, disabled and
     /// still owning them, and its next transfer reports `Error::Dma`. `free`
-    /// may be tried again; it succeeds once both streams have stopped.
+    /// may be tried again; it succeeds once both channels have stopped.
     #[allow(clippy::type_complexity)]
     pub fn free(
         mut self,
@@ -250,7 +250,7 @@ impl<W: Parts> Spi<W> {
     }
 
     /// The vector to bind to [`on_interrupt`](Self::on_interrupt): the
-    /// receive stream's.
+    /// receive channel's.
     pub fn vectors(&self) -> crate::resource::Vectors {
         crate::resource::Vectors::one(self.vector)
     }
@@ -264,7 +264,7 @@ impl<W: Parts> Spi<W> {
     }
 
     /// Starts one full-duplex transfer of `tx.len()` bytes and returns; the
-    /// receive stream's interrupt (or [`on_interrupt`](Self::on_interrupt) from a task) ends it.
+    /// receive channel's interrupt (or [`on_interrupt`](Self::on_interrupt) from a task) ends it.
     pub fn start(&mut self, tx: &[u8]) -> Result<(), Error> {
         if self.is_busy() {
             return Err(Error::Busy);
@@ -296,8 +296,8 @@ impl<W: Parts> Spi<W> {
             WordSize::Byte,
             Priority::VeryHigh,
         );
-        // The receive stream's interrupt ends the transfer; the transmit
-        // stream's raises nothing.
+        // The receive channel's interrupt ends the transfer; the transmit
+        // channel's raises nothing.
         let tx = Transfer::one_shot(
             self.tx_request,
             Direction::MemoryToPeripheral,
@@ -323,7 +323,7 @@ impl<W: Parts> Spi<W> {
         Ok(())
     }
 
-    /// Serves the receive stream's interrupt: `Some` once the running
+    /// Serves the receive channel's interrupt: `Some` once the running
     /// transfer has ended, with its length or why it failed. `None` if
     /// nothing has ended (or nothing was running). Safe to call from a task
     /// to poll, with the vector unbound.
@@ -334,7 +334,7 @@ impl<W: Parts> Spi<W> {
         };
         let rx = self.rx.flags();
         let tx = self.tx.flags();
-        // A FIFO error in direct mode is advisory; the others stop a stream.
+        // A FIFO error in direct mode is advisory; the others stop a channel.
         if rx.failed() || tx.failed() {
             self.fail();
             self.health.dma_errors = self.health.dma_errors.saturating_add(1);
@@ -359,7 +359,7 @@ impl<W: Parts> Spi<W> {
         unit.end();
         self.rx.clear_flags(Flags::ALL);
         self.tx.clear_flags(Flags::ALL);
-        // Nothing the stream wrote may be read before this.
+        // Nothing the channel wrote may be read before this.
         fence(Ordering::SeqCst);
         if mode_fault {
             self.state = State::Idle;
@@ -431,9 +431,9 @@ impl<W: Parts> Spi<W> {
         self.reset_bus();
     }
 
-    /// Both streams stopped, their flags cleared, the SPI idle.
+    /// Both channels stopped, their flags cleared, the SPI idle.
     fn reset_bus(&mut self) {
-        // A stream that won't stop leaves nothing better to do than carry
+        // A channel that won't stop leaves nothing better to do than carry
         // on: the next start reports it as `Error::Dma`.
         let _ = self.tx.stop(crate::dma::STOP_SPINS);
         let _ = self.rx.stop(crate::dma::STOP_SPINS);

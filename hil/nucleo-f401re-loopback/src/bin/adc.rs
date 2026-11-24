@@ -1,5 +1,5 @@
 //! Run M: the ADC. PA7 drives PA6 over S1, read on ADC1 channel 6, one at a
-//! time and then as a sequence with the internal channels, over DMA2 stream 0.
+//! time and then as a sequence with the internal channels, over DMA2 channel 0.
 
 #![no_std]
 #![no_main]
@@ -91,7 +91,7 @@ fn main() -> ! {
     let channels = [pin, adc.vrefint_channel(), adc.temperature_channel()];
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(SAMPLES) };
-    let mut scan = match adc.into_scan(run.stream, &channels, samples) {
+    let mut scan = match adc.into_scan(run.dma, &channels, samples) {
         Ok(scan) => scan,
         Err(error) => defmt::panic!("scan: {}", error),
     };

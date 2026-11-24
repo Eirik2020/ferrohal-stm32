@@ -12,7 +12,7 @@ use super::{
     ERR_DMA_OVERRUN, ERR_DMA_TRANSFER, ERR_FRAMING, ERR_NOISE, ERR_OVERRUN, ERR_PARITY, Parts, Uart,
 };
 use crate::{
-    dma::{AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, Transfer, WordSize},
+    dma::{AnyChannel, Direction, Flags, Interrupts, Priority, StopTimeout, Transfer, WordSize},
     uart::{
         Chunk, ChunkEnd, Error, Health,
         ring::{self, Mark, MarkKind, MarkQueue, Take},
@@ -26,7 +26,7 @@ use crate::{
 /// set. The fastest pass measured with the DWT cycle counter (`hil`
 /// `wait_bounds`), halved: H753 at 400 MHz with caches on, 757 cycles
 /// (2026-11-17, since a read also serves the transmit queue and the receive
-/// stream's flags; 474 before). Slower configurations wait longer than asked
+/// channel's flags; 474 before). Slower configurations wait longer than asked
 /// (F401 at 84 MHz: 1002 to 1086; H753 with caches off: about 2450, so up to
 /// about 6.5 times the time asked); a caller clock makes every wait exact. A
 /// faster pass would make a bound run short; the HIL check `wait_bounds`
@@ -43,7 +43,7 @@ const ERRORS: [(u8, Error); 6] = [
     (ERR_DMA_OVERRUN, Error::Dma),
 ];
 
-/// The receive stream's interrupts.
+/// The receive channel's interrupts.
 const RX_INTERRUPTS: Interrupts = Interrupts {
     complete: true,
     half: true,
@@ -52,7 +52,7 @@ const RX_INTERRUPTS: Interrupts = Interrupts {
 };
 
 pub(super) struct Rx {
-    dma: AnyStream,
+    dma: AnyChannel,
     request: u8,
     ring: *mut u8,
     len: u16,
@@ -62,7 +62,7 @@ pub(super) struct Rx {
     read_index: u16,
     /// Gaps in the byte stream so far.
     generation: u32,
-    /// The stream did not stop; reception is off for good.
+    /// The channel did not stop; reception is off for good.
     halted: bool,
     /// Half-laps of the ring served, wrapping.
     halves: u32,
@@ -82,7 +82,7 @@ impl Rx {
     /// Keeps the ring's address and length only: the caller's `'static`
     /// reference ends once the UART is open, leaving the driver the ring's
     /// only user.
-    pub(super) fn new(dma: AnyStream, request: u8, ring: &mut [u8], len: u16) -> Self {
+    pub(super) fn new(dma: AnyChannel, request: u8, ring: &mut [u8], len: u16) -> Self {
         Self {
             dma,
             request,
@@ -106,12 +106,12 @@ impl Rx {
         (self.ring, usize::from(self.len))
     }
 
-    /// Stops the receive stream and clears its flags. A stream that does not
+    /// Stops the receive channel and clears its flags. A channel that does not
     /// stop leaves reception halted: reads report `Halted` from then on.
     pub(super) fn halt(&mut self) -> Result<(), StopTimeout> {
-        // Interrupts off first: a stream that is stopping can still set its
+        // Interrupts off first: a channel that is stopping can still set its
         // transfer-complete flag after `stop` (measured on the F407,
-        // 2026-11-14), and a freed stream's vector may serve another
+        // 2026-11-14), and a freed channel's vector may serve another
         // driver by then.
         self.dma.set_interrupts(Interrupts::default());
         let stopped = self.dma.stop(crate::dma::STOP_SPINS);
@@ -154,10 +154,10 @@ impl Rx {
         unsafe { self.dma.start(&transfer) }.map_err(|_| Error::Halted)
     }
 
-    /// Serves the receive stream's flags: counts half-laps and records
+    /// Serves the receive channel's flags: counts half-laps and records
     /// errors. Returns whether a half filled and whether a fault was
     /// recorded.
-    pub(super) fn serve_stream(&mut self) -> (bool, bool) {
+    pub(super) fn serve_dma(&mut self) -> (bool, bool) {
         let flags = self.dma.flags();
         if !flags.any() {
             return (false, false);
@@ -224,7 +224,7 @@ impl Rx {
     /// position in the ring.
     ///
     /// The half-lap count is what has been served plus the half and complete
-    /// flags still pending, read before the stream's remaining count. The
+    /// flags still pending, read before the channel's remaining count. The
     /// flags are sticky, so this holds while the service is less than a
     /// full lap late (UART-DMA-002); a crossing between the flag read and the
     /// count read shows in the position, which `ring::written` accounts for.
@@ -238,14 +238,14 @@ impl Rx {
         ring::written(halves, remaining, u32::from(self.len))
     }
 
-    /// Where DMA has written to, after serving the stream and handling
+    /// Where DMA has written to, after serving the channel and handling
     /// whatever stopped or lapped the ring: errors whose position was lost,
-    /// a stopped stream, a ring overrun. Each of those is a gap.
+    /// a stopped channel, a ring overrun. Each of those is a gap.
     fn check_ring(&mut self, unit: Unit) -> Result<(u32, u16), Error> {
         if self.halted {
             return Err(Error::Halted);
         }
-        self.serve_stream();
+        self.serve_dma();
         if let Some(error) = self.take_error() {
             if !self.dma.is_running() {
                 self.start_ring(unit)?;
@@ -296,7 +296,7 @@ impl Rx {
             }
         }
         // Had DMA lapped the reader while it copied, the bytes are suspect.
-        self.serve_stream();
+        self.serve_dma();
         let (written, position) = self.count_written();
         if written.wrapping_sub(self.read_count) > u32::from(self.len) {
             self.resync(written, position);
@@ -454,7 +454,7 @@ fn line_error(kind: MarkKind) -> Option<Error> {
 
 impl<W: Parts> Uart<W> {
     /// Moves the transmit queue on, as every call does: a reader on a link
-    /// whose transmit stream's vector is unbound must not leave the frames
+    /// whose transmit channel's vector is unbound must not leave the frames
     /// it waits for unsent (UART-DMA-008).
     fn serve_tx(&mut self) {
         if let Some(tx) = self.tx.as_mut() {

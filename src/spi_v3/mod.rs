@@ -13,7 +13,7 @@
 //!   At the reset threshold, 16 bits, the last byte of an odd-length
 //!   transfer would wait in the FIFO for a partner that never comes.
 //! - **Access.** DR is read and written a byte at a time (`dr8`), by the CPU
-//!   and by the streams, whose peripheral size is a byte: a 16-bit access
+//!   and by the channels, whose peripheral size is a byte: a 16-bit access
 //!   would pack two frames, and LDMA_TX/LDMA_RX stay clear.
 //! - **The end.** TXE rises while the transmit FIFO is still half full, so a
 //!   transfer is over only when FTLVL is empty and BSY clear, and what a
@@ -88,13 +88,13 @@ impl Unit {
         self.0.dr8().as_ptr() as u32
     }
 
-    /// Receive requests on, before the streams start (RM0431 28.5.9).
-    /// v3 has no transfer size: the streams' counts end the transfer.
+    /// Receive requests on, before the channels start (RM0431 28.5.9).
+    /// v3 has no transfer size: the channels' counts end the transfer.
     pub(crate) fn enable_rx_dma(self, _len: u16) {
         self.0.cr2().modify(|w| w.set_rxdmaen(true));
     }
 
-    /// Transmit requests on, after the streams: the first byte goes out.
+    /// Transmit requests on, after the channels: the first byte goes out.
     pub(crate) fn go(self) {
         self.0.cr2().modify(|w| w.set_txdmaen(true));
     }

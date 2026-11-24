@@ -49,7 +49,7 @@ impl Deadline {
     }
 
     /// A bound of `passes` polls and no clock: for waits with no
-    /// [`CycleClock`] to hand (the clock tree, the watchdog, a stream's
+    /// [`CycleClock`] to hand (the clock tree, the watchdog, a channel's
     /// stop), counted in register reads, the `*_SPINS` constants.
     pub(crate) const fn passes(passes: u32) -> Self {
         Self {

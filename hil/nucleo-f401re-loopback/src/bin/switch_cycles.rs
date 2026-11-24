@@ -1,8 +1,8 @@
 //! Run Y: the prepared switch, built with `profile-listen`.
 //!
 //! Run R's four lanes (TIM3 CH3/CH4 on PB0/PB1, TIM2 CH3/CH2 on PB10/PB3,
-//! DMA1 streams 7, 2, 1 and 6) as one lane group, TIM3 starting TIM2 through
-//! its trigger, and one reader of port B paced by TIM1 on DMA2 stream 5, as
+//! DMA1 channels 7, 2, 1 and 6) as one lane group, TIM3 starting TIM2 through
+//! its trigger, and one reader of port B paced by TIM1 on DMA2 channel 5, as
 //! run R ends. Two listens are prepared, the second with another count: every
 //! exchange must read the second's count at the rate it returned, and the
 //! switch's cycle count (`timer::profile`, the listen whole) must stay within

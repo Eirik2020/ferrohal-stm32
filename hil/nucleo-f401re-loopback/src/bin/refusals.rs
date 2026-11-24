@@ -8,16 +8,16 @@
 //!   back and carry a level over J2.
 //! - UART: an unreachable baud refuses; the wiring and buffers open the
 //!   port, which echoes a frame over J1.
-//! - SPI: a 0 Hz stream config and a 0 Hz polled config refuse; the wirings
+//! - SPI: a 0 Hz DMA config and a 0 Hz polled config refuse; the wirings
 //!   transfer bytes over S1 and S3.
 //! - I2C: an out-of-range speed refuses; the wiring opens the bus, which
 //!   NACKs a vacant address.
-//! - ADC: an empty scan sequence refuses; the converter, stream and buffer
+//! - ADC: an empty scan sequence refuses; the converter, DMA channel and buffer
 //!   come back and scan the internal channels.
 //! - PWM: a 0 rate refuses; the timer comes back and makes the lanes.
 //! - Lane: a buffer in CCM RAM, which no DMA controller reaches (RM0090),
-//!   refuses; the channel and stream come back and play on PB0.
-//! - Sampler: a 0 rate refuses; the timer, stream and buffer come back and
+//!   refuses; the pin and DMA channel come back and play on PB0.
+//! - Sampler: a 0 rate refuses; the timer, DMA channel and buffer come back and
 //!   decode the lane playing on PB0.
 //! - lane group: two timers at different periods refuse; both PWMs and both lanes
 //!   come back, the second re-rated, and the pair plays PB6.
@@ -50,15 +50,15 @@ use panic_probe as _;
 
 /// What a `free` must leave: the handle freed at all (`handed_back`), the
 /// peripheral off (`off`, read from its enable bit) and every one of its DMA
-/// streams stopped. Counts what is still on.
+/// channels stopped. Counts what is still on.
 fn freed(
     handed_back: bool,
     off: bool,
-    streams: &[(stm32_metapac::dma::Dma, usize)],
+    channels: &[(stm32_metapac::dma::Dma, usize)],
 ) -> Result<(), tests::Fail> {
-    let running = streams
+    let running = channels
         .iter()
-        .filter(|(dma, stream)| dma.st(*stream).cr().read().en())
+        .filter(|(dma, channel)| dma.st(*channel).cr().read().en())
         .count() as u32;
     let on = u32::from(!handed_back) + u32::from(!off) + running;
     if on == 0 {
@@ -91,7 +91,7 @@ mod app {
     struct Shared {
         // None until the checks task constructs the port from the parts a
         // refusal hands back, and again once it frees it.
-        usart1: Option<Uart<board::Usart1LoopS2>>,
+        usart1: Option<Uart<board::Usart1LoopCh2>>,
     }
 
     #[local]
@@ -307,7 +307,7 @@ mod app {
             "the handed-back wiring echoes a frame [API-001]",
             tests::echo(&mut loop1, b"refusal\n"),
         );
-        // `free` stops the line and both streams, and hands the token back.
+        // `free` stops the line and both DMA channels, and hands the token back.
         let handed_back = cx
             .shared
             .usart1
@@ -317,7 +317,7 @@ mod app {
             .lock(|slot| slot.take().is_some_and(|uart| uart.free().is_ok()));
         report.check(
             "USART1 PA9->PA10",
-            "free leaves the USART off, TCIE off and both streams stopped [API-002]",
+            "free leaves the USART off, TCIE off and both DMA channels stopped [API-002]",
             crate::freed(
                 handed_back,
                 {
@@ -330,7 +330,7 @@ mod app {
             ),
         );
 
-        // SPI: a 0 Hz config refuses for the stream and the polled driver,
+        // SPI: a 0 Hz config refuses for the DMA driver and the polled driver,
         // and the handed-back wirings transfer over S1 and S3.
         let sent = b"refusal run";
         let mut spi_freed = false;
@@ -373,7 +373,7 @@ mod app {
         );
         report.check(
             "SPI3 PC10/PC11/PC12",
-            "free leaves the SPI off and both streams stopped [API-002]",
+            "free leaves the SPI off and both DMA channels stopped [API-002]",
             crate::freed(
                 spi_freed,
                 !stm32_metapac::SPI3.cr1().read().spe(),
@@ -447,7 +447,7 @@ mod app {
             crate::freed(i2c_freed, !stm32_metapac::I2C3.cr1().read().pe(), &[]),
         );
 
-        // ADC: an empty sequence refuses; the converter, stream and buffer
+        // ADC: an empty sequence refuses; the converter, DMA channel and buffer
         // come back and scan the internal channels.
         let adc = match Adc::new(&mut run.rcc, run.adc1, &AdcConfig::slow_source()) {
             Ok(adc) => adc,
@@ -457,14 +457,14 @@ mod app {
         report.check(
             "ADC1 scan",
             "an empty sequence refuses; the parts scan the internals [API-001]",
-            match adc.into_scan(run.scan_stream, &[], scan) {
+            match adc.into_scan(run.scan_dma, &[], scan) {
                 Ok(_) => Err(Fail::AdcConfig(AdcConfigError::Sequence)),
                 Err(refused) => {
                     if refused.error() != AdcConfigError::Sequence {
                         Err(Fail::AdcConfig(refused.error()))
                     } else {
-                        let (adc, stream, buffer) = refused.into_parts();
-                        let Ok(mut scan) = adc.into_scan(stream, &channels, buffer) else {
+                        let (adc, dma, buffer) = refused.into_parts();
+                        let Ok(mut scan) = adc.into_scan(dma, &channels, buffer) else {
                             defmt::panic!("the scan")
                         };
                         let mut result = Err(Fail::Count {
@@ -535,7 +535,7 @@ mod app {
         // no such RAM: it has no CCM, and DMA2 reaches all its SRAM
         // (RM0368). The H753's run U checks that refusal on DTCM.
         let mut lane3 =
-            match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3_stream)
+            match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(run.ch3, run.lane3_dma)
                 .assemble(&pwm3)
             {
                 Ok(lane) => lane,
@@ -545,19 +545,19 @@ mod app {
         pwm::lend_frames(lane4_buf);
         pwm::lend_frames(lane2_buf);
 
-        // Sampler: a 0 rate refuses; the timer, stream and buffer come back.
+        // Sampler: a 0 rate refuses; the timer, DMA channel and buffer come back.
         let (mut sampler, sampler_refusal) = match Sampler::new::<'B'>(
             &mut run.rcc,
             run.tim1,
-            run.sampler_stream,
+            run.sampler_dma,
             Hertz(0),
             samples,
         ) {
             Ok(_) => defmt::panic!("a 0-rate sampler was accepted"),
             Err(refused) => {
                 let error = refused.error();
-                let (tim1, stream, buffer) = refused.into_parts();
-                match Sampler::new::<'B'>(&mut run.rcc, tim1, stream, Hertz::mhz(1), buffer) {
+                let (tim1, dma, buffer) = refused.into_parts();
+                match Sampler::new::<'B'>(&mut run.rcc, tim1, dma, Hertz::mhz(1), buffer) {
                     Ok(sampler) => (sampler, Some(error)),
                     Err(refused) => defmt::panic!("the TIM1 sampler: {}", refused.error()),
                 }
@@ -565,7 +565,7 @@ mod app {
         };
         report.check(
             "TIM1 sampler",
-            "a 0 rate refuses; the timer, stream and buffer come back [API-001]",
+            "a 0 rate refuses; the timer, DMA channel and buffer come back [API-001]",
             match sampler_refusal {
                 Some(TimerConfigError::Inexact) => Ok(()),
                 Some(other) => Err(Fail::Timer(other)),
@@ -619,7 +619,7 @@ mod app {
             Err(refused) => defmt::panic!("TIM4 PWM: {}", refused.error()),
         };
         let lane4 =
-            match ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pb6, run.lane4_stream)
+            match ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(run.pb6, run.lane4_dma)
                 .assemble(&pwm4)
             {
                 Ok(lane) => lane,
@@ -629,7 +629,7 @@ mod app {
             Ok(pwm2) => {
                 let lane2 = match ferrohal_stm32::timer::LaneWiring::<_, 3, _, _>::new(
                     run.pb10,
-                    run.lane2_stream,
+                    run.lane2_dma,
                 )
                 .assemble(&pwm2)
                 {

@@ -1152,7 +1152,7 @@ pub struct TimerRegs {
 }
 
 /// One reader round over one wire: `near` plays a frame from lent memory
-/// and turns to read, in the reader form the caller set up (its own stream,
+/// and turns to read, in the reader form the caller set up (its own DMA channel,
 /// armed ahead, or paced), into lent memory; `far` answers once `near`'s
 /// frame has ended; the reply must come back whole. `regs` reads `near`'s
 /// timer. The frame and lent memory go in and come back through the slots.

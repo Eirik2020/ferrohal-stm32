@@ -255,7 +255,7 @@ pub mod timer_v3;
 pub(crate) mod adc_v2;
 #[cfg(feature = "adc_v4")]
 pub(crate) mod adc_v4;
-// The stream DMA: one source, two IP versions (see the module).
+// The DMA: one source, two IP versions (see the module).
 #[cfg(feature = "dma_v1")]
 #[path = "dma/mod.rs"]
 pub mod dma_v1;

@@ -44,15 +44,15 @@ pub(crate) const CLOCK_LIMITS: Limits = Limits {
     }),
 };
 
-/// Whether `buffer` can be handed to a DMA stream. `dtcm` is the chip's
+/// Whether `buffer` can be handed to a DMA channel. `dtcm` is the chip's
 /// DTCM and `sram` its SRAM1 and SRAM2, which sit together above it;
 /// `dtcm_erratum`, if any, is the die's erratum against DMA reads of the
 /// DTCM.
 ///
-/// - It must lie in RAM the streams reach: the DTCM, through the core's AHBS
+/// - It must lie in RAM the DMA channels reach: the DTCM, through the core's AHBS
 ///   port (RM0431, RM0385 and RM0410 2.1.6, AN4667 1.3.3), or SRAM1 and
 ///   SRAM2. Not the ITCM, which AHBS does not reach.
-/// - The DTCM is never cached, but on revision A of die 0x451 a stream reads
+/// - The DTCM is never cached, but on revision A of die 0x451 a DMA channel reads
 ///   zeros from it while the core sleeps (ES0334 2.2.4), and a driver cannot
 ///   know whether the firmware sleeps during a transfer: there it is
 ///   refused, and the buffer goes in SRAM1 or SRAM2.

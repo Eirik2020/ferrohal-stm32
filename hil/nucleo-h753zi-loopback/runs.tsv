@@ -19,7 +19,7 @@ p	timer-trigger
 q	lane-group-both-ways
 r	i2c-master
 s	i2c-pico
-t	stuck-streams
+t	stuck-channels
 u	refusals
 w	faults
 x	cache-mpu

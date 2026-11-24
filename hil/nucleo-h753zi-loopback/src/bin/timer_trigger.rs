@@ -1,7 +1,7 @@
 //! Run P: TIM1 starting TIM8 from its trigger output, as the Foxeer's motor
 //! timers start. No links: no output is enabled. Then the lane group
 //! over the same pair, linked: a lane on TIM1 channel 1 (PE9) and one on TIM8
-//! channel 1 (PC6), DMA1 streams 0 and 1, outputs off, and every lane of both
+//! channel 1 (PC6), DMA1 channels 0 and 1, outputs off, and every lane of both
 //! must finish [TIMER-LANES-005].
 
 #![no_std]
@@ -65,11 +65,11 @@ fn main() -> ! {
     let rated = master
         .set_rate(Hertz::khz(150))
         .and_then(|_| slave.set_rate(Hertz::khz(150)));
-    let lane1 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(pe9, dma1.s0).assemble(&master).map(|lane| {
+    let lane1 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(pe9, dma1.ch0).assemble(&master).map(|lane| {
             crate::pwm::lend_frames(&mut one[..]);
             lane
         });
-    let lane8 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(pc6, dma1.s1).assemble(&slave).map(|lane| {
+    let lane8 = ferrohal_stm32::timer::LaneWiring::<_, 1, _, _>::new(pc6, dma1.ch1).assemble(&slave).map(|lane| {
             crate::pwm::lend_frames(&mut two[..]);
             lane
         });

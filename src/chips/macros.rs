@@ -1,5 +1,5 @@
 //! The macros every chip's glue builds from. They carry shapes only; the
-//! facts (which peripherals, pins, streams and vectors) are the rows each
+//! facts (which peripherals, pins, DMA channels and vectors) are the rows each
 //! chip's generated module passes them (`src/chips/gen/`, `tools/glue-gen`).
 //!
 //! Names in the expansions (`Pin`, `Alternate`, `Interrupt`) resolve in the
@@ -236,45 +236,45 @@ macro_rules! timer_pin {
     };
 }
 
-/// Timer DMA rows. Fixed routing (F4): `TIM CHx: (controller, stream,
-/// channel), ...` or `TIM UP: ...`. DMAMUX (H7): `TIM CHx: mux request;`,
-/// for every DMA1 and DMA2 stream.
+/// Timer DMA rows. Fixed routing (F4): `TIM CHx: (controller, DMA channel,
+/// request), ...` or `TIM UP: ...`. DMAMUX (H7): `TIM CHx: mux request;`,
+/// for every DMA1 and DMA2 channel.
 macro_rules! timer_dma {
-    ($tim:ident $signal:ident: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
+    ($tim:ident $signal:ident: $(($dma:literal, $channel:literal, $request:literal)),+ $(,)?) => {
         $(
             // SAFETY: the chip's DMA request table, matching stm32-metapac
             // 21's metadata (generated).
-            timer_dma_impl!($signal, $tim, crate::dma::Stream<$dma, $stream>, $request);
+            timer_dma_impl!($signal, $tim, crate::dma::Channel<$dma, $channel>, $request);
         )+
     };
     ($tim:ident $signal:ident: mux $request:literal) => {
         // SAFETY: the DMAMUX1 request ID, from stm32-metapac 21's metadata
-        // (generated); through DMAMUX any stream serves it.
-        timer_dma_impl!($signal, $tim, crate::dma::Stream<D, N>, $request, D, N);
+        // (generated); through DMAMUX any DMA channel serves it.
+        timer_dma_impl!($signal, $tim, crate::dma::Channel<D, N>, $request, D, N);
     };
 }
 
 macro_rules! timer_dma_impl {
-    (UP, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
+    (UP, $tim:ident, $channel:ty, $request:literal $(, $d:ident, $n:ident)?) => {
         // SAFETY: the update request ID this row names comes from
         // stm32-metapac 21's metadata, from which `tools/glue-gen` generates
         // the row.
-        unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::UpdateDma<$tim> for $stream
+        unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::UpdateDma<$tim> for $channel
         $(where
             crate::dma::Dma<$d>: crate::dma::DmaInstance,
-            crate::dma::Stream<$d, $n>: crate::dma::StreamInterrupt,)?
+            crate::dma::Channel<$d, $n>: crate::dma::ChannelInterrupt,)?
         {
             const REQUEST: u8 = $request;
         }
     };
-    ($signal:ident, $tim:ident, $stream:ty, $request:literal $(, $d:ident, $n:ident)?) => {
+    ($signal:ident, $tim:ident, $channel:ty, $request:literal $(, $d:ident, $n:ident)?) => {
         // SAFETY: the compare request ID this row names comes from
         // stm32-metapac 21's metadata, from which `tools/glue-gen` generates
         // the row.
-        unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::CompareDma<$tim, { timer_channel!($signal) }> for $stream
+        unsafe impl$(<const $d: u8, const $n: u8>)? crate::timer::CompareDma<$tim, { timer_channel!($signal) }> for $channel
         $(where
             crate::dma::Dma<$d>: crate::dma::DmaInstance,
-            crate::dma::Stream<$d, $n>: crate::dma::StreamInterrupt,)?
+            crate::dma::Channel<$d, $n>: crate::dma::ChannelInterrupt,)?
         {
             const REQUEST: u8 = $request;
         }
@@ -296,10 +296,10 @@ macro_rules! timer_channel {
     };
 }
 
-/// The DMA streams whose peripheral port reaches GPIO: `controller: [streams];`.
+/// The DMA channels whose peripheral port reaches GPIO: `controller: [DMA channels];`.
 macro_rules! gpio_dma {
-    ($($dma:literal: [$($stream:literal),+];)+) => {
-        $($(impl crate::timer::GpioDma for crate::dma::Stream<$dma, $stream> {})+)+
+    ($($dma:literal: [$($channel:literal),+];)+) => {
+        $($(impl crate::timer::GpioDma for crate::dma::Channel<$dma, $channel> {})+)+
     };
 }
 
@@ -338,11 +338,11 @@ macro_rules! usb_fs {
     };
 }
 
-/// The vector each DMA stream raises.
-macro_rules! stream_interrupts {
-    ($($dma:literal: [$($stream:literal => $vector:ident),+];)+) => {
+/// The vector each DMA channel raises.
+macro_rules! channel_interrupts {
+    ($($dma:literal: [$($channel:literal => $vector:ident),+];)+) => {
         $($(
-            impl crate::dma::StreamInterrupt for crate::dma::Stream<$dma, $stream> {
+            impl crate::dma::ChannelInterrupt for crate::dma::Channel<$dma, $channel> {
                 const INTERRUPT: Interrupt = Interrupt::$vector;
                 const INTERRUPT_NAME: &'static str = stringify!($vector);
             }
@@ -398,31 +398,31 @@ macro_rules! adc_pins {
     };
 }
 
-/// An ADC's DMA streams on a fixed-request DMA: `NAME: (controller, stream,
-/// channel), ...`.
+/// An ADC's DMA channels on a fixed-request DMA: `NAME: (controller, DMA channel,
+/// request), ...`.
 #[allow(unused_macros)]
 macro_rules! adc_dma {
-    ($name:ident: $(($dma:literal, $stream:literal, $request:literal)),+ $(,)?) => {
+    ($name:ident: $(($dma:literal, $channel:literal, $request:literal)),+ $(,)?) => {
         $(
             // SAFETY: the DMA request table's route for this ADC, from
             // stm32-metapac's metadata.
-            unsafe impl crate::adc::Dma<$name> for Stream<$dma, $stream> {
+            unsafe impl crate::adc::Dma<$name> for Channel<$dma, $channel> {
                 const REQUEST: u8 = $request;
             }
         )+
     };
 }
 
-/// An ADC's DMAMUX1 request: any stream of DMA1 or DMA2 serves it.
+/// An ADC's DMAMUX1 request: any DMA channel of DMA1 or DMA2 serves it.
 #[allow(unused_macros)]
 macro_rules! adc_dma_mux {
     ($name:ident: mux $request:literal) => {
         // SAFETY: the DMAMUX1 request ID for this ADC, from stm32-metapac's
         // metadata (RM0433 table 121).
-        unsafe impl<const D: u8, const N: u8> crate::adc::Dma<$name> for Stream<D, N>
+        unsafe impl<const D: u8, const N: u8> crate::adc::Dma<$name> for Channel<D, N>
         where
             Dma<D>: DmaInstance,
-            Stream<D, N>: crate::dma::StreamInterrupt,
+            Channel<D, N>: crate::dma::ChannelInterrupt,
         {
             const REQUEST: u8 = $request;
         }

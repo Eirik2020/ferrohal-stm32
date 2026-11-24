@@ -15,7 +15,7 @@ use stm32_metapac as pac;
 pub use stm32_metapac::Interrupt;
 
 use crate::{
-    dma::{Dma, DmaInstance, Stream},
+    dma::{Channel, Dma, DmaInstance},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{I2cRxDma, I2cTxDma, SclPin, SdaPin},
     rcc_f4::{Bus, Limits, RCC, RccBit},
@@ -76,7 +76,7 @@ pub use generated::*;
 /// bus matrix.
 const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 128 * 1024)];
 
-/// Whether `buffer` can be handed to a DMA stream: whether it lies in SRAM.
+/// Whether `buffer` can be handed to a DMA channel: whether it lies in SRAM.
 /// A Cortex-M4 has no data cache, so that is all. `Uart::new` checks every
 /// buffer with this.
 pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> {
@@ -181,8 +181,8 @@ mod tests {
         USART1,
         Pin<'A', 9, Alternate<7>>,
         Pin<'A', 10, Alternate<7>>,
-        Stream<2, 7>,
-        Stream<2, 2>,
+        Channel<2, 7>,
+        Channel<2, 2>,
     >;
 
     #[test]
@@ -206,13 +206,13 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Tx,
                     controller: 2,
-                    stream: 7,
+                    channel: 7,
                     request: 4
                 },
                 Resource::Dma {
                     signal: Signal::Rx,
                     controller: 2,
-                    stream: 2,
+                    channel: 2,
                     request: 4
                 },
                 Resource::Interrupt("USART1"),
@@ -221,18 +221,18 @@ mod tests {
             ]
         );
         assert_eq!(
-            RxWiring::<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>::RESOURCES[2],
+            RxWiring::<USART6, Pin<'A', 12, Alternate<8>>, Channel<2, 1>>::RESOURCES[2],
             Resource::Dma {
                 signal: Signal::Rx,
                 controller: 2,
-                stream: 1,
+                channel: 1,
                 request: 5
             }
         );
         // Two compare lanes: TIM3 CH3 on PB0, and a complementary lane,
         // TIM1 CH1N on PA7.
         assert_eq!(
-            LaneWiring::<TIM3, 3, Pin<'B', 0, Alternate<2>>, Stream<1, 7>>::RESOURCES,
+            LaneWiring::<TIM3, 3, Pin<'B', 0, Alternate<2>>, Channel<1, 7>>::RESOURCES,
             [
                 Resource::Peripheral("TIM3"),
                 Resource::Pin {
@@ -244,13 +244,13 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Channel(3),
                     controller: 1,
-                    stream: 7,
+                    channel: 7,
                     request: 5
                 },
             ]
         );
         assert_eq!(
-            ComplementaryLaneWiring::<TIM1, 1, Pin<'A', 7, Alternate<1>>, Stream<2, 1>>::RESOURCES,
+            ComplementaryLaneWiring::<TIM1, 1, Pin<'A', 7, Alternate<1>>, Channel<2, 1>>::RESOURCES,
             [
                 Resource::Peripheral("TIM1"),
                 Resource::Pin {
@@ -262,14 +262,14 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Complementary(1),
                     controller: 2,
-                    stream: 1,
+                    channel: 1,
                     request: 6
                 },
             ]
         );
-        // The bench's own ADC input: ADC1 channel 6 on PA6, over stream 0.
+        // The bench's own ADC input: ADC1 channel 6 on PA6, over DMA channel 0.
         assert_eq!(
-            adc::Wiring::<ADC1, Pin<'A', 6, Analog>, Stream<2, 0>>::RESOURCES,
+            adc::Wiring::<ADC1, Pin<'A', 6, Analog>, Channel<2, 0>>::RESOURCES,
             [
                 Resource::Peripheral("ADC1"),
                 Resource::Analog {
@@ -280,7 +280,7 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Adc(6),
                     controller: 2,
-                    stream: 0,
+                    channel: 0,
                     request: 0
                 },
             ]

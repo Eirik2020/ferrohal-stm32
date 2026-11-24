@@ -10,16 +10,16 @@
 //!   115200. Late in each frame a sample straddles the next bit's edge, so
 //!   the majority vote still reads the bit but not all three samples
 //!   agree: the noise flag fires, every byte intact, no framing error.
-//! - DMA transfer error: USART6's receive stream is stopped, re-pointed at
+//! - DMA transfer error: USART6's receive DMA channel is stopped, re-pointed at
 //!   unmapped memory and restarted. The next byte is a bus error; the
-//!   stream stops, the driver reports DmaTransfer and restarts the ring on
+//!   DMA channel stops, the driver reports DmaTransfer and restarts the ring on
 //!   its own buffer, and an echo after the gap succeeds. What the outage
-//!   costs is timing — a frame completed into a dead stream raises
+//!   costs is timing — a frame completed into a dead DMA channel raises
 //!   overrun, whose mark the restart wipes — so the bytes right after the
 //!   gap go to the log unnamed.
 //! - Timeout: USART1's DMA transmit request is disconnected before a frame
 //!   is queued, so nothing drains. The queue's bound expires, the driver
-//!   stops the stream, drops the queue and reports Timeout; the next
+//!   stops the DMA channel, drops the queue and reports Timeout; the next
 //!   frame goes out whole.
 //!
 //! | Vector | Owner | Priority |
@@ -58,13 +58,13 @@ const SLOW: u32 = 115_200;
 /// sample disagrees: 0x55's bit 7 is 0.
 const NOISY: [u8; 8] = [0x55; 8];
 
-/// Where the receiver's stream must not write: past the 96 KiB of SRAM,
+/// Where the receiver's DMA channel must not write: past the 96 KiB of SRAM,
 /// unmapped, so the first access is a bus error.
 const UNMAPPED: u32 = 0x2020_0000;
 
-/// Stops a DMA stream and waits for the enable to land, so a following
+/// Stops a DMA channel and waits for the enable to land, so a following
 /// register write cannot race it.
-fn stop_stream(st: St) {
+fn stop_channel(st: St) {
     st.cr().modify(|w| w.set_en(false));
     while st.cr().read().en() {}
 }
@@ -278,7 +278,7 @@ fn inject_noise<T: tests::Full, R: tests::Receiver>(
     );
 }
 
-/// DMA transfer error: the receive stream re-pointed at unmapped memory.
+/// DMA transfer error: the receive DMA channel re-pointed at unmapped memory.
 fn inject_dma_transfer<T: tests::Full, R: tests::Receiver>(
     report: &mut Report,
     cross: &mut Cross<'_, T, R>,
@@ -288,7 +288,7 @@ fn inject_dma_transfer<T: tests::Full, R: tests::Receiver>(
     let health = cross.to.health();
     let (transfers, restarts) = (health.dma_errors, health.restarts);
     let rx = stm32_metapac::DMA2.st(2);
-    stop_stream(rx);
+    stop_channel(rx);
     rx.m0ar().write(|w| *w = UNMAPPED);
     rx.cr().modify(|w| w.set_en(true));
     let first = cross.tx().write_all(b"X").and_then(|()| cross.tx().flush());
@@ -338,7 +338,7 @@ fn inject_dma_transfer<T: tests::Full, R: tests::Receiver>(
         },
     );
     // What the outage costs is timing: a frame completed into a dead
-    // stream raises overrun, and the restart wipes its mark (marks carry
+    // DMA channel raises overrun, and the restart wipes its mark (marks carry
     // the ring's run), so the bytes right after the gap are not named
     // here — the log has them. That reception carries on is the claim.
     report.check(

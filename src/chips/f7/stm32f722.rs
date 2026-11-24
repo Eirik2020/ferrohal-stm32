@@ -20,7 +20,7 @@ use stm32_metapac as pac;
 pub use stm32_metapac::Interrupt;
 
 use crate::{
-    dma::{Dma, DmaInstance, Stream},
+    dma::{Channel, Dma, DmaInstance},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{I2cRxDma, I2cTxDma, SclPin, SdaPin},
     rcc_f7::{Bus, RCC, RccBit},
@@ -33,7 +33,7 @@ use crate::{
 #[macro_use]
 mod macros;
 
-// The F4's macro shapes: fixed-request stream DMA, bus-named RCC registers. Its
+// The F4's macro shapes: fixed-request DMA, bus-named RCC registers. Its
 // `usarts!` takes each instance's kind: UART4/5/7/8 have no smartcard mode
 // (RM0431 Table 164), and 0.5 and 1.5 stop bits are smartcard settings (RM0431
 // 27.5.2), so the driver refuses them there, as on the F4.
@@ -100,7 +100,7 @@ const DTCM: (usize, usize) = (0x2000_0000, 64 * 1024);
 /// 0x2001_0000 and 16 KiB of SRAM2 at 0x2003_C000 (RM0431 1.7).
 const SRAM: (usize, usize) = (0x2001_0000, 192 * 1024);
 
-/// Whether `buffer` can be handed to a DMA stream: in the DTCM, or in SRAM1
+/// Whether `buffer` can be handed to a DMA channel: in the DTCM, or in SRAM1
 /// and SRAM2 and, with the data cache on, non-cacheable (see
 /// `f7/common.rs`). Every DMA driver checks its buffers with this.
 pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> {
@@ -144,20 +144,20 @@ mod tests {
             Pin<'A', 5, Alternate<5>>,
             Pin<'A', 6, Alternate<5>>,
             Pin<'A', 7, Alternate<5>>,
-            Stream<2, 3>,
-            Stream<2, 0>,
+            Channel<2, 3>,
+            Channel<2, 0>,
         >;
         assert_eq!(Spi1Example::RESOURCES[0], Resource::Peripheral("SPI1"));
         assert!(Spi1Example::RESOURCES.contains(&Resource::Dma {
             signal: Signal::Tx,
             controller: 2,
-            stream: 3,
+            channel: 3,
             request: 3
         }));
         assert!(Spi1Example::RESOURCES.contains(&Resource::Dma {
             signal: Signal::Rx,
             controller: 2,
-            stream: 0,
+            channel: 0,
             request: 3
         }));
     }

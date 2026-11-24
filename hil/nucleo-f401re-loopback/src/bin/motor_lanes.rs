@@ -1,10 +1,10 @@
 //! Run R: the SpeedyBee F405 V5's four motor lanes on two timers, one start.
 //!
-//! TIM3 CH3/CH4 on PB0/PB1 and TIM2 CH3/CH2 on PB10/PB3 (DMA1 streams 7, 2,
+//! TIM3 CH3/CH4 on PB0/PB1 and TIM2 CH3/CH2 on PB10/PB3 (DMA1 channels 7, 2,
 //! 1 and 6) run at the DShot600 rate, read back by the TIM1/DMA2 port-B
 //! sampler. The board's TIM2 CH4 pin, PB11, is not bonded on the F401's
 //! LQFP64 (DS10086's pin table), so the bench's second TIM2 lane rides CH2 on
-//! PB3 over TIM2 CH4's own DMA route, stream 6 channel 3; the board's PB11
+//! PB3 over TIM2 CH4's own DMA route, DMA channel 6 request 3; the board's PB11
 //! lane is glue-checked for the F405 and proven on the board itself. TIM2
 //! starts first in software beside TIM3 (the Lucid's arrangement), then from
 //! TIM3's trigger output (the Foxeer's arrangement, over the SpeedyBee's
@@ -13,11 +13,11 @@
 //! waveform, and the sampler reaches every motor pin of port B over DMA2,
 //! which serves only GPIO and memory here, so ES0299 2.2.11 can't strike. A
 //! reply on one of these lanes is read by the sampler, not by the lane's own
-//! stream: DMA1's AHB peripheral port is not connected to the bus matrix
+//! DMA channel: DMA1's AHB peripheral port is not connected to the bus matrix
 //! (RM0090).
 //!
 //! Then the four lanes as one lane group turn to read port B through one
-//! reader paced by TIM1's update on DMA2 stream 5 (`docs/design/lanes.md`): every lane on
+//! reader paced by TIM1's update on DMA2 channel 5 (`docs/design/lanes.md`): every lane on
 //! the port shares that reader, only the last lane raises its end-of-transfer
 //! interrupt, and the read runs at the pacer's rate.
 //!
@@ -248,7 +248,7 @@ mod app {
         ) else {
             defmt::panic!("motor timers")
         };
-        // Paced lanes: they send on their own DMA1 streams, which cannot
+        // Paced lanes: they send on their own DMA1 channels, which cannot
         // reach GPIO (RM0090 figure 33), and read port B only through a
         // reader paced by another timer.
         let [r3, r4, r23, r22] = core::mem::replace(cx.local.reads, [&mut [], &mut [], &mut [], &mut []]);
@@ -368,15 +368,15 @@ mod app {
                     pwm::lane_group_pair_check(&mut report, "TIM3 starts TIM2, linked", &mut lane_group, cpu);
                     // TIM1 leaves the sampler to pace the lanes' one reader.
                     let paced = match sampler.free() {
-                        Ok((tim1, stream, _)) => Pwm::new(&mut run.rcc, tim1, Hertz::mhz(4))
-                            .map(|pacer| (pacer, stream))
+                        Ok((tim1, dma, _)) => Pwm::new(&mut run.rcc, tim1, Hertz::mhz(4))
+                            .map(|pacer| (pacer, dma))
                             .map_err(|refused| Fail::Timer(refused.error())),
                         Err(_) => Err(Fail::Count { expected: 1, got: 0 }),
                     };
                     let name = "four lanes on TIM3 and TIM2, port B, paced by TIM1";
                     match paced {
-                        Ok((pacer, stream)) => {
-                            let registered = lane_group.read_ahead_paced::<_, _, 'B'>(&pacer, stream);
+                        Ok((pacer, dma)) => {
+                            let registered = lane_group.read_ahead_paced::<_, _, 'B'>(&pacer, dma);
                             pacer.start();
                             report.check(name, "a reader paced by TIM1 registers [TIMER-LANES-017]", holds(registered.is_ok()));
                             let rate = lane_group.prepare_listen(pacer.rate(), 64);
@@ -394,8 +394,8 @@ mod app {
                             let loaded = (0..4).all(|lane| crate::pwm::load(&mut lane_group, lane, &frames[lane]).is_ok());
                             lane_group.listen_on_end();
                             let played = loaded && lane_group.play().is_ok();
-                            // Only the last lane (TIM2 CH2, DMA1 stream 6)
-                            // raises its end: streams 7, 2 and 1 are quiet.
+                            // Only the last lane (TIM2 CH2, DMA1 channel 6)
+                            // raises its end: DMA channels 7, 2 and 1 are quiet.
                             let tcie = [7usize, 2, 1, 6].map(|n| pac::DMA1.st(n).cr().read().tcie());
                             report.check(name, "only the last lane raises its end-of-transfer interrupt [TIMER-LANES-020]",
                                 holds(played && tcie == [false, false, false, true]));

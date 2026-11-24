@@ -36,7 +36,7 @@ use embedded_hal::spi::SpiBus;
 use ferrohal_stm32::{
     adc::{Adc, Config as AdcConfig},
     chip::{Peripherals, SPI1, SPI2, TIM2},
-    dma::Stream,
+    dma::Channel,
     exti::Edge,
     gpio::{Alternate, Output, Pin, Pull, Speed},
     iwdg::Watchdog,
@@ -83,8 +83,8 @@ type ImuWiring = Wiring<
     Pin<'A', 5, Alternate<5>>,
     Pin<'A', 6, Alternate<5>>,
     Pin<'A', 7, Alternate<5>>,
-    Stream<2, 3>,
-    Stream<2, 0>,
+    Channel<2, 3>,
+    Channel<2, 0>,
 >;
 type NorWiring = BlockingWiring<
     SPI2,
@@ -524,8 +524,8 @@ fn main() -> ! {
         sck,
         miso,
         mosi,
-        tx_dma: dma2.s3,
-        rx_dma: dma2.s0,
+        tx_dma: dma2.ch3,
+        rx_dma: dma2.ch0,
     };
     // SAFETY: `main` runs once, and these are the only references.
     let buffers = unsafe {
@@ -581,7 +581,7 @@ fn main() -> ! {
     imu_ready.unmask(&mut exti.ctrl);
 
     // The battery inputs, on ADC1 with the temperature sensor: the sequence
-    // and the free stream the flight code uses.
+    // and the free DMA channel the flight code uses.
     let Ok(mut adc) = Adc::new(&mut rcc, p.ADC1, &AdcConfig::slow_source()) else {
         usb_bench::stop(line!())
     };
@@ -596,15 +596,15 @@ fn main() -> ! {
     ];
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
-    let (scan_refused, adc1, scan_stream, samples) = match adc.into_scan(dma2.s4, &[], samples) {
+    let (scan_refused, adc1, scan_dma, samples) = match adc.into_scan(dma2.ch4, &[], samples) {
         Err(refused) => {
             let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::ConfigError::Sequence);
-            let (adc1, stream, samples) = refused.into_parts();
-            (refused_empty, adc1, stream, samples)
+            let (adc1, dma, samples) = refused.into_parts();
+            (refused_empty, adc1, dma, samples)
         }
         Ok(_) => usb_bench::stop(line!()),
     };
-    let Ok(mut scan) = adc1.into_scan(scan_stream, &channels, samples) else {
+    let Ok(mut scan) = adc1.into_scan(scan_dma, &channels, samples) else {
         usb_bench::stop(line!())
     };
 
@@ -626,7 +626,7 @@ fn main() -> ! {
 
     // The motor pads get their timers with duty 0 and the counters stopped,
     // and lose them again before anything counts: no frame reaches one. The
-    // streams and channels are the flight code's.
+    // DMA channels and timer channels are the flight code's.
     let mut pad1 = a.p8.into_alternate::<1>(&mut a.ctrl);
     pad1.set_pull(&mut a.ctrl, Pull::Up);
     let mut pad4 = b.p15.into_alternate::<1>(&mut b.ctrl);
@@ -648,10 +648,10 @@ fn main() -> ! {
     let ccm: &'static mut [u32] =
         unsafe { core::slice::from_raw_parts_mut(0x1000_0000 as *mut u32, 16) };
     let (Ok(mut lane1), Ok(mut lane2), Ok(mut lane3), Ok(mut lane4)) = (
-        LaneWiring::<_, 1, _, _>::new(pad1, dma2.s1).assemble_two_way::<'A'>(&tim1),
-        ComplementaryLaneWiring::<_, 3, _, _>::new(pad4, dma2.s6).assemble_two_way::<'B'>(&tim1),
-        LaneWiring::<_, 3, _, _>::new(pad3, dma2.s2).assemble_two_way::<'C'>(&tim8),
-        LaneWiring::<_, 4, _, _>::new(pad2, dma2.s7).assemble_two_way::<'C'>(&tim8),
+        LaneWiring::<_, 1, _, _>::new(pad1, dma2.ch1).assemble_two_way::<'A'>(&tim1),
+        ComplementaryLaneWiring::<_, 3, _, _>::new(pad4, dma2.ch6).assemble_two_way::<'B'>(&tim1),
+        LaneWiring::<_, 3, _, _>::new(pad3, dma2.ch2).assemble_two_way::<'C'>(&tim8),
+        LaneWiring::<_, 4, _, _>::new(pad2, dma2.ch7).assemble_two_way::<'C'>(&tim8),
     ) else {
         usb_bench::stop(line!())
     };

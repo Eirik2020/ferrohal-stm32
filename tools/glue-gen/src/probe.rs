@@ -10,7 +10,7 @@
 //!   ignored; with it set, the write sticks; pulsing its reset bit brings the
 //!   register back to the value it had before the write. That ties the
 //!   enable bit, the reset bit and the peripheral's address together.
-//! - Every vector the offered peripherals and DMA streams raise: its NVIC
+//! - Every vector the offered peripherals and DMA channels raise: its NVIC
 //!   pending bit sets and clears, so the number exists on the silicon.
 //!
 //! Not here, by design: which signal a pin's alternate function carries.

@@ -23,8 +23,8 @@ pub enum Resource {
     Dma {
         signal: Signal,
         controller: u8,
-        stream: u8,
-        /// The request: `dma_v2`'s channel, or `dma_v1`'s DMAMUX ID.
+        channel: u8,
+        /// The request: `dma_v2`'s CHSEL number, or `dma_v1`'s DMAMUX request ID.
         request: u8,
     },
     /// An interrupt vector the driver needs bound, by its name.
@@ -62,7 +62,7 @@ impl Resource {
     }
 }
 
-/// Which of a peripheral's signals a pin or DMA stream carries.
+/// Which of a peripheral's signals a pin or DMA channel carries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Signal {

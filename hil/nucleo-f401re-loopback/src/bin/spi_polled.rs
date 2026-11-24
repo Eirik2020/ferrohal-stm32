@@ -1,7 +1,7 @@
 //! Run K: the polled SPI, no DMA and no interrupts, over S4 and S5.
 //!
 //! - SPI2 on PB13, PC2, PC3: the Foxeer F405 V2's NOR flash pins, whose
-//!   DMA streams its UARTs hold, so FerroWasp drives that bus without DMA.
+//!   DMA channels its UARTs hold, so FerroWasp drives that bus without DMA.
 //! - SPI3 on PC10, PC11, PC12.
 //!
 //! Each SCK pin is routed to EXTI only to read its idle level.

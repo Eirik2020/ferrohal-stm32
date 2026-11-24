@@ -15,17 +15,17 @@ use crate::i2c::{
 use stm32_metapac::i2c::vals::Pos;
 
 impl Unit {
-    /// The shortest write phase DMA moves: from two bytes a stream costs
+    /// The shortest write phase DMA moves: from two bytes a channel costs
     /// fewer CPU cycles than the event interrupt (ADR-013's F401 bench).
     pub(crate) const DMA_FROM_WRITE: usize = 2;
     /// The shortest read phase DMA moves. RM0368 18.3.8: a one-byte receive's
     /// NACK is programmed at EV6, so DMA cannot end it; a two-byte receive
-    /// by interrupt waits once at BTF and costs fewer cycles than a stream
+    /// by interrupt waits once at BTF and costs fewer cycles than a channel
     /// (ADR-013's F401 bench).
     pub(crate) const DMA_FROM_READ: usize = 3;
-    /// RM0368 18.3.8: a DMA receive ends at the stream's transfer complete,
+    /// RM0368 18.3.8: a DMA receive ends at the channel's transfer complete,
     /// where the stop is programmed.
-    pub(crate) const READ_ENDS_ON_STREAM: bool = true;
+    pub(crate) const READ_ENDS_ON_DMA: bool = true;
 
     pub(crate) fn irq_enable(self) {
         self.0.cr1().modify(|w| w.set_pe(true));
@@ -103,7 +103,7 @@ impl Unit {
         self.irq_clear();
     }
 
-    /// The receive stream has moved the last byte (the NACK was the
+    /// The receive channel has moved the last byte (the NACK was the
     /// hardware's, LAST): the stop.
     pub(crate) fn irq_read_dma_done(self) {
         self.irq_stop();
@@ -182,7 +182,7 @@ impl Unit {
             return Step::Pending;
         }
         if c.dma {
-            // The receive stream's complete ends it.
+            // The receive channel's complete ends it.
             return Step::Pending;
         }
         if c.len == 2 {

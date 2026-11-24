@@ -703,7 +703,7 @@ impl<B: Bus, M: rtic::Mutex<T = Slot<B>>> Harness<B, M> {
 fn fault(f: Fault) -> Fail {
     match f {
         Fault::I2c(e) => Fail::I2c(e),
-        Fault::Dma => Fail::Unexpected("a stream fault"),
+        Fault::Dma => Fail::Unexpected("a DMA channel fault"),
         Fault::Aborted => Fail::Unexpected("aborted past its bound"),
     }
 }

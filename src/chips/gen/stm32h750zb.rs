@@ -476,7 +476,7 @@ pins!(D1Pin<SDMMC2>: ('B', 15, 9));
 pins!(D2Pin<SDMMC2>: ('B', 3, 9), ('G', 11, 10));
 pins!(D3Pin<SDMMC2>: ('B', 4, 9));
 
-stream_interrupts!(
+channel_interrupts!(
     1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3, 4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
     2: [0 => DMA2_STREAM0, 1 => DMA2_STREAM1, 2 => DMA2_STREAM2, 3 => DMA2_STREAM3, 4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
 );

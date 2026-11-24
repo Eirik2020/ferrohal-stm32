@@ -45,7 +45,7 @@ const DMA_RAM: [(usize, usize); 3] = [
     (0x3800_0000, 64 * 1024),
 ];
 
-/// Whether `buffer` can be handed to a DMA1 or DMA2 stream. `Uart::new`
+/// Whether `buffer` can be handed to a DMA1 or DMA2 channel. `Uart::new`
 /// checks every buffer with this; firmware can use it to check its own.
 ///
 /// - It must lie in RAM those controllers reach: not the DTCM or ITCM.

@@ -199,7 +199,7 @@ adcs!(
 adc_pins!(ADC1: ('A', 0, 0), ('A', 1, 1), ('A', 2, 2), ('A', 3, 3), ('A', 4, 4), ('A', 5, 5), ('A', 6, 6), ('A', 7, 7), ('B', 0, 8), ('B', 1, 9), ('C', 0, 10), ('C', 1, 11), ('C', 2, 12), ('C', 3, 13), ('C', 4, 14), ('C', 5, 15));
 adc_dma!(ADC1: (2, 0, 0), (2, 4, 0));
 
-stream_interrupts!(
+channel_interrupts!(
     1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3, 4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
     2: [0 => DMA2_STREAM0, 1 => DMA2_STREAM1, 2 => DMA2_STREAM2, 3 => DMA2_STREAM3, 4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
 );

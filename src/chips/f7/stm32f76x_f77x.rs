@@ -27,7 +27,7 @@ use stm32_metapac as pac;
 pub use stm32_metapac::Interrupt;
 
 use crate::{
-    dma::{Dma, DmaInstance, Stream},
+    dma::{Channel, Dma, DmaInstance},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{I2cRxDma, I2cTxDma, SclPin, SdaPin},
     rcc_f7::{Bus, RCC, RccBit},
@@ -40,7 +40,7 @@ use crate::{
 #[macro_use]
 mod macros;
 
-// The F4's macro shapes: fixed-request stream DMA, bus-named RCC registers. Its
+// The F4's macro shapes: fixed-request DMA, bus-named RCC registers. Its
 // `usarts!` takes each instance's kind: UART4/5/7/8 have no smartcard mode
 // (RM0410 Table 226), and 0.5 and 1.5 stop bits are smartcard settings (RM0410
 // 34.5.2), so the driver refuses them there, as on the F4.
@@ -170,7 +170,7 @@ const DTCM: (usize, usize) = (0x2000_0000, 128 * 1024);
 /// SRAM2 at 0x2007_C000 (RM0410 2.2.2).
 const SRAM: (usize, usize) = (0x2002_0000, 384 * 1024);
 
-/// Whether `buffer` can be handed to a DMA stream: in the DTCM, except on
+/// Whether `buffer` can be handed to a DMA channel: in the DTCM, except on
 /// revision A, or in SRAM1 and SRAM2 and, with the data cache on,
 /// non-cacheable (see `f7/common.rs`). Every DMA driver checks its buffers
 /// with this.

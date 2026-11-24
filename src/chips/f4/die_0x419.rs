@@ -39,7 +39,7 @@ pub(crate) const USB_FS_ENDPOINTS: usize = 4;
 /// Figure 2).
 const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 192 * 1024)];
 
-/// Whether `buffer` can be handed to a DMA stream: whether it lies in SRAM1,
+/// Whether `buffer` can be handed to a DMA channel: whether it lies in SRAM1,
 /// SRAM2 or SRAM3. A Cortex-M4 has no data cache, so that is all.
 /// `Uart::new` checks every buffer with this; firmware that places statics
 /// in CCM RAM can use it to check its own.

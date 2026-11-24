@@ -24,7 +24,7 @@ use cortex_m_rt::entry;
 use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin};
 use ferrohal_stm32::{
     chip::Peripherals,
-    dma::{Flags, StreamInstance},
+    dma::{ChannelInstance, Flags},
     i2c::{self, I2c},
     spi::{self, Spi},
     time::Hertz,
@@ -239,8 +239,8 @@ fn main() -> ! {
     };
     exercise_i2c(&mut i2c);
 
-    // The DMA API, on a stream the UART does not use.
-    let mut channel = spare.take_stream();
+    // The DMA API, on a DMA channel the UART does not use.
+    let mut channel = spare.take_channel();
     keep(channel.flags());
     keep(channel.flags().any_error());
     keep(channel.flags().failed());
@@ -302,7 +302,7 @@ static mut I2C_RX: [u8; 8] = [0; 8];
 
 /// The interrupt-driven I2C (`i2c_v1` only): both opens with their
 /// refusals, a transaction started, served, aborted and refused, and both
-/// teardowns. I2C1's streams on every F4: DMA1 stream 6 (TX) and 0 (RX).
+/// teardowns. I2C1's DMA channels on every F4: DMA1 channel 6 (TX) and 0 (RX).
 #[cfg(not(any(
     feature = "stm32f722re",
     feature = "stm32f745vg",
@@ -365,8 +365,8 @@ fn exercise_interrupt_i2c(rcc: &mut ferrohal_stm32::rcc::Rcc, wiring: chip::I2cW
         i2c: wiring.i2c,
         scl: wiring.scl,
         sda: wiring.sda,
-        tx_dma: dma1.s6,
-        rx_dma: dma1.s0,
+        tx_dma: dma1.ch6,
+        rx_dma: dma1.ch0,
     };
     let mut bus = match InterruptI2c::new_dma(rcc, dma, &black_box(i2c::Config::new(Hertz::khz(400)))) {
         Ok(bus) => bus,
@@ -593,22 +593,22 @@ fn retried_pwm<T: ferrohal_stm32::timer::ChannelTimer>(
 /// A channel freed back to its pin; a lane assembled from that pin, its
 /// refusal retried; the lane freed to its wiring and lent frame and
 /// assembled again from the wiring.
-pub fn exercise_lane_free<T, P, const CD: u8, const SN: u8>(
+pub fn exercise_lane_free<T, P, const CD: u8, const CN: u8>(
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     timer: T,
     pin: P,
-    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+    dma: ferrohal_stm32::dma::Channel<CD, CN>,
 ) where
     T: ferrohal_stm32::timer::ChannelTimer,
     P: ferrohal_stm32::timer::ChannelPin<T, 1>,
-    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<T, 1>,
+    ferrohal_stm32::dma::Channel<CD, CN>: ferrohal_stm32::timer::CompareDma<T, 1>,
 {
     use ferrohal_stm32::timer::LaneWiring;
 
     let pwm = retried_pwm(rcc, timer, Hertz::khz(600));
     let channel = pwm.channel::<1, P>(pin);
     let pin = channel.free();
-    let mut lane = match LaneWiring::<T, 1, P, _>::new(pin, stream).assemble(&pwm) {
+    let mut lane = match LaneWiring::<T, 1, P, _>::new(pin, dma).assemble(&pwm) {
         Ok(lane) => lane,
         Err(refused) => {
             keep(refused.error());
@@ -638,15 +638,15 @@ pub fn exercise_lane_free<T, P, const CD: u8, const SN: u8>(
 }
 
 /// PWM with a compare lane on channel 1, through every operation.
-pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
+pub fn exercise_lane<T, P, const CD: u8, const CN: u8>(
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     timer: T,
     pin: P,
-    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+    dma: ferrohal_stm32::dma::Channel<CD, CN>,
 ) where
     T: ferrohal_stm32::timer::ChannelTimer,
     P: ferrohal_stm32::timer::ChannelPin<T, 1>,
-    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<T, 1>,
+    ferrohal_stm32::dma::Channel<CD, CN>: ferrohal_stm32::timer::CompareDma<T, 1>,
 {
     use ferrohal_stm32::timer::{Pwm, nearest};
 
@@ -664,11 +664,11 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
     keep(pwm.rate());
     pwm.set_output::<1>(black_box(false));
     pwm.set_output::<1>(black_box(true));
-    // The wiring's constructor, from the pin and the stream: a refusal hands
+    // The wiring's constructor, from the pin and the DMA channel: a refusal hands
     // both back, and the retry takes them.
     let wiring =
-        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
-            pin, stream,
+        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Channel<CD, CN>>::new(
+            pin, dma,
         );
     let mut lane = match wiring.assemble(&pwm) {
         Ok(lane) => lane,
@@ -739,23 +739,23 @@ pub fn exercise_lane<T, P, const CD: u8, const SN: u8>(
 }
 
 /// A lane that reads as well, on channel 1.
-pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
+pub fn exercise_two_way<T, P, const CD: u8, const CN: u8, const PORT: char>(
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     timer: T,
     pin: P,
-    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+    dma: ferrohal_stm32::dma::Channel<CD, CN>,
 ) where
     T: ferrohal_stm32::timer::ChannelTimer,
     P: ferrohal_stm32::timer::ChannelPin<T, 1>,
-    ferrohal_stm32::dma::Stream<CD, SN>:
+    ferrohal_stm32::dma::Channel<CD, CN>:
         ferrohal_stm32::timer::CompareDma<T, 1> + ferrohal_stm32::timer::GpioDma,
     ferrohal_stm32::gpio::Port<PORT>: ferrohal_stm32::gpio::PortInstance,
 {
     let pwm = retried_pwm(rcc, timer, Hertz::khz(600));
     pwm.set_active_low::<1>(black_box(true));
     let wiring =
-        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
-            pin, stream,
+        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Channel<CD, CN>>::new(
+            pin, dma,
         );
     let mut lane = match wiring.assemble_two_way::<PORT>(&pwm) {
         Ok(lane) => lane,
@@ -839,15 +839,15 @@ pub fn exercise_two_way<T, P, const CD: u8, const SN: u8, const PORT: char>(
 
 /// The three reader forms: a reader armed ahead on the lane timer's update
 /// and on a compare request no lane uses, and a reader paced by a timer no
-/// lane uses. Every stream reaches GPIO through DMAMUX on the H7, so one
+/// lane uses. Every DMA channel reaches GPIO through DMAMUX on the H7, so one
 /// chip links all three.
 #[cfg(any(feature = "stm32h743vi", feature = "stm32h753zi"))]
 #[allow(clippy::too_many_arguments)]
-pub fn exercise_readers<T, P, U, const CD: u8, const SN: u8, SA, SC, SP, S2, S3, const PORT: char>(
+pub fn exercise_readers<T, P, U, const CD: u8, const CN: u8, SA, SC, SP, S2, S3, const PORT: char>(
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     timer: T,
     pin: P,
-    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+    dma: ferrohal_stm32::dma::Channel<CD, CN>,
     ahead: SA,
     compare: SC,
     pacer: U,
@@ -857,7 +857,7 @@ pub fn exercise_readers<T, P, U, const CD: u8, const SN: u8, SA, SC, SP, S2, S3,
     T: ferrohal_stm32::timer::ChannelTimer,
     U: ferrohal_stm32::timer::ChannelTimer,
     P: ferrohal_stm32::timer::ChannelPin<T, 1>,
-    ferrohal_stm32::dma::Stream<CD, SN>:
+    ferrohal_stm32::dma::Channel<CD, CN>:
         ferrohal_stm32::timer::CompareDma<T, 1> + ferrohal_stm32::timer::GpioDma,
     SA: ferrohal_stm32::timer::UpdateDma<T> + ferrohal_stm32::timer::GpioDma,
     SC: ferrohal_stm32::timer::CompareDma<T, 2> + ferrohal_stm32::timer::GpioDma,
@@ -869,8 +869,8 @@ pub fn exercise_readers<T, P, U, const CD: u8, const SN: u8, SA, SC, SP, S2, S3,
     let pwm = retried_pwm(rcc, timer, Hertz::khz(600));
     let pace = retried_pwm(rcc, pacer, Hertz::mhz(2));
     let wiring =
-        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Stream<CD, SN>>::new(
-            pin, stream,
+        ferrohal_stm32::timer::LaneWiring::<T, 1, P, ferrohal_stm32::dma::Channel<CD, CN>>::new(
+            pin, dma,
         );
     let Ok(mut lane) = wiring.assemble_two_way::<PORT>(&pwm) else {
         park()
@@ -889,23 +889,23 @@ pub fn exercise_readers<T, P, U, const CD: u8, const SN: u8, SA, SC, SP, S2, S3,
     keep(lane_group.listen());
     keep(lane_group.speak());
     lane_group.abort();
-    // Every reader's stream comes back, each once.
-    let (_, _, _, (), mut streams) = lane_group.free();
-    keep(streams.take::<1, 0>());
-    keep(streams.is_empty());
+    // Every reader's DMA channel comes back, each once.
+    let (_, _, _, (), mut dma) = lane_group.free();
+    keep(dma.take::<1, 0>());
+    keep(dma.is_empty());
 }
 
 /// A complementary output (CH1N) of a timer with a break unit, assembled
 /// from its wiring.
-pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
+pub fn exercise_complementary<B, N, const CD: u8, const CN: u8>(
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     timer: B,
     pin: N,
-    stream: ferrohal_stm32::dma::Stream<CD, SN>,
+    dma: ferrohal_stm32::dma::Channel<CD, CN>,
 ) where
     B: ferrohal_stm32::timer::ChannelTimer,
     N: ferrohal_stm32::timer::ComplementaryPin<B, 1>,
-    ferrohal_stm32::dma::Stream<CD, SN>: ferrohal_stm32::timer::CompareDma<B, 1>,
+    ferrohal_stm32::dma::Channel<CD, CN>: ferrohal_stm32::timer::CompareDma<B, 1>,
 {
     let mut pwm = retried_pwm(rcc, timer, Hertz::khz(1));
     keep(pwm.set_rate(black_box(Hertz::khz(2))));
@@ -916,8 +916,8 @@ pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
         B,
         1,
         N,
-        ferrohal_stm32::dma::Stream<CD, SN>,
-    >::new(pin, stream);
+        ferrohal_stm32::dma::Channel<CD, CN>,
+    >::new(pin, dma);
     let mut lane = match wiring.assemble(&pwm) {
         Ok(lane) => lane,
         Err(refused) => {
@@ -938,7 +938,7 @@ pub fn exercise_complementary<B, N, const CD: u8, const SN: u8>(
 }
 
 /// A sampler of port B through every operation.
-pub fn exercise_sampler<U, S>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: U, stream: S)
+pub fn exercise_sampler<U, S>(rcc: &mut ferrohal_stm32::rcc::Rcc, timer: U, dma: S)
 where
     U: ferrohal_stm32::timer::Instance,
     S: ferrohal_stm32::timer::UpdateDma<U> + ferrohal_stm32::timer::GpioDma,
@@ -948,18 +948,18 @@ where
     let mut sampler = match ferrohal_stm32::timer::Sampler::new::<'B'>(
         rcc,
         timer,
-        stream,
+        dma,
         black_box(Hertz::mhz(4)),
         samples,
     ) {
         Ok(sampler) => sampler,
         Err(refused) => {
             keep(refused.error());
-            let (timer, stream, samples) = refused.into_parts();
+            let (timer, dma, samples) = refused.into_parts();
             match ferrohal_stm32::timer::Sampler::new::<'B'>(
                 rcc,
                 timer,
-                stream,
+                dma,
                 black_box(Hertz::mhz(4)),
                 samples,
             ) {
@@ -1270,15 +1270,15 @@ fn park() -> ! {
     }
 }
 
-/// A DMA stream the UART does not use, for the raw DMA API.
-struct Spare<C: StreamInstance> {
-    stream: Option<C>,
+/// A DMA channel the UART does not use, for the raw DMA API.
+struct Spare<C: ChannelInstance> {
+    dma: Option<C>,
 }
 
-impl<C: StreamInstance> Spare<C> {
-    fn take_stream(&mut self) -> ferrohal_stm32::dma::AnyStream {
-        match self.stream.take() {
-            Some(stream) => stream.into_any(),
+impl<C: ChannelInstance> Spare<C> {
+    fn take_channel(&mut self) -> ferrohal_stm32::dma::AnyChannel {
+        match self.dma.take() {
+            Some(dma) => dma.into_any(),
             None => park(),
         }
     }
@@ -1294,7 +1294,7 @@ impl<C: StreamInstance> Spare<C> {
 mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, USART1, USART6},
-        dma::Stream,
+        dma::Channel,
         gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{AhbPrescaler, ApbPrescaler, Config, Pll, PllP, PllSource, Rcc, Supply, Sysclk},
@@ -1306,10 +1306,10 @@ mod chip {
 
     pub type RxUart = USART6;
     #[cfg(not(feature = "stm32f446re"))]
-    pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>;
+    pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Channel<2, 1>>;
     /// The F446 bonds USART6 RX to PC7 and PG9 only (DS10693 Table 11).
     #[cfg(feature = "stm32f446re")]
-    pub type RxOnlyWiring = RxWiring<USART6, Pin<'C', 7, Alternate<8>>, Stream<2, 1>>;
+    pub type RxOnlyWiring = RxWiring<USART6, Pin<'C', 7, Alternate<8>>, Channel<2, 1>>;
     pub type SpiUnit = SPI2;
     pub type I2cUnit = I2C1;
     pub type SpiWiring = spi::Wiring<
@@ -1317,8 +1317,8 @@ mod chip {
         Pin<'B', 13, Alternate<5>>,
         Pin<'B', 14, Alternate<5>>,
         Pin<'B', 15, Alternate<5>>,
-        Stream<1, 4>,
-        Stream<1, 3>,
+        Channel<1, 4>,
+        Channel<1, 3>,
     >;
 
     /// I2C1 on PB8 and PB9, the pins the Nucleo bench's Arduino connector
@@ -1349,8 +1349,8 @@ mod chip {
         USART1,
         Pin<'A', 9, Alternate<7>>,
         Pin<'A', 10, Alternate<7>>,
-        Stream<2, 7>,
-        Stream<2, 2>,
+        Channel<2, 7>,
+        Channel<2, 2>,
     >;
 
     pub fn wire(
@@ -1361,7 +1361,7 @@ mod chip {
         RxOnlyWiring,
         SpiWiring,
         I2cWiring,
-        Spare<Stream<2, 0>>,
+        Spare<Channel<2, 0>>,
         Pin<'A', 5, Output>,
         Pin<'A', 0, Input>,
     )> {
@@ -1370,7 +1370,7 @@ mod chip {
         let mut b = p.GPIOB.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
-        // A second set of tokens for the exercises that need a stream the
+        // A second set of tokens for the exercises that need a DMA channel the
         // wiring below does not take. The build never runs, so the aliasing
         // exists only in the linked code.
         let spare1 = unsafe { Peripherals::steal() }.DMA1.split(&mut rcc);
@@ -1397,7 +1397,7 @@ mod chip {
             &mut rcc,
             p.ADC1,
             a.p4.into_analog(&mut a.ctrl),
-            dma2.s4,
+            dma2.ch4,
             super::adc_buffer(),
         );
         super::exercise_adc_internal(&mut rcc, unsafe { Peripherals::steal() }.ADC1);
@@ -1410,7 +1410,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
-            spare2.s1,
+            spare2.ch1,
         );
         // PA12 is USART6's on the F401 and F411, so the constructor is left
         // to the F405, which shares this code; the F4's clock check runs on
@@ -1431,17 +1431,17 @@ mod chip {
             &mut rcc,
             p.TIM4,
             b.p6.into_alternate::<2>(&mut b.ctrl),
-            dma1.s0,
+            dma1.ch0,
         );
         super::exercise_lane_free(
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
-            spare1.s5,
+            spare1.ch5,
         );
         // TIM1 is the F401's only break-unit timer and its only update
         // request on DMA2, so it samples here and the F405 covers CHxN.
-        super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
+        super::exercise_sampler(&mut rcc, p.TIM1, dma2.ch5);
         let _ = analog;
         Some((
             rcc,
@@ -1449,21 +1449,21 @@ mod chip {
                 uart: p.USART1,
                 tx,
                 rx,
-                tx_dma: dma2.s7,
-                rx_dma: dma2.s2,
+                tx_dma: dma2.ch7,
+                rx_dma: dma2.ch2,
             },
             RxWiring {
                 uart: p.USART6,
                 rx: rx6,
-                rx_dma: dma2.s1,
+                rx_dma: dma2.ch1,
             },
             spi::Wiring {
                 spi: p.SPI2,
                 sck: b.p13.into_alternate::<5>(&mut b.ctrl),
                 miso: b.p14.into_alternate::<5>(&mut b.ctrl),
                 mosi: b.p15.into_alternate::<5>(&mut b.ctrl),
-                tx_dma: dma1.s4,
-                rx_dma: dma1.s3,
+                tx_dma: dma1.ch4,
+                rx_dma: dma1.ch3,
             },
             i2c::Wiring {
                 i2c: p.I2C1,
@@ -1471,7 +1471,7 @@ mod chip {
                 sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
-                stream: Some(dma2.s0),
+                dma: Some(dma2.ch0),
             },
             out,
             input,
@@ -1480,12 +1480,12 @@ mod chip {
 }
 
 /// The STM32F410RB: no USB port, no TIM2 to TIM4 and no trigger route, so
-/// it takes its own wiring (RM0401; pins and streams from its glue).
+/// it takes its own wiring (RM0401; pins and DMA channels from its glue).
 #[cfg(feature = "stm32f410rb")]
 mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, USART1, USART6},
-        dma::Stream,
+        dma::Channel,
         gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{AhbPrescaler, ApbPrescaler, Config, Pll, PllP, PllSource, Rcc, Supply, Sysclk},
@@ -1496,7 +1496,7 @@ mod chip {
     use super::Spare;
 
     pub type RxUart = USART6;
-    pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Stream<2, 1>>;
+    pub type RxOnlyWiring = RxWiring<USART6, Pin<'A', 12, Alternate<8>>, Channel<2, 1>>;
     pub type SpiUnit = SPI2;
     pub type I2cUnit = I2C1;
     pub type SpiWiring = spi::Wiring<
@@ -1504,8 +1504,8 @@ mod chip {
         Pin<'B', 13, Alternate<5>>,
         Pin<'B', 14, Alternate<5>>,
         Pin<'B', 15, Alternate<5>>,
-        Stream<1, 4>,
-        Stream<1, 3>,
+        Channel<1, 4>,
+        Channel<1, 3>,
     >;
     pub type I2cWiring = i2c::Wiring<
         I2C1,
@@ -1534,8 +1534,8 @@ mod chip {
         USART1,
         Pin<'A', 9, Alternate<7>>,
         Pin<'A', 10, Alternate<7>>,
-        Stream<2, 7>,
-        Stream<2, 2>,
+        Channel<2, 7>,
+        Channel<2, 2>,
     >;
 
     pub fn wire(
@@ -1546,7 +1546,7 @@ mod chip {
         RxOnlyWiring,
         SpiWiring,
         I2cWiring,
-        Spare<Stream<2, 0>>,
+        Spare<Channel<2, 0>>,
         Pin<'A', 5, Output>,
         Pin<'C', 13, Input>,
     )> {
@@ -1556,7 +1556,7 @@ mod chip {
         let mut c = p.GPIOC.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
-        // A second set of tokens for the exercises that need a stream the
+        // A second set of tokens for the exercises that need a DMA channel the
         // wiring below does not take. The build never runs, so the aliasing
         // exists only in the linked code.
         let spare1 = unsafe { Peripherals::steal() }.DMA1.split(&mut rcc);
@@ -1577,7 +1577,7 @@ mod chip {
             &mut rcc,
             p.ADC1,
             a.p4.into_analog(&mut a.ctrl),
-            dma2.s4,
+            dma2.ch4,
             super::adc_buffer(),
         );
         super::exercise_adc_internal(&mut rcc, unsafe { Peripherals::steal() }.ADC1);
@@ -1585,7 +1585,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
-            spare2.s1,
+            spare2.ch1,
         );
         super::keep_usb_clock(&mut rcc);
         super::exercise_blocking(
@@ -1603,15 +1603,15 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM5,
             b.p12.into_alternate::<2>(&mut b.ctrl),
-            dma1.s2,
+            dma1.ch2,
         );
         super::exercise_lane_free(
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM5,
             a.p0.into_alternate::<2>(&mut a.ctrl),
-            spare1.s2,
+            spare1.ch2,
         );
-        super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
+        super::exercise_sampler(&mut rcc, p.TIM1, dma2.ch5);
         let _ = analog;
         Some((
             rcc,
@@ -1619,21 +1619,21 @@ mod chip {
                 uart: p.USART1,
                 tx,
                 rx,
-                tx_dma: dma2.s7,
-                rx_dma: dma2.s2,
+                tx_dma: dma2.ch7,
+                rx_dma: dma2.ch2,
             },
             RxWiring {
                 uart: p.USART6,
                 rx: rx6,
-                rx_dma: dma2.s1,
+                rx_dma: dma2.ch1,
             },
             spi::Wiring {
                 spi: p.SPI2,
                 sck: b.p13.into_alternate::<5>(&mut b.ctrl),
                 miso: b.p14.into_alternate::<5>(&mut b.ctrl),
                 mosi: b.p15.into_alternate::<5>(&mut b.ctrl),
-                tx_dma: dma1.s4,
-                rx_dma: dma1.s3,
+                tx_dma: dma1.ch4,
+                rx_dma: dma1.ch3,
             },
             i2c::Wiring {
                 i2c: p.I2C1,
@@ -1641,7 +1641,7 @@ mod chip {
                 sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
-                stream: Some(dma2.s0),
+                dma: Some(dma2.ch0),
             },
             out,
             input,
@@ -1666,7 +1666,7 @@ mod chip {
 mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI2, UART4, USART2},
-        dma::Stream,
+        dma::Channel,
         gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{
@@ -1681,7 +1681,7 @@ mod chip {
     use super::Spare;
 
     pub type RxUart = UART4;
-    pub type RxOnlyWiring = RxWiring<UART4, Pin<'A', 1, Alternate<8>>, Stream<1, 2>>;
+    pub type RxOnlyWiring = RxWiring<UART4, Pin<'A', 1, Alternate<8>>, Channel<1, 2>>;
     pub type SpiUnit = SPI2;
     pub type I2cUnit = I2C1;
     /// The Foxeer's flash bus: PB13, PC2, PC3.
@@ -1690,8 +1690,8 @@ mod chip {
         Pin<'B', 13, Alternate<5>>,
         Pin<'C', 2, Alternate<5>>,
         Pin<'C', 3, Alternate<5>>,
-        Stream<1, 4>,
-        Stream<1, 3>,
+        Channel<1, 4>,
+        Channel<1, 3>,
     >;
 
     /// I2C1 on PB8 and PB9, the bus the Foxeer's barometer sits on.
@@ -1724,8 +1724,8 @@ mod chip {
         USART2,
         Pin<'A', 2, Alternate<7>>,
         Pin<'A', 3, Alternate<7>>,
-        Stream<1, 6>,
-        Stream<1, 5>,
+        Channel<1, 6>,
+        Channel<1, 5>,
     >;
 
     pub fn wire(
@@ -1736,7 +1736,7 @@ mod chip {
         RxOnlyWiring,
         SpiWiring,
         I2cWiring,
-        Spare<Stream<2, 0>>,
+        Spare<Channel<2, 0>>,
         Pin<'B', 0, Output>,
         Pin<'B', 1, Input>,
     )> {
@@ -1746,7 +1746,7 @@ mod chip {
         let mut c = p.GPIOC.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
-        // A second set of tokens for the exercises that need a stream the
+        // A second set of tokens for the exercises that need a DMA channel the
         // wiring below does not take. The build never runs, so the aliasing
         // exists only in the linked code.
         let spare1 = unsafe { Peripherals::steal() }.DMA1.split(&mut rcc);
@@ -1767,7 +1767,7 @@ mod chip {
             &mut rcc,
             p.ADC1,
             a.p4.into_analog(&mut a.ctrl),
-            dma2.s4,
+            dma2.ch4,
             super::adc_buffer(),
         );
         super::exercise_adc_internal(&mut rcc, unsafe { Peripherals::steal() }.ADC1);
@@ -1780,7 +1780,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
-            spare2.s1,
+            spare2.ch1,
         );
         super::exercise_usb(
             &mut rcc,
@@ -1805,21 +1805,21 @@ mod chip {
             &mut rcc,
             p.TIM4,
             b.p6.into_alternate::<2>(&mut b.ctrl),
-            dma1.s0,
+            dma1.ch0,
         );
         super::exercise_lane_free(
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
-            spare1.s5,
+            spare1.ch5,
         );
         super::exercise_complementary(
             &mut rcc,
             p.TIM8,
             a.p7.into_alternate::<3>(&mut a.ctrl),
-            dma2.s2,
+            dma2.ch2,
         );
-        super::exercise_sampler(&mut rcc, p.TIM1, dma2.s5);
+        super::exercise_sampler(&mut rcc, p.TIM1, dma2.ch5);
         let _ = analog;
         Some((
             rcc,
@@ -1827,21 +1827,21 @@ mod chip {
                 uart: p.USART2,
                 tx,
                 rx,
-                tx_dma: dma1.s6,
-                rx_dma: dma1.s5,
+                tx_dma: dma1.ch6,
+                rx_dma: dma1.ch5,
             },
             RxWiring {
                 uart: p.UART4,
                 rx: rx4,
-                rx_dma: dma1.s2,
+                rx_dma: dma1.ch2,
             },
             spi::Wiring {
                 spi: p.SPI2,
                 sck: b.p13.into_alternate::<5>(&mut b.ctrl),
                 miso: c.p2.into_alternate::<5>(&mut c.ctrl),
                 mosi: c.p3.into_alternate::<5>(&mut c.ctrl),
-                tx_dma: dma1.s4,
-                rx_dma: dma1.s3,
+                tx_dma: dma1.ch4,
+                rx_dma: dma1.ch3,
             },
             i2c::Wiring {
                 i2c: p.I2C1,
@@ -1849,7 +1849,7 @@ mod chip {
                 sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
-                stream: Some(dma2.s0),
+                dma: Some(dma2.ch0),
             },
             out,
             input,
@@ -1861,7 +1861,7 @@ mod chip {
 mod chip {
     use ferrohal_stm32::{
         chip::{I2C1, Peripherals, SPI1, USART2, USART3},
-        dma::Stream,
+        dma::Channel,
         gpio::{Alternate, Input, OpenDrain, Output, Pin, Pull, Speed},
         i2c,
         rcc::{
@@ -1874,7 +1874,7 @@ mod chip {
     use super::Spare;
 
     pub type RxUart = USART3;
-    pub type RxOnlyWiring = RxWiring<USART3, Pin<'B', 11, Alternate<7>>, Stream<1, 2>>;
+    pub type RxOnlyWiring = RxWiring<USART3, Pin<'B', 11, Alternate<7>>, Channel<1, 2>>;
     pub type SpiUnit = SPI1;
     pub type I2cUnit = I2C1;
     /// The Lucid's IMU bus.
@@ -1883,8 +1883,8 @@ mod chip {
         Pin<'A', 5, Alternate<5>>,
         Pin<'A', 6, Alternate<5>>,
         Pin<'D', 7, Alternate<5>>,
-        Stream<1, 5>,
-        Stream<1, 4>,
+        Channel<1, 5>,
+        Channel<1, 4>,
     >;
 
     /// I2C1 on PB8 and PB9, the pins the Nucleo-H753ZI's bench carries.
@@ -1919,8 +1919,8 @@ mod chip {
         USART2,
         Pin<'D', 5, Alternate<7>>,
         Pin<'D', 6, Alternate<7>>,
-        Stream<1, 1>,
-        Stream<1, 0>,
+        Channel<1, 1>,
+        Channel<1, 0>,
     >;
 
     pub fn wire(
@@ -1931,7 +1931,7 @@ mod chip {
         RxOnlyWiring,
         SpiWiring,
         I2cWiring,
-        Spare<Stream<2, 3>>,
+        Spare<Channel<2, 3>>,
         Pin<'B', 0, Output>,
         Pin<'B', 1, Input>,
     )> {
@@ -1941,7 +1941,7 @@ mod chip {
         let mut d = p.GPIOD.split(&mut rcc);
         let dma1 = p.DMA1.split(&mut rcc);
         let dma2 = p.DMA2.split(&mut rcc);
-        // A second set of tokens for the exercises that need a stream the
+        // A second set of tokens for the exercises that need a DMA channel the
         // wiring below does not take. The build never runs, so the aliasing
         // exists only in the linked code.
         let spare1 = unsafe { Peripherals::steal() }.DMA1.split(&mut rcc);
@@ -1962,7 +1962,7 @@ mod chip {
             &mut rcc,
             p.ADC1,
             a.p4.into_analog(&mut a.ctrl),
-            dma2.s4,
+            dma2.ch4,
             super::adc_buffer(),
         );
         super::exercise_adc_internal(&mut rcc, p.ADC3);
@@ -1990,7 +1990,7 @@ mod chip {
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM1,
             a.p8.into_alternate::<1>(&mut a.ctrl),
-            spare2.s1,
+            spare2.ch1,
         );
         super::exercise_usb(
             &mut rcc,
@@ -2015,31 +2015,31 @@ mod chip {
             &mut rcc,
             p.TIM4,
             b.p6.into_alternate::<2>(&mut b.ctrl),
-            dma2.s0,
+            dma2.ch0,
         );
         super::exercise_lane_free(
             &mut rcc,
             unsafe { Peripherals::steal() }.TIM2,
             a.p15.into_alternate::<1>(&mut a.ctrl),
-            spare1.s5,
+            spare1.ch5,
         );
         super::exercise_complementary(
             &mut rcc,
             p.TIM1,
             a.p7.into_alternate::<1>(&mut a.ctrl),
-            dma1.s3,
+            dma1.ch3,
         );
-        super::exercise_sampler(&mut rcc, p.TIM8, dma2.s1);
+        super::exercise_sampler(&mut rcc, p.TIM8, dma2.ch1);
         super::exercise_readers::<_, _, _, 2, 2, _, _, _, _, _, 'A'>(
             &mut rcc,
             p.TIM5,
             a.p0.into_alternate::<2>(&mut a.ctrl),
-            dma2.s2,
-            dma2.s5,
-            dma2.s6,
+            dma2.ch2,
+            dma2.ch5,
+            dma2.ch6,
             p.TIM3,
-            dma2.s7,
-            (dma1.s6, dma1.s7),
+            dma2.ch7,
+            (dma1.ch6, dma1.ch7),
         );
         let _ = analog;
         Some((
@@ -2048,21 +2048,21 @@ mod chip {
                 uart: p.USART2,
                 tx,
                 rx,
-                tx_dma: dma1.s1,
-                rx_dma: dma1.s0,
+                tx_dma: dma1.ch1,
+                rx_dma: dma1.ch0,
             },
             RxWiring {
                 uart: p.USART3,
                 rx: rx3,
-                rx_dma: dma1.s2,
+                rx_dma: dma1.ch2,
             },
             spi::Wiring {
                 spi: p.SPI1,
                 sck: a.p5.into_alternate::<5>(&mut a.ctrl),
                 miso: a.p6.into_alternate::<5>(&mut a.ctrl),
                 mosi: d.p7.into_alternate::<5>(&mut d.ctrl),
-                tx_dma: dma1.s5,
-                rx_dma: dma1.s4,
+                tx_dma: dma1.ch5,
+                rx_dma: dma1.ch4,
             },
             i2c::Wiring {
                 i2c: p.I2C1,
@@ -2070,7 +2070,7 @@ mod chip {
                 sda: b.p9.into_alternate_open_drain::<4>(&mut b.ctrl),
             },
             Spare {
-                stream: Some(dma2.s3),
+                dma: Some(dma2.ch3),
             },
             out,
             input,
@@ -2102,7 +2102,7 @@ pub fn exercise_adc<A, P, S>(
     rcc: &mut ferrohal_stm32::rcc::Rcc,
     token: A,
     pin: P,
-    stream: S,
+    dma: S,
     buffer: &'static mut [u16],
 ) where
     A: ferrohal_stm32::adc::Instance,
@@ -2112,8 +2112,8 @@ pub fn exercise_adc<A, P, S>(
     use ferrohal_stm32::adc::{Adc, Config, Wiring};
 
     // The wiring as a board states it, taken apart again.
-    let wiring = Wiring::<A, P, S>::new(pin, stream);
-    let (pin, stream) = (wiring.pin, wiring.stream);
+    let wiring = Wiring::<A, P, S>::new(pin, dma);
+    let (pin, dma) = (wiring.pin, wiring.dma);
     keep(Config::new(black_box(480)));
     let mut adc = match Adc::new(rcc, token, &Config::slow_source()) {
         Ok(adc) => adc,
@@ -2132,12 +2132,12 @@ pub fn exercise_adc<A, P, S>(
     keep(adc.read(channel));
     keep(adc.max_sample());
     keep(adc.to_millivolts(black_box(1), black_box(3300)));
-    let mut scan = match adc.into_scan(stream, &[channel, channel], buffer) {
+    let mut scan = match adc.into_scan(dma, &[channel, channel], buffer) {
         Ok(scan) => scan,
         Err(refused) => {
             keep(refused.error());
-            let (adc, stream, buffer) = refused.into_parts();
-            match adc.into_scan(stream, &[channel, channel], buffer) {
+            let (adc, dma, buffer) = refused.into_parts();
+            match adc.into_scan(dma, &[channel, channel], buffer) {
                 Ok(scan) => scan,
                 Err(_) => park(),
             }
@@ -2154,14 +2154,14 @@ pub fn exercise_adc<A, P, S>(
     keep(scan.to_millivolts(black_box(1), black_box(3300)));
     // Freed back to the parts, a second scan from them, then the ADC freed
     // and reopened from its token.
-    let Ok((adc, stream, buffer)) = scan.free() else {
+    let Ok((adc, dma, buffer)) = scan.free() else {
         park()
     };
-    let scan = match adc.into_scan(stream, &[channel], buffer) {
+    let scan = match adc.into_scan(dma, &[channel], buffer) {
         Ok(scan) => scan,
         Err(_) => park(),
     };
-    let Ok((adc, _stream, _buffer)) = scan.free() else {
+    let Ok((adc, _dma, _buffer)) = scan.free() else {
         park()
     };
     let token = adc.free();

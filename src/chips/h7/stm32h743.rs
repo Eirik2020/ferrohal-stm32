@@ -24,7 +24,7 @@ use stm32_metapac as pac;
 pub use stm32_metapac::Interrupt;
 
 use crate::{
-    dma::{Dma, DmaInstance, Stream},
+    dma::{Channel, Dma, DmaInstance},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{I2cRxDma, I2cTxDma, SclPin, SdaPin},
     rcc_h7_rm0433::{Bus, RCC, RccBit},
@@ -120,7 +120,7 @@ pub(crate) fn watchdog_frozen() -> bool {
 /// SYSCFG's clock enable, which EXTI's port selection (EXTICR) needs.
 pub(crate) const SYSCFG_ENABLE: RccBit = RccBit::new(Bus::Apb4, 1);
 
-// Every DMA1 and DMA2 stream reaches the GPIO ports (RM0433 figure 1).
+// Every DMA1 and DMA2 channel reaches the GPIO ports (RM0433 figure 1).
 gpio_dma!(
     1: [0, 1, 2, 3, 4, 5, 6, 7];
     2: [0, 1, 2, 3, 4, 5, 6, 7];
@@ -141,8 +141,8 @@ mod tests {
         USART6,
         Pin<'C', 6, Alternate<7>>,
         Pin<'C', 7, Alternate<7>>,
-        Stream<1, 6>,
-        Stream<1, 0>,
+        Channel<1, 6>,
+        Channel<1, 0>,
     >;
 
     /// An SPI bus, as an example board manifest names it.
@@ -153,8 +153,8 @@ mod tests {
             Pin<'A', 5, Alternate<5>>,
             Pin<'A', 6, Alternate<5>>,
             Pin<'D', 7, Alternate<5>>,
-            Stream<1, 5>,
-            Stream<1, 4>,
+            Channel<1, 5>,
+            Channel<1, 4>,
         >;
         assert_eq!(
             Spi1Example::RESOURCES,
@@ -182,13 +182,13 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Tx,
                     controller: 1,
-                    stream: 5,
+                    channel: 5,
                     request: 38
                 },
                 Resource::Dma {
                     signal: Signal::Rx,
                     controller: 1,
-                    stream: 4,
+                    channel: 4,
                     request: 37
                 },
                 Resource::Interrupt("DMA1_STREAM4"),
@@ -281,13 +281,13 @@ mod tests {
                 Resource::Dma {
                     signal: Signal::Tx,
                     controller: 1,
-                    stream: 6,
+                    channel: 6,
                     request: 72
                 },
                 Resource::Dma {
                     signal: Signal::Rx,
                     controller: 1,
-                    stream: 0,
+                    channel: 0,
                     request: 71
                 },
                 Resource::Interrupt("USART6"),
@@ -315,16 +315,16 @@ mod tests {
             D::REQUEST
         }
 
-        assert_eq!(rx::<USART6, Af<'C', 7, 7>, Stream<1, 0>>(), 71);
-        assert_eq!(tx::<USART6, Af<'C', 6, 7>, Stream<1, 6>>(), 72);
-        assert_eq!(rx::<USART3, Af<'D', 9, 7>, Stream<1, 1>>(), 45);
-        assert_eq!(tx::<USART3, Af<'D', 8, 7>, Stream<1, 3>>(), 46);
-        assert_eq!(rx::<USART1, Af<'A', 10, 7>, Stream<2, 4>>(), 41);
-        assert_eq!(rx::<UART8, Af<'E', 0, 8>, Stream<1, 2>>(), 81);
-        assert_eq!(lane::<TIM3, 3, Af<'B', 0, 2>, Stream<2, 0>>(), 25);
-        assert_eq!(lane::<TIM3, 4, Af<'B', 1, 2>, Stream<2, 1>>(), 26);
-        assert_eq!(lane::<TIM5, 1, Af<'A', 0, 2>, Stream<2, 2>>(), 55);
-        assert_eq!(lane::<TIM5, 2, Af<'A', 1, 2>, Stream<2, 3>>(), 56);
+        assert_eq!(rx::<USART6, Af<'C', 7, 7>, Channel<1, 0>>(), 71);
+        assert_eq!(tx::<USART6, Af<'C', 6, 7>, Channel<1, 6>>(), 72);
+        assert_eq!(rx::<USART3, Af<'D', 9, 7>, Channel<1, 1>>(), 45);
+        assert_eq!(tx::<USART3, Af<'D', 8, 7>, Channel<1, 3>>(), 46);
+        assert_eq!(rx::<USART1, Af<'A', 10, 7>, Channel<2, 4>>(), 41);
+        assert_eq!(rx::<UART8, Af<'E', 0, 8>, Channel<1, 2>>(), 81);
+        assert_eq!(lane::<TIM3, 3, Af<'B', 0, 2>, Channel<2, 0>>(), 25);
+        assert_eq!(lane::<TIM3, 4, Af<'B', 1, 2>, Channel<2, 1>>(), 26);
+        assert_eq!(lane::<TIM5, 1, Af<'A', 0, 2>, Channel<2, 2>>(), 55);
+        assert_eq!(lane::<TIM5, 2, Af<'A', 1, 2>, Channel<2, 3>>(), 56);
     }
 
     #[test]

@@ -66,13 +66,13 @@ impl Unit {
         self.0.dr().as_ptr() as u32
     }
 
-    /// Receive requests on, before the streams start (RM0368 20.3.9).
-    /// v2 has no transfer size: the streams' counts end the transfer.
+    /// Receive requests on, before the channels start (RM0368 20.3.9).
+    /// v2 has no transfer size: the channels' counts end the transfer.
     pub(crate) fn enable_rx_dma(self, _len: u16) {
         self.0.cr2().modify(|w| w.set_rxdmaen(true));
     }
 
-    /// Transmit requests on, after the streams: the first byte goes out.
+    /// Transmit requests on, after the channels: the first byte goes out.
     pub(crate) fn go(self) {
         self.0.cr2().modify(|w| w.set_txdmaen(true));
     }

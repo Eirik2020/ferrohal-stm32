@@ -1,11 +1,11 @@
 //! Run J: the TBS Lucid H7's DShot lanes, read back by pin samplers. No
 //! links.
 //!
-//! TIM3 (PB0, PB1 on DMA2 streams 0 and 1: the Lucid's motors 1 and 2) and
-//! TIM5 (PA0, PA3 on streams 2 and 3) run at the DShot150, 300 and 600 bit
+//! TIM3 (PB0, PB1 on DMA2 channels 0 and 1: the Lucid's motors 1 and 2) and
+//! TIM5 (PA0, PA3 on DMA channels 2 and 3) run at the DShot150, 300 and 600 bit
 //! rates, each timer's two lanes sending different 16-bit patterns from the
-//! same update. TIM8's update request has DMA1 stream 0 copy port B's input
-//! register into memory about 12 times a bit, TIM2's has stream 1 copy port
+//! same update. TIM8's update request has DMA1 channel 0 copy port B's input
+//! register into memory about 12 times a bit, TIM2's has DMA channel 1 copy port
 //! A's, and the checks decode every pin's bits and timing. TIM1 then drives
 //! its complementary output CH3N (PB15) at a quarter duty, which the port B
 //! sampler measures.

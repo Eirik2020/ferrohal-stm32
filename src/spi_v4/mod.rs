@@ -80,7 +80,7 @@ impl Unit {
         self.0.rxdr8().as_ptr() as u32
     }
 
-    /// The transfer size, and receive requests on, before the streams start
+    /// The transfer size, and receive requests on, before the channels start
     /// (RM0433 50.4.14 step 1). The SPI is disabled here.
     pub(crate) fn enable_rx_dma(self, len: u16) {
         let regs = self.0;
@@ -88,7 +88,7 @@ impl Unit {
         regs.cfg1().modify(|w| w.set_rxdmaen(true));
     }
 
-    /// Transmit requests on after the streams (step 3), then enable (step 4)
+    /// Transmit requests on after the channels (step 3), then enable (step 4)
     /// and start.
     pub(crate) fn go(self) {
         let regs = self.0;

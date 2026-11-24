@@ -145,7 +145,7 @@ impl Unit {
     }
 
     /// Starts the sequence, with its DMA requests. DMA requests stop once the
-    /// stream's count ends (DDS = 0), so each start turns them on afresh
+    /// DMA channel's count ends (DDS = 0), so each start turns them on afresh
     /// (RM0090 13.8.1).
     pub(crate) fn start_sequence(&self) {
         self.regs.sr().write_value(Sr(0));
