@@ -16,11 +16,9 @@ requirements:
       entries:
         - level: target
           environment: development
-          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-F401RE
         - level: target
           environment: development
-          part: uart
           method:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
