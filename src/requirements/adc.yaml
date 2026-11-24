@@ -13,10 +13,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-F401RE
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
 
@@ -32,10 +34,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-F401RE
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
 
@@ -52,10 +56,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-F401RE
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
 
@@ -71,10 +77,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-F401RE
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
 
@@ -89,10 +97,12 @@ requirements:
       entries:
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-F401RE
         - level: target
           environment: development
+          part: adc
           method:
             procedure: requirements/benches.md#ADC on the Nucleo-H753ZI
 
