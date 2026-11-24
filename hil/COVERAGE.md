@@ -23,8 +23,8 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 <!-- generated: glue-gen coverage -->
 | axis | tier | benches |
 |---|---|---|
-| IP `adc_v2` | HIL | nucleo-f401re-loopback |
-| IP `adc_v4` | HIL | nucleo-h753zi-loopback |
+| IP `adc_v2` | – |  |
+| IP `adc_v4` | – |  |
 | IP `dma_v1` | – |  |
 | IP `dma_v2` | – |  |
 | IP `exti_h7` | HIL | nucleo-h753zi-loopback |
@@ -38,8 +38,8 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `spi_v2_i2s` | – | nucleo-f401re-loopback |
 | IP `spi_v3_i2s` | – |  |
 | IP `spi_v4_i2s` | – | nucleo-h753zi-loopback |
-| IP `timer_v1` | – | nucleo-f401re-loopback, stm32f4-discovery |
-| IP `timer_v3` | – | nucleo-h753zi-loopback |
+| IP `timer_v1` | – |  |
+| IP `timer_v3` | – |  |
 | IP `usart_v2` | – | nucleo-f401re-loopback |
 | IP `usart_v3` | – |  |
 | IP `usart_v4` | – | nucleo-h753zi-loopback |
@@ -91,7 +91,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 
 | what | proven on: runs | not proven |
 |---|---|---|
-| UART engine (`uart/stream_dma.rs`), both IP versions | the UART runs on both Nucleos | UARTDMA-009 (a stream that will not stop) |
+| UART engine (`uart/stream_dma.rs`), both IP versions | the UART runs on both Nucleos | UART-DMA-009 (a stream that will not stop) |
 | SPI engines, DMA and polled | the SPI runs on both Nucleos | – |
 | Waveform generator, two-way lanes | F401: O, P, R; H753: Q | – |
 | Reset cause, ROM bootloader request | F401: L; Discovery: C (ROM DFU on CN5); H753: N, Z (ROM DFU on CN13) | RESET-004 on both families |
