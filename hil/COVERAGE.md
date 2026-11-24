@@ -93,7 +93,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 |---|---|---|
 | UART engine (`uart/stream_dma.rs`), both IP versions | the UART runs on both Nucleos | UART-DMA-009 (a stream that will not stop) |
 | SPI engines, DMA and polled | the SPI runs on both Nucleos | – |
-| Waveform generator, two-way lanes | F401: O, P, R; H753: Q | – |
+| Lane group, two-way lanes | F401: O, P, R; H753: Q | – |
 | Reset cause, ROM bootloader request | F401: L; Discovery: C (ROM DFU on CN5); H753: N, Z (ROM DFU on CN13) | RESET-004 on both families |
 | UID and die revision | every run's closing log line | – |
 | Caches and MPU shapes (H7) | H753: X; A to E with caches on | the SPI runs with caches on |

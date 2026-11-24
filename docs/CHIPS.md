@@ -256,7 +256,7 @@ module serves (ADR-011).
 | SPI6 over DMA (BDMA) | n/a | n/a | n/a | – | – |
 | I2C master, 7-bit, polled | ✓ | ✓ | ✓ | ✓ | ✓ |
 | I2C master, interrupt-driven, DMA or interrupt data (`InterruptI2c`) | ✓ | ✓ | – | – | – |
-| timers: one-pulse, trigger start, compare lanes and samplers over DMA, the waveform generator | ✓ | ✓ | ✓ | ✓ | ✓ |
+| timers: one-pulse, trigger start, compare lanes and samplers over DMA, lane groups | ✓ | ✓ | ✓ | ✓ | ✓ |
 | LPTIM, HRTIM | n/a | n/a | – | – | – |
 | **EXTI**, GPIO lines 0-15 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **GPIO** per-package bonded pins, alternate functions | ✓ | ✓ | ✓ | ✓ | ✓ |
