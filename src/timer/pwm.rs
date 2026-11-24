@@ -381,7 +381,7 @@ impl<T: ChannelTimer> Pwm<T> {
 
     /// Channel `C`'s compare register, for a duty set outside a transfer:
     /// what [`PwmChannel::set_duty`](Self::set_duty) does, for lanes and
-    /// generators that hold no channel.
+    /// lane groups that hold no channel.
     pub fn set_duty<const C: u8>(&self, duty: u32) {
         self.gp
             .ccr(usize::from((C - 1) & 3))
@@ -412,7 +412,7 @@ impl<T: ChannelTimer> Pwm<T> {
         });
     }
 
-    /// The timer's update-request switch, for a generator that paces a
+    /// The timer's update-request switch, for a lane group that paces a
     /// reader by this timer's update while owning none of it.
     pub(crate) fn pacer(&self) -> Pacer {
         Pacer(self.gp)
@@ -578,7 +578,7 @@ impl<T: ChannelTimer> Pwm<T> {
     }
 }
 
-/// A timer's update request and update interrupt, held by a generator whose
+/// A timer's update request and update interrupt, held by a lane group whose
 /// reader that timer paces. It touches DIER's UDE and UIE and SR alone; the
 /// timer's owner keeps everything else.
 #[derive(Clone, Copy)]
@@ -717,7 +717,7 @@ where
     /// As [`assemble_two_way`](Self::assemble_two_way)
     /// on a stream that cannot reach GPIO (F4's DMA1): the lane sends on its
     /// own stream, and only a reader paced by another timer
-    /// ([`Awg::read_ahead_paced`](super::Awg::read_ahead_paced)) reads its
+    /// ([`LaneGroup::read_ahead_paced`](super::LaneGroup::read_ahead_paced)) reads its
     /// port, into the samples memory lent to it.
     pub fn assemble_paced<const PORT: char>(
         self,
@@ -962,7 +962,7 @@ fn reload_counter(gp: TimGp16, prescaler: u32, reload: u64) {
 /// A channel whose compare register a DMA stream feeds, one duty per
 /// period, paced by the channel's own compare request. The lane holds no
 /// borrow of the timer: its compare writes take a `&Pwm` per call, so it
-/// can move into an [`Awg`](super::Awg) with the timer, and it cannot touch
+/// can move into a [`LaneGroup`](super::LaneGroup) with the timer, and it cannot touch
 /// the timer without one.
 ///
 /// It keeps its wiring (the pin and the stream token), and

@@ -31,7 +31,7 @@ synopsys-usb-otg = { git = "https://github.com/Eirik2020/synopsys-usb-otg", rev 
 [features]
 default = []
 # Benches only (docs/policies/features.md): DWT cycle stamps through the lane
-# switch (`Awg::listen`, `speak`), for the switch-path cycle counts
+# switch (`LaneGroup::listen`, `speak`), for the switch-path cycle counts
 # docs/design/lanes.md requires after a change to that path. Product figures
 # are taken without it.
 profile-listen = []

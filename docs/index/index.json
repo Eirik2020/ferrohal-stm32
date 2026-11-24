@@ -3,7 +3,7 @@
  "counts": {
   "documents": 102,
   "agent": 67,
-  "bytes": 575187
+  "bytes": 575318
  },
  "documents": [
   {
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 38464
+   "bytes": 38453
   },
   {
    "path": "docs/DEBT.md",
@@ -324,7 +324,7 @@
    "class": "agent",
    "title": "`free()`: handing tokens back",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3143
+   "bytes": 3160
   },
   {
    "path": "docs/design/glue-generator.md",
@@ -345,7 +345,7 @@
    "class": "agent",
    "title": "Timer lanes: frames, the switch and the readers",
    "purpose": "Source: ADR-014, ../decisions/2026-11-19-time",
-   "bytes": 8422
+   "bytes": 8477
   },
   {
    "path": "docs/design/layering.md",
@@ -639,7 +639,7 @@
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 2777
+   "bytes": 2783
   },
   {
    "path": "docs/policies/safety.md",
@@ -653,7 +653,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt",
    "purpose": "History: items moved out of DEBT.md../DEBT.md",
-   "bytes": 22085
+   "bytes": 22098
   },
   {
    "path": "docs/resolved/chips-and-features.md",
@@ -667,7 +667,7 @@
    "class": "human",
    "title": "FerroHAL: resolved debt, crate-wide, 2026-11-10 to 2026-11-16",
    "purpose": "The crate-wide entries of README.mdREADME.md ",
-   "bytes": 21866
+   "bytes": 21894
   },
   {
    "path": "docs/resolved/crate-wide-to-2026-11-09.md",
@@ -695,7 +695,7 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6777
+   "bytes": 6769
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",
@@ -744,14 +744,14 @@
    "class": "human",
    "title": "Bench Procedures: the constructor refusals",
    "purpose": "The refusal runs of benches.mdbenches.md, spl",
-   "bytes": 3136
+   "bytes": 3152
   },
   {
    "path": "requirements/benches.md",
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 27014
+   "bytes": 27029
   },
   {
    "path": "requirements/goals.md",

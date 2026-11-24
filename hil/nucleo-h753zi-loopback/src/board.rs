@@ -568,7 +568,7 @@ pub fn run_j(p: Peripherals) -> Result<RunJ, ClockError> {
     })
 }
 
-// Run Q: the waveform generator both ways over one wire, Z2.
+// Run Q: the lane group both ways over one wire, Z2.
 
 /// TIM3 channel 1 on PC6 and TIM8 channel 2 on PC7, the two ends of Z2, each on its
 /// own DMA2 stream, both reading port C. Pull-ups hold the line while neither

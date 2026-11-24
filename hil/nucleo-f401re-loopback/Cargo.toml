@@ -89,8 +89,8 @@ test = false
 bench = false
 
 [[bin]]
-name = "awg-out"
-path = "src/bin/awg_out.rs"
+name = "lane-group-out"
+path = "src/bin/lane_group_out.rs"
 test = false
 bench = false
 

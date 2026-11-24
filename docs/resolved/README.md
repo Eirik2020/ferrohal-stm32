@@ -23,7 +23,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   twelve directories holding a lone `mod.rs` are `design/naming.md`'s directory per IP
   version, and the timer's submodules by `#[path]` follow from `timer.rs` being one
   source compiled as two IP versions. `naming.md` now says both. Reversed the same day by
-  ADR-012: that reason was wrong, and the timer is `src/timer/{mod,pwm,awg}.rs`.
+  ADR-012: that reason was wrong, and the timer is `src/timer/{mod,pwm,lane_group}.rs`.
 
 - **API review D3: the engine-backed IP modules are crate-private** (2026-11-17).
   `usart_v2`/`v4`, `spi_v2`/`v4`, `i2c_v1`/`v2` and `adc_v2`/`v4` were public beside the
@@ -178,7 +178,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   transfer is `abort` everywhere: `Sampler::stop` is `Sampler::abort` (`Tick::stop` and
   `Pwm::stop` stop a counter, not a transfer, and stay). Interrupt enables are
   `mask`/`unmask`: `Exti::listen`/`unlisten` are `unmask`/`mask`, so `listen` means
-  capture only (`CompareLane`, `Awg`). N16's UART half (`Line::mask`) moves with the
+  capture only (`CompareLane`, `LaneGroup`). N16's UART half (`Line::mask`) moves with the
   UART single-owner redesign. The rename showed that
   `dma::fault::release` had counted as called only through `Exti::release`'s name; it
   is listed in `checks/no-panic/uncalled.txt` beside `stick`. Spawned by `b55c640`,

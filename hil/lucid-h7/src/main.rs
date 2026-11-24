@@ -49,7 +49,7 @@ use ferrohal_stm32::{
     sdmmc::{self, BLOCK_SIZE, Sdmmc},
     spi::{self, Buffers, Spi, Wiring},
     time::Hertz,
-    timer::{Awg, LaneWiring, Pwm, Timebase},
+    timer::{LaneGroup, LaneWiring, Pwm, Timebase},
     usb::UsbFs,
 };
 
@@ -380,7 +380,7 @@ fn main() -> ! {
     };
     let (Ok(tim3), Ok(tim5)) = (
         Pwm::new(&mut rcc, tim3, Hertz::khz(600)),
-        // A different rate on purpose, for the waveform generator's refusal.
+        // A different rate on purpose, for the lane group's refusal.
         Pwm::new(&mut rcc, p.TIM5, Hertz::khz(300)),
     ) else {
         reboot_to_dfu()
@@ -449,11 +449,11 @@ fn main() -> ! {
     tim3.set_output::<4>(false);
     tim5.set_output::<1>(false);
     tim5.set_output::<2>(false);
-    // The waveform generator: TIM3 and TIM5 at different periods refuse;
+    // The lane group: TIM3 and TIM5 at different periods refuse;
     // both PWMs and both lane pairs come back, TIM5 re-rated, and the
     // independent pair is what the lane checks use.
-    let (awg_refused, tim3, tim5, first, second) =
-        match Awg::independent(tim3, tim5, (lane1, lane2), (lane3, lane4)) {
+    let (lane_group_refused, tim3, tim5, first, second) =
+        match LaneGroup::independent(tim3, tim5, (lane1, lane2), (lane3, lane4)) {
             Err(refused) => {
                 let refused_mismatch = matches!(
                     refused.error(),
@@ -465,7 +465,7 @@ fn main() -> ! {
             }
             Ok(_) => reboot_to_dfu(),
         };
-    let Ok(mut motors) = Awg::independent(tim3, tim5, first, second) else {
+    let Ok(mut motors) = LaneGroup::independent(tim3, tim5, first, second) else {
         reboot_to_dfu()
     };
 
@@ -611,7 +611,7 @@ fn main() -> ! {
         check!(
             report,
             link,
-            awg_refused,
+            lane_group_refused,
             "refusals: mismatched periods refuse, and the pair ran independent after re-rating [API-001]"
         );
         check!(

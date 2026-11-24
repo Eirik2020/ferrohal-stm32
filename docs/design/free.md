@@ -16,7 +16,7 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
    (its token and both pins), `Uart` (its wiring and buffers, or a receive-only one's
    receive wiring and ring), `Spi` (its wiring and buffers), `BlockingSpi` and `I2c`
    (their wiring), `PwmChannel` (its pin), `CompareLane` (its wiring and buffers),
-   `Sampler` (its timer, stream and buffer), `Awg` (its `Pwm`s and lanes), timers. A
+   `Sampler` (its timer, stream and buffer), `LaneGroup` (its `Pwm`s and lanes), timers. A
    handle is generic over its whole wiring (`Uart<W>`), so a board
    names its route once, as a type alias.
    A handle that owns DMA buffers (`Uart`,
@@ -29,7 +29,7 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 1. Every handle that can touch a peripheral carries the token, or a borrow of it; a
    second handle is a compile error, not a runtime rule. **Met:** the token lives in
    `Pwm<T>`, `Tick<T>`, `Timebase<T>`, `Uart<W>`, `Spi<W>`,
-   `BlockingSpi<W>`, `I2c<W>` and `Sampler<T, S>`; an `Awg` frees both its timers;
+   `BlockingSpi<W>`, `I2c<W>` and `Sampler<T, S>`; a `LaneGroup` frees both its timers;
    `PwmChannel` borrows its `Pwm`; the UART has one owner and no halves (ADR-011).
 2. `free(self) -> T` returns the token only when the last handle is gone. **Met:** a
    UART frees whole, a receive-only one to its `RxWiring`; a channel
@@ -39,7 +39,7 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
    only through a `&Pwm` it is handed.
 4. A freed or aborted timer leaves its outputs inactive at once. The duties are
    preloaded and a stopped counter makes no update to load them, so without one an
-   output stopped mid-pulse would hold high: `Pwm::free` and `Awg::abort` write duty 0
+   output stopped mid-pulse would hold high: `Pwm::free` and `LaneGroup::abort` write duty 0
    and raise the update event themselves.
 
 A lane names its channel as a const generic beside its wiring (`CompareLane<T, C, W>`):
