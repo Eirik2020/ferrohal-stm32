@@ -240,7 +240,7 @@ requirements:
       The polled driver shall carry the embedded-hal bus operations in every
       clock mode, with no DMA.
     rationale: >-
-      Some buses have no DMA stream free, such as a flash chip whose routes
+      Some buses have no DMA channel free, such as a flash chip whose routes
       others use.
     derived_from: [SPI-007]
     verification:

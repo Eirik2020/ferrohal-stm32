@@ -8,7 +8,7 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 - **No reachable panics by default.** `checks/no-panic` links the whole public API under a panic handler that calls an undefined symbol, so a release build only links if no panic path survives. A feature that can panic is off by default and listed: today only `usb`, whose third-party stack can ([features policy](docs/policies/features.md)).
 - **No time crate inside.** FerroHAL counts in its own `Hertz` and cycles; optional adapter features connect it to time crates (`fugit` today).
 - **One module per IP version.** Drivers are written per metapac IP version (`usart_v2`, `usart_v4`, `spi_v2`, `spi_v4`, `dma_v1`/`dma_v2`, `exti_v1`/`exti_h7`, `gpio_v2`, `rcc_f4`, `rcc_h7_rm0433`). A chip is its routing facts (pins, alternate functions, DMA routes, RCC bits, vectors), generated from metapac's metadata by `tools/glue-gen`, beside the facts metapac lacks (clock limits, memory map), written once per die. Each IP lives in its own folder under `src/`, the unit a separate crate could later be cut from.
-- **Routing checked at compile time.** A board file names the pins and DMA streams; a pin without the peripheral's function, or a stream that can't serve its request, doesn't build. Wirings also describe themselves as `const` data (`Wiring::RESOURCES`) for comparison with a board manifest.
+- **Routing checked at compile time.** A board file names the pins and DMA channels; a pin without the peripheral's function, or a DMA channel that can't serve its request, doesn't build. Wirings also describe themselves as `const` data (`Wiring::RESOURCES`) for comparison with a board manifest.
 
 ## Chips and peripherals
 
@@ -22,10 +22,10 @@ A scheduler-agnostic STM32 HAL on [`stm32-metapac`](https://crates.io/crates/stm
 
 - **RCC:** explicit clock trees from HSI or HSE, validated by a `const fn`.
 - **GPIO:** typestate pins, one owner per port's shared registers.
-- **DMA:** the stream DMA as it is, with DMAMUX on the H7.
+- **DMA:** the DMA (`dma_v1`, `dma_v2`) as it is, with DMAMUX on the H7.
 - **UART over DMA:** one owner per UART: a never-stopping receive ring with idle- and error-ended chunks, queued transmit frames, receive-only UARTs, half-duplex, TX/RX swap and RX/TX inversion (H7), `embedded-io`.
-- **SPI master over DMA:** one full-duplex transfer at a time, finished by the receive stream's interrupt or by polling, plus a bounded `embedded-hal` `SpiBus`.
-- **SPI without DMA:** a polled, bounded `SpiBus`, for a bus whose streams are taken.
+- **SPI master over DMA:** one full-duplex transfer at a time, finished by the receive DMA channel's interrupt or by polling, plus a bounded `embedded-hal` `SpiBus`.
+- **SPI without DMA:** a polled, bounded `SpiBus`, for a bus whose DMA channels are taken.
 - **I2C master:** a bounded `embedded-hal` bus for the device drivers (the barometer, the GNSS's DDC mode), over both I2C generations: the F4's SR1/SR2 register set and the H7's TIMINGR one, with the timing computed from the kernel clock, a NACK reported with the bus put back, and the wiring handed back on a refusal.
 - **EXTI:** GPIO lines with typed line tokens; a line can watch a pin a peripheral drives.
 - **Timers:** an exact-rate tick, a 32-bit timebase, PWM on CHx and CHxN, compare registers fed by DMA (the DShot transmit primitive), timer-paced sampling of a GPIO port, and lane wirings that describe themselves and assemble with their tokens handed back on a refusal.

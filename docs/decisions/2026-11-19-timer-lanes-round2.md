@@ -9,12 +9,12 @@ Promoted to: [lanes.md](../design/lanes.md).
 A bidirectional one-wire protocol on motor outputs sends a frame on each lane and reads the
 reply on the same pins within tens of microseconds. ferroforge-stm32's lane port needs
 FerroHAL's lanes to switch from sending to reading inside that window, on the pins,
-timers and DMA streams real boards give their motors. Two rounds of prototypes on the
+timers and DMA channels real boards give their motors. Two rounds of prototypes on the
 STM32F4 Discovery and the Nucleo-H753ZI measured what that takes.
 
 Before this, a listen computed its rates and transfers at the switch, every lane read on
-its own stream, a lane copied its samples into its own buffer, and the timers stopped at a
-frame's end and restarted at the listen.
+its own DMA channel, a lane copied its samples into its own buffer, and the timers stopped
+at a frame's end and restarted at the listen.
 
 ## Decision
 
@@ -25,8 +25,8 @@ frame's end and restarted at the listen.
 3. The switch is prepared. `prepare_listen(rate, count)` computes everything;
    `listen()` takes no arguments and only stores.
 4. One reader per timer and port, served in one of three forms: armed ahead on a spare
-   lane-timer request, the port's first lane's own stream, or paced by a timer that is not
-   a lane timer.
+   lane-timer request, the port's first lane's own DMA channel, or paced by a timer that is
+   not a lane timer.
 5. Timers left running at the frames' end, retimed at the switch; any load or play
    leaves that state first.
 6. Listen at the end, in the last lane's interrupt: one CCER store per timer, CCxP and
@@ -35,8 +35,8 @@ frame's end and restarted at the listen.
    TIM3 and TIM2 can start the responder or a third timer on the same edge.
 8. A start rebuilds no transfer. The lane's send transfer is prepared at assembly, so a
    start sets only memory and length.
-9. A reader's stream comes back (API-002): every refused registration hands the stream
-   back, and `LaneGroup::free` returns each reader's stream once, typed.
+9. A reader's DMA channel comes back (API-002): every refused registration hands the
+   DMA channel back, and `LaneGroup::free` returns each reader's DMA channel once, typed.
 
 ## Rejected
 

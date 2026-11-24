@@ -1,7 +1,7 @@
 //! Run X: the interrupt-driven I2C master on I2C3 (PA8/PC9)
 //! against the Pico 1 simulator, wired as run S is, first with every byte
-//! moved by the event interrupt, then from a DMA wiring of DMA1 stream 4
-//! (TX) and stream 2 (RX), channel 3 (RM0368 Table 28). Before each open,
+//! moved by the event interrupt, then from a DMA wiring of DMA1 channel 4
+//! (TX) and DMA channel 2 (RX), request 3 (RM0368 Table 28). Before each open,
 //! the open's refusal with the wiring handed back. The checks are
 //! `common/i2c_interrupt.rs`; the procedure is `requirements/benches.md`,
 //! "Interrupt-driven I2C on the Nucleo-F401RE".
@@ -23,7 +23,7 @@ use panic_probe as _;
 mod app {
     use ferrohal_stm32::{
         chip::I2C3,
-        dma::Stream,
+        dma::Channel,
         gpio::{Alternate, OpenDrain, Pin},
         i2c::{
             Config, ConfigError, DmaWiring, InterruptHealth, InterruptI2c, OpenError, Outcome,
@@ -45,7 +45,7 @@ mod app {
     type Scl = Pin<'A', 8, Alternate<4, OpenDrain>>;
     type Sda = Pin<'C', 9, Alternate<4, OpenDrain>>;
     type IrqBus = InterruptI2c<I2c3Bus>;
-    type DmaBus = InterruptI2c<DmaWiring<I2C3, Scl, Sda, Stream<1, 4>, Stream<1, 2>>>;
+    type DmaBus = InterruptI2c<DmaWiring<I2C3, Scl, Sda, Channel<1, 4>, Channel<1, 2>>>;
 
     /// The driver in the slot: interrupt-fed, or from the DMA wiring.
     pub enum Mode {
@@ -108,7 +108,7 @@ mod app {
         led: board::Led,
         report: Report,
         rcc: Rcc,
-        streams: Option<(Stream<1, 4>, Stream<1, 2>)>,
+        dma: Option<(Channel<1, 4>, Channel<1, 2>)>,
         tx: &'static mut [u8],
         rx: &'static mut [u8],
     }
@@ -160,30 +160,30 @@ mod app {
                 led: run.led,
                 report,
                 rcc: run.rcc,
-                streams: Some((run.tx, run.rx)),
+                dma: Some((run.tx, run.rx)),
                 tx: cx.local.tx_buf,
                 rx: cx.local.rx_buf,
             },
         )
     }
 
-    #[idle(shared = [slot], local = [led, report, rcc, streams, tx, rx])]
+    #[idle(shared = [slot], local = [led, report, rcc, dma, tx, rx])]
     fn idle(cx: idle::Context) -> ! {
         let report = cx.local.report;
         let tx = core::mem::take(cx.local.tx);
         let rx = core::mem::take(cx.local.rx);
         let mut h = Harness::new(cx.shared.slot, tx, rx);
         h.suite(report, LINK, "irq", "I2C-007,I2C-008");
-        // The DMA wiring: the interrupt-fed driver's wiring and both streams.
+        // The DMA wiring: the interrupt-fed driver's wiring and both DMA channels.
         let rcc = cx.local.rcc;
-        let streams = cx.local.streams.take();
+        let dma = cx.local.dma.take();
         let opened = h.m.lock(|s| {
             let Mode::Irq(bus) = core::mem::replace(&mut s.bus, Mode::Closed) else {
                 return Err("the interrupt-fed driver was not in the slot");
             };
             let wiring = bus.free();
-            let Some((tx_dma, rx_dma)) = streams else {
-                return Err("the streams were taken");
+            let Some((tx_dma, rx_dma)) = dma else {
+                return Err("the DMA channels were taken");
             };
             let dma = DmaWiring {
                 i2c: wiring.i2c,
@@ -233,7 +233,7 @@ mod app {
     }
 
     #[task(binds = DMA1_STREAM2, priority = 2, shared = [slot])]
-    fn rx_stream(mut cx: rx_stream::Context) {
+    fn rx_dma(mut cx: rx_dma::Context) {
         crate::i2c_interrupt::serve(&mut cx.shared.slot);
     }
 }

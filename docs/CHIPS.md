@@ -118,22 +118,22 @@ the markers; the merge gate regenerates them.
 <!-- generated: glue-gen tiers -->
 | part | platform | UART | SPI | I2C | Timers | ADC | USB | SDMMC | Watchdog | EXTI | DMA |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| STM32F401CE | – `INH` | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
-| STM32F401RE | – | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
-| STM32F401VE | – `INH` | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
+| STM32F401CE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F401RE | – | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F401VE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F410TB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F410CB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F410RB | – `INH` | – | – | – | – | – | n/a | n/a | – | – | – |
 | STM32F411CE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F411RE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F411VE | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
-| STM32F405OG | – `INH` | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
-| STM32F405RG | – `INH` | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
-| STM32F405VG | – `INH` | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
-| STM32F405ZG | – `INH` | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
-| STM32F407VG | – | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
-| STM32F407ZG | – `INH` | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
-| STM32F407IG | – `INH` | – | – | HIL | – | – | HIL | n/a | HIL | HIL | – |
+| STM32F405OG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F405RG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F405VG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F405ZG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F407VG | – | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F407ZG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
+| STM32F407IG | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F427VI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F427ZI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F427II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
@@ -189,22 +189,22 @@ the markers; the merge gate regenerates them.
 | STM32F779BI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F779II | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
 | STM32F779NI | – `INH` | – | – | – | – | – | – | n/a | – | – | – |
-| STM32H743VI | – | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H743ZI | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H743II | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H743BI | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H743AI | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H743XI | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H750VB | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H750ZB | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H750IB | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H750XB | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H753VI | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H753ZI | – | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H753II | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H753BI | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H753AI | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
-| STM32H753XI | – `INH` | – | – | HIL | – | – | HIL | FLSH | HIL | HIL | – |
+| STM32H743VI | – | – | – | – | – | – | – | – | – | – | – |
+| STM32H743ZI | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H743II | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H743BI | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H743AI | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H743XI | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H750VB | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H750ZB | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H750IB | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H750XB | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H753VI | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H753ZI | – | – | – | – | – | – | – | – | – | – | – |
+| STM32H753II | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H753BI | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H753AI | – `INH` | – | – | – | – | – | – | – | – | – | – |
+| STM32H753XI | – `INH` | – | – | – | – | – | – | – | – | – | – |
 <!-- end generated -->
 
 The rig's parts, measured on each bench's identity line:
@@ -342,10 +342,10 @@ names where the code documents it.
 - DMAMUX overruns are not watched; ES0392 2.5.1 says CFR writes do not raise them.
 
 **DMA, memory and caches (F7)**
-- The streams reach the DTCM (through the core's AHBS port), SRAM1 and SRAM2, not the
+- The DMA channels reach the DTCM (through the core's AHBS port), SRAM1 and SRAM2, not the
   ITCM. With the data cache on, a buffer in SRAM1 or SRAM2 must be in a region the MPU
   marks non-cacheable; the DTCM is never cached (`check_dma_buffer`).
-- The F767's DTCM is 128 KiB, the F722's and F745's 64. On the F767's revision A a stream
+- The F767's DTCM is 128 KiB, the F722's and F745's 64. On the F767's revision A a DMA channel
   reads zeros from the DTCM while the core sleeps (ES0334 2.2.4), so there
   `check_dma_buffer` refuses DTCM buffers.
 

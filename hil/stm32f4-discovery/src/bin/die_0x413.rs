@@ -5,13 +5,13 @@
 //!   five flash wait states; CCM RAM refused for DMA, SRAM accepted.
 //! - The routes the F401 does not have (the car rule: `usart_v2` is the
 //!   F401's to prove), each opened, echoed, streamed and freed, its parts
-//!   handed to the next: USART3 over D1 (TX DMA1 stream 3), UART4 over D1
-//!   (stream 4, channel 4), USART3 over D3 (stream 4, channel 7), UART5 over
+//!   handed to the next: USART3 over D1 (TX DMA1 channel 3), UART4 over D1
+//!   (DMA channel 4, request 4), USART3 over D3 (DMA channel 4, request 7), UART5 over
 //!   D2. Between them every DMA route the three have.
 //!
 //! The routes are polled: no vector is bound, so RTIC leaves every one
 //! masked, and each route runs on the service its own calls make (queued
-//! frames chained by the next call, the receive stream served by each read:
+//! frames chained by the next call, the receive DMA channel served by each read:
 //! UART-DMA-008). The four routes are four `Uart` types, which no one shared
 //! slot could hold; what this run proves is the die's routing glue, which
 //! the interrupt path does not change.
@@ -105,7 +105,7 @@ mod app {
             );
             match uart.free() {
                 Ok(parts) => parts,
-                Err(_) => defmt::panic!("{}: free refused, a stream did not stop", name),
+                Err(_) => defmt::panic!("{}: free refused, a DMA channel did not stop", name),
             }
         }};
     }
@@ -145,8 +145,8 @@ mod app {
             uart: run.uart4,
             tx: usart3.tx.into_alternate::<8>(&mut run.ctrl_c),
             rx: usart3.rx.into_alternate::<8>(&mut run.ctrl_c),
-            tx_dma: run.s4,
-            rx_dma: run.s2,
+            tx_dma: run.ch4,
+            rx_dma: run.ch2,
         };
         let (uart4, buffers) = route!(report, rcc, "UART4 PC10->PC11 (DMA1 S4/S2)", uart4, buffers);
         let usart3 = Wiring {

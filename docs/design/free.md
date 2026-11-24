@@ -10,19 +10,19 @@ Source: ADR-002, [`../decisions/2026-11-08-free-teardown-brief.md`](../decisions
 
 0. `free()` is the inverse of the constructor: it hands
    back exactly what `new` took, as a refusal already does. A UART opened with its pins
-   and DMA streams frees to its token, both pins and both typed stream tokens; a handle
+   and DMA channels frees to its token, both pins and both typed DMA channel tokens; a handle
    keeps those parts typed so they come back typed. **Met by every driver:** `Adc` (its
-   token), `AdcScan` (the ADC, its stream, its buffer), `Sdmmc` (its wiring), `UsbFs`
+   token), `AdcScan` (the ADC, its DMA channel, its buffer), `Sdmmc` (its wiring), `UsbFs`
    (its token and both pins), `Uart` (its wiring and buffers, or a receive-only one's
    receive wiring and ring), `Spi` (its wiring and buffers), `BlockingSpi` and `I2c`
    (their wiring), `PwmChannel` (its pin), `CompareLane` (its wiring and buffers),
-   `Sampler` (its timer, stream and buffer), `LaneGroup` (its `Pwm`s and lanes), timers. A
+   `Sampler` (its timer, DMA channel and buffer), `LaneGroup` (its `Pwm`s and lanes), timers. A
    handle is generic over its whole wiring (`Uart<W>`), so a board
    names its route once, as a type alias.
    A handle that owns DMA buffers (`Uart`,
    `Spi`, `CompareLane`, `Sampler`, `AdcScan`) refuses to free while one of its
-   streams does not stop: `free` returns `Result<parts, Refused<StopTimeout, Self>>`,
-   so the buffers never leave under a running stream, and the handle comes back to try
+   DMA channels does not stop: `free` returns `Result<parts, Refused<StopTimeout, Self>>`,
+   so the buffers never leave under a running DMA channel, and the handle comes back to try
    again (API-003, run T on the H753). Before, a failed stop was ignored and the buffers
    handed out anyway.
 

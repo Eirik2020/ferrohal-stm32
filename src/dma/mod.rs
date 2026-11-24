@@ -1,51 +1,54 @@
-//! The stream DMA, exposed as it is: `dma_v2` (F2, F4, F7) and `dma_v1`
-//! (H7). The two differ only in how a stream picks its request, so they
-//! share this source:
+//! The DMA (metapac's `dma`), exposed as it is: `dma_v2` (F2, F4, F7) and
+//! `dma_v1` (H7). Its units are channels, and what a channel serves is a
+//! request, on every chip, as metapac's metadata names them (`DMA1_CH0`,
+//! `request`); the reference manuals call a channel a stream, and the F4's
+//! request its channel selection (CHSEL). The two versions differ only in
+//! how a channel picks its request, so they share this source:
 //!
-//! - `dma_v2`: a channel number (CHSEL, 0 to 7) on the stream, from the
+//! - `dma_v2`: a request number (CHSEL, 0 to 7) on the channel, from the
 //!   chip's fixed request table.
-//! - `dma_v1`: a request ID (1 to 127) written to the stream's own DMAMUX
-//!   channel, so any stream can serve any request. It also has TRBUFF,
-//!   which RM0433 requires for U(S)ART transfers.
+//! - `dma_v1`: a request ID (1 to 127) written to the DMAMUX channel the
+//!   channel owns, so any channel can serve any request. It also has
+//!   TRBUFF, which RM0433 requires for U(S)ART transfers.
 //!
-//! Each controller has eight streams. A stream serves one request at a
+//! Each controller has eight channels. A channel serves one request at a
 //! time; it has a FIFO, which every transfer here bypasses in direct
 //! mode, and five flags: transfer complete, half transfer, transfer error,
 //! direct-mode error and FIFO error. All of them are here, readable and
 //! clearable by the caller. The engine's double buffering and FIFO
 //! thresholds are not: no driver used them, and nothing proved them.
 //!
-//! A controller token splits into eight stream tokens. Drivers erase a
-//! stream token into an [`AnyStream`], one type for every stream. Starting a
+//! A controller token splits into eight channel tokens. Drivers erase a
+//! channel token into an [`AnyChannel`], one type for every channel. Starting a
 //! transfer is `unsafe`: the caller vouches for the memory. Drivers above
 //! build safe APIs on it from memory they own.
 //!
-//! Shared registers: the flag registers (LISR, HISR) hold four streams
+//! Shared registers: the flag registers (LISR, HISR) hold four channels
 //! each, but they are read-only, and their clear registers (LIFCR, HIFCR)
-//! are write-one-to-clear, so a stream clears its own flags with a single
-//! write that cannot disturb the others. On `dma_v1`, each stream owns its
+//! are write-one-to-clear, so a channel clears its own flags with a single
+//! write that cannot disturb the others. On `dma_v1`, each channel owns its
 //! DMAMUX channel's configuration register outright. The controller's clock
 //! is the only shared write, made through [`Rcc`].
 //!
-//! With the `fault-injection` feature, `fault` makes a stream ignore
-//! requests to stop, for benches that prove a driver's answer to a stream
+//! With the `fault-injection` feature, `fault` makes a channel ignore
+//! requests to stop, for benches that prove a driver's answer to a channel
 //! that will not stop. No firmware that flies enables it.
 //!
 //! Requirements: DMA-001
 
 use core::sync::atomic::{Ordering, fence};
 
-/// Polls allowed for a stream to report itself stopped, every driver's
-/// bound: a stopping stream finishes at most its current beat, so this is
+/// Polls allowed for a channel to report itself stopped, every driver's
+/// bound: a stopping channel finishes at most its current beat, so this is
 /// generous. The ADC gave 100 000 before 2026-11-17 (API review U8), for no
 /// recorded reason.
 pub(crate) const STOP_SPINS: u32 = 10_000;
 
-/// Bench fault injection (feature `fault-injection`): a stream marked stuck
-/// ignores [`AnyStream::request_stop`], so a running stream keeps EN set and
-/// every bounded stop on it times out, as a stream that will not stop
-/// would. A stream that has stopped on its own still reads stopped. Marks
-/// are global, by controller and stream number, and survive a driver's
+/// Bench fault injection (feature `fault-injection`): a channel marked stuck
+/// ignores [`AnyChannel::request_stop`], so a running channel keeps EN set and
+/// every bounded stop on it times out, as a channel that will not stop
+/// would. A channel that has stopped on its own still reads stopped. Marks
+/// are global, by controller and channel number, and survive a driver's
 /// `free`; nothing in FerroHAL sets one.
 #[cfg(feature = "fault-injection")]
 pub mod fault {
@@ -53,23 +56,23 @@ pub mod fault {
 
     static STUCK: AtomicU32 = AtomicU32::new(0);
 
-    const fn bit(controller: u8, stream: u8) -> u32 {
-        1 << (((controller & 3) as u32) * 8 + (stream & 7) as u32)
+    const fn bit(controller: u8, channel: u8) -> u32 {
+        1 << (((controller & 3) as u32) * 8 + (channel & 7) as u32)
     }
 
-    /// Stream `stream` of DMA controller `controller` ignores stop requests
+    /// Channel `channel` of DMA controller `controller` ignores stop requests
     /// from now on.
-    pub fn stick(controller: u8, stream: u8) {
-        STUCK.fetch_or(bit(controller, stream), Ordering::SeqCst);
+    pub fn stick(controller: u8, channel: u8) {
+        STUCK.fetch_or(bit(controller, channel), Ordering::SeqCst);
     }
 
-    /// The stream obeys stop requests again. It may still be running.
-    pub fn release(controller: u8, stream: u8) {
-        STUCK.fetch_and(!bit(controller, stream), Ordering::SeqCst);
+    /// The channel obeys stop requests again. It may still be running.
+    pub fn release(controller: u8, channel: u8) {
+        STUCK.fetch_and(!bit(controller, channel), Ordering::SeqCst);
     }
 
-    pub(super) fn stuck(controller: u8, stream: u8) -> bool {
-        STUCK.load(Ordering::SeqCst) & bit(controller, stream) != 0
+    pub(super) fn stuck(controller: u8, channel: u8) -> bool {
+        STUCK.load(Ordering::SeqCst) & bit(controller, channel) != 0
     }
 }
 
@@ -112,79 +115,79 @@ pub trait DmaInstance: crate::Sealed + DmaRegisters {
     const MUX_BASE: u8;
 }
 
-/// A controller's eight streams.
-pub struct Streams<const D: u8> {
-    pub s0: Stream<D, 0>,
-    pub s1: Stream<D, 1>,
-    pub s2: Stream<D, 2>,
-    pub s3: Stream<D, 3>,
-    pub s4: Stream<D, 4>,
-    pub s5: Stream<D, 5>,
-    pub s6: Stream<D, 6>,
-    pub s7: Stream<D, 7>,
+/// A controller's eight channels.
+pub struct Channels<const D: u8> {
+    pub ch0: Channel<D, 0>,
+    pub ch1: Channel<D, 1>,
+    pub ch2: Channel<D, 2>,
+    pub ch3: Channel<D, 3>,
+    pub ch4: Channel<D, 4>,
+    pub ch5: Channel<D, 5>,
+    pub ch6: Channel<D, 6>,
+    pub ch7: Channel<D, 7>,
 }
 
 impl<const D: u8> Dma<D>
 where
     Dma<D>: DmaInstance,
 {
-    /// Turns on the controller's clock and hands out its streams. The
-    /// controller is not reset: its streams belong to different drivers.
-    pub fn split(self, rcc: &mut Rcc) -> Streams<D> {
+    /// Turns on the controller's clock and hands out its channels. The
+    /// controller is not reset: its channels belong to different drivers.
+    pub fn split(self, rcc: &mut Rcc) -> Channels<D> {
         rcc.enable(<Dma<D> as DmaInstance>::ENABLE);
-        Streams {
-            s0: Stream::new(),
-            s1: Stream::new(),
-            s2: Stream::new(),
-            s3: Stream::new(),
-            s4: Stream::new(),
-            s5: Stream::new(),
-            s6: Stream::new(),
-            s7: Stream::new(),
+        Channels {
+            ch0: Channel::new(),
+            ch1: Channel::new(),
+            ch2: Channel::new(),
+            ch3: Channel::new(),
+            ch4: Channel::new(),
+            ch5: Channel::new(),
+            ch6: Channel::new(),
+            ch7: Channel::new(),
         }
     }
 }
 
-/// Stream `N` of controller `D`. Zero-sized; routing traits are implemented
+/// Channel `N` of controller `D`. Zero-sized; routing traits are implemented
 /// on it, so the type checks which requests it can serve.
-pub struct Stream<const D: u8, const N: u8> {
+pub struct Channel<const D: u8, const N: u8> {
     _private: (),
 }
 
-impl<const D: u8, const N: u8> Stream<D, N> {
+impl<const D: u8, const N: u8> Channel<D, N> {
     /// The token. Made only where one is owed: by `Dma::split`, once per
-    /// stream, and by `timer::ReaderStreams::take`, for a token a reader was
+    /// channel, and by `timer::ReaderDma::take`, for a token a reader was
     /// given and has been freed of.
     pub(crate) const fn new() -> Self {
         Self { _private: () }
     }
 }
 
-impl<const D: u8, const N: u8> Stream<D, N> {
+impl<const D: u8, const N: u8> Channel<D, N> {
     /// The DMA controller's number.
     pub const CONTROLLER: u8 = D;
-    /// The stream's number on its controller.
+    /// The channel's number on its controller.
     pub const NUMBER: u8 = N;
 }
 
-/// The interrupt vector a stream raises. Chip facts: the glue implements
-/// it for every stream.
-pub trait StreamInterrupt {
+/// The interrupt vector a channel raises. Chip facts: the glue implements
+/// it for every channel.
+pub trait ChannelInterrupt {
     const INTERRUPT: stm32_metapac::Interrupt;
     /// The vector's name.
     const INTERRUPT_NAME: &'static str;
 }
 
-/// A stream token, erasable into an [`AnyStream`].
+/// A channel token, erasable into an [`AnyChannel`].
 ///
-/// Outside FerroHAL a token's stream is reached only by giving the token
+/// Outside FerroHAL a token's channel is reached only by giving the token
 /// up. The drivers' constructors reach it while the caller keeps the
 /// token, so that a refusal can hand it back, through a method that needs
 /// a key only FerroHAL can make. Giving the token up works through any
 /// bound:
 ///
 /// ```
-/// fn one_owner<S: ferrohal_stm32::dma::StreamInstance>(token: S) -> ferrohal_stm32::dma::AnyStream {
+/// fn one_owner<S: ferrohal_stm32::dma::ChannelInstance>(token: S) -> ferrohal_stm32::dma::AnyChannel {
 ///     token.into_any()
 /// }
 /// ```
@@ -195,7 +198,7 @@ pub trait StreamInterrupt {
 /// below; they are the ones the compiler gives.
 ///
 /// ```compile_fail,E0061
-/// fn two_owners<S: ferrohal_stm32::dma::StreamInstance>(token: &S) {
+/// fn two_owners<S: ferrohal_stm32::dma::ChannelInstance>(token: &S) {
 ///     let _ = (token.claim(), token.claim());
 /// }
 /// ```
@@ -205,10 +208,10 @@ pub trait StreamInterrupt {
 ///     todo!()
 /// }
 /// ```
-pub trait StreamInstance: crate::Sealed + claim::Claim {
-    /// The controller's number and the stream's on it.
+pub trait ChannelInstance: crate::Sealed + claim::Claim {
+    /// The controller's number and the channel's on it.
     const ID: (u8, u8);
-    fn into_any(self) -> AnyStream;
+    fn into_any(self) -> AnyChannel;
 }
 
 mod claim {
@@ -216,43 +219,43 @@ mod claim {
     /// make one, and nothing hands one out.
     pub struct Key(());
 
-    /// A stream reached while the caller's token stays where it is. Any
-    /// code can see this method through a `StreamInstance` bound, so it
+    /// A channel reached while the caller's token stays where it is. Any
+    /// code can see this method through a `ChannelInstance` bound, so it
     /// takes a [`Key`].
     pub trait Claim {
-        fn claim(&self, key: Key) -> super::AnyStream;
+        fn claim(&self, key: Key) -> super::AnyChannel;
     }
 
-    /// The stream's [`AnyStream`](super::AnyStream), a second owner beside the
+    /// The channel's [`AnyChannel`](super::AnyChannel), a second owner beside the
     /// token. The constructor that calls this keeps the pair to one: on
     /// success it drops the token and keeps the channel, on a refusal it
     /// drops the channel and returns the token.
-    pub(crate) fn channel<S: Claim>(token: &S) -> super::AnyStream {
+    pub(crate) fn channel<S: Claim>(token: &S) -> super::AnyChannel {
         token.claim(Key(()))
     }
 }
 
 pub(crate) use claim::channel as claim;
 
-impl<const D: u8, const N: u8> crate::Sealed for Stream<D, N> {}
+impl<const D: u8, const N: u8> crate::Sealed for Channel<D, N> {}
 
-impl<const D: u8, const N: u8> StreamInstance for Stream<D, N>
+impl<const D: u8, const N: u8> ChannelInstance for Channel<D, N>
 where
     Dma<D>: DmaInstance,
 {
     const ID: (u8, u8) = (D, N);
-    fn into_any(self) -> AnyStream {
+    fn into_any(self) -> AnyChannel {
         claim::channel(&self)
     }
 }
 
-impl<const D: u8, const N: u8> claim::Claim for Stream<D, N>
+impl<const D: u8, const N: u8> claim::Claim for Channel<D, N>
 where
     Dma<D>: DmaInstance,
 {
-    fn claim(&self, _key: claim::Key) -> AnyStream {
-        const { assert!(N < 8, "a controller has streams 0 to 7") };
-        AnyStream {
+    fn claim(&self, _key: claim::Key) -> AnyChannel {
+        const { assert!(N < 8, "a controller has channels 0 to 7") };
+        AnyChannel {
             regs: <Dma<D> as DmaRegisters>::regs(),
             index: N,
             #[cfg(feature = "fault-injection")]
@@ -265,8 +268,8 @@ where
     }
 }
 
-/// One stream, whichever it is. Owned: one `AnyStream` per stream.
-pub struct AnyStream {
+/// One channel, whichever it is. Owned: one `AnyChannel` per channel.
+pub struct AnyChannel {
     regs: Regs,
     index: u8,
     #[cfg(feature = "fault-injection")]
@@ -277,10 +280,10 @@ pub struct AnyStream {
     mux_channel: u8,
 }
 
-// SAFETY: an `AnyStream` is the only owner of its stream's registers, and of
+// SAFETY: an `AnyChannel` is the only owner of its channel's registers, and of
 // its bits in the shared flag registers, so moving it to another context
 // moves that ownership with it.
-unsafe impl Send for AnyStream {}
+unsafe impl Send for AnyChannel {}
 
 /// Why a buffer cannot serve a DMA transfer: what `chip::check_dma_buffer`
 /// returns, and what every driver's refusal wraps as its `Buffer` reason
@@ -297,16 +300,16 @@ pub enum BufferError {
     Cacheable,
 }
 
-/// A stream's status flags.
+/// A channel's status flags.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Flags {
     pub complete: bool,
     pub half: bool,
-    /// A bus error. The stream has disabled itself.
+    /// A bus error. The channel has disabled itself.
     pub transfer_error: bool,
-    /// In direct mode, the stream could not keep up. In peripheral-to-memory
-    /// mode with a buffer that is not ready, the stream disables itself.
+    /// In direct mode, the channel could not keep up. In peripheral-to-memory
+    /// mode with a buffer that is not ready, the channel disables itself.
     pub direct_mode_error: bool,
     /// The FIFO over- or underran, or its threshold does not fit the burst.
     pub fifo_error: bool,
@@ -374,7 +377,7 @@ impl WordSize {
     }
 }
 
-/// Which stream interrupts to raise. Their flags are set either way.
+/// Which channel interrupts to raise. Their flags are set either way.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Interrupts {
@@ -434,8 +437,8 @@ impl Transfer {
         Self { interrupts, ..self }
     }
 
-    /// TRBUFF on `dma_v1`, which RM0433 requires for a U(S)ART's stream
-    /// (ES0392 2.20.4: it keeps the stream from locking when another
+    /// TRBUFF on `dma_v1`, which RM0433 requires for a U(S)ART's channel
+    /// (ES0392 2.20.4: it keeps the channel from locking when another
     /// transfer runs beside it). `dma_v2` has no such bit: unchanged.
     pub(crate) const fn for_usart(self) -> Self {
         #[cfg(feature = "dma_v1")]
@@ -452,7 +455,7 @@ impl Transfer {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Transfer {
-    /// Which request the stream serves. `dma_v2`: CHSEL, 0 to 7.
+    /// Which request the channel serves. `dma_v2`: CHSEL, 0 to 7.
     /// `dma_v1`: the DMAMUX request ID, 1 to 127.
     pub request: u8,
     /// TRBUFF: bufferable transfers. RM0433 requires it for U(S)ART and
@@ -476,20 +479,20 @@ pub struct Transfer {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum StartError {
-    /// The stream is still enabled. Stop it first.
+    /// The channel is still enabled. Stop it first.
     Busy,
     /// `len` is 0, or `request` is outside its range.
     Invalid,
 }
 
-/// The stream did not report itself disabled within the bound.
+/// The channel did not report itself disabled within the bound.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct StopTimeout;
 
-impl AnyStream {
-    /// A handle for reading and clearing this stream's flags from an
-    /// interrupt handler while the `AnyStream` itself lives elsewhere.
+impl AnyChannel {
+    /// A handle for reading and clearing this channel's flags from an
+    /// interrupt handler while the `AnyChannel` itself lives elsewhere.
     pub fn flag_handle(&self) -> FlagHandle {
         FlagHandle {
             regs: self.regs,
@@ -512,14 +515,14 @@ impl AnyStream {
     }
 
     pub fn is_running(&self) -> bool {
-        self.regs.st(stream_index(self.index)).cr().read().en()
+        self.regs.st(channel_index(self.index)).cr().read().en()
     }
 
-    /// Turns the stream's interrupts on or off. Allowed while it runs: the
+    /// Turns the channel's interrupts on or off. Allowed while it runs: the
     /// reference manuals protect most of CR while EN is set, but not the
     /// interrupt enables, nor FCR's FEIE.
     pub fn set_interrupts(&mut self, interrupts: Interrupts) {
-        let st = self.regs.st(stream_index(self.index));
+        let st = self.regs.st(channel_index(self.index));
         st.cr().modify(|w| {
             w.set_tcie(interrupts.complete);
             w.set_htie(interrupts.half);
@@ -529,7 +532,7 @@ impl AnyStream {
         st.fcr().modify(|w| w.set_feie(interrupts.fifo_error));
     }
 
-    /// Tells the stream to stop. It finishes the word in flight first;
+    /// Tells the channel to stop. It finishes the word in flight first;
     /// [`is_running`](Self::is_running) turns false once it has.
     pub fn request_stop(&mut self) {
         #[cfg(feature = "fault-injection")]
@@ -537,20 +540,20 @@ impl AnyStream {
             return;
         }
         self.regs
-            .st(stream_index(self.index))
+            .st(channel_index(self.index))
             .cr()
             .modify(|w| w.set_en(false));
     }
 
-    /// Stops the stream and waits at most `spins` reads for it to report
-    /// itself stopped. Stopping a running stream sets its complete flag;
+    /// Stops the channel and waits at most `spins` reads for it to report
+    /// itself stopped. Stopping a running channel sets its complete flag;
     /// that is left for the caller to clear.
     pub fn stop(&mut self, spins: u32) -> Result<(), StopTimeout> {
         self.request_stop();
         if !crate::wait::spin(spins, || !self.is_running()) {
             return Err(StopTimeout);
         }
-        // Nothing the stream wrote may be read before this.
+        // Nothing the channel wrote may be read before this.
         fence(Ordering::SeqCst);
         Ok(())
     }
@@ -560,10 +563,10 @@ impl AnyStream {
     /// # Safety
     ///
     /// `memory` must point to `len` words of memory
-    /// that stay valid until the stream has stopped, and that nothing but
-    /// this stream writes in the meantime (or reads, for a
+    /// that stay valid until the channel has stopped, and that nothing but
+    /// this channel writes in the meantime (or reads, for a
     /// peripheral-to-memory transfer). `peripheral` must be the data
-    /// register of the peripheral `request` selects on this stream.
+    /// register of the peripheral `request` selects on this channel.
     pub(crate) unsafe fn start(&mut self, transfer: &Transfer) -> Result<(), StartError> {
         let prepared = Prepared::new(transfer)?;
         // SAFETY: the caller's contract, unchanged.
@@ -572,7 +575,7 @@ impl AnyStream {
 
     /// Starts a transfer from register words computed beforehand
     /// ([`Prepared::new`]): the flags cleared, five stores, the enable. No
-    /// arithmetic, so a driver can switch a stream in a fixed, short time,
+    /// arithmetic, so a driver can switch a channel in a fixed, short time,
     /// as RM0090 10.3.17 (p. 324) and RM0433 15.3.19 (p. 656) allow once EN
     /// reads 0.
     ///
@@ -583,10 +586,10 @@ impl AnyStream {
         if self.is_running() {
             return Err(StartError::Busy);
         }
-        let st = self.regs.st(stream_index(self.index));
+        let st = self.regs.st(channel_index(self.index));
         self.clear_flags(Flags::ALL);
         // No synchronisation, no event generation: the request passes
-        // straight through to the stream.
+        // straight through to the channel.
         #[cfg(feature = "dma_v1")]
         self.mux
             .ccr(usize::from(self.mux_channel & 15))
@@ -607,7 +610,7 @@ impl AnyStream {
 }
 
 /// A transfer's register words, computed once by [`Prepared::new`] and
-/// started any number of times by [`AnyStream::start_prepared`].
+/// started any number of times by [`AnyChannel::start_prepared`].
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Prepared {
     #[cfg(feature = "dma_v1")]
@@ -699,18 +702,18 @@ impl Prepared {
     }
 }
 
-/// A stream number as a register index. Streams are 0 to 7 by
+/// A channel number as a register index. Channels are 0 to 7 by
 /// construction; the mask lets the compiler see that too, so metapac's
 /// bounds checks on `st(n)`, `isr(n)` and the flag fields fold away and no
 /// panic path is left.
-fn stream_index(index: u8) -> usize {
+fn channel_index(index: u8) -> usize {
     usize::from(index & 7)
 }
 
-/// Read and clear access to one stream's flags, and its count.
+/// Read and clear access to one channel's flags, and its count.
 ///
 /// Every operation is a register read or a write-one-to-clear of this
-/// stream's own bits, so a handle and its `AnyStream` can be used from
+/// channel's own bits, so a handle and its `AnyChannel` can be used from
 /// different priorities without a lock. Which of them clears which flag is
 /// the driver's protocol to keep.
 pub struct FlagHandle {
@@ -723,7 +726,7 @@ unsafe impl Send for FlagHandle {}
 
 impl FlagHandle {
     fn slot(&self) -> (usize, usize) {
-        let index = stream_index(self.index);
+        let index = channel_index(self.index);
         (index / 4, index % 4)
     }
 
@@ -751,6 +754,6 @@ impl FlagHandle {
     }
 
     pub fn remaining(&self) -> u16 {
-        self.regs.st(stream_index(self.index)).ndtr().read().ndt()
+        self.regs.st(channel_index(self.index)).ndtr().read().ndt()
     }
 }

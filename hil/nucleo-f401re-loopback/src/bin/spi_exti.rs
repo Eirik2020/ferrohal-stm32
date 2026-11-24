@@ -1,9 +1,9 @@
 //! Run E: SPI and EXTI.
 //!
-//! - SPI1 on the Foxeer F405's IMU pins and streams (PA5, PA6, PA7; DMA2
-//!   streams 3 and 0), over S1.
-//! - SPI3 on port C (PC10, PC11, PC12; DMA1 streams 7 and 2), over S5.
-//! - SPI2 on port B (PB13, PB14, PB15; DMA1 streams 4 and 3), over S3.
+//! - SPI1 on the Foxeer F405's IMU pins and DMA channels (PA5, PA6, PA7; DMA2
+//!   channels 3 and 0), over S1.
+//! - SPI3 on port C (PC10, PC11, PC12; DMA1 channels 7 and 2), over S5.
+//! - SPI2 on port B (PB13, PB14, PB15; DMA1 channels 4 and 3), over S3.
 //! - EXTI line 12 on PA12, driven by PA11 over J2.
 //!
 //! Each SPI's SCK is routed to its EXTI line too, to count its edges. LD2
@@ -11,7 +11,7 @@
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `DMA2_STREAM0`, `DMA1_STREAM2`, `DMA1_STREAM3` | the open `Spi`'s receive stream | 2 |
+//! | `DMA2_STREAM0`, `DMA1_STREAM2`, `DMA1_STREAM3` | the open `Spi`'s receive DMA channel | 2 |
 //! | `EXTI9_5` (line 5), `EXTI15_10` (lines 10, 12, 13) | EXTI edge counting | 2 |
 //! | `SDIO` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
@@ -34,7 +34,7 @@ mod app {
         device::Interrupt,
         exti::{Ctrl, Edge, Exti},
         gpio::{Output, Pin},
-        dma::Stream,
+        dma::Channel,
         spi::{Buffers, Spi},
         time::Hertz,
         timer::Sampler,
@@ -66,7 +66,7 @@ mod app {
         sck2: Exti<'B', 13>,
         sense: Exti<'A', 12>,
         feed: Pin<'A', 11, Output>,
-        sampler: Sampler<ferrohal_stm32::chip::TIM1, Stream<2, 5>>,
+        sampler: Sampler<ferrohal_stm32::chip::TIM1, Channel<2, 5>>,
     }
 
     #[init(local = [

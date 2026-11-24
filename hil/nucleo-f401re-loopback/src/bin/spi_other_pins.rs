@@ -1,14 +1,14 @@
 //! Run F: SPI1 and SPI2 on their other pins.
 //!
-//! - SPI1 on port B (PB3, PB4, PB5; DMA2 streams 5 and 2), over S2.
-//! - SPI2 with SCK on PB10 and MISO, MOSI on PC2, PC3 (DMA1 streams 4 and
+//! - SPI1 on port B (PB3, PB4, PB5; DMA2 channels 5 and 2), over S2.
+//! - SPI2 with SCK on PB10 and MISO, MOSI on PC2, PC3 (DMA1 channels 4 and
 //!   3), over S4.
 //!
 //! Each SPI's SCK is routed to its EXTI line too, to count its edges.
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `DMA2_STREAM2`, `DMA1_STREAM3` | the open `Spi`'s receive stream | 2 |
+//! | `DMA2_STREAM2`, `DMA1_STREAM3` | the open `Spi`'s receive DMA channel | 2 |
 //! | `EXTI3` (line 3), `EXTI15_10` (line 10) | EXTI edge counting | 2 |
 //! | `SDIO` | RTIC, dispatching the priority 1 `checks` task | 1 |
 

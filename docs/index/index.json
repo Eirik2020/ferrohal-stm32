@@ -3,7 +3,7 @@
  "counts": {
   "documents": 102,
   "agent": 67,
-  "bytes": 575341
+  "bytes": 576554
  },
  "documents": [
   {
@@ -25,7 +25,7 @@
    "class": "human",
    "title": "ferrohal-stm32",
    "purpose": "A scheduler-agnostic STM32 HAL on stm32-metap",
-   "bytes": 6375
+   "bytes": 6405
   },
   {
    "path": "THIRD-PARTY.md",
@@ -39,7 +39,7 @@
    "class": "human",
    "title": "FerroHAL: supported silicon and capabilities",
    "purpose": "What FerroHAL supports on each chip, the limi",
-   "bytes": 38453
+   "bytes": 38447
   },
   {
    "path": "docs/DEBT.md",
@@ -123,7 +123,7 @@
    "class": "agent",
    "title": "ADR-011: One owner per UART, and a scheduler-neutral `Service` trait (2026-11-17)",
    "purpose": "ADR-011 - Status: promoted",
-   "bytes": 2997,
+   "bytes": 2995,
    "adr": "ADR-011",
    "status": "promoted"
   },
@@ -141,7 +141,7 @@
    "class": "agent",
    "title": "ADR-014: Timer lanes as the lane port needs them (2026-11-19)",
    "purpose": "ADR-014 - Status: promoted",
-   "bytes": 2903,
+   "bytes": 2929,
    "adr": "ADR-014",
    "status": "promoted"
   },
@@ -268,7 +268,7 @@
    "class": "agent",
    "title": "Public API surface",
    "purpose": "Source: ADR-006 archived: ../decisions/archiv",
-   "bytes": 2984
+   "bytes": 2991
   },
   {
    "path": "docs/design/archive/2026/free-shapes.md",
@@ -324,28 +324,28 @@
    "class": "agent",
    "title": "`free()`: handing tokens back",
    "purpose": "Every driver handle that owns a peripheral to",
-   "bytes": 3160
+   "bytes": 3186
   },
   {
    "path": "docs/design/glue-generator.md",
    "class": "agent",
    "title": "The chip-glue generator",
    "purpose": "Source: ADR-008, ../decisions/2026-11-13-chip",
-   "bytes": 10119
+   "bytes": 10104
   },
   {
    "path": "docs/design/i2c-interrupt.md",
    "class": "agent",
    "title": "I2C: the interrupt-driven master on lent buffers",
    "purpose": "Source: ADR-013, ../decisions/2026-11-19-i2c-",
-   "bytes": 3209
+   "bytes": 3210
   },
   {
    "path": "docs/design/lanes.md",
    "class": "agent",
    "title": "Timer lanes: frames, the switch and the readers",
    "purpose": "Source: ADR-014, ../decisions/2026-11-19-time",
-   "bytes": 8477
+   "bytes": 8543
   },
   {
    "path": "docs/design/layering.md",
@@ -366,7 +366,7 @@
    "class": "agent",
    "title": "Naming: catalogs, IDs, features, modules, benches",
    "purpose": "Source: ADR-021, ../decisions/2026-11-24-nami",
-   "bytes": 9802
+   "bytes": 10983
   },
   {
    "path": "docs/design/ownership.md",
@@ -415,7 +415,7 @@
    "class": "agent",
    "title": "UART ownership: one owner, served by `on_interrupt`",
    "purpose": "Source: ADR-011, ../decisions/2026-11-17-uart",
-   "bytes": 5430
+   "bytes": 5420
   },
   {
    "path": "docs/errata/ES0182.md",
@@ -499,7 +499,7 @@
    "class": "human",
    "title": "ES0392: errata of die 0x450 (H742, H743, H750, H753)",
    "purpose": "Generated from the chip's errata table src/ch",
-   "bytes": 23734
+   "bytes": 23744
   },
   {
    "path": "docs/housekeeping/README.md",
@@ -618,7 +618,7 @@
    "class": "human",
    "title": "Plan: the STM32F411, F722, F745 and G474",
    "purpose": "Opened 2026-11-17. The owner's fifth and last",
-   "bytes": 12864
+   "bytes": 12892
   },
   {
    "path": "docs/policies/agent-docs.md",
@@ -639,14 +639,14 @@
    "class": "agent",
    "title": "Features policy",
    "purpose": "Normative. Goals G1, G2, G5 requirements/goal",
-   "bytes": 2783
+   "bytes": 2784
   },
   {
    "path": "docs/policies/safety.md",
    "class": "agent",
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
-   "bytes": 3008
+   "bytes": 2928
   },
   {
    "path": "docs/resolved/README.md",
@@ -695,14 +695,14 @@
    "class": "human",
    "title": "HIL test coverage",
    "purpose": "Which bench proves what, per IP version: the ",
-   "bytes": 6769
+   "bytes": 6583
   },
   {
    "path": "hil/RIG-IMPROVEMENTS.md",
    "class": "human",
    "title": "Rig improvements: what each upgrade would unblock",
    "purpose": "The options for growing the rig, each tied to",
-   "bytes": 15026
+   "bytes": 15041
   },
   {
    "path": "hil/RIG.md",
@@ -737,21 +737,21 @@
    "class": "human",
    "title": "Bench Procedures: the injected faults and the cache matrix",
    "purpose": "The fault-injection and cache-matrix runs of ",
-   "bytes": 5906
+   "bytes": 5981
   },
   {
    "path": "requirements/benches-refusals.md",
    "class": "human",
    "title": "Bench Procedures: the constructor refusals",
    "purpose": "The refusal runs of benches.mdbenches.md, spl",
-   "bytes": 3152
+   "bytes": 3155
   },
   {
    "path": "requirements/benches.md",
    "class": "human",
    "title": "Bench Procedures",
    "purpose": "What each requirement's bench entry runs. The",
-   "bytes": 27029
+   "bytes": 27072
   },
   {
    "path": "requirements/goals.md",

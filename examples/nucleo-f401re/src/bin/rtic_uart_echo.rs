@@ -1,6 +1,6 @@
 //! UART under RTIC: `uart-echo`'s echo through the ST-LINK's virtual COM
 //! port (USART2, 115200 8N1), served from interrupts, with LD2 toggling on
-//! each line the host sends. Same pins, streams and wiring as `uart-echo`.
+//! each line the host sends. Same pins, DMA channels and wiring as `uart-echo`.
 //!
 //! FerroHAL defines no handler and never touches the NVIC: RTIC binds the
 //! vectors and enables them. The `Uart` is one shared resource. Its
@@ -22,20 +22,20 @@ use panic_probe as _;
 #[rtic::app(device = ferrohal_stm32::device, peripherals = true, dispatchers = [SPI1])]
 mod app {
     use ferrohal_stm32::{
-        dma::Stream,
+        dma::Channel,
         gpio::{Alternate, Output, Pin, Pull, Speed},
         rcc,
         time::Hertz,
         uart::{Buffers, Config, Uart, Vectors, Wiring},
     };
 
-    /// USART2 on the ST-LINK's pins and its DMA1 streams.
+    /// USART2 on the ST-LINK's pins and its DMA1 channels.
     type Vcp = Wiring<
         ferrohal_stm32::chip::USART2,
         Pin<'A', 2, Alternate<7>>,
         Pin<'A', 3, Alternate<7>>,
-        Stream<1, 6>,
-        Stream<1, 5>,
+        Channel<1, 6>,
+        Channel<1, 5>,
     >;
 
     #[shared]
@@ -70,8 +70,8 @@ mod app {
             uart: p.USART2,
             tx,
             rx,
-            tx_dma: dma1.s6,
-            rx_dma: dma1.s5,
+            tx_dma: dma1.ch6,
+            rx_dma: dma1.ch5,
         };
         // RTIC's init locals are `&'static mut`: the DMA buffers' lifetime.
         let buffers = Buffers {

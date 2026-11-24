@@ -14,10 +14,10 @@ use core::{
 
 use super::{ERR_DMA_OVERRUN, ERR_DMA_TRANSFER, REGISTER_PASS_CYCLES, Uart};
 use crate::{
-    dma::{AnyStream, Direction, Flags, Interrupts, Priority, StopTimeout, Transfer, WordSize},
+    dma::{AnyChannel, Direction, Flags, Interrupts, Priority, StopTimeout, Transfer, WordSize},
     uart::{
         Error, SendError, TxHealth, Wiring,
-        stream_dma::{Instance, RxDma, RxPin, TxDma, TxPin},
+        dma::{Instance, RxDma, RxPin, TxDma, TxPin},
         tx_ring::{self, FRAMES, Frame, FrameQueue, Outcomes, TxOutcome},
     },
     usart_ip::Unit,
@@ -33,7 +33,7 @@ use crate::{
 const TX_PASS_CYCLES: u32 = 48;
 
 pub(super) struct Tx {
-    dma: AnyStream,
+    dma: AnyChannel,
     request: u8,
     buf: *mut u8,
     cap: u16,
@@ -42,7 +42,7 @@ pub(super) struct Tx {
     write: u16,
     /// The frame at the queue's head is in flight.
     running: bool,
-    /// The stream did not stop or start; transmission is off for good.
+    /// The channel did not stop or start; transmission is off for good.
     halted: bool,
     errors: u8,
     health: TxHealth,
@@ -63,7 +63,7 @@ pub(super) struct Tx {
 }
 
 impl Tx {
-    pub(super) fn new(dma: AnyStream, request: u8, buf: &mut [u8], cap: u16) -> Self {
+    pub(super) fn new(dma: AnyChannel, request: u8, buf: &mut [u8], cap: u16) -> Self {
         Self {
             dma,
             request,
@@ -88,14 +88,14 @@ impl Tx {
         (self.buf, usize::from(self.cap))
     }
 
-    /// Stops a stream an earlier owner left running, and clears its flags.
-    pub(super) fn reset_stream(&mut self) -> Result<(), StopTimeout> {
+    /// Stops a channel an earlier owner left running, and clears its flags.
+    pub(super) fn reset_dma(&mut self) -> Result<(), StopTimeout> {
         self.dma.stop(crate::dma::STOP_SPINS)?;
         self.dma.clear_flags(Flags::ALL);
         Ok(())
     }
 
-    /// Stops the transmit stream, drops the queue, and marks transmission
+    /// Stops the transmit channel, drops the queue, and marks transmission
     /// off for good: what `free` runs.
     pub(super) fn halt(&mut self) -> Result<(), StopTimeout> {
         self.halted = true;
@@ -163,7 +163,7 @@ impl Tx {
             let flags = self.dma.flags();
             if flags.failed() {
                 if self.dma.stop(crate::dma::STOP_SPINS).is_err() {
-                    // As in `time_out`: no vector for a stream left running.
+                    // As in `time_out`: no vector for a channel left running.
                     self.dma.set_interrupts(Interrupts::default());
                     self.halted = true;
                 }
@@ -229,7 +229,7 @@ impl Tx {
         .for_usart();
         // SAFETY: the frame's bytes are in the transmit buffer, written before
         // the frame was queued and untouched until it is popped, after the
-        // stream has finished with it. The routing trait vouched for the
+        // channel has finished with it. The routing trait vouched for the
         // request.
         match unsafe { self.dma.start(&transfer) } {
             Ok(()) => self.running = true,
@@ -265,10 +265,10 @@ impl Tx {
         tx_ring::largest(self.write, oldest, self.cap)
     }
 
-    /// A frame did not finish in time: stop the stream, drop the queue.
+    /// A frame did not finish in time: stop the channel, drop the queue.
     fn time_out<T>(&mut self) -> Result<T, Error> {
         self.health.timeouts = self.health.timeouts.saturating_add(1);
-        // Interrupts off first: a stream that does not stop finishes its
+        // Interrupts off first: a channel that does not stop finishes its
         // frame later and sets its complete flag, which nothing here will
         // clear once transmission is halted, so its vector would fire
         // without end. The next transfer's start enables them again.
@@ -303,7 +303,7 @@ where
     /// Queues `frame` whole, or not at all, and starts it if the line is
     /// free. Frames go out in order, back to back.
     ///
-    /// With the transmit stream's vector bound to
+    /// With the transmit channel's vector bound to
     /// [`on_interrupt`](Uart::on_interrupt), each finished frame starts the
     /// next from the interrupt. Without it, queued frames move on whenever
     /// the UART is served or called: `try_send`, `write`, `flush` or
@@ -335,7 +335,7 @@ where
         unsafe {
             ptr::copy_nonoverlapping(frame.as_ptr(), tx.buf.add(usize::from(offset)), frame.len())
         };
-        // The bytes land before the stream that sends them starts.
+        // The bytes land before the channel that sends them starts.
         fence(Ordering::SeqCst);
         tx.frames.push(Frame { offset, len });
         tx.write = offset + len;

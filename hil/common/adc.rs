@@ -231,7 +231,7 @@ fn once<A: adc::Instance, S>(scan: &mut AdcScan<A, S>, bound_cycles: u32) -> boo
     false
 }
 
-/// Frees `scan` back to the ADC, its stream and its buffer, runs a sequence
+/// Frees `scan` back to the ADC, its DMA channel and its buffer, runs a sequence
 /// from those parts, then frees the ADC and reopens it from its token.
 /// `powered` reads the ADC's own enable bit, so the check sees it off.
 pub fn freed<A: InternalChannels, S: adc::Dma<A>>(
@@ -243,29 +243,29 @@ pub fn freed<A: InternalChannels, S: adc::Dma<A>>(
     bound_cycles: u32,
     powered: impl Fn() -> bool,
 ) {
-    let Ok((adc, stream, buffer)) = scan.free() else {
+    let Ok((adc, dma, buffer)) = scan.free() else {
         expect(
             report,
             name,
-            "a freed scan's ADC, stream and buffer scan again [API-002]",
+            "a freed scan's ADC, DMA channel and buffer scan again [API-002]",
             false,
             0,
             1,
         );
         return;
     };
-    let adc = match adc.into_scan(stream, channels, buffer) {
+    let adc = match adc.into_scan(dma, channels, buffer) {
         Ok(mut again) => {
             let ran = once(&mut again, bound_cycles);
             expect(
                 report,
                 name,
-                "a freed scan's ADC, stream and buffer scan again [API-002]",
+                "a freed scan's ADC, DMA channel and buffer scan again [API-002]",
                 ran,
                 u32::from(ran),
                 1,
             );
-            let Ok((adc, _stream, _buffer)) = again.free() else {
+            let Ok((adc, _dma, _buffer)) = again.free() else {
                 expect(
                     report,
                     name,
@@ -282,12 +282,12 @@ pub fn freed<A: InternalChannels, S: adc::Dma<A>>(
             expect(
                 report,
                 name,
-                "a freed scan's ADC, stream and buffer scan again [API-002]",
+                "a freed scan's ADC, DMA channel and buffer scan again [API-002]",
                 false,
                 0,
                 1,
             );
-            let (adc, _stream, _buffer) = refused.into_parts();
+            let (adc, _dma, _buffer) = refused.into_parts();
             adc
         }
     };

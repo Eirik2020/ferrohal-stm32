@@ -18,14 +18,14 @@ read. Noise: USART1 sends 8N2 at 120500, 4.6 % fast for the receiver's
 bit straddles the stop, so the noise flag fires with every byte intact and
 no framing error; below 4.35 % no sample straddles, above 5.1 % the middle
 one crosses too and the byte corrupts. DMA transfer error: USART6's
-receive stream is stopped, re-pointed at 0x20200000, past the 96 KiB of
+receive DMA channel is stopped, re-pointed at 0x20200000, past the 96 KiB of
 SRAM, and restarted; the next byte is a bus error, the driver reports
 `Error::Dma` and restarts the ring on its own buffer, and an echo after the
 gap succeeds — what the outage costs is timing (a frame completed into a
-dead stream raises overrun, whose mark the restart wipes), so the bytes
+dead DMA channel raises overrun, whose mark the restart wipes), so the bytes
 right after the gap go to the log unnamed. Timeout: USART1's DMA transmit
 request is disconnected before a 128-byte frame is queued, so nothing
-drains; the queue's bound expires, the driver stops the stream, drops the
+drains; the queue's bound expires, the driver stops the DMA channel, drops the
 queue, counts the timeout and reports it from `flush`, and the next frame
 goes out whole. Pass: every check passes and the script exits zero.
 
@@ -39,7 +39,7 @@ the run waits for the flag to be counted before the request returns; v4
 clears through ICR, which touches no byte, so A survives, and whether B is
 discarded or lands once the request returns is the shift register's
 timing, which the check accepts both ways. DMA transfer error: USART6's
-receive stream is re-pointed at the DTCM, which DMA1 and DMA2 cannot reach
+receive DMA channel is re-pointed at the DTCM, which DMA1 and DMA2 cannot reach
 — the same fact `ConfigError::Buffer(BufferError::Unreachable)` refuses at construction —
 and the next byte is a bus error; the driver reports `Error::Dma`, restarts
 the ring on its own buffer, and an echo after the gap succeeds. Timeout:
@@ -47,22 +47,22 @@ USART6's DMA transmit request is disconnected before a 128-byte frame is
 queued; the bound expires, the queue is dropped and counted, and the next
 frame goes out whole. Pass: every check passes and the script exits zero.
 
-## Streams that will not stop on the Nucleo-H753ZI
+## DMA channels that will not stop on the Nucleo-H753ZI
 
 `hil/run-h753.sh t`, with Z2 and S1 fitted. Run T alone is built with the library's
-`fault-injection` feature: `dma::fault` marks a stream to ignore stop requests, so a
+`fault-injection` feature: `dma::fault` marks a DMA channel to ignore stop requests, so a
 running one keeps EN set and every bounded stop on it times out. It uses run U's parts.
-USART6's transmit stream is marked with `CR3.DMAT` off, so it waits for requests: the
-flush reports Halted with the stream still enabled; with DMAT back the stream drains its
-frame and the receiver takes it whole; once the stream has stopped the transmit side
+USART6's transmit DMA channel is marked with `CR3.DMAT` off, so it waits for requests: the
+flush reports Halted with the DMA channel still enabled; with DMAT back the DMA channel drains its
+frame and the receiver takes it whole; once the DMA channel has stopped the transmit side
 still refuses, until a free and a reopen echo again [UART-DMA-009]. With the receive ring
-marked, `free` refuses with `StopTimeout`, the stream still running, and hands back the
-UART, whose reads report Halted; released, the retried `free` succeeds with both streams
-stopped [API-003]. A receive stream re-armed by hand at a scratch buffer, as an earlier
+marked, `free` refuses with `StopTimeout`, the DMA channel still running, and hands back the
+UART, whose reads report Halted; released, the retried `free` succeeds with both DMA channels
+stopped [API-003]. A receive DMA channel re-armed by hand at a scratch buffer, as an earlier
 owner might leave it, makes `Uart::new` refuse with DmaBusy; released, the same parts
 open and echo. SPI1 (mid-transfer at 390 kHz), TIM3 CH3's lane (armed, its timer
-stopped), TIM8's sampler (mid-capture at 10 kHz) and ADC1's scan (its stream re-armed
-after a sequence) each refuse `free` with the stream marked and still running, and free
+stopped), TIM8's sampler (mid-capture at 10 kHz) and ADC1's scan (its DMA channel re-armed
+after a sequence) each refuse `free` with the DMA channel marked and still running, and free
 once it is released. Pass: every check passes and the script exits zero.
 
 ## The cache and MPU matrix on the Nucleo-H753ZI

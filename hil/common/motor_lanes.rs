@@ -1,6 +1,6 @@
 //! A flight controller's motor DMA routes, in the flight code's arrangement,
 //! through the lane group with every output disabled: the timers count
-//! and the streams feed their compare registers, and nothing reaches a motor pad. Whether a real frame is
+//! and the DMA channels feed their compare registers, and nothing reaches a motor pad. Whether a real frame is
 //! right on the wire is the Nucleo benches' check, whose samplers read it.
 
 use ferrohal_stm32::timer::{LaneGroup, ChannelTimer, Frame, Lanes};
@@ -135,7 +135,7 @@ pub fn suite<T1, T2, L1, L2>(
         report,
         link,
         done == FRAMES,
-        "motors: {} of {} frames on all four streams through the lane group, slowest {} us",
+        "motors: {} of {} frames on all four DMA channels through the lane group, slowest {} us",
         done,
         FRAMES,
         slowest_us

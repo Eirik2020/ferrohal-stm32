@@ -159,10 +159,10 @@ requirements:
     title: Each phase moves by DMA from the IP version's threshold up
     statement: >-
       A phase at least its IP version's threshold long shall move its bytes by
-      DMA when the wiring has streams, and every other phase from the
+      DMA when the wiring has channels, and every other phase from the
       event interrupt.
     rationale: >-
-      The bench measured a stream's cost flat in length and the interrupt's
+      The bench measured a channel's cost flat in length and the interrupt's
       per byte; below the crossover the interrupt costs the CPU less.
     derived_from: [I2C-007]
     verification:
@@ -176,11 +176,11 @@ requirements:
     title: A transaction that cannot run is refused before the bus moves
     statement: >-
       A start while one runs, a phase empty, longer than its buffer or than
-      255 bytes, an address past 7 bits, or a DMA buffer the stream
+      255 bytes, an address past 7 bits, or a DMA buffer the channel
       cannot reach shall be refused with the transaction handed back and
       nothing put on the bus.
     rationale: >-
-      A refusal that keeps the buffers lets the caller retry; a stream pointed
+      A refusal that keeps the buffers lets the caller retry; a channel pointed
       at memory it cannot reach would fault or read stale cache.
     derived_from: [G2]
     verification:
@@ -193,7 +193,7 @@ requirements:
   - id: I2C-010
     title: A failed transaction ends with its fault and the bus put back
     statement: >-
-      A NACK, lost arbitration, an overrun or a stream fault shall end the
+      A NACK, lost arbitration, an overrun or a channel fault shall end the
       transaction with that fault and its buffers, the flags cleared, so
       the next transaction runs.
     rationale: >-
@@ -228,10 +228,10 @@ requirements:
     title: An interrupt-driven open that cannot run is refused
     statement: >-
       An open with a speed or kernel clock the IP version cannot time, or a
-      stream an earlier owner left running, shall be refused with the
+      channel an earlier owner left running, shall be refused with the
       wiring handed back.
     rationale: >-
-      Starting anyway could break a device or point a running stream at new
+      Starting anyway could break a device or point a running channel at new
       memory; the wiring kept lets the firmware try another route.
     derived_from: [G2]
     verification:
@@ -245,7 +245,7 @@ requirements:
     title: The interrupt-driven driver counts what happened
     statement: >-
       The interrupt-driven driver shall count completed, NACKed, faulted,
-      aborted and refused transactions, bus errors, stream faults, and
+      aborted and refused transactions, bus errors, channel faults, and
       phases by DMA and by interrupt, from its open.
     rationale: >-
       Health monitoring reads the counts; a bus error the errata say to carry
@@ -280,7 +280,7 @@ requirements:
     title: I2C v1 moves a phase by DMA as the manual sequences it
     statement: >-
       I2C v1 shall move a DMA phase with DMAEN and ITBUFEN off, a receive with
-      LAST and its stop at the stream's transfer complete, a write's
+      LAST and its stop at the channel's transfer complete, a write's
       stop at BTF after DMAEN drops, and a one-byte receive from the
       event interrupt.
     rationale: >-

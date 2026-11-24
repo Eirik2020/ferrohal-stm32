@@ -1,7 +1,7 @@
-//! Nucleo-F401RE (MB1136): the clock tree, and which pins and DMA streams
+//! Nucleo-F401RE (MB1136): the clock tree, and which pins and DMA channels
 //! each UART uses in each test run. This file is chip-specific; a board on
 //! another chip has its own. FerroHAL's routing traits check every choice
-//! here at compile time: a pin without the UART's function, or a stream
+//! here at compile time: a pin without the UART's function, or a DMA channel
 //! that cannot serve its request, does not build.
 //!
 //! The bench (UM1724 tables 16 and 29; no solder bridge on any of these):
@@ -54,7 +54,7 @@ use ferrohal_stm32::{
         I2C1, I2C3, Peripherals, SPI1, SPI2, SPI3, TIM1, TIM2, TIM3, TIM4, TIM5, TIM9, TIM10,
         TIM11, USART1, USART2, USART6,
     },
-    dma::Stream,
+    dma::Channel,
     exti,
     gpio::{Alternate, OpenDrain, Ctrl, Input, Output, Pin, Port, PortInstance, Pull, Speed},
     i2c,
@@ -136,26 +136,26 @@ type Af8<const P: char, const N: u8> = Pin<P, N, Alternate<8>>;
 
 // Run A: every UART on its own, all at once.
 
-/// USART1 over J1. DMA2 stream 7 transmits, stream 2 receives.
-pub type Usart1Loop = Wiring<USART1, Af7<'A', 9>, Af7<'A', 10>, Stream<2, 7>, Stream<2, 2>>;
-/// USART6 over J2. DMA2 stream 6 transmits, stream 1 receives.
-pub type Usart6Loop = Wiring<USART6, Af8<'A', 11>, Af8<'A', 12>, Stream<2, 6>, Stream<2, 1>>;
-/// USART2 through the ST-LINK. DMA1 stream 6 transmits, stream 5 receives.
-pub type Usart2Vcp = Wiring<USART2, Af7<'A', 2>, Af7<'A', 3>, Stream<1, 6>, Stream<1, 5>>;
+/// USART1 over J1. DMA2 channel 7 transmits, channel 2 receives.
+pub type Usart1Loop = Wiring<USART1, Af7<'A', 9>, Af7<'A', 10>, Channel<2, 7>, Channel<2, 2>>;
+/// USART6 over J2. DMA2 channel 6 transmits, channel 1 receives.
+pub type Usart6Loop = Wiring<USART6, Af8<'A', 11>, Af8<'A', 12>, Channel<2, 6>, Channel<2, 1>>;
+/// USART2 through the ST-LINK. DMA1 channel 6 transmits, channel 5 receives.
+pub type Usart2Vcp = Wiring<USART2, Af7<'A', 2>, Af7<'A', 3>, Channel<1, 6>, Channel<1, 5>>;
 
 // Run B: USART1 and USART6 wired to each other.
 
 /// USART1 on its other pins: TX over J3 to USART6, RX over J4 from it.
-/// DMA2 stream 7 transmits, stream 5 receives.
-pub type Usart1Cross = Wiring<USART1, Af7<'B', 6>, Af7<'B', 7>, Stream<2, 7>, Stream<2, 5>>;
+/// DMA2 channel 7 transmits, channel 5 receives.
+pub type Usart1Cross = Wiring<USART1, Af7<'B', 6>, Af7<'B', 7>, Channel<2, 7>, Channel<2, 5>>;
 /// USART6 on its other pins: TX over J4 to USART1, RX over J3 from it.
-/// DMA2 stream 6 transmits, stream 2 receives.
-pub type Usart6Cross = Wiring<USART6, Af8<'C', 6>, Af8<'C', 7>, Stream<2, 6>, Stream<2, 2>>;
+/// DMA2 channel 6 transmits, channel 2 receives.
+pub type Usart6Cross = Wiring<USART6, Af8<'C', 6>, Af8<'C', 7>, Channel<2, 6>, Channel<2, 2>>;
 
-// Run C: USART6's other transmit stream, which USART1 holds in runs A and B.
+// Run C: USART6's other transmit DMA channel, which USART1 holds in runs A and B.
 
-/// USART6 over J2. DMA2 stream 7 transmits, stream 1 receives.
-pub type Usart6LoopS7 = Wiring<USART6, Af8<'A', 11>, Af8<'A', 12>, Stream<2, 7>, Stream<2, 1>>;
+/// USART6 over J2. DMA2 channel 7 transmits, channel 1 receives.
+pub type Usart6LoopCh7 = Wiring<USART6, Af8<'A', 11>, Af8<'A', 12>, Channel<2, 7>, Channel<2, 1>>;
 
 /// LD2, the green user LED, on PA5.
 pub type Led = Pin<'A', 5, Output>;
@@ -176,7 +176,7 @@ pub struct RunB {
 }
 
 // Run W: faults injected on run B's cross-wired pair, same link and same
-// streams.
+// DMA channels.
 
 pub struct RunW {
     pub rcc: Rcc,
@@ -216,23 +216,23 @@ pub fn run_w(p: Peripherals) -> Result<RunW, ClockError> {
             uart: p.USART1,
             tx: tx1,
             rx: rx1,
-            tx_dma: dma2.s7,
-            rx_dma: dma2.s5,
+            tx_dma: dma2.ch7,
+            rx_dma: dma2.ch5,
         },
         usart6: Wiring {
             uart: p.USART6,
             tx: tx6,
             rx: rx6,
-            tx_dma: dma2.s6,
-            rx_dma: dma2.s2,
+            tx_dma: dma2.ch6,
+            rx_dma: dma2.ch2,
         },
     })
 }
 
 // Run D: USART6 receive-only on PA12, fed over J2 by PA11 as a GPIO.
 
-/// USART6's RX over J2; DMA2 stream 1 receives.
-pub type Usart6RxOnly = RxWiring<USART6, Af8<'A', 12>, Stream<2, 1>>;
+/// USART6's RX over J2; DMA2 channel 1 receives.
+pub type Usart6RxOnly = RxWiring<USART6, Af8<'A', 12>, Channel<2, 1>>;
 
 pub struct RunD {
     pub rcc: Rcc,
@@ -261,7 +261,7 @@ pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
         usart6: RxWiring {
             uart: p.USART6,
             rx,
-            rx_dma: dma2.s1,
+            rx_dma: dma2.ch1,
         },
         feed,
     })
@@ -270,7 +270,7 @@ pub fn run_d(p: Peripherals) -> Result<RunD, ClockError> {
 pub struct RunC {
     pub rcc: Rcc,
     pub led: Led,
-    pub usart6: Usart6LoopS7,
+    pub usart6: Usart6LoopCh7,
 }
 
 pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
@@ -292,22 +292,22 @@ pub fn run_a(p: Peripherals) -> Result<RunA, ClockError> {
             uart: p.USART1,
             tx: tx1,
             rx: rx1,
-            tx_dma: dma2.s7,
-            rx_dma: dma2.s2,
+            tx_dma: dma2.ch7,
+            rx_dma: dma2.ch2,
         },
         usart6: Wiring {
             uart: p.USART6,
             tx: tx6,
             rx: rx6,
-            tx_dma: dma2.s6,
-            rx_dma: dma2.s1,
+            tx_dma: dma2.ch6,
+            rx_dma: dma2.ch1,
         },
         usart2: Wiring {
             uart: p.USART2,
             tx: tx2,
             rx: rx2,
-            tx_dma: dma1.s6,
-            rx_dma: dma1.s5,
+            tx_dma: dma1.ch6,
+            rx_dma: dma1.ch5,
         },
     })
 }
@@ -343,15 +343,15 @@ pub fn run_b(p: Peripherals) -> Result<RunB, ClockError> {
             uart: p.USART1,
             tx: tx1,
             rx: rx1,
-            tx_dma: dma2.s7,
-            rx_dma: dma2.s5,
+            tx_dma: dma2.ch7,
+            rx_dma: dma2.ch5,
         },
         usart6: Wiring {
             uart: p.USART6,
             tx: tx6,
             rx: rx6,
-            tx_dma: dma2.s6,
-            rx_dma: dma2.s2,
+            tx_dma: dma2.ch6,
+            rx_dma: dma2.ch2,
         },
     })
 }
@@ -372,14 +372,14 @@ pub fn run_c(p: Peripherals) -> Result<RunC, ClockError> {
             uart: p.USART6,
             tx: tx6,
             rx: rx6,
-            tx_dma: dma2.s7,
-            rx_dma: dma2.s1,
+            tx_dma: dma2.ch7,
+            rx_dma: dma2.ch1,
         },
     })
 }
 
 // Runs E to G: SPI over the S links, every pin and DMA route RM0368 lists
-// for SPI1 to SPI3, each instance and stream once per run.
+// for SPI1 to SPI3, each instance and DMA channel once per run.
 
 /// The SPI links' normal setting: 10 MHz at most, so 5.25 MHz on every SPI
 /// (SPI1 from PCLK2 / 16, SPI2 and SPI3 from PCLK1 / 8).
@@ -396,24 +396,24 @@ const _: () = assert!(matches!(
 type Af5<const P: char, const N: u8> = Pin<P, N, Alternate<5>>;
 type Af6<const P: char, const N: u8> = Pin<P, N, Alternate<6>>;
 
-/// SPI1 on the Foxeer F405's IMU pins and streams, over S1. SCK is LD2.
+/// SPI1 on the Foxeer F405's IMU pins and DMA channels, over S1. SCK is LD2.
 pub type Spi1Foxeer =
-    spi::Wiring<SPI1, Af5<'A', 5>, Af5<'A', 6>, Af5<'A', 7>, Stream<2, 3>, Stream<2, 0>>;
+    spi::Wiring<SPI1, Af5<'A', 5>, Af5<'A', 6>, Af5<'A', 7>, Channel<2, 3>, Channel<2, 0>>;
 /// SPI3 on port C, over S5.
 pub type Spi3PortC =
-    spi::Wiring<SPI3, Af6<'C', 10>, Af6<'C', 11>, Af6<'C', 12>, Stream<1, 7>, Stream<1, 2>>;
+    spi::Wiring<SPI3, Af6<'C', 10>, Af6<'C', 11>, Af6<'C', 12>, Channel<1, 7>, Channel<1, 2>>;
 /// SPI2 on port B, over S3.
 pub type Spi2PortB =
-    spi::Wiring<SPI2, Af5<'B', 13>, Af5<'B', 14>, Af5<'B', 15>, Stream<1, 4>, Stream<1, 3>>;
+    spi::Wiring<SPI2, Af5<'B', 13>, Af5<'B', 14>, Af5<'B', 15>, Channel<1, 4>, Channel<1, 3>>;
 /// SPI1 on port B, over S2.
 pub type Spi1PortB =
-    spi::Wiring<SPI1, Af5<'B', 3>, Af5<'B', 4>, Af5<'B', 5>, Stream<2, 5>, Stream<2, 2>>;
+    spi::Wiring<SPI1, Af5<'B', 3>, Af5<'B', 4>, Af5<'B', 5>, Channel<2, 5>, Channel<2, 2>>;
 /// SPI2 with SCK on PB10, MISO and MOSI on port C, over S4.
 pub type Spi2PortC =
-    spi::Wiring<SPI2, Af5<'B', 10>, Af5<'C', 2>, Af5<'C', 3>, Stream<1, 4>, Stream<1, 3>>;
+    spi::Wiring<SPI2, Af5<'B', 10>, Af5<'C', 2>, Af5<'C', 3>, Channel<1, 4>, Channel<1, 3>>;
 /// SPI3 on port B, over S2.
 pub type Spi3PortB =
-    spi::Wiring<SPI3, Af6<'B', 3>, Af6<'B', 4>, Af6<'B', 5>, Stream<1, 5>, Stream<1, 0>>;
+    spi::Wiring<SPI3, Af6<'B', 3>, Af6<'B', 4>, Af6<'B', 5>, Channel<1, 5>, Channel<1, 0>>;
 
 pub struct RunE {
     pub rcc: Rcc,
@@ -423,10 +423,10 @@ pub struct RunE {
     pub spi2: Spi2PortB,
     /// PA11, driving PA12 over J2 for the EXTI checks.
     pub feed: Pin<'A', 11, Output>,
-    /// TIM1's update request on DMA2 stream 5 samples port A: SPI1's SCK
+    /// TIM1's update request on DMA2 channel 5 samples port A: SPI1's SCK
     /// (PA5) and the MISO end of S1 (PA6), for the wire check [SPI-010].
     pub tim1: TIM1,
-    pub sampler: Stream<2, 5>,
+    pub sampler: Channel<2, 5>,
 }
 
 pub struct RunF {
@@ -466,28 +466,28 @@ pub fn run_e(p: Peripherals) -> Result<RunE, ClockError> {
             sck: sck(a.p5, &mut a.ctrl),
             miso: miso(a.p6, &mut a.ctrl),
             mosi: mosi(a.p7, &mut a.ctrl),
-            tx_dma: dma2.s3,
-            rx_dma: dma2.s0,
+            tx_dma: dma2.ch3,
+            rx_dma: dma2.ch0,
         },
         spi3: spi::Wiring {
             spi: p.SPI3,
             sck: sck(c.p10, &mut c.ctrl),
             miso: miso(c.p11, &mut c.ctrl),
             mosi: mosi(c.p12, &mut c.ctrl),
-            tx_dma: dma1.s7,
-            rx_dma: dma1.s2,
+            tx_dma: dma1.ch7,
+            rx_dma: dma1.ch2,
         },
         spi2: spi::Wiring {
             spi: p.SPI2,
             sck: sck(b.p13, &mut b.ctrl),
             miso: miso(b.p14, &mut b.ctrl),
             mosi: mosi(b.p15, &mut b.ctrl),
-            tx_dma: dma1.s4,
-            rx_dma: dma1.s3,
+            tx_dma: dma1.ch4,
+            rx_dma: dma1.ch3,
         },
         feed,
         tim1: p.TIM1,
-        sampler: dma2.s5,
+        sampler: dma2.ch5,
         rcc,
     })
 }
@@ -509,16 +509,16 @@ pub fn run_f(p: Peripherals) -> Result<RunF, ClockError> {
             sck: sck(b.p3, &mut b.ctrl),
             miso: miso(b.p4, &mut b.ctrl),
             mosi: mosi(b.p5, &mut b.ctrl),
-            tx_dma: dma2.s5,
-            rx_dma: dma2.s2,
+            tx_dma: dma2.ch5,
+            rx_dma: dma2.ch2,
         },
         spi2: spi::Wiring {
             spi: p.SPI2,
             sck: sck(b.p10, &mut b.ctrl),
             miso: miso(c.p2, &mut c.ctrl),
             mosi: mosi(c.p3, &mut c.ctrl),
-            tx_dma: dma1.s4,
-            rx_dma: dma1.s3,
+            tx_dma: dma1.ch4,
+            rx_dma: dma1.ch3,
         },
         rcc,
     })
@@ -541,8 +541,8 @@ pub fn run_g(p: Peripherals) -> Result<RunG, ClockError> {
             sck: sck(b.p3, &mut b.ctrl),
             miso: miso(b.p4, &mut b.ctrl),
             mosi: mosi(b.p5, &mut b.ctrl),
-            tx_dma: dma1.s5,
-            rx_dma: dma1.s0,
+            tx_dma: dma1.ch5,
+            rx_dma: dma1.ch0,
         },
         led,
         rcc,
@@ -594,9 +594,9 @@ pub fn run_h(p: Peripherals) -> Result<RunH, ClockError> {
 
 // Run I: DShot-style compare lanes, sampled. No links.
 
-/// The lanes: TIM3 channels 3 and 4 on PB0 and PB1 (DMA1 streams 7 and 2),
+/// The lanes: TIM3 channels 3 and 4 on PB0 and PB1 (DMA1 channels 7 and 2),
 /// an APB1 timer on DMA1. The sampler: TIM1's update request on DMA2
-/// stream 5, reading port B. DMA2 then serves only GPIO and memory, never
+/// channel 5, reading port B. DMA2 then serves only GPIO and memory, never
 /// APB2, so ES0299 2.2.11 can't strike.
 pub struct RunI {
     pub rcc: Rcc,
@@ -604,10 +604,10 @@ pub struct RunI {
     pub tim3: TIM3,
     pub ch3: Pin<'B', 0, Alternate<2>>,
     pub ch4: Pin<'B', 1, Alternate<2>>,
-    pub lane3: Stream<1, 7>,
-    pub lane4: Stream<1, 2>,
+    pub lane3: Channel<1, 7>,
+    pub lane4: Channel<1, 2>,
     pub tim1: TIM1,
-    pub sampler: Stream<2, 5>,
+    pub sampler: Channel<2, 5>,
     /// TIM4 channel 1 on PB6, for the one-pulse check: a pin the sampler's
     /// port B reads, used by nothing else in this run.
     pub tim4: TIM4,
@@ -629,10 +629,10 @@ pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
         tim3: p.TIM3,
         ch3: sck(b.p0, &mut b.ctrl),
         ch4: sck(b.p1, &mut b.ctrl),
-        lane3: dma1.s7,
-        lane4: dma1.s2,
+        lane3: dma1.ch7,
+        lane4: dma1.ch2,
         tim1: p.TIM1,
-        sampler: dma2.s5,
+        sampler: dma2.ch5,
         tim4: p.TIM4,
         pb6: b.p6.into_alternate::<2>(&mut b.ctrl),
         rcc,
@@ -642,16 +642,16 @@ pub fn run_i(p: Peripherals) -> Result<RunI, ClockError> {
 // Run R: the SpeedyBee F405 V5's four motor lanes on two timers, one start.
 
 /// The lanes: TIM3 channels 3 and 4 on PB0 and PB1, TIM2 channel 3 on PB10
-/// and channel 2 on PB3 (DMA1 streams 7, 2, 1 and 6) — the SpeedyBee F405
+/// and channel 2 on PB3 (DMA1 channels 7, 2, 1 and 6) — the SpeedyBee F405
 /// V5's motor arrangement as far as this package carries it. The board's
 /// TIM2 CH4 pin, PB11, is not bonded on the F401's LQFP64 (DS10086's pin
 /// table; metapac has no PB11), so the bench's second TIM2 lane rides CH2 on
-/// PB3 over TIM2 CH4's own DMA route, stream 6 channel 3; the board's PB11
+/// PB3 over TIM2 CH4's own DMA route, DMA channel 6 request 3; the board's PB11
 /// lane is glue-checked for the F405 and proven on the board itself. The
-/// sampler: TIM1's update request on DMA2 stream 5, reading port B, so DMA2
+/// sampler: TIM1's update request on DMA2 channel 5, reading port B, so DMA2
 /// serves only GPIO and memory and ES0299 2.2.11 can't strike. RM0090: DMA1's
 /// AHB peripheral port is not connected to the bus matrix, so a reply on one
-/// of these lanes is read by the sampler, not by the lane's own stream — the
+/// of these lanes is read by the sampler, not by the lane's own DMA channel — the
 /// shape the board's bidirectional DShot will use.
 pub struct RunR {
     pub rcc: Rcc,
@@ -662,12 +662,12 @@ pub struct RunR {
     pub ch4: Pin<'B', 1, Alternate<2>>,
     pub ch23: Pin<'B', 10, Alternate<1>>,
     pub ch22: Pin<'B', 3, Alternate<1>>,
-    pub lane3: Stream<1, 7>,
-    pub lane4: Stream<1, 2>,
-    pub lane23: Stream<1, 1>,
-    pub lane22: Stream<1, 6>,
+    pub lane3: Channel<1, 7>,
+    pub lane4: Channel<1, 2>,
+    pub lane23: Channel<1, 1>,
+    pub lane22: Channel<1, 6>,
     pub tim1: TIM1,
-    pub sampler: Stream<2, 5>,
+    pub sampler: Channel<2, 5>,
 }
 
 pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
@@ -688,20 +688,20 @@ pub fn run_r(p: Peripherals) -> Result<RunR, ClockError> {
         ch4: sck(b.p1, &mut b.ctrl),
         ch23: sck(b.p10, &mut b.ctrl),
         ch22: sck(b.p3, &mut b.ctrl),
-        lane3: dma1.s7,
-        lane4: dma1.s2,
-        lane23: dma1.s1,
-        lane22: dma1.s6,
+        lane3: dma1.ch7,
+        lane4: dma1.ch2,
+        lane23: dma1.ch1,
+        lane22: dma1.ch6,
         tim1: p.TIM1,
-        sampler: dma2.s5,
+        sampler: dma2.ch5,
         rcc,
     })
 }
 
 // Run O: the lane group out over J3, read at the far end.
 
-/// TIM4 channel 1 on PB6, on DMA1 stream 0, plays into J3. TIM1's update request
-/// on DMA2 stream 5 reads port C, where J3 reaches PC7, left an input
+/// TIM4 channel 1 on PB6, on DMA1 channel 0, plays into J3. TIM1's update request
+/// on DMA2 channel 5 reads port C, where J3 reaches PC7, left an input
 /// and pulled up: with the sender's output off a released wire reads
 /// high, so "nothing crossed" is a level the checks can see.
 pub struct RunO {
@@ -709,9 +709,9 @@ pub struct RunO {
     pub led: Led,
     pub tim4: TIM4,
     pub pb6: Pin<'B', 6, Alternate<2>>,
-    pub lane: Stream<1, 0>,
+    pub lane: Channel<1, 0>,
     pub tim1: TIM1,
-    pub sampler: Stream<2, 5>,
+    pub sampler: Channel<2, 5>,
     pub pc7: Pin<'C', 7, Input>,
 }
 
@@ -734,9 +734,9 @@ pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
         led,
         tim4: p.TIM4,
         pb6: sck(b.p6, &mut b.ctrl),
-        lane: dma1.s0,
+        lane: dma1.ch0,
         tim1: p.TIM1,
-        sampler: dma2.s5,
+        sampler: dma2.ch5,
         pc7,
         rcc,
     })
@@ -744,18 +744,18 @@ pub fn run_o(p: Peripherals) -> Result<RunO, ClockError> {
 
 // Run P: the lane group in over S1, read by a lane on its own pin.
 
-/// TIM1's channel 1, complementary output on PA7, listens on DMA2 stream 1, the
-/// only DMA here that reaches GPIO. TIM3 channel 1 on PA6, on DMA1 stream 4, plays
+/// TIM1's channel 1, complementary output on PA7, listens on DMA2 channel 1, the
+/// only DMA here that reaches GPIO. TIM3 channel 1 on PA6, on DMA1 channel 4, plays
 /// into the other end of S1. A pull-up holds the line while neither drives it.
 pub struct RunP {
     pub rcc: Rcc,
     pub led: Led,
     pub tim1: TIM1,
     pub pa7: Pin<'A', 7, Alternate<1>>,
-    pub near_lane: Stream<2, 1>,
+    pub near_lane: Channel<2, 1>,
     pub tim3: TIM3,
     pub pa6: Pin<'A', 6, Alternate<2>>,
-    pub far_lane: Stream<1, 4>,
+    pub far_lane: Channel<1, 4>,
 }
 
 pub fn run_p(p: Peripherals) -> Result<RunP, ClockError> {
@@ -773,10 +773,10 @@ pub fn run_p(p: Peripherals) -> Result<RunP, ClockError> {
         led,
         tim1: p.TIM1,
         pa7,
-        near_lane: dma2.s1,
+        near_lane: dma2.ch1,
         tim3: p.TIM3,
         pa6: sck(a.p6, &mut a.ctrl),
-        far_lane: dma1.s4,
+        far_lane: dma1.ch4,
         rcc,
     })
 }
@@ -819,7 +819,7 @@ pub struct RunM {
     pub adc: ferrohal_stm32::chip::ADC1,
     pub analog: Pin<'A', 6, ferrohal_stm32::gpio::Analog>,
     pub drive: Pin<'A', 7, Output>,
-    pub stream: Stream<2, 0>,
+    pub dma: Channel<2, 0>,
 }
 
 pub fn run_m(p: Peripherals) -> Result<RunM, ClockError> {
@@ -838,7 +838,7 @@ pub fn run_m(p: Peripherals) -> Result<RunM, ClockError> {
         adc: p.ADC1,
         analog,
         drive,
-        stream: dma2.s0,
+        dma: dma2.ch0,
     })
 }
 
@@ -1011,14 +1011,14 @@ pub fn run_s(p: Peripherals) -> Result<RunS, ClockError> {
 }
 
 // Run X: run S's wiring and DMA1 for the interrupt-driven I2C master
-// (I2C3_TX on stream 4, I2C3_RX on stream 2, channel 3: RM0368 Table 28).
+// (I2C3_TX on DMA channel 4, I2C3_RX on DMA channel 2, request 3: RM0368 Table 28).
 
 pub struct RunX {
     pub rcc: Rcc,
     pub led: Led,
     pub i2c: I2c3Bus,
-    pub tx: Stream<1, 4>,
-    pub rx: Stream<1, 2>,
+    pub tx: Channel<1, 4>,
+    pub rx: Channel<1, 2>,
 }
 
 pub fn run_x(p: Peripherals) -> Result<RunX, ClockError> {
@@ -1042,8 +1042,8 @@ pub fn run_x(p: Peripherals) -> Result<RunX, ClockError> {
             scl,
             sda,
         },
-        tx: dma1.s4,
-        rx: dma1.s2,
+        tx: dma1.ch4,
+        rx: dma1.ch2,
     })
 }
 
@@ -1094,12 +1094,12 @@ const _: () = {
     }
 };
 
-/// USART1 over J1, DMA2 stream 7 transmitting, stream 2 receiving.
-pub type Usart1LoopS2 = Wiring<USART1, Af7<'A', 9>, Af7<'A', 10>, Stream<2, 7>, Stream<2, 2>>;
-/// SPI3 on port C over S5, DMA1 stream 5 transmitting, stream 2 receiving:
-/// DMA2's streams are the UART's, the ADC scan's and the sampler's.
+/// USART1 over J1, DMA2 channel 7 transmitting, channel 2 receiving.
+pub type Usart1LoopCh2 = Wiring<USART1, Af7<'A', 9>, Af7<'A', 10>, Channel<2, 7>, Channel<2, 2>>;
+/// SPI3 on port C over S5, DMA1 channel 5 transmitting, channel 2 receiving:
+/// DMA2's channels are the UART's, the ADC scan's and the sampler's.
 pub type Spi3PortCRefusal =
-    spi::Wiring<SPI3, Af6<'C', 10>, Af6<'C', 11>, Af6<'C', 12>, Stream<1, 5>, Stream<1, 2>>;
+    spi::Wiring<SPI3, Af6<'C', 10>, Af6<'C', 11>, Af6<'C', 12>, Channel<1, 5>, Channel<1, 2>>;
 
 /// I2C3 to the Pico simulator's link, or to nothing: pulled up either way,
 /// a vacant address is NACKed by the bus itself.
@@ -1117,12 +1117,12 @@ pub struct RunV {
         Pin<'A', 11, Alternate<10>>,
         Pin<'A', 12, Alternate<10>>,
     ),
-    /// USART1 over J1, DMA2 streams 7 and 2.
-    pub usart1: Usart1LoopS2,
-    /// SPI3 over S5, DMA1 streams 5 and 2.
+    /// USART1 over J1, DMA2 channels 7 and 2.
+    pub usart1: Usart1LoopCh2,
+    /// SPI3 over S5, DMA1 channels 5 and 2.
     pub spi3: Spi3PortCRefusal,
-    /// The ADC scan's stream, DMA2 stream 0.
-    pub scan_stream: Stream<2, 0>,
+    /// The ADC scan's DMA channel, DMA2 channel 0.
+    pub scan_dma: Channel<2, 0>,
     /// SPI2 polled over S3.
     pub spi2_polled: Spi2Polled,
     /// I2C3 on PA8 and PC9.
@@ -1133,19 +1133,19 @@ pub struct RunV {
     /// lane construction uses PC8's channel with PB0's buffer.
     pub tim3: TIM3,
     pub ch3: Pin<'B', 0, Alternate<2>>,
-    /// TIM3 CH3's stream, DMA1 stream 7.
-    pub lane3_stream: Stream<1, 7>,
-    /// TIM4's CH1 on PB6, run O's waveform pin, on DMA1 stream 0; TIM2's
-    /// CH3 on PB10, run R's, on DMA1 stream 1; both read back by the TIM1
-    /// sampler on DMA2 stream 5.
+    /// TIM3 CH3's DMA channel, DMA1 channel 7.
+    pub lane3_dma: Channel<1, 7>,
+    /// TIM4's CH1 on PB6, run O's waveform pin, on DMA1 channel 0; TIM2's
+    /// CH3 on PB10, run R's, on DMA1 channel 1; both read back by the TIM1
+    /// sampler on DMA2 channel 5.
     pub tim4: TIM4,
     pub pb6: Pin<'B', 6, Alternate<2>>,
-    pub lane4_stream: Stream<1, 0>,
+    pub lane4_dma: Channel<1, 0>,
     pub tim2: TIM2,
     pub pb10: Pin<'B', 10, Alternate<1>>,
-    pub lane2_stream: Stream<1, 1>,
+    pub lane2_dma: Channel<1, 1>,
     pub tim1: TIM1,
-    pub sampler_stream: Stream<2, 5>,
+    pub sampler_dma: Channel<2, 5>,
     /// TIM9 for the tick, TIM5 for the timebase.
     pub tim9: TIM9,
     pub tim5: TIM5,
@@ -1195,18 +1195,18 @@ pub fn run_v(p: Peripherals) -> Result<(RunV, ClockError), ClockError> {
                 uart: p.USART1,
                 tx: tx1,
                 rx: rx1,
-                tx_dma: dma2.s7,
-                rx_dma: dma2.s2,
+                tx_dma: dma2.ch7,
+                rx_dma: dma2.ch2,
             },
             spi3: spi::Wiring {
                 spi: p.SPI3,
                 sck: sck(c.p10, &mut c.ctrl),
                 miso: miso(c.p11, &mut c.ctrl),
                 mosi: mosi(c.p12, &mut c.ctrl),
-                tx_dma: dma1.s5,
-                rx_dma: dma1.s2,
+                tx_dma: dma1.ch5,
+                rx_dma: dma1.ch2,
             },
-            scan_stream: dma2.s0,
+            scan_dma: dma2.ch0,
             spi2_polled: spi::BlockingWiring {
                 spi: p.SPI2,
                 sck: sck(b.p13, &mut b.ctrl),
@@ -1221,15 +1221,15 @@ pub fn run_v(p: Peripherals) -> Result<(RunV, ClockError), ClockError> {
             adc1: p.ADC1,
             tim3: p.TIM3,
             ch3: ch3,
-            lane3_stream: dma1.s7,
+            lane3_dma: dma1.ch7,
             tim4: p.TIM4,
             pb6: pb6,
-            lane4_stream: dma1.s0,
+            lane4_dma: dma1.ch0,
             tim2: p.TIM2,
             pb10: pb10,
-            lane2_stream: dma1.s1,
+            lane2_dma: dma1.ch1,
             tim1: p.TIM1,
-            sampler_stream: dma2.s5,
+            sampler_dma: dma2.ch5,
             tim9: p.TIM9,
             tim5: p.TIM5,
             iwdg: p.IWDG,

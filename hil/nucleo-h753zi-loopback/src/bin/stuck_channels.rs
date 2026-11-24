@@ -1,27 +1,27 @@
-//! Run T: DMA streams that will not stop. Built with the library's
-//! `fault-injection` feature: `dma::fault::stick` makes a stream ignore stop
+//! Run T: DMA channels that will not stop. Built with the library's
+//! `fault-injection` feature: `dma::fault::stick` makes a DMA channel ignore stop
 //! requests, so a running one keeps EN set and every bounded stop on it
-//! times out, as a stream that will not stop would. Run U's parts.
+//! times out, as a DMA channel that will not stop would. Run U's parts.
 //!
-//! - USART6 over Z2: the transmit stream sticks with DMAT off, so it waits
+//! - USART6 over Z2: the transmit DMA channel sticks with DMAT off, so it waits
 //!   for requests; the flush times out, cannot stop it and reports Halted
-//!   [UART-DMA-009]. DMAT back on, the stuck stream drains its frame into
+//!   [UART-DMA-009]. DMAT back on, the stuck DMA channel drains its frame into
 //!   the receiver, which carries on; once it has stopped, the transmit side
 //!   still refuses, until a free and a reopen. Then the receive ring sticks:
 //!   `free` refuses and hands the UART back, its reads Halted, the buffers
-//!   kept [API-003]; released, `free` succeeds. Last, a receive stream an
+//!   kept [API-003]; released, `free` succeeds. Last, a receive DMA channel an
 //!   earlier owner left running (re-armed by hand at a scratch buffer)
 //!   sticks: `Uart::new` refuses with DmaBusy; released, it opens.
-//! - SPI1 over S1, at 390 kHz: `free` mid-transfer with the receive stream
+//! - SPI1 over S1, at 390 kHz: `free` mid-transfer with the receive DMA channel
 //!   stuck refuses [API-003]; released, it succeeds.
-//! - TIM3 CH3's lane, armed with the timer stopped (its stream waits for
-//!   requests): `free` refuses with the stream stuck.
+//! - TIM3 CH3's lane, armed with the timer stopped (its DMA channel waits for
+//!   requests): `free` refuses with the DMA channel stuck.
 //! - TIM8's sampler at 10 kHz, mid-capture: as the lane.
-//! - ADC1's scan, its stream re-armed by hand after a sequence (it waits
+//! - ADC1's scan, its DMA channel re-armed by hand after a sequence (it waits
 //!   for requests no sequence makes): as the lane.
 //!
-//! Each refusal is checked with the stream still running (its EN read
-//! directly), and each retried free with every stream of the handle
+//! Each refusal is checked with the DMA channel still running (its EN read
+//! directly), and each retried free with every DMA channel of the handle
 //! stopped.
 //!
 //! | Vector | Owner | Priority |
@@ -55,16 +55,16 @@ fn held(held: bool) -> Result<(), Fail> {
     }
 }
 
-/// The stream's EN, read directly.
-fn running(dma: Dma, stream: usize) -> bool {
-    dma.st(stream).cr().read().en()
+/// The DMA channel's EN, read directly.
+fn running(dma: Dma, channel: usize) -> bool {
+    dma.st(channel).cr().read().en()
 }
 
-/// Re-enables a stream the driver has stopped, as an earlier owner might
+/// Re-enables a DMA channel the driver has stopped, as an earlier owner might
 /// have left it: its configuration stays, `len` more transfers, waiting for
 /// requests that do not come. `memory`, if given, replaces its target.
-fn rearm(dma: Dma, stream: usize, memory: Option<u32>, len: u16) {
-    let st = dma.st(stream);
+fn rearm(dma: Dma, channel: usize, memory: Option<u32>, len: u16) {
+    let st = dma.st(channel);
     if let Some(address) = memory {
         st.m0ar().write(|w| *w = address);
     }
@@ -160,7 +160,7 @@ mod app {
         static mut SAMPLES: [u16; 1024] = [0; 1024];
         static mut SCAN: [u16; 2] = [0; 2];
         // SAFETY: `checks` runs once, and these are the only references.
-        // SCRATCH is only ever an address handed to a stream.
+        // SCRATCH is only ever an address handed to a DMA channel.
         let (tx, rx, scratch, spi_tx, spi_rx, lane_buf, samples, scan_buf) = unsafe {
             (
                 &mut *core::ptr::addr_of_mut!(TX),
@@ -174,7 +174,7 @@ mod app {
             )
         };
 
-        // USART6: DMA1 stream 6 transmits, stream 1 receives.
+        // USART6: DMA1 channel 6 transmits, channel 1 receives.
         const UART: &str = "USART6 PC6->PC7";
         let config = UartConfig::new(Hertz(115_200));
         let open = |rcc: &mut ferrohal_stm32::rcc::Rcc, wiring, buffers| {
@@ -203,7 +203,7 @@ mod app {
             report.check_for(
                 UART,
                 "UART-DMA-009",
-                "a transmit stream that will not stop: the flush reports Halted",
+                "a transmit DMA channel that will not stop: the flush reports Halted",
                 match flushed {
                     Err(Error::Halted) if running(DMA1, 6) => Ok(()),
                     Err(Error::Halted) => Err(Fail::Count {
@@ -214,7 +214,7 @@ mod app {
                     Ok(()) => Err(Fail::NotReported(Error::Halted)),
                 },
             );
-            // Requests back: the stream that would not stop drains the
+            // Requests back: the DMA channel that would not stop drains the
             // frame into the loop, and the receiver takes it.
             stm32_metapac::USART6.cr3().modify(|w| w.set_dmat(true));
             let mut got = [0u8; 32];
@@ -230,7 +230,7 @@ mod app {
             report.check_for(
                 UART,
                 "UART-DMA-009",
-                "reception carries on: the stuck stream's frame arrives whole",
+                "reception carries on: the stuck DMA channel's frame arrives whole",
                 held(got[..len] == frame),
             );
             fault::release(1, 6);
@@ -239,7 +239,7 @@ mod app {
             report.check_for(
                 UART,
                 "UART-DMA-009",
-                "once the stream has stopped, the transmit side still refuses",
+                "once the DMA channel has stopped, the transmit side still refuses",
                 match again {
                     Err(Error::Halted) if stopped && !running(DMA1, 6) => Ok(()),
                     Err(Error::Halted) => Err(Fail::Count {
@@ -253,7 +253,7 @@ mod app {
         }
         let freed = cx.shared.usart6.lock(|slot| slot.take().map(|uart| uart.free()));
         let Some(Ok((wiring, buffers))) = freed else {
-            report.check(UART, "free once both streams stopped", Err(Fail::Count { expected: 1, got: 0 }));
+            report.check(UART, "free once both DMA channels stopped", Err(Fail::Count { expected: 1, got: 0 }));
             tests::finish(&report, || {})
         };
         let usart6 = match open(&mut run.rcc, wiring, buffers) {
@@ -277,7 +277,7 @@ mod app {
 
         // The receive ring runs all the time; stuck, `free` must refuse.
         // The UART leaves the slot, so from here no handler serves it: the
-        // read below serves the receive stream itself.
+        // read below serves the receive DMA channel itself.
         fault::stick(1, 1);
         // Freed inside the lock (`Uart::free`): an idle line landing after
         // the echo would otherwise raise USART6's vector with no Uart in the
@@ -287,7 +287,7 @@ mod app {
         };
         let Err(refused) = freed else {
             fault::release(1, 1);
-            report.check_for(UART, "API-003", "free refuses while the receive stream will not stop", Err(Fail::Count { expected: 1, got: 0 }));
+            report.check_for(UART, "API-003", "free refuses while the receive DMA channel will not stop", Err(Fail::Count { expected: 1, got: 0 }));
             tests::finish(&report, || {})
         };
         let still = running(DMA1, 1);
@@ -298,22 +298,22 @@ mod app {
         report.check_for(
             UART,
             "API-003 UART-DMA-009",
-            "free refuses while the receive stream will not stop; the UART comes back, reads Halted",
+            "free refuses while the receive DMA channel will not stop; the UART comes back, reads Halted",
             held(error == StopTimeout && still && read == Err(Error::Halted)),
         );
         fault::release(1, 1);
         let Ok((wiring, buffers)) = usart6.free() else {
-            report.check_for(UART, "API-003", "a retried free succeeds once the stream stops", Err(Fail::Count { expected: 1, got: 0 }));
+            report.check_for(UART, "API-003", "a retried free succeeds once the DMA channel stops", Err(Fail::Count { expected: 1, got: 0 }));
             tests::finish(&report, || {})
         };
         report.check_for(
             UART,
             "API-003",
-            "a retried free succeeds once the stream stops; both streams read stopped",
+            "a retried free succeeds once the DMA channel stops; both DMA channels read stopped",
             held(!running(DMA1, 1) && !running(DMA1, 6)),
         );
 
-        // A receive stream an earlier owner left running, at a scratch
+        // A receive DMA channel an earlier owner left running, at a scratch
         // buffer: stuck, the open refuses it.
         rearm(DMA1, 1, Some(scratch), 16);
         fault::stick(1, 1);
@@ -321,14 +321,14 @@ mod app {
         fault::release(1, 1);
         let (wiring, buffers) = match refusal {
             Ok(_) => {
-                report.check_for(UART, "UART-DMA-009", "an open refuses a stream that will not stop", Err(Fail::NotRefused(ConfigError::DmaBusy)));
+                report.check_for(UART, "UART-DMA-009", "an open refuses a DMA channel that will not stop", Err(Fail::NotRefused(ConfigError::DmaBusy)));
                 tests::finish(&report, || {})
             }
             Err(refused) => {
                 report.check_for(
                     UART,
                     "UART-DMA-009",
-                    "an open refuses a stream that will not stop (DmaBusy)",
+                    "an open refuses a DMA channel that will not stop (DmaBusy)",
                     if refused.error() == ConfigError::DmaBusy {
                         Ok(())
                     } else {
@@ -356,7 +356,7 @@ mod app {
             Err(refused) => report.check(UART, "released, the same parts open and echo", Err(Fail::Config(refused.error()))),
         }
 
-        // SPI1, DMA1 streams 5 (transmit) and 4 (receive), at 390 kHz: 256
+        // SPI1, DMA1 channels 5 (transmit) and 4 (receive), at 390 kHz: 256
         // bytes take 5 ms, far longer than a stop's bound.
         const SPI: &str = "SPI1 PA5/PA6/PD7";
         match spi::Spi::new(
@@ -371,14 +371,14 @@ mod app {
                 match spi.free() {
                     Ok(_) => {
                         fault::release(1, 4);
-                        report.check_for(SPI, "API-003", "free refuses mid-transfer while the receive stream will not stop", Err(Fail::Count { expected: 1, got: 0 }));
+                        report.check_for(SPI, "API-003", "free refuses mid-transfer while the receive DMA channel will not stop", Err(Fail::Count { expected: 1, got: 0 }));
                     }
                     Err(refused) => {
                         let still = running(DMA1, 4);
                         report.check_for(
                             SPI,
                             "API-003",
-                            "free refuses mid-transfer while the receive stream will not stop",
+                            "free refuses mid-transfer while the receive DMA channel will not stop",
                             held(started && refused.error() == StopTimeout && still),
                         );
                         fault::release(1, 4);
@@ -386,7 +386,7 @@ mod app {
                         report.check_for(
                             SPI,
                             "API-003",
-                            "a retried free succeeds once the streams stop",
+                            "a retried free succeeds once the DMA channels stop",
                             held(freed && !running(DMA1, 4) && !running(DMA1, 5)),
                         );
                     }
@@ -395,12 +395,12 @@ mod app {
             Err(refused) => report.check(SPI, "open at 390 kHz", Err(Fail::SpiConfig(refused.error()))),
         }
 
-        // TIM3 CH3 on PB0, DMA2 stream 0: armed, the timer never started.
+        // TIM3 CH3 on PB0, DMA2 channel 0: armed, the timer never started.
         const LANE_NAME: &str = "TIM3 CH3 lane";
         let Ok(pwm3) = Pwm::new(&mut run.rcc, run.tim3, Hertz::khz(500)) else {
             defmt::panic!("TIM3 PWM")
         };
-        match LaneWiring::<_, 3, _, _>::new(run.pb0, run.lane3_stream).assemble(&pwm3) {
+        match LaneWiring::<_, 3, _, _>::new(run.pb0, run.lane3_dma).assemble(&pwm3) {
             Ok(mut lane) => {
                 if let Some(words) = lane_buf.get_mut(..4) {
                     words.copy_from_slice(&[1, 2, 3, 4]);
@@ -413,14 +413,14 @@ mod app {
                 match lane.free(&pwm3) {
                     Ok(_) => {
                         fault::release(2, 0);
-                        report.check_for(LANE_NAME, "API-003", "free refuses while the stream will not stop", Err(Fail::Count { expected: 1, got: 0 }));
+                        report.check_for(LANE_NAME, "API-003", "free refuses while the DMA channel will not stop", Err(Fail::Count { expected: 1, got: 0 }));
                     }
                     Err(refused) => {
                         let still = running(DMA2, 0);
                         report.check_for(
                             LANE_NAME,
                             "API-003",
-                            "free refuses while the stream will not stop",
+                            "free refuses while the DMA channel will not stop",
                             held(armed && refused.error() == StopTimeout && still),
                         );
                         fault::release(2, 0);
@@ -428,7 +428,7 @@ mod app {
                         report.check_for(
                             LANE_NAME,
                             "API-003",
-                            "a retried free succeeds once the stream stops",
+                            "a retried free succeeds once the DMA channel stops",
                             held(freed && !running(DMA2, 0)),
                         );
                     }
@@ -437,24 +437,24 @@ mod app {
             Err(refused) => report.check(LANE_NAME, "assemble", Err(Fail::Timer(refused.error()))),
         }
 
-        // TIM8's port-B sampler, DMA1 stream 0, at 10 kHz: 1000 samples
+        // TIM8's port-B sampler, DMA1 channel 0, at 10 kHz: 1000 samples
         // take 100 ms.
         const SAMPLER: &str = "TIM8 sampler";
-        match Sampler::new::<'B'>(&mut run.rcc, run.tim8, run.sampler_stream, Hertz::khz(10), samples) {
+        match Sampler::new::<'B'>(&mut run.rcc, run.tim8, run.sampler_dma, Hertz::khz(10), samples) {
             Ok(mut sampler) => {
                 let started = sampler.start(1000).is_ok();
                 fault::stick(1, 0);
                 match sampler.free() {
                     Ok(_) => {
                         fault::release(1, 0);
-                        report.check_for(SAMPLER, "API-003", "free refuses mid-capture while the stream will not stop", Err(Fail::Count { expected: 1, got: 0 }));
+                        report.check_for(SAMPLER, "API-003", "free refuses mid-capture while the DMA channel will not stop", Err(Fail::Count { expected: 1, got: 0 }));
                     }
                     Err(refused) => {
                         let still = running(DMA1, 0);
                         report.check_for(
                             SAMPLER,
                             "API-003",
-                            "free refuses mid-capture while the stream will not stop",
+                            "free refuses mid-capture while the DMA channel will not stop",
                             held(started && refused.error() == StopTimeout && still),
                         );
                         fault::release(1, 0);
@@ -462,7 +462,7 @@ mod app {
                         report.check_for(
                             SAMPLER,
                             "API-003",
-                            "a retried free succeeds once the stream stops",
+                            "a retried free succeeds once the DMA channel stops",
                             held(freed && !running(DMA1, 0)),
                         );
                     }
@@ -471,15 +471,15 @@ mod app {
             Err(refused) => report.check(SAMPLER, "open at 10 kHz", Err(Fail::Timer(refused.error()))),
         }
 
-        // ADC1's scan of PA1 twice, DMA1 stream 7: one sequence, then the
-        // stream re-armed by hand, waiting for requests no sequence makes.
+        // ADC1's scan of PA1 twice, DMA1 channel 7: one sequence, then the
+        // DMA channel re-armed by hand, waiting for requests no sequence makes.
         const SCAN_NAME: &str = "ADC1 scan";
         let adc = match Adc::new(&mut run.rcc, run.adc1, &AdcConfig::slow_source()) {
             Ok(adc) => adc,
             Err(refused) => defmt::panic!("ADC1: {}", refused.error()),
         };
         let pin = adc.channel(&run.analog1);
-        match adc.into_scan(run.scan_stream, &[pin, pin], scan_buf) {
+        match adc.into_scan(run.scan_dma, &[pin, pin], scan_buf) {
             Ok(mut scan) => {
                 let mut sequenced = false;
                 if scan.start().is_ok() {
@@ -495,14 +495,14 @@ mod app {
                 match scan.free() {
                     Ok(_) => {
                         fault::release(1, 7);
-                        report.check_for(SCAN_NAME, "API-003", "free refuses while the stream will not stop", Err(Fail::Count { expected: 1, got: 0 }));
+                        report.check_for(SCAN_NAME, "API-003", "free refuses while the DMA channel will not stop", Err(Fail::Count { expected: 1, got: 0 }));
                     }
                     Err(refused) => {
                         let still = running(DMA1, 7);
                         report.check_for(
                             SCAN_NAME,
                             "API-003",
-                            "free refuses while the stream will not stop",
+                            "free refuses while the DMA channel will not stop",
                             held(sequenced && refused.error() == StopTimeout && still),
                         );
                         fault::release(1, 7);
@@ -510,7 +510,7 @@ mod app {
                         report.check_for(
                             SCAN_NAME,
                             "API-003",
-                            "a retried free succeeds once the stream stops",
+                            "a retried free succeeds once the DMA channel stops",
                             held(freed && !running(DMA1, 7)),
                         );
                     }

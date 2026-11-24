@@ -1,6 +1,6 @@
 //! Run O: the ADCs. PD7 drives PA6 over S1, read on ADC1 channel 3, on DMA1
-//! stream 0 for its sequence. PF7 drives PF6 over Z10, read on ADC3 channel 8
-//! with the internal channels, on DMA2 stream 0.
+//! channel 0 for its sequence. PF7 drives PF6 over Z10, read on ADC3 channel 8
+//! with the internal channels, on DMA2 channel 0.
 
 #![no_std]
 #![no_main]
@@ -89,7 +89,7 @@ fn main() -> ! {
     });
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(SAMPLES1) };
-    let mut scan = match adc1.into_scan(run.stream1, &[pin, pin], samples) {
+    let mut scan = match adc1.into_scan(run.adc1_dma, &[pin, pin], samples) {
         Ok(scan) => scan,
         Err(error) => defmt::panic!("ADC1 scan: {}", error),
     };
@@ -135,7 +135,7 @@ fn main() -> ! {
     let channels = [pin, adc3.vrefint_channel(), adc3.temperature_channel()];
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(SAMPLES3) };
-    let mut scan = match adc3.into_scan(run.stream3, &channels, samples) {
+    let mut scan = match adc3.into_scan(run.adc3_dma, &channels, samples) {
         Ok(scan) => scan,
         Err(error) => defmt::panic!("ADC3 scan: {}", error),
     };

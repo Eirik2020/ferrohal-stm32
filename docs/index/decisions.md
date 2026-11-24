@@ -11,9 +11,9 @@
 | a | docs/decisions/2026-11-13-maturity-tiers.md | 2092 B | ADR-009 - Status: promoted |
 | a | docs/decisions/2026-11-15-errata-as-data.md | 2957 B | ADR-010 - Status: promoted |
 | a | docs/decisions/2026-11-17-src-layout.md | 2881 B | ADR-012 - Status: promoted |
-| a | docs/decisions/2026-11-17-uart-single-owner.md | 2997 B | ADR-011 - Status: promoted |
+| a | docs/decisions/2026-11-17-uart-single-owner.md | 2995 B | ADR-011 - Status: promoted |
 | a | docs/decisions/2026-11-19-i2c-interrupt-driver.md | 2992 B | ADR-013 - Status: promoted |
-| a | docs/decisions/2026-11-19-timer-lanes-round2.md | 2903 B | ADR-014 - Status: promoted |
+| a | docs/decisions/2026-11-19-timer-lanes-round2.md | 2929 B | ADR-014 - Status: promoted |
 | a | docs/decisions/2026-11-23-car-rule-goal.md | 1396 B | ADR-015 - Status: promoted |
 | a | docs/decisions/2026-11-23-first-supported-user.md | 1114 B | ADR-016 - Status: promoted |
 | a | docs/decisions/2026-11-23-glue-offers-everything.md | 836 B | ADR-019 - Status: promoted |

@@ -1,17 +1,17 @@
-//! Run F: SPI1 on the TBS Lucid H7's IMU pins and streams, the other SPIs
+//! Run F: SPI1 on the TBS Lucid H7's IMU pins and DMA channels, the other SPIs
 //! on their first pins, and EXTI.
 //!
-//! - SPI1: PA5, PA6, PD7 (the Lucid's), DMA1 streams 5 and 4, over S1.
-//! - SPI2: PB10, PC2, PC3, DMA2 streams 0 and 1, over S3.
-//! - SPI4: PE12, PE13, PE14, DMA2 streams 2 and 3, over S4.
-//! - SPI5: PF7, PF8, PF9, DMA2 streams 4 and 5, over S6.
+//! - SPI1: PA5, PA6, PD7 (the Lucid's), DMA1 channels 5 and 4, over S1.
+//! - SPI2: PB10, PC2, PC3, DMA2 channels 0 and 1, over S3.
+//! - SPI4: PE12, PE13, PE14, DMA2 channels 2 and 3, over S4.
+//! - SPI5: PF7, PF8, PF9, DMA2 channels 4 and 5, over S6.
 //! - EXTI line 6 on PD6, driven by PD5 over Z1.
 //!
 //! Each SPI's SCK is routed to its EXTI line too, to count its edges.
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `DMA1_STREAM4`, `DMA2_STREAM1`, `DMA2_STREAM3`, `DMA2_STREAM5` | the open `Spi`'s receive stream | 2 |
+//! | `DMA1_STREAM4`, `DMA2_STREAM1`, `DMA2_STREAM3`, `DMA2_STREAM5` | the open `Spi`'s receive DMA channel | 2 |
 //! | `EXTI9_5` (lines 5, 6, 7), `EXTI15_10` (lines 10, 12) | EXTI edge counting | 2 |
 //! | `CEC` | RTIC, dispatching the priority 1 `checks` task | 1 |
 
@@ -34,7 +34,7 @@ mod app {
         device::Interrupt,
         exti::{Ctrl, Edge, Exti},
         gpio::{Output, Pin},
-        dma::Stream,
+        dma::Channel,
         spi::{Buffers, Spi},
         time::Hertz,
         timer::Sampler,
@@ -68,7 +68,7 @@ mod app {
         sck5: Exti<'F', 7>,
         sense: Exti<'D', 6>,
         feed: Pin<'D', 5, Output>,
-        sampler: Sampler<ferrohal_stm32::chip::TIM2, Stream<1, 1>>,
+        sampler: Sampler<ferrohal_stm32::chip::TIM2, Channel<1, 1>>,
     }
 
     #[init(local = [samples: [u16; 1024] = [0; 1024]])]

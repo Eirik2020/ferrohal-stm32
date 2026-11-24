@@ -61,8 +61,8 @@ defmt = ["dep:defmt", "stm32-metapac/defmt"]
 # `From` conversions between `time::Hertz` and fugit 0.6's `HertzU32`, the
 # fugit rtic-monotonics 3 uses.
 fugit = ["dep:fugit"]
-# Bench fault injection: `dma::fault` makes a stream ignore stop requests.
-# For the benches that prove a driver's answer to a stream that will not stop;
+# Bench fault injection: `dma::fault` makes a DMA channel ignore stop requests.
+# For the benches that prove a driver's answer to a DMA channel that will not stop;
 # no firmware that flies enables it.
 fault-injection = []
 
@@ -73,7 +73,7 @@ _family-stm32f4 = ["_vendor-st"]
 _family-stm32f7 = ["_vendor-st"]
 _family-stm32h7 = ["_vendor-st"]
 
-# IP versions. Each needs an RCC module and, for the UART, a stream DMA;
+# IP versions. Each needs an RCC module and, for the UART, a DMA;
 # the chip feature supplies them.
 usart_v2 = []
 # USART v3 (F7) is v4 without PRESC and the FIFOs, at the same offsets: the

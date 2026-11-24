@@ -16,13 +16,13 @@ use crate::registry::Part;
 use crate::silicon::{Die, DiePeripheral};
 
 /// The family whose macro shapes a part's rows take. The F7 takes the F4's:
-/// fixed-request stream DMA and bus-named RCC registers.
+/// fixed-request DMA and bus-named RCC registers.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Family {
-    /// Fixed-request DMA: a route is (controller, stream, channel). The F4
+    /// Fixed-request DMA: a route is (controller, channel, request). The F4
     /// and the F7.
     F4,
-    /// DMAMUX1: any DMA1 or DMA2 stream serves a request ID.
+    /// DMAMUX1: any DMA1 or DMA2 channel serves a request ID.
     H7,
 }
 
@@ -198,37 +198,37 @@ impl<'a> Cut<'a> {
             .get(&(self.part.device.to_string(), signal.to_string()))
     }
 
-    /// F4 routes for `signal`: (controller, stream, channel). Where one
-    /// stream serves the signal through two channel selections, the one
-    /// serving the fewest signals on that stream is kept (TIM1 CH3 on DMA2
-    /// stream 6: channel 6, not channel 0, which CH1 to CH3 share).
+    /// F4 routes for `signal`: (controller, channel, request). Where one
+    /// channel serves the signal through two requests, the one
+    /// serving the fewest signals on that channel is kept (TIM1 CH3 on DMA2
+    /// channel 6: request 6, not request 0, which CH1 to CH3 share).
     fn routes(&self, p: &DiePeripheral, signal: &str) -> Vec<(u8, u8, u32)> {
-        let mut by_stream: BTreeMap<(u8, u8), Vec<u32>> = BTreeMap::new();
+        let mut by_channel: BTreeMap<(u8, u8), Vec<u32>> = BTreeMap::new();
         for route in p.dma.iter().filter(|r| r.signal == signal) {
-            if let Some(stream) = route.channel.as_deref().and_then(stream_of) {
-                by_stream
-                    .entry(stream)
+            if let Some(channel) = route.channel.as_deref().and_then(channel_of) {
+                by_channel
+                    .entry(channel)
                     .or_default()
                     .push(route.request.unwrap_or(0));
             }
         }
-        by_stream
+        by_channel
             .into_iter()
-            .map(|(stream, mut requests)| {
-                requests.sort_by_key(|request| (self.sharing(stream, *request), *request));
-                (stream.0, stream.1, requests[0])
+            .map(|(channel, mut requests)| {
+                requests.sort_by_key(|request| (self.sharing(channel, *request), *request));
+                (channel.0, channel.1, requests[0])
             })
             .collect()
     }
 
-    /// How many (peripheral, signal) pairs one stream and channel selection serve.
-    fn sharing(&self, stream: (u8, u8), request: u32) -> usize {
+    /// How many (peripheral, signal) pairs one channel and request serve.
+    fn sharing(&self, channel: (u8, u8), request: u32) -> usize {
         self.die
             .peripherals
             .values()
             .flat_map(|p| p.dma.iter())
             .filter(|r| {
-                r.channel.as_deref().and_then(stream_of) == Some(stream)
+                r.channel.as_deref().and_then(channel_of) == Some(channel)
                     && r.request == Some(request)
             })
             .count()
@@ -247,10 +247,10 @@ impl<'a> Cut<'a> {
 }
 
 /// `DMA2_CH7` -> (2, 7). BDMA's channels are not offered.
-fn stream_of(channel: &str) -> Option<(u8, u8)> {
-    let rest = channel.strip_prefix("DMA")?;
-    let (controller, stream) = rest.split_once("_CH")?;
-    Some((controller.parse().ok()?, stream.parse().ok()?))
+fn channel_of(name: &str) -> Option<(u8, u8)> {
+    let rest = name.strip_prefix("DMA")?;
+    let (controller, channel) = rest.split_once("_CH")?;
+    Some((controller.parse().ok()?, channel.parse().ok()?))
 }
 
 fn rcc(p: &DiePeripheral) -> Result<(String, u32), String> {
@@ -393,7 +393,7 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
                     .dma_channels
                     .get(&format!("{d}_CH0"))
                     .and_then(|c| c.dmamux_channel)
-                    .ok_or_else(|| fail(d, "stream 0 has no DMAMUX channel"))?;
+                    .ok_or_else(|| fail(d, "channel 0 has no DMAMUX channel"))?;
                 writeln!(w, "    {} => {d}, {bus}, {bit}, mux {base};", &d[3..])
             }
         }
@@ -633,18 +633,18 @@ pub fn emit(die: &Die, part: &Part, metapac: &str) -> Result<String, String> {
         );
     }
 
-    // The vector each DMA stream raises.
-    writeln!(w, "\nstream_interrupts!(").ok();
+    // The vector each DMA channel raises.
+    writeln!(w, "\nchannel_interrupts!(").ok();
     for d in &dmas {
         let p = cut.peripheral(d).ok_or_else(|| fail(d, "missing"))?;
-        let mut streams: Vec<String> = Vec::new();
+        let mut channels: Vec<String> = Vec::new();
         for n in 0..8 {
             let vector = cut
                 .vector(p, &format!("CH{n}"))
-                .ok_or_else(|| fail(d, "stream without a vector"))?;
-            streams.push(format!("{n} => {vector}"));
+                .ok_or_else(|| fail(d, "channel without a vector"))?;
+            channels.push(format!("{n} => {vector}"));
         }
-        writeln!(w, "    {}: [{}];", &d[3..], streams.join(", ")).ok();
+        writeln!(w, "    {}: [{}];", &d[3..], channels.join(", ")).ok();
     }
     writeln!(w, ");").ok();
     Ok(out)

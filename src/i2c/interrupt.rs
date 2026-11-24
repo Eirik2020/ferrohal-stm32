@@ -9,9 +9,9 @@
 //!   and the phase is at least the IP version's threshold long, otherwise
 //!   from the event interrupt. The thresholds are the bench's crossovers
 //!   (ADR-013): a phase shorter than them costs fewer CPU cycles served by
-//!   interrupt than arming a stream does.
+//!   interrupt than arming a channel does.
 //! - **end**: [`Service::on_interrupt`](crate::Service) serves the I2C's
-//!   event and error vectors and, on `i2c_v1`, the receive stream's; it
+//!   event and error vectors and, on `i2c_v1`, the receive channel's; it
 //!   reports `Some(Outcome)` once the transaction has ended, with the lent
 //!   buffers handed back. No path panics.
 //! - **bound**: a slave may stretch SCL without limit, and the driver has
@@ -21,7 +21,7 @@
 //!   with [`Fault::Aborted`], the buffers come back and the bus is put back
 //!   so the next start runs.
 //! - **memory**: every DMA phase's buffer is checked on each `start` with
-//!   `chip::check_dma_buffer`; a buffer the stream cannot use is refused
+//!   `chip::check_dma_buffer`; a buffer the channel cannot use is refused
 //!   with the transaction handed back.
 //!
 //! Requirements: I2C-007, I2C-008, I2C-009, I2C-010, I2C-011, I2C-012, I2C-013
@@ -30,7 +30,7 @@ use core::sync::atomic::{Ordering, fence};
 
 use super::{ConfigError, Error, I2cRxDma, I2cTxDma, Instance, Parts, SclPin, SdaPin, Wiring};
 use crate::{
-    dma::{AnyStream, Direction, Flags, Interrupts, Priority, Transfer, WordSize},
+    dma::{AnyChannel, Direction, Flags, Interrupts, Priority, Transfer, WordSize},
     gpio::AltPin,
     i2c_ip::Unit,
     rcc::Rcc,
@@ -43,7 +43,7 @@ use crate::{
 pub const MAX_PHASE: usize = 255;
 
 /// What the board file hands to [`InterruptI2c::new_dma`]: the instance, its
-/// two pins and a stream for each direction. The routing traits check that
+/// two pins and a channel for each direction. The routing traits check that
 /// they belong together; this struct only carries them.
 pub struct DmaWiring<U, Scl, Sda, TxD, RxD> {
     pub i2c: U,
@@ -59,16 +59,16 @@ impl<U: Instance, Scl, Sda, TxD, RxD> Parts for DmaWiring<U, Scl, Sda, TxD, RxD>
 }
 
 impl<U, Scl, Sda, const TD: u8, const TN: u8, const RD: u8, const RN: u8>
-    DmaWiring<U, Scl, Sda, crate::dma::Stream<TD, TN>, crate::dma::Stream<RD, RN>>
+    DmaWiring<U, Scl, Sda, crate::dma::Channel<TD, TN>, crate::dma::Channel<RD, RN>>
 where
     U: Instance,
     Scl: SclPin<U> + AltPin,
     Sda: SdaPin<U> + AltPin,
-    crate::dma::Stream<TD, TN>: I2cTxDma<U>,
-    crate::dma::Stream<RD, RN>: I2cRxDma<U>,
+    crate::dma::Channel<TD, TN>: I2cTxDma<U>,
+    crate::dma::Channel<RD, RN>: I2cRxDma<U>,
 {
     /// Everything this wiring uses, as data: the instance, its two pins with
-    /// their alternate functions, and both streams with their requests.
+    /// their alternate functions, and both channels with their requests.
     pub const RESOURCES: [Resource; 5] = [
         Resource::Peripheral(U::NAME),
         Resource::pin::<Scl>(Signal::Scl),
@@ -76,26 +76,26 @@ where
         Resource::Dma {
             signal: Signal::Tx,
             controller: TD,
-            stream: TN,
-            request: <crate::dma::Stream<TD, TN> as I2cTxDma<U>>::REQUEST,
+            channel: TN,
+            request: <crate::dma::Channel<TD, TN> as I2cTxDma<U>>::REQUEST,
         },
         Resource::Dma {
             signal: Signal::Rx,
             controller: RD,
-            stream: RN,
-            request: <crate::dma::Stream<RD, RN> as I2cRxDma<U>>::REQUEST,
+            channel: RN,
+            request: <crate::dma::Channel<RD, RN> as I2cRxDma<U>>::REQUEST,
         },
     ];
 }
 
 /// Why [`InterruptI2c::new_dma`] refused: the reasons the blocking driver
-/// has, and a stream an earlier owner left running.
+/// has, and a channel an earlier owner left running.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum OpenError {
     /// As [`I2c::new`](super::I2c::new).
     Config(ConfigError),
-    /// A stream did not report itself stopped in time. Its EN is cleared,
+    /// A channel did not report itself stopped in time. Its EN is cleared,
     /// so it may still stop later; by then the I2C has been enabled in RCC.
     DmaBusy,
 }
@@ -123,7 +123,7 @@ pub struct Transaction {
 pub enum Fault {
     /// What the I2C reported. The flags were cleared and the bus put back.
     I2c(Error),
-    /// A stream failed, or did not move every byte.
+    /// A channel failed, or did not move every byte.
     Dma,
     /// [`InterruptI2c::abort`] ended it.
     Aborted,
@@ -149,7 +149,7 @@ pub enum StartError {
     Empty,
     /// A phase is longer than [`MAX_PHASE`], or the address is past 7 bits.
     TooLarge,
-    /// A DMA phase's buffer is memory the stream can't use.
+    /// A DMA phase's buffer is memory the channel can't use.
     Buffer(crate::dma::BufferError),
 }
 
@@ -168,7 +168,7 @@ pub struct InterruptHealth {
     /// Bus errors (BERR), cleared and counted while the transaction went
     /// on, as the errata sheets ask.
     pub bus_errors: u32,
-    /// Transactions a stream failed.
+    /// Transactions a channel failed.
     pub dma_errors: u32,
     /// Starts refused because the bus stayed busy.
     pub busy: u32,
@@ -216,8 +216,8 @@ const IDLE_SPINS: u32 = 200_000;
 /// [`free`](InterruptI2c::free) hands it back.
 pub struct InterruptI2c<W: Parts> {
     unit: Unit,
-    tx: Option<(AnyStream, u8)>,
-    rx: Option<(AnyStream, u8)>,
+    tx: Option<(AnyChannel, u8)>,
+    rx: Option<(AnyChannel, u8)>,
     frequency: Hertz,
     kernel_clock: Hertz,
     /// CPU cycles per SCL bit, rounded up.
@@ -253,7 +253,7 @@ where
     Sda: SdaPin<U> + AltPin,
 {
     /// Opens `wiring` with `config`, every byte moved from the event
-    /// interrupt: for an I2C whose streams are taken. A refusal hands the
+    /// interrupt: for an I2C whose channels are taken. A refusal hands the
     /// wiring back with the reason, before anything is written to hardware.
     pub fn new(
         rcc: &mut Rcc,
@@ -311,7 +311,7 @@ where
         };
         let mut tx = crate::dma::claim(&wiring.tx_dma);
         let mut rx = crate::dma::claim(&wiring.rx_dma);
-        // Streams left running by an earlier owner must stop before they
+        // Channels left running by an earlier owner must stop before they
         // are pointed at new memory.
         if tx.stop(crate::dma::STOP_SPINS).is_err() || rx.stop(crate::dma::STOP_SPINS).is_err() {
             return Err(Refused::new(OpenError::DmaBusy, wiring));
@@ -333,8 +333,8 @@ where
         ))
     }
 
-    /// Stops both streams, closes the I2C and hands back the wiring. A
-    /// transaction still running is abandoned. A stream that does not stop
+    /// Stops both channels, closes the I2C and hands back the wiring. A
+    /// transaction still running is abandoned. A channel that does not stop
     /// in time could still use a lent buffer, so the refusal returns the
     /// driver, still holding it; `free` may be tried again.
     #[allow(clippy::type_complexity)]
@@ -343,11 +343,11 @@ where
     ) -> Result<DmaWiring<U, Scl, Sda, TxD, RxD>, Refused<crate::dma::StopTimeout, Self>> {
         self.unit.irq_quiet();
         let mut stopped = true;
-        for (stream, _) in self.tx.iter_mut().chain(self.rx.iter_mut()) {
-            if stream.stop(crate::dma::STOP_SPINS).is_err() {
+        for (channel, _) in self.tx.iter_mut().chain(self.rx.iter_mut()) {
+            if channel.stop(crate::dma::STOP_SPINS).is_err() {
                 stopped = false;
             }
-            stream.clear_flags(Flags::ALL);
+            channel.clear_flags(Flags::ALL);
         }
         self.unit.disable();
         if !stopped {
@@ -360,8 +360,8 @@ where
 impl<W: Parts> InterruptI2c<W> {
     fn with(
         unit: Unit,
-        tx: Option<(AnyStream, u8)>,
-        rx: Option<(AnyStream, u8)>,
+        tx: Option<(AnyChannel, u8)>,
+        rx: Option<(AnyChannel, u8)>,
         frequency: Hertz,
         kernel_clock: Hertz,
         bit_cycles: u32,
@@ -467,7 +467,7 @@ impl<W: Parts> InterruptI2c<W> {
         self.state = State::Running;
         self.unit.irq_clear();
         if self.begin(first_read).is_err() {
-            // A stream that would not start: nothing went on the wire.
+            // A channel that would not start: nothing went on the wire.
             self.unit.irq_quiet();
             return match self.finish(Err(Fault::Dma)) {
                 Some(outcome) => Err(Refused::new(
@@ -507,7 +507,7 @@ impl<W: Parts> InterruptI2c<W> {
         if any { Ok(()) } else { Err(StartError::Empty) }
     }
 
-    /// Arms a phase: its stream if it uses one, then the IP's start.
+    /// Arms a phase: its channel if it uses one, then the IP's start.
     fn begin(&mut self, read: bool) -> Result<(), ()> {
         let Some(job) = self.job.as_mut() else {
             return Err(());
@@ -532,14 +532,14 @@ impl<W: Parts> InterruptI2c<W> {
         if dma {
             self.health.dma_phases = self.health.dma_phases.saturating_add(1);
             let data = self.unit.irq_data_address(read);
-            let (stream, request) = if read {
+            let (channel, request) = if read {
                 self.rx.as_mut()
             } else {
                 self.tx.as_mut()
             }
             .ok_or(())?;
-            stream.clear_flags(Flags::ALL);
-            let interrupts = if read && Unit::READ_ENDS_ON_STREAM {
+            channel.clear_flags(Flags::ALL);
+            let interrupts = if read && Unit::READ_ENDS_ON_DMA {
                 Interrupts {
                     complete: true,
                     half: false,
@@ -564,12 +564,12 @@ impl<W: Parts> InterruptI2c<W> {
             )
             .with_interrupts(interrupts);
             // SAFETY: the buffer is the lent transaction's, held in `job`
-            // until the stream has stopped (`finish` stops it before the
+            // until the channel has stopped (`finish` stops it before the
             // job is handed back, and keeps the job if it won't stop), at
             // least `len` long and checked reachable by `check_dma_buffer`
             // (`check`); the address is this I2C's data register, which the
             // request selects.
-            unsafe { stream.start(&transfer) }.map_err(|_| ())?;
+            unsafe { channel.start(&transfer) }.map_err(|_| ())?;
         } else {
             self.health.irq_phases = self.health.irq_phases.saturating_add(1);
         }
@@ -587,17 +587,17 @@ impl<W: Parts> InterruptI2c<W> {
         Ok(())
     }
 
-    /// Ends the running transaction: the I2C quiet, both streams stopped,
-    /// the buffers handed back. A stream that won't stop keeps its buffer:
+    /// Ends the running transaction: the I2C quiet, both channels stopped,
+    /// the buffers handed back. A channel that won't stop keeps its buffer:
     /// `None`, and the driver stays busy-free but holds the job.
     fn finish(&mut self, result: Result<(), Fault>) -> Option<Outcome> {
         self.unit.irq_quiet();
         let mut stopped = true;
-        for (stream, _) in self.tx.iter_mut().chain(self.rx.iter_mut()) {
-            if stream.stop(crate::dma::STOP_SPINS).is_err() {
+        for (channel, _) in self.tx.iter_mut().chain(self.rx.iter_mut()) {
+            if channel.stop(crate::dma::STOP_SPINS).is_err() {
                 stopped = false;
             }
-            stream.clear_flags(Flags::ALL);
+            channel.clear_flags(Flags::ALL);
         }
         fence(Ordering::SeqCst);
         let result = if stopped { result } else { Err(Fault::Dma) };
@@ -632,7 +632,7 @@ impl<W: Parts> InterruptI2c<W> {
         outcome
     }
 
-    /// Serves the I2C's vectors (and, on `i2c_v1`, the receive stream's):
+    /// Serves the I2C's vectors (and, on `i2c_v1`, the receive channel's):
     /// `Some` once the transaction has ended.
     pub fn on_interrupt(&mut self) -> Option<Outcome> {
         if self.state != State::Running {
@@ -650,7 +650,7 @@ impl<W: Parts> InterruptI2c<W> {
         }
         if self.read_phase
             && self.dma
-            && Unit::READ_ENDS_ON_STREAM
+            && Unit::READ_ENDS_ON_DMA
             && self.rx.as_ref().is_some_and(|(s, _)| s.flags().complete)
         {
             self.unit.irq_read_dma_done();
@@ -694,13 +694,13 @@ impl<W: Parts> InterruptI2c<W> {
                 self.finish(Err(Fault::I2c(error)))
             }
             Step::PhaseDone => {
-                if self.dma && !self.stream_drained(false) {
+                if self.dma && !self.dma_drained(false) {
                     self.unit.irq_fail();
                     return self.finish(Err(Fault::Dma));
                 }
-                if let Some((stream, _)) = self.tx.as_mut() {
-                    let _ = stream.stop(crate::dma::STOP_SPINS);
-                    stream.clear_flags(Flags::ALL);
+                if let Some((channel, _)) = self.tx.as_mut() {
+                    let _ = channel.stop(crate::dma::STOP_SPINS);
+                    channel.clear_flags(Flags::ALL);
                 }
                 if self.job.as_ref().is_none_or(|j| j.read.is_none()) {
                     self.unit.irq_stop();
@@ -713,7 +713,7 @@ impl<W: Parts> InterruptI2c<W> {
                 None
             }
             Step::Finished => {
-                if self.dma && !self.stream_drained(read) {
+                if self.dma && !self.dma_drained(read) {
                     return self.finish(Err(Fault::Dma));
                 }
                 self.finish(Ok(()))
@@ -721,7 +721,7 @@ impl<W: Parts> InterruptI2c<W> {
         }
     }
 
-    fn stream_drained(&self, read: bool) -> bool {
+    fn dma_drained(&self, read: bool) -> bool {
         let route = if read {
             self.rx.as_ref()
         } else {

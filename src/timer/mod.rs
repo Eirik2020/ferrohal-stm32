@@ -45,7 +45,7 @@ macro_rules! stamp {
         super::profile::stamp($slot);
     };
 }
-pub use lane_group::{LaneGroup, Lanes, ReaderStreams, recover};
+pub use lane_group::{LaneGroup, Lanes, ReaderDma, recover};
 pub(crate) use stamp;
 
 /// PROFILING ONLY: a mark of an exchange's start (`profile-start`).
@@ -140,75 +140,75 @@ pub trait ChannelPin<T: ChannelTimer, const C: u8>: crate::Sealed {}
 /// output of channel `C` of `T` (CHxN).
 pub trait ComplementaryPin<T: ChannelTimer, const C: u8>: crate::Sealed {}
 
-/// A DMA stream that serves the compare request of channel `C` of `T`.
+/// A DMA channel that serves the compare request of channel `C` of `T`.
 ///
 /// # Safety
 ///
-/// `REQUEST` must route that request to this stream.
+/// `REQUEST` must route that request to this DMA channel.
 pub unsafe trait CompareDma<T: ChannelTimer, const C: u8>:
-    crate::dma::StreamInstance + crate::dma::StreamInterrupt
+    crate::dma::ChannelInstance + crate::dma::ChannelInterrupt
 {
     const REQUEST: u8;
 }
 
-/// A DMA stream that serves the update request of `T`.
+/// A DMA channel that serves the update request of `T`.
 ///
 /// # Safety
 ///
-/// `REQUEST` must route that request to this stream.
+/// `REQUEST` must route that request to this DMA channel.
 pub unsafe trait UpdateDma<T: Instance>:
-    crate::dma::StreamInstance + crate::dma::StreamInterrupt
+    crate::dma::ChannelInstance + crate::dma::ChannelInterrupt
 {
     const REQUEST: u8;
 }
 
-/// A DMA stream whose peripheral port reaches the GPIO ports: on F4 only
-/// DMA2's (DMA1's reaches APB1 alone), on H7 every DMA1 and DMA2 stream.
-pub trait GpioDma: crate::dma::StreamInstance {}
+/// A DMA channel whose peripheral port reaches the GPIO ports: on F4 only
+/// DMA2's (DMA1's reaches APB1 alone), on H7 every DMA1 and DMA2 channel.
+pub trait GpioDma: crate::dma::ChannelInstance {}
 
 /// One compare lane's wiring, as the board states it: channel `C` of timer
-/// `T`, the pin in that channel's alternate function, and the DMA stream
-/// that serves the channel's compare request. The IP traits check that they
+/// `T`, the pin in that channel's alternate function, and the DMA channel
+/// that serves channel `C`'s compare request. The IP traits check that they
 /// belong together; this carries them and describes itself as data for the
 /// board's manifest (`RESOURCES`), and [`assemble`][pwm] builds the lane
 /// from it by type.
 ///
 /// [pwm]: crate::timer::Pwm
-pub struct LaneWiring<T, const C: u8, Pin, Stream> {
+pub struct LaneWiring<T, const C: u8, Pin, Dma> {
     /// The pin, in the channel's alternate function.
     pub pin: Pin,
-    /// The DMA stream serving the channel's compare request.
-    pub stream: Stream,
+    /// The DMA channel serving channel `C`'s compare request.
+    pub dma: Dma,
     _timer: core::marker::PhantomData<fn() -> T>,
 }
 
 /// One complementary lane's wiring (`CHxN`): as [`LaneWiring`], with the pin
 /// in the complementary output's alternate function.
-pub struct ComplementaryLaneWiring<T, const C: u8, Pin, Stream> {
+pub struct ComplementaryLaneWiring<T, const C: u8, Pin, Dma> {
     /// The pin, in the complementary output's alternate function.
     pub pin: Pin,
-    /// The DMA stream serving the channel's compare request.
-    pub stream: Stream,
+    /// The DMA channel serving channel `C`'s compare request.
+    pub dma: Dma,
     _timer: core::marker::PhantomData<fn() -> T>,
 }
 
-impl<T, const C: u8, Pin, Stream> LaneWiring<T, C, Pin, Stream> {
-    /// A wiring for channel `C` of timer `T`, from its pin and stream.
-    pub const fn new(pin: Pin, stream: Stream) -> Self {
+impl<T, const C: u8, Pin, Dma> LaneWiring<T, C, Pin, Dma> {
+    /// A wiring for channel `C` of timer `T`, from its pin and DMA channel.
+    pub const fn new(pin: Pin, dma: Dma) -> Self {
         Self {
             pin,
-            stream,
+            dma,
             _timer: core::marker::PhantomData,
         }
     }
 }
 
-impl<T, const C: u8, Pin, Stream> ComplementaryLaneWiring<T, C, Pin, Stream> {
+impl<T, const C: u8, Pin, Dma> ComplementaryLaneWiring<T, C, Pin, Dma> {
     /// A wiring for channel `C`'s complementary output of timer `T`.
-    pub const fn new(pin: Pin, stream: Stream) -> Self {
+    pub const fn new(pin: Pin, dma: Dma) -> Self {
         Self {
             pin,
-            stream,
+            dma,
             _timer: core::marker::PhantomData,
         }
     }
@@ -216,51 +216,50 @@ impl<T, const C: u8, Pin, Stream> ComplementaryLaneWiring<T, C, Pin, Stream> {
 
 /// What a lane's assembly hands back when it refuses: the reason and the
 /// wiring. A lane takes no memory at assembly, so there is none to give back.
-pub type LaneRefused<T, const C: u8, Pin, Stream> =
-    crate::resource::Refused<ConfigError, LaneWiring<T, C, Pin, Stream>>;
+pub type LaneRefused<T, const C: u8, Pin, Dma> =
+    crate::resource::Refused<ConfigError, LaneWiring<T, C, Pin, Dma>>;
 
 /// As [`LaneRefused`], for a complementary lane's assembly.
-pub type ComplementaryLaneRefused<T, const C: u8, Pin, Stream> =
-    crate::resource::Refused<ConfigError, ComplementaryLaneWiring<T, C, Pin, Stream>>;
+pub type ComplementaryLaneRefused<T, const C: u8, Pin, Dma> =
+    crate::resource::Refused<ConfigError, ComplementaryLaneWiring<T, C, Pin, Dma>>;
 
-impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
-    LaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
+impl<T, Pin, const D: u8, const N: u8, const C: u8> LaneWiring<T, C, Pin, crate::dma::Channel<D, N>>
 where
     T: ChannelTimer,
     Pin: ChannelPin<T, C> + crate::gpio::AltPin,
-    crate::dma::Stream<CD, SN>: CompareDma<T, C>,
+    crate::dma::Channel<D, N>: CompareDma<T, C>,
 {
     /// Everything this wiring uses, as data: the instance, the pin with its
-    /// alternate function, and the stream with its request.
+    /// alternate function, and the DMA channel with its request.
     pub const RESOURCES: [crate::resource::Resource; 3] = [
         crate::resource::Resource::Peripheral(T::NAME),
         crate::resource::Resource::pin::<Pin>(crate::resource::Signal::Channel(C)),
         crate::resource::Resource::Dma {
             signal: crate::resource::Signal::Channel(C),
-            controller: CD,
-            stream: SN,
-            request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
+            controller: D,
+            channel: N,
+            request: <crate::dma::Channel<D, N> as CompareDma<T, C>>::REQUEST,
         },
     ];
 }
 
-impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
-    ComplementaryLaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
+impl<T, Pin, const D: u8, const N: u8, const C: u8>
+    ComplementaryLaneWiring<T, C, Pin, crate::dma::Channel<D, N>>
 where
     T: ChannelTimer,
     Pin: ComplementaryPin<T, C> + crate::gpio::AltPin,
-    crate::dma::Stream<CD, SN>: CompareDma<T, C>,
+    crate::dma::Channel<D, N>: CompareDma<T, C>,
 {
     /// Everything this wiring uses, as data: the instance, the pin with its
-    /// alternate function, and the stream with its request.
+    /// alternate function, and the DMA channel with its request.
     pub const RESOURCES: [crate::resource::Resource; 3] = [
         crate::resource::Resource::Peripheral(T::NAME),
         crate::resource::Resource::pin::<Pin>(crate::resource::Signal::Complementary(C)),
         crate::resource::Resource::Dma {
             signal: crate::resource::Signal::Complementary(C),
-            controller: CD,
-            stream: SN,
-            request: <crate::dma::Stream<CD, SN> as CompareDma<T, C>>::REQUEST,
+            controller: D,
+            channel: N,
+            request: <crate::dma::Channel<D, N> as CompareDma<T, C>>::REQUEST,
         },
     ];
 }
@@ -275,7 +274,7 @@ pub enum ConfigError {
     OutOfRange,
     /// A lane group's two timers run at different periods.
     PeriodMismatch,
-    /// A DMA stream was left running by an earlier owner and did not stop.
+    /// A DMA channel was left running by an earlier owner and did not stop.
     DmaBusy,
     /// A lane's or sampler's buffer cannot serve DMA.
     Buffer(crate::dma::BufferError),

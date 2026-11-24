@@ -122,8 +122,8 @@ bench = false
 # `--features fault-injection` (hil/run-h753.sh passes it); every other run's
 # image is built without it.
 [[bin]]
-name = "stuck-streams"
-path = "src/bin/stuck_streams.rs"
+name = "stuck-channels"
+path = "src/bin/stuck_channels.rs"
 test = false
 bench = false
 required-features = ["fault-injection"]

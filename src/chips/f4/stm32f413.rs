@@ -15,7 +15,7 @@ use stm32_metapac as pac;
 pub use stm32_metapac::Interrupt;
 
 use crate::{
-    dma::{Dma, DmaInstance, Stream},
+    dma::{Channel, Dma, DmaInstance},
     gpio_v2::{Alternate, Pin, Port, PortInstance},
     i2c::{I2cRxDma, I2cTxDma, SclPin, SdaPin},
     rcc_f4::{Bus, Limits, RCC, RccBit},
@@ -83,7 +83,7 @@ pub use generated::*;
 /// from 0x2000_0000, and reached by every AHB master (RM0430 2.3).
 const DMA_RAM: [(usize, usize); 1] = [(0x2000_0000, 320 * 1024)];
 
-/// Whether `buffer` can be handed to a DMA stream: whether it lies in SRAM.
+/// Whether `buffer` can be handed to a DMA channel: whether it lies in SRAM.
 /// A Cortex-M4 has no data cache, so that is all. `Uart::new` checks every
 /// buffer with this.
 pub fn check_dma_buffer<T>(buffer: &[T]) -> Result<(), crate::dma::BufferError> {

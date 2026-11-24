@@ -8,9 +8,9 @@
 //!
 //! Then four reader rounds (`docs/design/lanes.md`): TIM3's lane plays
 //! a frame from lent memory and reads TIM8's reply into lent memory, first on
-//! its own stream, then turning to read in the run that sees the frame end,
-//! then through a reader paced by TIM5 (a timer no lane uses) on DMA2 stream
-//! 7, then through a reader armed ahead on TIM3's update on DMA2 stream 6.
+//! its own DMA channel, then turning to read in the run that sees the frame end,
+//! then through a reader paced by TIM5 (a timer no lane uses) on DMA2 channel
+//! 7, then through a reader armed ahead on TIM3's update on DMA2 channel 6.
 
 #![no_std]
 #![no_main]
@@ -172,9 +172,9 @@ mod app {
         // comes back first.
         pwm::reclaim(near.take_frame(0));
         let _ = near.take_samples(0);
-        // 1. The lane's own stream, turning to read after the frame's end.
+        // 1. The lane's own DMA channel, turning to read after the frame's end.
         if let Some(seen) = reader_round(&mut report, name,
-            "the reply read whole on the lane's own stream [TIMER-LANES-016]",
+            "the reply read whole on the lane's own DMA channel [TIMER-LANES-016]",
             &mut near, &mut far, &mut frame, &mut lent, false, cpu)
         {
             report.check(name, "a frame plays from lent memory and comes back; the reply fills lent memory, which comes back [TIMER-LANES-012]",
@@ -214,9 +214,9 @@ mod app {
         }
         // 4. A reader armed ahead on TIM3's update, on a lane group rebuilt
         // without the paced reader.
-        let (tim3, _, lanes, (), mut streams) = near.free();
-        report.check(name, "free gives back the paced reader's stream, DMA2 stream 7, once [API-002]",
-            holds(streams.take::<2, 7>().is_some() && streams.take::<2, 7>().is_none() && streams.is_empty()));
+        let (tim3, _, lanes, (), mut dma) = near.free();
+        report.check(name, "free gives back the paced reader's DMA channel, DMA2 channel 7, once [API-002]",
+            holds(dma.take::<2, 7>().is_some() && dma.take::<2, 7>().is_none() && dma.is_empty()));
         let mut near = LaneGroup::single(tim3, lanes);
         near.set_active_low(true);
         near.set_outputs(true);

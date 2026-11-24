@@ -6,7 +6,7 @@
 //! Requirements: SPI-001, SPI-005, SPI-011
 
 use crate::{
-    dma::{StreamInstance, StreamInterrupt},
+    dma::{ChannelInstance, ChannelInterrupt},
     rcc::Kernel,
     rcc::{Clocks, RccBit},
     spi::{BlockingWiring, Config, ConfigError, Wiring},
@@ -40,21 +40,21 @@ pub trait MisoPin<U: Instance>: crate::Sealed {}
 /// A pin, in the right alternate function, that carries `U`'s MOSI.
 pub trait MosiPin<U: Instance>: crate::Sealed {}
 
-/// A DMA stream that serves `U`'s transmit requests.
+/// A DMA channel that serves `U`'s transmit requests.
 ///
 /// # Safety
 ///
-/// `REQUEST` must be the request that routes `U`'s TX to this stream.
-pub unsafe trait SpiTxDma<U: Instance>: StreamInstance + StreamInterrupt {
+/// `REQUEST` must be the request that routes `U`'s TX to this channel.
+pub unsafe trait SpiTxDma<U: Instance>: ChannelInstance + ChannelInterrupt {
     const REQUEST: u8;
 }
 
-/// A DMA stream that serves `U`'s receive requests.
+/// A DMA channel that serves `U`'s receive requests.
 ///
 /// # Safety
 ///
 /// As [`SpiTxDma`], for RX.
-pub unsafe trait SpiRxDma<U: Instance>: StreamInstance + StreamInterrupt {
+pub unsafe trait SpiRxDma<U: Instance>: ChannelInstance + ChannelInterrupt {
     const REQUEST: u8;
 }
 

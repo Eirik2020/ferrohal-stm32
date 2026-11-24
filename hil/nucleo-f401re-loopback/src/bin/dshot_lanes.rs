@@ -1,8 +1,8 @@
 //! Run I: DShot-style compare lanes, read back by a pin sampler. No links.
 //!
 //! TIM3 runs at the DShot150, 300 and 600 bit rates with lanes on channels
-//! 3 and 4 (PB0, PB1; DMA1 streams 7 and 2) sending different 16-bit
-//! patterns from the same update. TIM1's update request has DMA2 stream 5
+//! 3 and 4 (PB0, PB1; DMA1 channels 7 and 2) sending different 16-bit
+//! patterns from the same update. TIM1's update request has DMA2 channel 5
 //! copy port B's input register into memory about 12 times a bit, and the
 //! checks decode both pins' bits and timing from it. Last, TIM4 channel 1
 //! on PB6 runs one pulse, which the sampler reads on the same port.

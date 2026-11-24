@@ -12,7 +12,7 @@
 //! the result against the host's own clock.
 //!
 //! RTIC owns every interrupt; FerroHAL only enables the UARTs' and their
-//! streams' own interrupt bits. Each UART is one shared resource, served by
+//! DMA channels' own interrupt bits. Each UART is one shared resource, served by
 //! its handlers and used by the `checks` task under RTIC's lock, one call at
 //! a time (`tests::Locked`; `docs/design/uart-ownership.md`). Each vector in
 //! use, and what serves it:

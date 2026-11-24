@@ -18,11 +18,11 @@ pub trait Lanes<T: ChannelTimer> {
     const COUNT: usize;
     /// Lane `index`'s channel, numbered from 1. 0 past the last lane.
     fn channel(index: usize) -> u8;
-    /// Serves lane `index`'s stream; see [`CompareLane::on_interrupt`].
+    /// Serves lane `index`'s DMA channel; see [`CompareLane::on_interrupt`].
     fn serve(&mut self, index: usize) -> Option<Result<(), Error>>;
     /// Stops every lane, with its output at duty 0.
     fn abort_all(&mut self, pwm: &Pwm<T>);
-    /// Lane `index`'s stream vector.
+    /// Lane `index`'s DMA channel vector.
     fn vector(&self, index: usize) -> Option<Interrupt>;
     /// Every lane's CCER bits, ORed: (owned, send); see [`lane_ccer_bits`].
     fn ccer_bits(&self, active_low: bool) -> (u16, u16);
@@ -267,10 +267,10 @@ struct Playing {
     /// Turned to read: the outputs are released and the timers at the capture
     /// rate, until `speak`.
     listening: bool,
-    /// Readers on their own streams now reading, one bit
+    /// Readers on their own DMA channels now reading, one bit
     /// per reader.
     ahead_active: u8,
-    /// Readers on their own streams armed, one bit per reader, so the switch checks a mask instead of walking the readers.
+    /// Readers on their own DMA channels armed, one bit per reader, so the switch checks a mask instead of walking the readers.
     armed: u8,
     /// Listen from the run that sees the frame end, inside `on_interrupt`.
     listen_on_end: bool,
@@ -280,7 +280,7 @@ struct Playing {
     idling: bool,
 }
 
-/// How a reader on its own stream is paced.
+/// How a reader on its own DMA channel is paced.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Opening {
     /// The timer's update request.
@@ -292,14 +292,14 @@ enum Opening {
     Paced,
 }
 
-/// A reader on a stream of its own, armed (enabled,
+/// A reader on a DMA channel of its own, armed (enabled,
 /// its request closed) while the frame plays, so the switch to listening
-/// opens a request instead of starting a stream. One per timer and port it
+/// opens a request instead of starting a DMA channel. One per timer and port it
 /// reads.
 struct AheadReader {
-    dma: crate::dma::AnyStream,
-    /// The stream's controller and number: its token, which
-    /// [`LaneGroup::free`] gives back through [`ReaderStreams`].
+    dma: crate::dma::AnyChannel,
+    /// The DMA channel's controller and number: its token, which
+    /// [`LaneGroup::free`] gives back through [`ReaderDma`].
     id: (u8, u8),
     request: u8,
     /// The port's input register.
@@ -317,25 +317,25 @@ struct AheadReader {
 }
 
 impl AheadReader {
-    /// Stops `stream` and keeps it as its registers and its id. Refuses with
-    /// the stream if it does not stop.
-    fn new<S: crate::dma::StreamInstance>(
-        stream: S,
+    /// Stops `dma` and keeps it as its registers and its id. Refuses with
+    /// the DMA channel if it does not stop.
+    fn new<S: crate::dma::ChannelInstance>(
+        dma: S,
         request: u8,
         port: u32,
         second: bool,
         opening: Opening,
     ) -> Result<Self, Refused<Error, S>> {
-        let mut dma = crate::dma::claim(&stream);
-        if dma.stop(crate::dma::STOP_SPINS).is_err() {
-            return Err(Refused::new(Error::Dma, stream));
+        let mut claimed = crate::dma::claim(&dma);
+        if claimed.stop(crate::dma::STOP_SPINS).is_err() {
+            return Err(Refused::new(Error::Dma, dma));
         }
-        dma.clear_flags(crate::dma::Flags::ALL);
+        claimed.clear_flags(crate::dma::Flags::ALL);
         // The token becomes its id: `LaneGroup::free` mints it back once, through
-        // `ReaderStreams::take`, so the stream has one owner throughout.
-        drop(stream);
+        // `ReaderDma::take`, so the DMA channel has one owner throughout.
+        drop(dma);
         Ok(Self {
-            dma,
+            dma: claimed,
             id: S::ID,
             request,
             port,
@@ -348,7 +348,7 @@ impl AheadReader {
         })
     }
 
-    /// Stops the stream, whatever it was doing.
+    /// Stops the DMA channel, whatever it was doing.
     fn disarm(&mut self) {
         let _ = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(crate::dma::Flags::ALL);
@@ -359,26 +359,26 @@ impl AheadReader {
 
 const AHEAD: usize = 4;
 
-/// The DMA streams a lane group's readers held, handed back by
+/// The DMA channels a lane group's readers held, handed back by
 /// [`LaneGroup::free`]: each one taken out once, as the token it was given as.
 #[derive(Debug, PartialEq, Eq)]
-pub struct ReaderStreams {
+pub struct ReaderDma {
     ids: [Option<(u8, u8)>; AHEAD],
 }
 
-impl ReaderStreams {
-    /// Stream `N` of DMA controller `D`, if a reader held it and it has not
+impl ReaderDma {
+    /// DMA channel `N` of DMA controller `D`, if a reader held it and it has not
     /// been taken yet.
-    pub fn take<const D: u8, const N: u8>(&mut self) -> Option<crate::dma::Stream<D, N>>
+    pub fn take<const D: u8, const N: u8>(&mut self) -> Option<crate::dma::Channel<D, N>>
     where
         crate::dma::Dma<D>: crate::dma::DmaInstance,
     {
         let slot = self.ids.iter_mut().find(|id| **id == Some((D, N)))?;
         *slot = None;
-        Some(crate::dma::Stream::new())
+        Some(crate::dma::Channel::new())
     }
 
-    /// Whether every stream has been taken.
+    /// Whether every DMA channel has been taken.
     pub fn is_empty(&self) -> bool {
         self.ids.iter().all(Option::is_none)
     }
@@ -405,7 +405,7 @@ enum Start {
 /// the samples mean is the caller's. A protocol encodes its frames as samples.
 ///
 /// Lanes built two-way read as well. [`LaneGroup::listen`] releases the outputs, runs
-/// the timers at the capture rate and has each lane's stream copy its port's input
+/// the timers at the capture rate and has each lane's DMA channel copy its port's input
 /// register into memory, paced by its own channel's compare request, so a lane can
 /// answer on the pin it sends on. [`LaneGroup::speak`] turns them back. [`recover`] turns
 /// what was read back into samples. Outputs can be active low, for a line that
@@ -418,7 +418,7 @@ enum Start {
 /// the same on every lane.
 ///
 /// Lanes are numbered in the order they were given: the first timer's, then the
-/// second's. The firmware binds each lane's stream vector, or polls, and calls
+/// second's. The firmware binds each lane's DMA channel vector, or polls, and calls
 /// [`LaneGroup::on_interrupt`] with that lane. FerroHAL enables nothing in the NVIC.
 pub struct LaneGroup<A: ChannelTimer, B: ChannelTimer, LA, LB> {
     first: Pwm<A>,
@@ -436,7 +436,7 @@ pub struct LaneGroup<A: ChannelTimer, B: ChannelTimer, LA, LB> {
     ccer: [(u16, u16); 2],
     /// What [`prepare_listen`](LaneGroup::prepare_listen) computed.
     plan: Option<Plan>,
-    /// Readers on their own streams.
+    /// Readers on their own DMA channels.
     ahead: [Option<AheadReader>; AHEAD],
     /// The pacer's registers and its rate.
     pacer: Option<(super::pwm::Pacer, Hertz)>,
@@ -449,11 +449,11 @@ struct Plan {
     listen: [(PreparedRate, u32); 2],
     /// Each timer's send rate, to go back to.
     send: [PreparedRate; 2],
-    /// Lanes whose own stream reads (bit n for lane n).
+    /// Lanes whose own DMA channel reads (bit n for lane n).
     readers: u8,
     /// For each lane, the lane whose read it shares.
     reader_of: [u8; 8],
-    /// Readers on their own streams this plan uses, one
+    /// Readers on their own DMA channels this plan uses, one
     /// bit per reader.
     ahead: u8,
     /// What the readers in `ahead` open on each timer:
@@ -614,33 +614,33 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
     }
 
     /// Reads port `P` for the first timer's lanes on it
-    /// through `stream`, paced by the first timer's update request, armed
+    /// through `dma`, paced by the first timer's update request, armed
     /// while the frame plays. Refused if a reader already reads that port on
     /// that timer, or with no room.
     pub fn read_ahead_first_update<S, const P: char>(
         &mut self,
-        stream: S,
+        dma: S,
     ) -> Result<(), Refused<Error, S>>
     where
         S: super::UpdateDma<A> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         let port = Self::idr::<P>();
-        self.add_ahead(stream, S::REQUEST, port, false, Opening::Update)
+        self.add_ahead(dma, S::REQUEST, port, false, Opening::Update)
     }
 
     /// As [`read_ahead_first_update`](Self::read_ahead_first_update),
     /// on the second timer.
     pub fn read_ahead_second_update<S, const P: char>(
         &mut self,
-        stream: S,
+        dma: S,
     ) -> Result<(), Refused<Error, S>>
     where
         S: super::UpdateDma<B> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         let port = Self::idr::<P>();
-        self.add_ahead(stream, S::REQUEST, port, true, Opening::Update)
+        self.add_ahead(dma, S::REQUEST, port, true, Opening::Update)
     }
 
     /// As [`read_ahead_first_update`](Self::read_ahead_first_update),
@@ -649,34 +649,34 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
     /// reads one port.
     pub fn read_ahead_first_compare<const C: u8, S, const P: char>(
         &mut self,
-        stream: S,
+        dma: S,
     ) -> Result<(), Refused<Error, S>>
     where
         S: super::CompareDma<A, C> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         if (0..LA::COUNT).any(|lane| LA::channel(lane) == C) {
-            return Err(Refused::new(Error::Busy, stream));
+            return Err(Refused::new(Error::Busy, dma));
         }
         let port = Self::idr::<P>();
-        self.add_ahead(stream, S::REQUEST, port, false, Opening::Compare(C))
+        self.add_ahead(dma, S::REQUEST, port, false, Opening::Compare(C))
     }
 
     /// As [`read_ahead_first_compare`](Self::read_ahead_first_compare),
     /// on the second timer.
     pub fn read_ahead_second_compare<const C: u8, S, const P: char>(
         &mut self,
-        stream: S,
+        dma: S,
     ) -> Result<(), Refused<Error, S>>
     where
         S: super::CompareDma<B, C> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         if (0..LB::COUNT).any(|lane| LB::channel(lane) == C) {
-            return Err(Refused::new(Error::Busy, stream));
+            return Err(Refused::new(Error::Busy, dma));
         }
         let port = Self::idr::<P>();
-        self.add_ahead(stream, S::REQUEST, port, true, Opening::Compare(C))
+        self.add_ahead(dma, S::REQUEST, port, true, Opening::Compare(C))
     }
 
     fn idr<const P: char>() -> u32
@@ -690,24 +690,24 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
     }
 
     /// A reader for port `P` paced by `pacer`'s update
-    /// request, for lanes whose streams cannot reach GPIO. One reader serves
+    /// request, for lanes whose DMA channels cannot reach GPIO. One reader serves
     /// every lane on the port, on either timer. `pacer` must run at the rate
     /// `prepare_listen` will ask for, its update interrupt off; the caller
     /// keeps it and keeps it running. Its request opens only at the switch.
     pub fn read_ahead_paced<T: super::ChannelTimer, S, const P: char>(
         &mut self,
         pacer: &Pwm<T>,
-        stream: S,
+        dma: S,
     ) -> Result<(), Refused<Error, S>>
     where
         S: super::UpdateDma<T> + super::GpioDma,
         crate::gpio::Port<P>: crate::gpio::PortInstance,
     {
         if self.pacer.is_some() {
-            return Err(Refused::new(Error::Busy, stream));
+            return Err(Refused::new(Error::Busy, dma));
         }
         let port = Self::idr::<P>();
-        self.add_ahead(stream, S::REQUEST, port, false, Opening::Paced)?;
+        self.add_ahead(dma, S::REQUEST, port, false, Opening::Paced)?;
         let handle = pacer.pacer();
         handle.close();
         self.pacer = Some((handle, pacer.rate()));
@@ -731,20 +731,20 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
         }
     }
 
-    /// Registers a reader on `stream`, refusing with the stream while a
+    /// Registers a reader on `dma`, refusing with the DMA channel while a
     /// waveform plays or is read, if a reader already reads that port on
     /// that timer (or that timer's update request), with no room, or if the
-    /// stream does not stop.
-    fn add_ahead<S: crate::dma::StreamInstance>(
+    /// DMA channel does not stop.
+    fn add_ahead<S: crate::dma::ChannelInstance>(
         &mut self,
-        stream: S,
+        dma: S,
         request: u8,
         port: u32,
         second: bool,
         opening: Opening,
     ) -> Result<(), Refused<Error, S>> {
         if self.state.started || self.state.listening {
-            return Err(Refused::new(Error::Busy, stream));
+            return Err(Refused::new(Error::Busy, dma));
         }
         let taken = self.ahead.iter().flatten().any(|r| {
             r.second == second
@@ -752,17 +752,17 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
                     || matches!((r.opening, opening), (Opening::Update, Opening::Update)))
         });
         if taken {
-            return Err(Refused::new(Error::Busy, stream));
+            return Err(Refused::new(Error::Busy, dma));
         }
         let Some(slot) = self.ahead.iter_mut().find(|slot| slot.is_none()) else {
-            return Err(Refused::new(Error::TooLarge, stream));
+            return Err(Refused::new(Error::TooLarge, dma));
         };
-        *slot = Some(AheadReader::new(stream, request, port, second, opening)?);
+        *slot = Some(AheadReader::new(dma, request, port, second, opening)?);
         self.plan = None;
         Ok(())
     }
 
-    /// The reader on its own stream for `port` on the
+    /// The reader on its own DMA channel for `port` on the
     /// first (`second` false) or second timer, if any.
     fn ahead_for(&self, second: bool, port: u32) -> Option<usize> {
         self.ahead.iter().position(
@@ -810,7 +810,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
             // `take_samples` refuses while this reader is armed or running;
             // it holds the prepared count, as `ahead_target` checked; the
             // address is a GPIO port's input register, read-only and without
-            // side effects, which this stream's request paces once opened.
+            // side effects, which this DMA channel's request paces once opened.
             if unsafe { reader.dma.start_prepared(&prepared) }.is_ok() {
                 reader.armed = true;
                 self.state.armed |= 1 << (index & 7);
@@ -1043,7 +1043,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
         let Some(plan) = self.plan.as_ref() else {
             return false;
         };
-        // With no reader ahead the lanes' own streams start at the switch,
+        // With no reader ahead the lanes' own DMA channels start at the switch,
         // their requests closed until `listen` opens them, so the timers can
         // idle as well.
         if self.state.listening || self.state.armed & plan.ahead != plan.ahead {
@@ -1109,7 +1109,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
     /// waveform is loaded, plays or is being read.
     ///
     /// The lanes of one timer that read one port share one reader (a paced
-    /// reader serves its port on both timers): only that reader's stream
+    /// reader serves its port on both timers): only that reader's DMA channel
     /// runs, and [`samples`](Self::samples) gives its read for each of them.
     pub fn prepare_listen(&mut self, rate: Hertz, count: usize) -> Result<Hertz, Error> {
         if self.state.started || self.state.active != 0 || self.state.listening {
@@ -1327,7 +1327,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
         Ok(())
     }
 
-    /// Starts the read of each lane in `plan` that reads on its own stream.
+    /// Starts the read of each lane in `plan` that reads on its own DMA channel.
     fn listen_lanes(&mut self, plan: &Plan) -> Result<(), Error> {
         let all = self.lanes().min(8);
         let mut lane = 0;
@@ -1411,7 +1411,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
         (first, second)
     }
 
-    /// Serves every lane's stream, from any lane's vector or from a task:
+    /// Serves every lane's DMA channel, from any lane's vector or from a task:
     /// `Some(Ok(ended))` once one or more waveforms have ended, bit `n` of
     /// `ended` set for lane `n`; `None` if none did. When the last lane
     /// ends, the timers stop and their requests close. A lane that fails
@@ -1551,18 +1551,18 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
 
     /// Stops everything and hands back what the constructor took: the timer
     /// handles and both lane sets, after [`abort`](Self::abort)'s sequence
-    /// (every lane at duty 0 with its stream stopped, the timers stopped,
+    /// (every lane at duty 0 with its DMA channel stopped, the timers stopped,
     /// their compare requests closed). Each lane then frees to its wiring and
     /// buffers ([`CompareLane::free`]), and each timer to its token
     /// ([`Pwm::free`]). The second timer is `None` on a lane group built with
-    /// [`single`](LaneGroup::single). Every reader's stream comes back in the
-    /// [`ReaderStreams`], stopped; a paced reader's timer stayed the caller's.
+    /// [`single`](LaneGroup::single). Every reader's DMA channel comes back in the
+    /// [`ReaderDma`], stopped; a paced reader's timer stayed the caller's.
     #[allow(clippy::type_complexity)]
-    pub fn free(self) -> (Pwm<A>, Option<Pwm<B>>, LA, LB, ReaderStreams) {
+    pub fn free(self) -> (Pwm<A>, Option<Pwm<B>>, LA, LB, ReaderDma) {
         let mut lane_group = self;
         lane_group.abort();
-        let mut streams = ReaderStreams { ids: [None; AHEAD] };
-        for (slot, reader) in streams.ids.iter_mut().zip(lane_group.ahead.iter_mut()) {
+        let mut dma = ReaderDma { ids: [None; AHEAD] };
+        for (slot, reader) in dma.ids.iter_mut().zip(lane_group.ahead.iter_mut()) {
             if let Some(mut reader) = reader.take() {
                 reader.disarm();
                 *slot = Some(reader.id);
@@ -1575,7 +1575,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
             second_lanes,
             ..
         } = lane_group;
-        (first, second, first_lanes, second_lanes, streams)
+        (first, second, first_lanes, second_lanes, dma)
     }
 
     fn halt(&mut self) {
@@ -1596,7 +1596,7 @@ impl<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>> LaneGroup<A, 
         self.state.idling = false;
     }
 
-    /// Every lane's stream vector, to bind to
+    /// Every lane's DMA channel vector, to bind to
     /// [`on_interrupt`](Self::on_interrupt).
     pub fn vectors(&self) -> crate::resource::Vectors {
         let mut vectors = crate::resource::Vectors::none();

@@ -287,7 +287,7 @@ requirements:
     rationale: >-
       The three sheets' consecutive-compare erratum makes the compare match at
       0 after one near the period's end go missing. A lane writes each next
-      duty on its compare request, so its stream would fall a period behind;
+      duty on its compare request, so its DMA channel would fall a period behind;
       the H753 bench measured that slip below the margin.
     derived_from: [G3]
     verification:
@@ -593,7 +593,7 @@ requirements:
     statement: >-
       Every lane on one timer and one GPIO port shall share one reader, whose port words are each of those lanes' samples.
     rationale: >-
-      One stream and one switch per port, whatever the lane count, so more lanes cost no more at the switch.
+      One DMA channel and one switch per port, whatever the lane count, so more lanes cost no more at the switch.
     derived_from: [TIMER-LANES-009]
     verification:
       entries:
@@ -607,7 +607,7 @@ requirements:
     statement: >-
       A reader registered on a spare request of a lane timer shall read the port at the switch.
     rationale: >-
-      A board with a spare stream reaching GPIO gets the fastest switch: the reader is enabled while the frame plays.
+      A board with a spare DMA channel reaching GPIO gets the fastest switch: the reader is enabled while the frame plays.
     derived_from: [TIMER-LANES-014]
     verification:
       entries:
@@ -617,11 +617,11 @@ requirements:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
   - id: TIMER-LANES-016
-    title: A reader on the lane's own stream
+    title: A reader on the lane's own DMA channel
     statement: >-
-      Without a registered reader, the port's first lane shall read the port on its own stream, started at the switch.
+      Without a registered reader, the port's first lane shall read the port on its own DMA channel, started at the switch.
     rationale: >-
-      A board with no spare stream still receives, on the streams its lanes already have.
+      A board with no spare DMA channel still receives, on the DMA channels its lanes already have.
     derived_from: [TIMER-LANES-014]
     verification:
       entries:
@@ -635,7 +635,7 @@ requirements:
     statement: >-
       A reader registered on the update request of a timer that is not a lane timer shall read the port at that timer's rate.
     rationale: >-
-      Lanes whose streams cannot reach GPIO (the F4's DMA1) receive only through a stream that can, paced by another timer.
+      Lanes whose DMA channels cannot reach GPIO (the F4's DMA1) receive only through a DMA channel that can, paced by another timer.
     derived_from: [TIMER-LANES-014]
     verification:
       entries:

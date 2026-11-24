@@ -32,7 +32,7 @@ vectors carry the transaction. Neither replaces the other.
   Opened from a plain `Wiring`, every phase is interrupt-fed. `i2c_v1` writes by DMA from
   2 bytes and reads from 3: a one-byte read cannot end by DMA (RM0368 18.3.8). The
   thresholds are `DMA_FROM_WRITE` and `DMA_FROM_READ`.
-- **DMA memory is checked at each `start`.** A buffer the stream cannot use is refused
+- **DMA memory is checked at each `start`.** A buffer the channel cannot use is refused
   with `chip::check_dma_buffer`'s verdict, and the transaction comes back.
 - **The driver has no timer.** A slave may stretch SCL without limit. The caller bounds
   a transaction with its own timer and calls `abort` when it passes; the transaction

@@ -10,7 +10,7 @@
 
 /// Bytes DMA has written, and its index in the ring, from the half-laps
 /// counted since the ring started (served by the interrupt, plus flags
-/// still pending) and the stream's remaining count (NDTR).
+/// still pending) and the channel's remaining count (NDTR).
 ///
 /// A crossing after the count was taken shows in the position: an even
 /// count with the position in the second half means the half-transfer

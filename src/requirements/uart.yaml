@@ -499,12 +499,12 @@ requirements:
             procedure: requirements/benches.md#UART on the Nucleo-H753ZI
 
   - id: UART-DMA-009
-    title: A stream that will not stop is not reused
+    title: A channel that will not stop is not reused
     statement: >-
-      A DMA stream that does not stop when told shall be left unused in
+      A DMA channel that does not stop when told shall be left unused in
       that direction.
     rationale: >-
-      Reusing a stream still running would corrupt memory; failing closed is
+      Reusing a channel still running would corrupt memory; failing closed is
       the only safe answer.
     derived_from: [UART-006]
     verification:
@@ -512,7 +512,7 @@ requirements:
         - level: target
           environment: development
           method:
-            procedure: requirements/benches-faults.md#Streams that will not stop on the Nucleo-H753ZI
+            procedure: requirements/benches-faults.md#DMA channels that will not stop on the Nucleo-H753ZI
 
   - id: UART-DMA-010
     title: The ring refuses a frame it can never hold
@@ -537,7 +537,7 @@ requirements:
       restarted on the driver's own buffer.
     rationale: >-
       A bus error that passes silently loses bytes looking good, and a
-      stream left stopped would lose every byte after it.
+      channel left stopped would lose every byte after it.
     derived_from: [UART-002, UART-012]
     verification:
       entries:
@@ -630,7 +630,7 @@ requirements:
       Writing the frame settings shall leave the transmitter and receiver
       off, the USART on and both DMA requests enabled.
     rationale: >-
-      The driver starts the streams first and only then turns the line on.
+      The driver starts the channels first and only then turns the line on.
     derived_from: [UART-002, UART-012]
     verification:
       entries:
@@ -764,7 +764,7 @@ requirements:
         - level: unit
           environment: host
           method:
-            test: ferrohal_stm32::uart::stream_dma::tests::a_receive_only_uart_refuses_what_needs_a_tx_pin
+            test: ferrohal_stm32::uart::dma::tests::a_receive_only_uart_refuses_what_needs_a_tx_pin
 
   - id: UART-023
     title: The line is reported quiet after the last stop bit

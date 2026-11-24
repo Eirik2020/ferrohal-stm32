@@ -9,17 +9,17 @@
 //! `&mut Pwm`: making a channel, turning an output on or off, opening and
 //! closing compare requests, staging and starting. A [`PwmChannel`] writes
 //! only its own compare register, and a [`CompareLane`] its own compare
-//! register and DMA stream.
+//! register and DMA channel.
 //!
 //! # A lane's transfer
 //!
 //! [`CompareLane::arm`] writes the first duty to the channel's compare
-//! register and starts its stream with the rest, then a 0. [`Pwm::stage`]
+//! register and starts its DMA channel with the rest, then a 0. [`Pwm::stage`]
 //! stops the counter, sets it to its reload value and opens the armed
 //! channels' compare requests; [`Pwm::start`] runs it. The first update
-//! latches each first duty; every compare match after that has the stream
+//! latches each first duty; every compare match after that has the DMA channel
 //! write the next duty, which the following update latches. The final 0
-//! holds the output low once the stream is done.
+//! holds the output low once the DMA channel is done.
 //!
 //! Requirements: TIMER-PWM-001, TIMER-PWM-002, TIMER-PWM-003, TIMER-PWM-004, TIMER-PWM-005, TIMER-PWM-006, TIMER-PWM-007, TIMER-PWM-008, TIMER-PWM-009, TIMER-LANES-012, TIMER-LANES-013, TIMER-LANES-016, TIMER-LANES-017, TIMER-LANES-021, API-002, API-003, RESOURCE-002
 
@@ -47,7 +47,7 @@ use super::{
 use crate::{
     chip::Interrupt,
     dma::{
-        AnyStream, Direction, Flags, Priority, StopTimeout, StreamInterrupt, Transfer, WordSize,
+        AnyChannel, ChannelInterrupt, Direction, Flags, Priority, StopTimeout, Transfer, WordSize,
     },
     gpio::{Port, PortInstance, PortRegisters},
     rcc::Rcc,
@@ -56,7 +56,7 @@ use crate::{
 };
 
 /// What [`Sampler::new`](Sampler::new) hands back: the reason, and the
-/// timer, stream and buffer it took.
+/// timer, DMA channel and buffer it took.
 pub type SamplerRefused<T, S> =
     crate::resource::Refused<super::ConfigError, (T, S, &'static mut [u16])>;
 
@@ -70,7 +70,7 @@ pub enum Error {
     Empty,
     /// Longer than the buffer.
     TooLarge,
-    /// The stream reported a transfer or direct-mode error; it was stopped.
+    /// The DMA channel reported a transfer or direct-mode error; it was stopped.
     Dma,
     /// A lane built with no input was asked to listen.
     NoInput,
@@ -647,15 +647,15 @@ impl<'a, T: ChannelTimer, const C: u8, P> PwmChannel<'a, T, C, P> {
 }
 
 /// The one lane assembly every wiring goes through (API review U4): stops
-/// the stream through a second owner beside its token, opens the channel's
+/// the DMA channel through a second owner beside its token, opens the channel's
 /// output, and keeps the wiring in the lane. The lane takes no memory: a
 /// frame is lent per play ([`CompareLane::arm`]) and samples memory per
 /// receive ([`CompareLane::lend_samples`]). Refuses with the wiring handed
-/// back, the hardware untouched but for the stopped stream.
+/// back, the hardware untouched but for the stopped DMA channel.
 fn assemble_lane<T, const C: u8, W, S>(
     pwm: &Pwm<T>,
     wiring: W,
-    stream: fn(&W) -> &S,
+    dma: fn(&W) -> &S,
     complementary: bool,
     input: Option<u32>,
 ) -> Result<CompareLane<T, C, W>, (ConfigError, W)>
@@ -663,14 +663,14 @@ where
     T: ChannelTimer,
     S: CompareDma<T, C>,
 {
-    let mut dma = crate::dma::claim(stream(&wiring));
-    if dma.stop(crate::dma::STOP_SPINS).is_err() {
+    let mut claimed = crate::dma::claim(dma(&wiring));
+    if claimed.stop(crate::dma::STOP_SPINS).is_err() {
         return Err((ConfigError::DmaBusy, wiring));
     }
-    dma.clear_flags(Flags::ALL);
+    claimed.clear_flags(Flags::ALL);
     pwm.open_channel::<C>(complementary);
     Ok(CompareLane {
-        dma,
+        dma: claimed,
         request: S::REQUEST,
         vector: S::INTERRUPT,
         lent: None,
@@ -693,41 +693,41 @@ where
     })
 }
 
-impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
-    super::LaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
+impl<T, Pin, const D: u8, const N: u8, const C: u8>
+    super::LaneWiring<T, C, Pin, crate::dma::Channel<D, N>>
 where
     T: ChannelTimer,
     Pin: ChannelPin<T, C>,
-    crate::dma::Stream<CD, SN>: CompareDma<T, C>,
+    crate::dma::Channel<D, N>: CompareDma<T, C>,
 {
     /// Assembles one compare lane from this wiring: the pin becomes channel
-    /// `C`'s output and the stream feeds its compare register from the frame
+    /// `C`'s output and the DMA channel feeds its compare register from the frame
     /// each play lends ([`CompareLane::arm`]), paced by the channel's compare
     /// request. The lane keeps the wiring; [`CompareLane::free`] hands it
-    /// back. Refuses with the wiring if the stream is still busy.
+    /// back. Refuses with the wiring if the DMA channel is still busy.
     pub fn assemble(
         self,
         pwm: &Pwm<T>,
-    ) -> Result<CompareLane<T, C, Self>, super::LaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>>>
+    ) -> Result<CompareLane<T, C, Self>, super::LaneRefused<T, C, Pin, crate::dma::Channel<D, N>>>
     {
-        assemble_lane(pwm, self, |w| &w.stream, false, None)
+        assemble_lane(pwm, self, |w| &w.dma, false, None)
             .map_err(|(error, wiring)| Refused::new(error, wiring))
     }
 
     /// As [`assemble_two_way`](Self::assemble_two_way)
-    /// on a stream that cannot reach GPIO (F4's DMA1): the lane sends on its
-    /// own stream, and only a reader paced by another timer
+    /// on a DMA channel that cannot reach GPIO (F4's DMA1): the lane sends on its
+    /// own DMA channel, and only a reader paced by another timer
     /// ([`LaneGroup::read_ahead_paced`](super::LaneGroup::read_ahead_paced)) reads its
     /// port, into the samples memory lent to it.
     pub fn assemble_paced<const PORT: char>(
         self,
         pwm: &Pwm<T>,
-    ) -> Result<CompareLane<T, C, Self>, super::LaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>>>
+    ) -> Result<CompareLane<T, C, Self>, super::LaneRefused<T, C, Pin, crate::dma::Channel<D, N>>>
     where
         Port<PORT>: PortInstance,
     {
         let port = <Port<PORT> as PortRegisters>::regs().idr().as_ptr() as u32;
-        assemble_lane(pwm, self, |w| &w.stream, false, Some(port))
+        assemble_lane(pwm, self, |w| &w.dma, false, Some(port))
             .map(|mut lane| {
                 if let Some(input) = lane.input.as_mut() {
                     input.paced_only = true;
@@ -738,28 +738,28 @@ where
     }
 
     /// As [`assemble`](Self::assemble), for a lane that can also read its own
-    /// pin: the stream has to reach GPIO, which on F4 only DMA2's does, and a
+    /// pin: the DMA channel has to reach GPIO, which on F4 only DMA2's does, and a
     /// receive reads into the samples memory lent to it.
     pub fn assemble_two_way<const PORT: char>(
         self,
         pwm: &Pwm<T>,
-    ) -> Result<CompareLane<T, C, Self>, super::LaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>>>
+    ) -> Result<CompareLane<T, C, Self>, super::LaneRefused<T, C, Pin, crate::dma::Channel<D, N>>>
     where
-        crate::dma::Stream<CD, SN>: GpioDma,
+        crate::dma::Channel<D, N>: GpioDma,
         Port<PORT>: PortInstance,
     {
         let port = <Port<PORT> as PortRegisters>::regs().idr().as_ptr() as u32;
-        assemble_lane(pwm, self, |w| &w.stream, false, Some(port))
+        assemble_lane(pwm, self, |w| &w.dma, false, Some(port))
             .map_err(|(error, wiring)| Refused::new(error, wiring))
     }
 }
 
-impl<T, Pin, const CD: u8, const SN: u8, const C: u8>
-    super::ComplementaryLaneWiring<T, C, Pin, crate::dma::Stream<CD, SN>>
+impl<T, Pin, const D: u8, const N: u8, const C: u8>
+    super::ComplementaryLaneWiring<T, C, Pin, crate::dma::Channel<D, N>>
 where
     T: ChannelTimer,
     Pin: ComplementaryPin<T, C>,
-    crate::dma::Stream<CD, SN>: CompareDma<T, C>,
+    crate::dma::Channel<D, N>: CompareDma<T, C>,
 {
     /// Assembles one complementary lane (`CHxN`) from this wiring, as
     /// [`assemble`](super::LaneWiring::assemble) does for a channel lane.
@@ -769,9 +769,9 @@ where
         pwm: &Pwm<T>,
     ) -> Result<
         CompareLane<T, C, Self>,
-        super::ComplementaryLaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>>,
+        super::ComplementaryLaneRefused<T, C, Pin, crate::dma::Channel<D, N>>,
     > {
-        assemble_lane(pwm, self, |w| &w.stream, true, None)
+        assemble_lane(pwm, self, |w| &w.dma, true, None)
             .map_err(|(error, wiring)| Refused::new(error, wiring))
     }
 
@@ -783,14 +783,14 @@ where
         pwm: &Pwm<T>,
     ) -> Result<
         CompareLane<T, C, Self>,
-        super::ComplementaryLaneRefused<T, C, Pin, crate::dma::Stream<CD, SN>>,
+        super::ComplementaryLaneRefused<T, C, Pin, crate::dma::Channel<D, N>>,
     >
     where
-        crate::dma::Stream<CD, SN>: GpioDma,
+        crate::dma::Channel<D, N>: GpioDma,
         Port<PORT>: PortInstance,
     {
         let port = <Port<PORT> as PortRegisters>::regs().idr().as_ptr() as u32;
-        assemble_lane(pwm, self, |w| &w.stream, true, Some(port))
+        assemble_lane(pwm, self, |w| &w.dma, true, Some(port))
             .map_err(|(error, wiring)| Refused::new(error, wiring))
     }
 }
@@ -805,7 +805,7 @@ struct LaneInput {
     /// The address the prepared listen writes to, so a listen into memory
     /// no longer held is refused.
     prepared_at: u32,
-    /// The lane's stream cannot reach GPIO; only a
+    /// The lane's DMA channel cannot reach GPIO; only a
     /// paced reader reads its port, into this lane's memory.
     paced_only: bool,
 }
@@ -847,7 +847,7 @@ impl Frame {
     /// Checks and closes the first `len` duties of `words`, which needs one
     /// word more for the closing 0. Refuses with the words back: for 0
     /// duties, no room for the 0, or a duty near the top before a 0 or at
-    /// the end. Pure, so a frame can be built anywhere: whether a stream
+    /// the end. Pure, so a frame can be built anywhere: whether a DMA channel
     /// reaches the memory is [`CompareLane::arm`]'s check, one range
     /// compare.
     pub fn new(
@@ -959,20 +959,20 @@ fn reload_counter(gp: TimGp16, prescaler: u32, reload: u64) {
     gp.cnt().write(|w| w.set_cnt(0));
 }
 
-/// A channel whose compare register a DMA stream feeds, one duty per
+/// A channel whose compare register a DMA channel feeds, one duty per
 /// period, paced by the channel's own compare request. The lane holds no
 /// borrow of the timer: its compare writes take a `&Pwm` per call, so it
 /// can move into a [`LaneGroup`](super::LaneGroup) with the timer, and it cannot touch
 /// the timer without one.
 ///
-/// It keeps its wiring (the pin and the stream token), and
+/// It keeps its wiring (the pin and the DMA channel token), and
 /// [`free`](Self::free) hands it back. It keeps no memory of its own: each
 /// play plays a [`Frame`] lent to it, and each receive reads into samples
 /// memory lent to it. `W` is the wiring it was assembled
 /// from, so its type names timer and channel twice: a const generic cannot
 /// be read off `W` on stable Rust.
 pub struct CompareLane<T, const C: u8, W> {
-    dma: AnyStream,
+    dma: AnyChannel,
     request: u8,
     vector: Interrupt,
     /// A lent frame it plays, or played, in place.
@@ -991,23 +991,23 @@ pub struct CompareLane<T, const C: u8, W> {
 }
 
 impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
-    /// Stops the stream, drops the output to duty 0 and disables it, and
+    /// Stops the DMA channel, drops the output to duty 0 and disables it, and
     /// hands back the wiring with whatever is still lent: the last frame and
     /// a two-way lane's samples memory. The inverse of
     /// [`LaneWiring::assemble`](super::LaneWiring::assemble) (and its two-way
     /// and complementary forms). The timer handle goes along for the compare
     /// and output writes.
     ///
-    /// A stream that does not stop in time could still use the lent memory,
+    /// A DMA channel that does not stop in time could still use the lent memory,
     /// so it is not handed out: the refusal returns the lane, its output
     /// closed, still holding it. `free` may be tried again; it succeeds once
-    /// the stream has stopped.
+    /// the DMA channel has stopped.
     #[allow(clippy::type_complexity)]
     pub fn free(
         mut self,
         pwm: &Pwm<T>,
     ) -> Result<(W, Option<Frame>, Option<&'static mut [u16]>), Refused<StopTimeout, Self>> {
-        let stopped = self.stop_stream();
+        let stopped = self.stop_dma();
         pwm.close_channel::<C>(self.complementary);
         if stopped.is_err() {
             return Err(Refused::new(StopTimeout, self));
@@ -1020,7 +1020,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
     }
 
     /// Plays a checked [`Frame`] in place, from lent memory: the first duty
-    /// into the compare register, the stream from the rest and the closing 0
+    /// into the compare register, the DMA channel from the rest and the closing 0
     /// [`Frame::new`] wrote; the timer's `stage` and `start` set it going.
     /// Nothing is copied or checked again but the limits, which must still
     /// be this timer's, and the memory's reach. Refuses with the frame while
@@ -1057,7 +1057,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         Ok(())
     }
 
-    /// Turns the stream's end-of-transfer
+    /// Turns the DMA channel's end-of-transfer
     /// interrupt on or off, its error interrupts left on.
     pub(crate) fn set_complete_interrupt(&mut self, on: bool) {
         self.dma.set_interrupts(crate::dma::Interrupts {
@@ -1070,7 +1070,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
 
     /// The lent frame back, once the lane has stopped.
     pub fn take_frame(&mut self) -> Option<Frame> {
-        // A stop that timed out leaves `running` clear and the stream on.
+        // A stop that timed out leaves `running` clear and the DMA channel on.
         if self.running || self.dma.is_running() {
             return None;
         }
@@ -1079,7 +1079,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
 
     /// Lends samples memory for the next listens. A listen prepared for other memory is
     /// refused until prepared again. Refuses with the memory on a lane with
-    /// no input, while it runs, while one is lent, or for memory a stream
+    /// no input, while it runs, while one is lent, or for memory a DMA channel
     /// cannot reach.
     pub fn lend_samples(
         &mut self,
@@ -1111,7 +1111,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         self.input.as_mut()?.lent.take()
     }
 
-    /// Where a reader on another stream may read
+    /// Where a reader on another DMA channel may read
     /// `count` samples for this lane: the address of the memory the lane
     /// holds now, recorded as prepared. Refused on a lane with no input, for
     /// 0 samples or more than the memory holds, or while the lane runs.
@@ -1252,7 +1252,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         }
     }
 
-    /// Serves the stream's interrupt: `Some` once the transfer has ended.
+    /// Serves the DMA channel's interrupt: `Some` once the transfer has ended.
     /// The output then holds low at duty 0; the timer keeps counting until
     /// the firmware stops it. Safe to call from a task to poll.
     pub fn on_interrupt(&mut self) -> Option<Result<(), Error>> {
@@ -1262,9 +1262,9 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         }
         let flags = self.dma.flags();
         if flags.failed() {
-            // A stream that will not stop is caught by the next `arm`
+            // A DMA channel that will not stop is caught by the next `arm`
             // (`Error::Dma`) or by `free`.
-            let _ = self.stop_stream();
+            let _ = self.stop_dma();
             return Some(Err(Error::Dma));
         }
         if !flags.complete {
@@ -1279,17 +1279,17 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
         self.running
     }
 
-    /// Stops the stream and drops the output to duty 0.
+    /// Stops the DMA channel and drops the output to duty 0.
     pub fn abort(&mut self, pwm: &Pwm<T>) {
         // As `on_interrupt`'s error path: caught by `arm` or `free`.
-        let _ = self.stop_stream();
+        let _ = self.stop_dma();
         pwm.set_duty::<C>(0);
     }
 
-    /// Stops the stream, leaving the output at its last duty: what the
-    /// stream's error path does, where no timer handle is at hand. Park the
+    /// Stops the DMA channel, leaving the output at its last duty: what the
+    /// DMA channel's error path does, where no timer handle is at hand. Park the
     /// channel through [`abort`](Self::abort) or [`Pwm::set_duty`].
-    fn stop_stream(&mut self) -> Result<(), StopTimeout> {
+    fn stop_dma(&mut self) -> Result<(), StopTimeout> {
         let stopped = self.dma.stop(crate::dma::STOP_SPINS);
         self.dma.clear_flags(Flags::ALL);
         fence(Ordering::SeqCst);
@@ -1298,7 +1298,7 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
     }
 
     /// The vector to bind to [`on_interrupt`](Self::on_interrupt): the
-    /// stream's.
+    /// DMA channel's.
     pub fn vectors(&self) -> crate::resource::Vectors {
         crate::resource::Vectors::one(self.vector)
     }
@@ -1319,17 +1319,17 @@ impl<T: ChannelTimer, const C: u8, W> CompareLane<T, C, W> {
 /// A port's pin levels, copied into memory by DMA at a timer's update rate:
 /// one 16-bit sample of the whole port's input register per update.
 ///
-/// On F4 the stream must be DMA2's (`GpioDma`), whose peripheral port
+/// On F4 the DMA channel must be DMA2's (`GpioDma`), whose peripheral port
 /// reaches GPIO. ES0299 2.2.11, ES0287 2.2.11 and ES0182 2.2.19: DMA2 can corrupt data when
 /// it serves an AHB peripheral (this sampler) and an APB2 peripheral at the
 /// same time; keep APB2 traffic off DMA2 while sampling.
 ///
-/// It keeps the timer token, the stream token and the buffer, and
+/// It keeps the timer token, the DMA channel token and the buffer, and
 /// [`free`](Self::free) hands them back.
 pub struct Sampler<T, S> {
     timer: TimGp16,
     clock: Hertz,
-    dma: AnyStream,
+    dma: AnyChannel,
     request: u8,
     vector: Interrupt,
     input: u32,
@@ -1337,7 +1337,7 @@ pub struct Sampler<T, S> {
     rate: Hertz,
     state: SampleState,
     timer_token: T,
-    stream: S,
+    dma_token: S,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -1347,16 +1347,16 @@ enum SampleState {
     Done(u16),
 }
 
-impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
+impl<T: Instance, S: UpdateDma<T> + GpioDma + ChannelInterrupt> Sampler<T, S> {
     /// Enables and resets `timer` to update at `rate` (as near as the clock
-    /// allows; [`rate`](Self::rate) says what it got), and points `stream`
+    /// allows; [`rate`](Self::rate) says what it got), and points `dma`
     /// at port `P`'s input register. Nothing runs until
-    /// [`start`](Self::start). The sampler keeps the timer, the stream and
+    /// [`start`](Self::start). The sampler keeps the timer, the DMA channel and
     /// the buffer, and hands them back with [`free`](Self::free).
     pub fn new<const P: char>(
         rcc: &mut Rcc,
         timer: T,
-        stream: S,
+        dma: S,
         rate: Hertz,
         buffer: &'static mut [u16],
     ) -> Result<Self, SamplerRefused<T, S>>
@@ -1367,28 +1367,28 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
         let (prescaler, reload, rate) = match nearest(clock, rate, T::BITS) {
             Ok(parts) => parts,
             Err(error) => {
-                return Err(Refused::new(error, (timer, stream, buffer)));
+                return Err(Refused::new(error, (timer, dma, buffer)));
             }
         };
         if let Err(error) = crate::chip::check_dma_buffer(buffer) {
-            return Err(Refused::new(error.into(), (timer, stream, buffer)));
+            return Err(Refused::new(error.into(), (timer, dma, buffer)));
         }
         rcc.open(T::ENABLE);
         super::load(T::info().core(), prescaler, reload);
-        let mut dma = crate::dma::claim(&stream);
-        if dma.stop(crate::dma::STOP_SPINS).is_err() {
+        let mut claimed = crate::dma::claim(&dma);
+        if claimed.stop(crate::dma::STOP_SPINS).is_err() {
             return Err(Refused::new(
                 super::ConfigError::DmaBusy,
-                (timer, stream, buffer),
+                (timer, dma, buffer),
             ));
         }
-        dma.clear_flags(Flags::ALL);
+        claimed.clear_flags(Flags::ALL);
         Ok(Self {
             // SAFETY: the timer's base address; CR1, DIER, SR and CNT sit
             // where the general-purpose layout has them on every timer.
             timer: unsafe { TimGp16::from_ptr(T::info().core().as_ptr()) },
             clock,
-            dma,
+            dma: claimed,
             request: S::REQUEST,
             vector: S::INTERRUPT,
             input: <Port<P> as PortRegisters>::regs().idr().as_ptr() as u32,
@@ -1396,24 +1396,24 @@ impl<T: Instance, S: UpdateDma<T> + GpioDma + StreamInterrupt> Sampler<T, S> {
             rate,
             state: SampleState::Idle,
             timer_token: timer,
-            stream,
+            dma_token: dma,
         })
     }
 
-    /// Stops the timer and the stream, and hands back what
-    /// [`new`](Self::new) took: the timer, the stream and the buffer. What a
+    /// Stops the timer and the DMA channel, and hands back what
+    /// [`new`](Self::new) took: the timer, the DMA channel and the buffer. What a
     /// `Drop` would do, made explicit so the parts can move out.
     ///
-    /// A stream that does not stop in time could still write the buffer, so
+    /// A DMA channel that does not stop in time could still write the buffer, so
     /// it is not handed out: the refusal returns the sampler, stopped as far
     /// as it would, still owning it. `free` may be tried again; it succeeds
-    /// once the stream has stopped.
+    /// once the DMA channel has stopped.
     #[allow(clippy::type_complexity)]
     pub fn free(mut self) -> Result<(T, S, &'static mut [u16]), Refused<StopTimeout, Self>> {
         if self.halt().is_err() {
             return Err(Refused::new(StopTimeout, self));
         }
-        Ok((self.timer_token, self.stream, self.buffer))
+        Ok((self.timer_token, self.dma_token, self.buffer))
     }
 }
 
@@ -1469,7 +1469,7 @@ impl<T: Instance, S> Sampler<T, S> {
         Ok(())
     }
 
-    /// Serves the stream's interrupt: `Some` once the samples are in. Safe to
+    /// Serves the DMA channel's interrupt: `Some` once the samples are in. Safe to
     /// call from a task to poll.
     pub fn on_interrupt(&mut self) -> Option<Result<usize, Error>> {
         let SampleState::Running(len) = self.state else {
@@ -1497,9 +1497,9 @@ impl<T: Instance, S> Sampler<T, S> {
         }
     }
 
-    /// Abandons a run: stops the timer and the stream.
+    /// Abandons a run: stops the timer and the DMA channel.
     pub fn abort(&mut self) {
-        // A stream that will not stop is caught by the next `start`
+        // A DMA channel that will not stop is caught by the next `start`
         // (`Error::Dma`) or by `free`.
         let _ = self.halt();
     }
@@ -1515,7 +1515,7 @@ impl<T: Instance, S> Sampler<T, S> {
     }
 
     /// The vector to bind to [`on_interrupt`](Self::on_interrupt): the
-    /// stream's.
+    /// DMA channel's.
     pub fn vectors(&self) -> crate::resource::Vectors {
         crate::resource::Vectors::one(self.vector)
     }
@@ -1537,7 +1537,7 @@ impl<T: ChannelTimer, const C: u8, W> crate::resource::Service for CompareLane<T
     }
 }
 
-// SAFETY: a sampler owns its timer and stream; the buffer is its own.
+// SAFETY: a sampler owns its timer and DMA channel; the buffer is its own.
 unsafe impl<T: Instance, S: Send> Send for Sampler<T, S> {}
 
 #[cfg(test)]

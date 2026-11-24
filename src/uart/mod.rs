@@ -6,7 +6,7 @@
 //!
 //! - **init**: `Uart::new(&mut rcc, wiring, &config, buffers)`. The
 //!   [`Wiring`] comes from the board file and names the instance, pins and
-//!   DMA streams; the IP's routing traits reject a wrong combination at
+//!   DMA channels; the IP's routing traits reject a wrong combination at
 //!   compile time. A refusal is a [`Refused`]: the reason, with the wiring
 //!   and buffers handed back.
 //! - **read and write**: `embedded_io::{Read, Write, ReadReady, WriteReady}`
@@ -24,14 +24,14 @@
 use core::fmt;
 
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
-mod ring;
+pub(crate) mod dma;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
-pub(crate) mod stream_dma;
+mod ring;
 #[cfg(any(feature = "dma_v1", feature = "dma_v2"))]
 mod tx_ring;
 
 #[cfg(any(feature = "usart_v2", feature = "usart_v3", feature = "usart_v4"))]
-pub use stream_dma::{
+pub use dma::{
     Events, Info, Instance, Parts, RxDma, RxPin, TxDma, TxPin, Uart, UartRefused, UartRxRefused,
     check,
 };
@@ -182,7 +182,7 @@ pub enum StopBits {
 }
 
 /// What the board file hands to `Uart::new`: one UART instance, its pins
-/// and its DMA streams. The IP driver's trait bounds check that they belong
+/// and its DMA channels. The IP driver's trait bounds check that they belong
 /// together; this struct only carries them.
 pub struct Wiring<U, Tx, Rx, TxDma, RxDma> {
     pub uart: U,
@@ -193,7 +193,7 @@ pub struct Wiring<U, Tx, Rx, TxDma, RxDma> {
 }
 
 /// What the board file hands to `Uart::new_rx` for a receive-only UART: the
-/// instance, its RX pin and its receive DMA stream.
+/// instance, its RX pin and its receive DMA channel.
 pub struct RxWiring<U, Rx, RxDma> {
     pub uart: U,
     pub rx: Rx,
@@ -208,7 +208,7 @@ pub struct Buffers {
     pub tx: &'static mut [u8],
     /// The receive ring, filled continuously by DMA. An even length from 2
     /// to 65 534 bytes. `read` must keep up within one ring's worth of
-    /// bytes, and the receive stream must be served (by the interrupt or a
+    /// bytes, and the receive channel must be served (by the interrupt or a
     /// read) within most of a lap.
     pub rx: &'static mut [u8],
 }
@@ -273,7 +273,7 @@ pub enum SendError {
     Full,
     /// Longer than the transmit buffer: it can never fit.
     TooLarge,
-    /// A transmit DMA stream did not stop or start; transmission is off.
+    /// A transmit DMA channel did not stop or start; transmission is off.
     Halted,
 }
 
@@ -297,7 +297,7 @@ pub struct TxHealth {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConfigError {
-    /// A DMA stream was left running by an earlier owner and did not stop.
+    /// A DMA channel was left running by an earlier owner and did not stop.
     DmaBusy,
     /// The baud rate cannot be reached from this UART's clock within 1 %.
     BaudRate,
@@ -321,7 +321,7 @@ impl From<crate::dma::BufferError> for ConfigError {
 }
 
 /// A fault on the link. Each one marks a gap or corruption in the byte
-/// stream; reception and transmission carry on after it unless it says
+/// channel; reception and transmission carry on after it unless it says
 /// otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -335,15 +335,15 @@ pub enum Error {
     Noise,
     /// `read` fell more than one ring behind; the unread bytes are gone.
     BufferOverrun,
-    /// A DMA stream reported a fault: a bus error, which stopped it, or a
+    /// A DMA channel reported a fault: a bus error, which stopped it, or a
     /// direct-mode or FIFO error, where it could not keep up. Reception
     /// restarts; anything in flight is lost. [`Health`] says which.
     Dma,
     /// A transfer did not finish within its counted bound. The driver
     /// stopped it.
     Timeout,
-    /// A DMA stream did not stop when told to. The driver no longer uses
-    /// that direction: it fails closed rather than reuse a running stream.
+    /// A DMA channel did not stop when told to. The driver no longer uses
+    /// that direction: it fails closed rather than reuse a running channel.
     Halted,
 }
 
@@ -357,7 +357,7 @@ impl fmt::Display for Error {
             Self::BufferOverrun => "receive ring overrun",
             Self::Dma => "DMA fault",
             Self::Timeout => "transfer timed out",
-            Self::Halted => "DMA stream did not stop",
+            Self::Halted => "DMA channel did not stop",
         })
     }
 }

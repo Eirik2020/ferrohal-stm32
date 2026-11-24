@@ -26,7 +26,7 @@ the IP folders stay self-contained. What did not hold up:
 
 1. One folder per IP, holding its submodules; loose files in `src/` are the crate's
    core only. A folder reaches only that core and other IPs' public items, so it can be
-   cut into a crate. The timer is `src/timer/{mod,pwm,awg}.rs`; the stream DMA
+   cut into a crate. The timer is `src/timer/{mod,pwm,lane_group}.rs`; the DMA
    `src/dma/mod.rs`, mounted as `dma_v1`/`dma_v2`; `exti/`, `iwdg/`, `syscfg/`, `usb/`.
 2. A second DMA IP on one die (BDMA on the H7 and G474) gets its own folder and neutral
    name (`bdma`), as metapac names it.

@@ -1,13 +1,13 @@
 //! Run G: SPI1 and SPI4 on their other pins.
 //!
-//! - SPI1: PB3, PB4, PB5, DMA1 streams 0 and 1, over S2.
-//! - SPI4: PE2, PE5, PE6, DMA1 streams 2 and 3, over S5.
+//! - SPI1: PB3, PB4, PB5, DMA1 channels 0 and 1, over S2.
+//! - SPI4: PE2, PE5, PE6, DMA1 channels 2 and 3, over S5.
 //!
 //! Each SPI's SCK is routed to its EXTI line too, to count its edges.
 //!
 //! | Vector | Owner | Priority |
 //! | --- | --- | --- |
-//! | `DMA1_STREAM1`, `DMA1_STREAM3` | the open `Spi`'s receive stream | 2 |
+//! | `DMA1_STREAM1`, `DMA1_STREAM3` | the open `Spi`'s receive DMA channel | 2 |
 //! | `EXTI3` (line 3), `EXTI2` (line 2) | EXTI edge counting | 2 |
 //! | `CEC` | RTIC, dispatching the priority 1 `checks` task | 1 |
 

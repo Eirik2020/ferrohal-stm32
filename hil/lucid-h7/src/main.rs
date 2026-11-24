@@ -41,7 +41,7 @@ use cortex_m_rt::entry;
 use ferrohal_stm32::{
     adc::{Adc, Config as AdcConfig},
     chip::{Peripherals, SPI1, TIM2},
-    dma::Stream,
+    dma::Channel,
     exti::Edge,
     gpio::{Alternate, Pin, Pull, Speed},
     iwdg::Watchdog,
@@ -84,8 +84,8 @@ type ImuWiring = Wiring<
     Pin<'A', 5, Alternate<5>>,
     Pin<'A', 6, Alternate<5>>,
     Pin<'D', 7, Alternate<5>>,
-    Stream<1, 5>,
-    Stream<1, 4>,
+    Channel<1, 5>,
+    Channel<1, 4>,
 >;
 
 const RCC_CR: *const u32 = 0x5802_4400 as *const u32;
@@ -337,8 +337,8 @@ fn main() -> ! {
         sck,
         miso,
         mosi,
-        tx_dma: dma1.s5,
-        rx_dma: dma1.s4,
+        tx_dma: dma1.ch5,
+        rx_dma: dma1.ch4,
     };
     // SAFETY: `main` runs once, and these are the only references.
     let buffers = unsafe {
@@ -369,7 +369,7 @@ fn main() -> ! {
 
     // The motor pads get their timers with duty 0 and the counters stopped,
     // and lose them again before anything counts: no frame reaches one. The
-    // streams are the flight code's.
+    // DMA channels are the flight code's.
     let (pwm_refused, tim3) = match Pwm::new(&mut rcc, p.TIM3, Hertz(0)) {
         Err(refused) => {
             let refused_zero =
@@ -410,10 +410,10 @@ fn main() -> ! {
     let dtcm: &'static mut [u32] =
         unsafe { core::slice::from_raw_parts_mut(0x2001_0000 as *mut u32, 16) };
     let (Ok(mut lane1), Ok(mut lane2), Ok(mut lane3), Ok(mut lane4)) = (
-        LaneWiring::<_, 3, _, _>::new(channel3, dma2.s0).assemble_two_way::<'B'>(&tim3),
-        LaneWiring::<_, 4, _, _>::new(channel4, dma2.s1).assemble_two_way::<'B'>(&tim3),
-        LaneWiring::<_, 1, _, _>::new(channel1, dma2.s2).assemble_two_way::<'A'>(&tim5),
-        LaneWiring::<_, 2, _, _>::new(channel2, dma2.s3).assemble_two_way::<'A'>(&tim5),
+        LaneWiring::<_, 3, _, _>::new(channel3, dma2.ch0).assemble_two_way::<'B'>(&tim3),
+        LaneWiring::<_, 4, _, _>::new(channel4, dma2.ch1).assemble_two_way::<'B'>(&tim3),
+        LaneWiring::<_, 1, _, _>::new(channel1, dma2.ch2).assemble_two_way::<'A'>(&tim5),
+        LaneWiring::<_, 2, _, _>::new(channel2, dma2.ch3).assemble_two_way::<'A'>(&tim5),
     ) else {
         reboot_to_dfu()
     };
@@ -469,7 +469,7 @@ fn main() -> ! {
         reboot_to_dfu()
     };
 
-    // The battery inputs on ADC1, over a stream the flight code leaves free;
+    // The battery inputs on ADC1, over a DMA channel the flight code leaves free;
     // VDDA and the die from ADC3's internal channels.
     let Ok(mut adc3) = Adc::new(&mut rcc, p.ADC3, &AdcConfig::slow_source()) else {
         reboot_to_dfu()
@@ -484,15 +484,15 @@ fn main() -> ! {
     let channels = [adc1.channel(&voltage), adc1.channel(&current)];
     // SAFETY: `main` runs once, and this is the only reference.
     let samples: &'static mut [u16] = unsafe { &mut *addr_of_mut!(ADC_SAMPLES) };
-    let (scan_refused, adc1, scan_stream, samples) = match adc1.into_scan(dma2.s5, &[], samples) {
+    let (scan_refused, adc1, scan_dma, samples) = match adc1.into_scan(dma2.ch5, &[], samples) {
         Err(refused) => {
             let refused_empty = matches!(refused.error(), ferrohal_stm32::adc::ConfigError::Sequence);
-            let (adc1, stream, samples) = refused.into_parts();
-            (refused_empty, adc1, stream, samples)
+            let (adc1, dma, samples) = refused.into_parts();
+            (refused_empty, adc1, dma, samples)
         }
         Ok(_) => reboot_to_dfu(),
     };
-    let Ok(mut scan) = adc1.into_scan(scan_stream, &channels, samples) else {
+    let Ok(mut scan) = adc1.into_scan(scan_dma, &channels, samples) else {
         reboot_to_dfu()
     };
 

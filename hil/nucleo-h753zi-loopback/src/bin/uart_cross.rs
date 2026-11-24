@@ -11,7 +11,7 @@
 //! PB11, so UART4 must hear nothing [USART-V4-002].
 //!
 //! RTIC owns every interrupt; FerroHAL only enables each UART's and its
-//! streams' own interrupt bits. Each UART is one shared resource, served by
+//! DMA channels' own interrupt bits. Each UART is one shared resource, served by
 //! its handlers and used by the `checks` task under RTIC's lock, one call at
 //! a time (`tests::Locked`; `docs/design/uart-ownership.md`). Each vector in
 //! use, and what serves it:

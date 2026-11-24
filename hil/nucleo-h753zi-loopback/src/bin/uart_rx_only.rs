@@ -2,7 +2,7 @@
 //! of their links (the TX pins driven as GPIOs):
 //!
 //! - USART1 on PB7 as the TBS Lucid H7's SBUS input: 100000 8E2, RX
-//!   inverted, on the Lucid's DMA2 stream 4, fed inverted 25-byte frames
+//!   inverted, on the Lucid's DMA2 channel 4, fed inverted 25-byte frames
 //!   by PB6 over Z3;
 //! - UART7 on PB3 at 115200, fed by PA15 over Z12.
 //!

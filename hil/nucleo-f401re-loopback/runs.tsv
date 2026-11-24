@@ -2,7 +2,7 @@
 # aliases (API review B1): hil/run-*.sh, the procedures and tools/ take them.
 a	uart-each
 b	uart-cross
-c	uart-other-stream
+c	uart-other-channel
 d	uart-rx-only
 e	spi-exti
 f	spi-other-pins

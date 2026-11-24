@@ -358,7 +358,7 @@ adc_dma!(ADC1: (2, 0, 0), (2, 4, 0));
 
 usb_fs!(USB_OTG_FS => Ahb2, 7, OTG_FS; dm ('A', 11, 10), dp ('A', 12, 10));
 
-stream_interrupts!(
+channel_interrupts!(
     1: [0 => DMA1_STREAM0, 1 => DMA1_STREAM1, 2 => DMA1_STREAM2, 3 => DMA1_STREAM3, 4 => DMA1_STREAM4, 5 => DMA1_STREAM5, 6 => DMA1_STREAM6, 7 => DMA1_STREAM7];
     2: [0 => DMA2_STREAM0, 1 => DMA2_STREAM1, 2 => DMA2_STREAM2, 3 => DMA2_STREAM3, 4 => DMA2_STREAM4, 5 => DMA2_STREAM5, 6 => DMA2_STREAM6, 7 => DMA2_STREAM7];
 );

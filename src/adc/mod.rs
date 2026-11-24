@@ -14,7 +14,7 @@
 //! - **one at a time**: [`Adc::read`] blocks for one conversion, some tens of
 //!   microseconds at the sampling times a slow source needs.
 //! - **a sequence**: [`AdcScan`] converts up to 16 channels into a buffer over
-//!   DMA; `start` returns at once and the stream's interrupt, or `poll`,
+//!   DMA; `start` returns at once and the DMA channel's interrupt, or `poll`,
 //!   reports the end. FerroHAL never touches the NVIC.
 //! - **volts**: [`Adc::to_millivolts`] takes the supply as an argument. Where
 //!   the internal reference is available, [`Adc::vdda_millivolts`] measures it
@@ -29,7 +29,7 @@ use crate::{
     adc_ip::{MAX_SAMPLE, Unit},
     chip::{Interrupt, TS_CAL1, TS_CAL2, VREFIN_CAL},
     dma::{
-        AnyStream, Direction, Flags, Priority, StopTimeout, StreamInstance, StreamInterrupt,
+        AnyChannel, ChannelInstance, ChannelInterrupt, Direction, Flags, Priority, StopTimeout,
         Transfer, WordSize,
     },
     rcc::{Rcc, RccBit},
@@ -37,7 +37,7 @@ use crate::{
 };
 
 /// What [`Adc::into_scan`](Adc::into_scan) hands back when it refuses: the
-/// reason, and the ADC, the stream and the buffer it took.
+/// reason, and the ADC, the DMA channel and the buffer it took.
 pub type ScanRefused<A, S> = crate::resource::Refused<ConfigError, (Adc<A>, S, &'static mut [u16])>;
 
 /// The calibration values' supply, and the temperatures they were taken at.
@@ -78,7 +78,7 @@ pub enum Error {
     Timeout,
     /// A conversion overwrote one nobody had read.
     Overrun,
-    /// A DMA stream reported an error, or wouldn't start or stop.
+    /// A DMA channel reported an error, or wouldn't start or stop.
     Dma,
     /// A sequence is running.
     Busy,
@@ -97,7 +97,7 @@ pub enum ConfigError {
     Timeout,
     /// No channels, or more than 16, or more than the buffer holds.
     Sequence,
-    /// The stream was left running by an earlier owner and did not stop.
+    /// The DMA channel was left running by an earlier owner and did not stop.
     DmaBusy,
     /// A buffer cannot serve DMA: out of the controller's reach, or cacheable.
     Buffer(crate::dma::BufferError),
@@ -146,12 +146,12 @@ pub trait AdcPin<A: Instance>: crate::Sealed {
     const CHANNEL: u8;
 }
 
-/// A DMA stream that serves `A`.
+/// A DMA channel that serves `A`.
 ///
 /// # Safety
 ///
-/// `REQUEST` must route `A`'s request to this stream.
-pub unsafe trait Dma<A: Instance>: StreamInstance + StreamInterrupt {
+/// `REQUEST` must route `A`'s request to this DMA channel.
+pub unsafe trait Dma<A: Instance>: ChannelInstance + ChannelInterrupt {
     const REQUEST: u8;
 }
 
@@ -162,39 +162,39 @@ pub struct Channel<A> {
 }
 
 /// One ADC input's wiring, as the board states it: the pin in analog mode
-/// that `A` reads, and the DMA stream that serves `A`'s conversions. The IP
+/// that `A` reads, and the DMA channel that serves `A`'s conversions. The IP
 /// traits check that they belong together; this carries them and describes
 /// itself as data for the board's manifest (`RESOURCES`), and gives the
 /// channel its pin measures. The scan itself is assembled at runtime from
 /// the wirings' channels (`Adc::into_scan`), whose refusal hands the ADC,
-/// the stream and the buffer back.
-pub struct Wiring<A, Pin, Stream> {
+/// the DMA channel and the buffer back.
+pub struct Wiring<A, Pin, Dma> {
     /// The pin, in analog mode.
     pub pin: Pin,
-    /// The DMA stream serving `A`.
-    pub stream: Stream,
+    /// The DMA channel serving `A`.
+    pub dma: Dma,
     _adc: PhantomData<fn() -> A>,
 }
 
-impl<A, Pin, Stream> Wiring<A, Pin, Stream> {
-    /// A wiring for one of `A`'s inputs, from its pin and stream.
-    pub const fn new(pin: Pin, stream: Stream) -> Self {
+impl<A, Pin, Dma> Wiring<A, Pin, Dma> {
+    /// A wiring for one of `A`'s inputs, from its pin and DMA channel.
+    pub const fn new(pin: Pin, dma: Dma) -> Self {
         Self {
             pin,
-            stream,
+            dma,
             _adc: PhantomData,
         }
     }
 }
 
-impl<A, Pin, const CD: u8, const SN: u8> Wiring<A, Pin, crate::dma::Stream<CD, SN>>
+impl<A, Pin, const D: u8, const N: u8> Wiring<A, Pin, crate::dma::Channel<D, N>>
 where
     A: Instance,
     Pin: AdcPin<A> + crate::gpio::AltPin,
-    crate::dma::Stream<CD, SN>: Dma<A>,
+    crate::dma::Channel<D, N>: Dma<A>,
 {
     /// Everything this wiring uses, as data: the instance, the analog pin,
-    /// and the stream with its request.
+    /// and the DMA channel with its request.
     pub const RESOURCES: [crate::resource::Resource; 3] = [
         crate::resource::Resource::Peripheral(A::NAME),
         crate::resource::Resource::Analog {
@@ -204,9 +204,9 @@ where
         },
         crate::resource::Resource::Dma {
             signal: crate::resource::Signal::Adc(Pin::CHANNEL),
-            controller: CD,
-            stream: SN,
-            request: <crate::dma::Stream<CD, SN> as Dma<A>>::REQUEST,
+            controller: D,
+            channel: N,
+            request: <crate::dma::Channel<D, N> as Dma<A>>::REQUEST,
         },
     ];
 
@@ -314,13 +314,13 @@ impl<A: Instance> Adc<A> {
     }
 
     /// Hands the ADC to a [`AdcScan`] converting `channels` in order over
-    /// `stream` into `buffer`. Refuses with the ADC, the stream and the
+    /// `dma` into `buffer`. Refuses with the ADC, the DMA channel and the
     /// buffer handed back: the sequence and the buffer are checked, and the
-    /// stream stopped through a second owner beside its token, before
+    /// DMA channel stopped through a second owner beside its token, before
     /// anything is consumed.
     pub fn into_scan<S>(
         self,
-        stream: S,
+        dma: S,
         channels: &[Channel<A>],
         buffer: &'static mut [u16],
     ) -> Result<AdcScan<A, S>, ScanRefused<A, S>>
@@ -328,29 +328,29 @@ impl<A: Instance> Adc<A> {
         S: Dma<A>,
     {
         if channels.is_empty() || channels.len() > 16 || channels.len() > buffer.len() {
-            return Err(Refused::new(ConfigError::Sequence, (self, stream, buffer)));
+            return Err(Refused::new(ConfigError::Sequence, (self, dma, buffer)));
         }
         if let Err(error) = crate::chip::check_dma_buffer(buffer) {
             return Err(Refused::new(
                 ConfigError::Buffer(error),
-                (self, stream, buffer),
+                (self, dma, buffer),
             ));
         }
         let mut numbers = [0u8; 16];
         for (number, channel) in numbers.iter_mut().zip(channels) {
             *number = channel.number;
         }
-        let mut dma = crate::dma::claim(&stream);
-        if dma.stop(crate::dma::STOP_SPINS).is_err() {
-            return Err(Refused::new(ConfigError::DmaBusy, (self, stream, buffer)));
+        let mut claimed = crate::dma::claim(&dma);
+        if claimed.stop(crate::dma::STOP_SPINS).is_err() {
+            return Err(Refused::new(ConfigError::DmaBusy, (self, dma, buffer)));
         }
-        dma.clear_flags(Flags::ALL);
+        claimed.clear_flags(Flags::ALL);
         self.unit
             .set_sequence(numbers.get(..channels.len()).unwrap_or(&[]));
         Ok(AdcScan {
             adc: self,
-            stream,
-            dma,
+            dma_token: dma,
+            dma: claimed,
             request: S::REQUEST,
             vector: S::INTERRUPT,
             buffer,
@@ -414,11 +414,11 @@ enum ScanState {
 }
 
 /// A fixed sequence of channels, converted over DMA. It holds the ADC, its
-/// stream's token and the buffer, which [`free`](Self::free) hands back.
+/// DMA channel's token and the buffer, which [`free`](Self::free) hands back.
 pub struct AdcScan<A, S> {
     adc: Adc<A>,
-    stream: S,
-    dma: AnyStream,
+    dma_token: S,
+    dma: AnyChannel,
     request: u8,
     vector: Interrupt,
     buffer: &'static mut [u16],
@@ -454,14 +454,14 @@ impl<A: Instance, S> AdcScan<A, S> {
             .map_err(|_| Error::Dma)?;
         self.dma.clear_flags(Flags::ALL);
         // SAFETY: the buffer is this scan's own and holds `len` samples; the
-        // address is this ADC's data register, whose request paces the stream.
+        // address is this ADC's data register, whose request paces the DMA channel.
         unsafe { self.dma.start(&transfer) }.map_err(|_| Error::Dma)?;
         self.adc.unit.start_sequence();
         self.state = ScanState::Running;
         Ok(())
     }
 
-    /// Serves the stream's interrupt: `Some` once the sequence has finished,
+    /// Serves the DMA channel's interrupt: `Some` once the sequence has finished,
     /// after which [`samples`](Self::samples) holds it. Safe to call from a
     /// task to poll.
     pub fn on_interrupt(&mut self) -> Option<Result<(), Error>> {
@@ -499,7 +499,7 @@ impl<A: Instance, S> AdcScan<A, S> {
 
     /// Stops a sequence that never finished.
     pub fn abort(&mut self) {
-        // A stream that will not stop is caught by the next `start`
+        // A DMA channel that will not stop is caught by the next `start`
         // (`Error::Dma`) or by `free`.
         let _ = self.halt();
     }
@@ -516,25 +516,25 @@ impl<A: Instance, S> AdcScan<A, S> {
         matches!(self.state, ScanState::Running)
     }
 
-    /// Stops the stream and any sequence and hands back what
-    /// [`Adc::into_scan`] took: the ADC, still powered, the stream's token and
+    /// Stops the DMA channel and any sequence and hands back what
+    /// [`Adc::into_scan`] took: the ADC, still powered, the DMA channel's token and
     /// the buffer. [`Adc::free`] then powers the ADC down and returns its
     /// token; `into_scan` on the same parts starts a new scan.
     ///
-    /// A stream that does not stop in time could still write the buffer, so
+    /// A DMA channel that does not stop in time could still write the buffer, so
     /// it is not handed out: the refusal returns the scan, its sequence
     /// stopped, still owning it. `free` may be tried again; it succeeds once
-    /// the stream has stopped.
+    /// the DMA channel has stopped.
     #[allow(clippy::type_complexity)]
     pub fn free(mut self) -> Result<(Adc<A>, S, &'static mut [u16]), Refused<StopTimeout, Self>> {
         if self.halt().is_err() {
             return Err(Refused::new(StopTimeout, self));
         }
-        Ok((self.adc, self.stream, self.buffer))
+        Ok((self.adc, self.dma_token, self.buffer))
     }
 
     /// The vector to bind to the handler that calls `on_interrupt`: the
-    /// stream's.
+    /// DMA channel's.
     pub fn vectors(&self) -> crate::resource::Vectors {
         crate::resource::Vectors::one(self.vector)
     }

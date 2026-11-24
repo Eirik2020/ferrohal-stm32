@@ -1,5 +1,5 @@
-//! Run C: USART6 over J2 (PA11 to PA12) on DMA2 stream 7, its other
-//! transmit stream, which USART1 holds in runs A and B. The full check
+//! Run C: USART6 over J2 (PA11 to PA12) on DMA2 channel 7, its other
+//! transmit DMA channel, which USART1 holds in runs A and B. The full check
 //! list.
 //!
 //! | Vector | Owner | Priority |
@@ -35,7 +35,7 @@ mod app {
 
     #[shared]
     struct Shared {
-        usart6: Uart<board::Usart6LoopS7>,
+        usart6: Uart<board::Usart6LoopCh7>,
     }
 
     #[local]
@@ -111,7 +111,7 @@ mod app {
         tests::full_suite(
             &mut report,
             &mut Loop {
-                name: "USART6 PA11->PA12, TX on stream 7",
+                name: "USART6 PA11->PA12, TX on DMA channel 7",
                 uart: &mut usart6,
             },
             &Config::new(ferrohal_stm32::time::Hertz(115_200)),

@@ -26,9 +26,8 @@ Normative. Goal **G5** (`requirements/goals.md`). Rationale:
 
 ## Never public (crate-internal, no feature)
 
-`DmaInstance::regs`, `DmaInstance::mux`, `PortInstance::regs`, SDMMC `Instance::regs`,
-`Channel::regs`, uart stream `regs`, `Stream::steal`, `Channel::start(&Transfer)`,
-`Channel::set_idle_buffer`, `reset::enter_bootloader` (public path `reboot_to_bootloader()`).
+`DmaRegisters::regs`, `DmaRegisters::mux`, `PortRegisters::regs`, SDMMC `Info::regs`,
+`AnyChannel::start(&Transfer)`, `reset::enter_bootloader` (public path `reboot_to_bootloader()`).
 
 ## Registers
 

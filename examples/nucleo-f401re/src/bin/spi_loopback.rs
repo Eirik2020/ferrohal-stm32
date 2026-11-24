@@ -8,7 +8,7 @@
 //! Wiring: one jumper from CN10-26 to CN10-28 (UM1724, morpho connectors).
 //! Without it MISO reads the pull-down, and the check reports zeros.
 //!
-//! `BlockingSpi` needs no DMA stream and no interrupt. `spi::Spi` is the
+//! `BlockingSpi` needs no DMA channel and no interrupt. `spi::Spi` is the
 //! DMA driver, for a bus whose transfers should not hold the CPU.
 
 #![no_std]

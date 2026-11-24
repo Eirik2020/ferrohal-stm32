@@ -27,30 +27,30 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | IP `adc_v4` | – |  |
 | IP `dma_v1` | – |  |
 | IP `dma_v2` | – |  |
-| IP `exti_h7` | HIL | nucleo-h753zi-loopback |
-| IP `exti_v1` | HIL | nucleo-f401re-loopback |
-| IP `i2c_v1` | HIL | nucleo-f401re-loopback |
-| IP `i2c_v2` | HIL | nucleo-h753zi-loopback |
+| IP `exti_h7` | – |  |
+| IP `exti_v1` | – |  |
+| IP `i2c_v1` | – | nucleo-f401re-loopback |
+| IP `i2c_v2` | – | nucleo-h753zi-loopback |
 | IP `iwdg_v1` | HIL | nucleo-f401re-loopback |
 | IP `iwdg_v2` | HIL | nucleo-h753zi-loopback |
 | IP `otg_v1` | HIL | nucleo-h753zi-loopback, stm32f4-discovery |
 | IP `sdmmc_v2` | FLSH | lucid-h7 |
-| IP `spi_v2_i2s` | – | nucleo-f401re-loopback |
+| IP `spi_v2_i2s` | – |  |
 | IP `spi_v3_i2s` | – |  |
-| IP `spi_v4_i2s` | – | nucleo-h753zi-loopback |
+| IP `spi_v4_i2s` | – |  |
 | IP `timer_v1` | – |  |
 | IP `timer_v3` | – |  |
-| IP `usart_v2` | – | nucleo-f401re-loopback |
+| IP `usart_v2` | – |  |
 | IP `usart_v3` | – |  |
-| IP `usart_v4` | – | nucleo-h753zi-loopback |
-| die `0x413` (glue probe) | HIL | stm32f4-discovery |
+| IP `usart_v4` | – |  |
+| die `0x413` (glue probe) | – |  |
 | die `0x419` (glue probe) | – |  |
 | die `0x421` (glue probe) | – |  |
 | die `0x431` (glue probe) | – |  |
-| die `0x433` (glue probe) | HIL | nucleo-f401re-loopback |
+| die `0x433` (glue probe) | – |  |
 | die `0x441` (glue probe) | – |  |
 | die `0x449` (glue probe) | – |  |
-| die `0x450` (glue probe) | HIL | nucleo-h753zi-loopback |
+| die `0x450` (glue probe) | – |  |
 | die `0x451` (glue probe) | – |  |
 | die `0x452` (glue probe) | – |  |
 | die `0x458` (glue probe) | – |  |
@@ -77,7 +77,7 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 | `exti_v1` | F401, F405 | F401: E, F, G | Foxeer: IMU data ready | – |
 | `exti_h7` | H743, H753 | H753: F, G, H | Lucid: IMU data ready | – |
 | `dma_v2` | F401, F405 | F401: UART and SPI runs, all 9 USART and 10 SPI routes; I, O, P | – | – (double buffering and FIFO thresholds removed) |
-| `dma_v1` + DMAMUX1 | H743, H753 | H753: all 16 DMA1/DMA2 streams; J, Q | – | – (double buffering and FIFO thresholds removed) |
+| `dma_v1` + DMAMUX1 | H743, H753 | H753: all 16 DMA1/DMA2 channels; J, Q | – | – (double buffering and FIFO thresholds removed) |
 | `gpio_v2` | all four | every Nucleo run | – | – |
 | `adc_v2` | F401, F405 | F401: M | Foxeer: battery inputs | – |
 | `adc_v4` | H743, H753 | H753: O | Lucid: battery inputs | – |
@@ -91,14 +91,14 @@ regenerates it. The tables after it are hand-written: which runs prove what, and
 
 | what | proven on: runs | not proven |
 |---|---|---|
-| UART engine (`uart/stream_dma.rs`), both IP versions | the UART runs on both Nucleos | UART-DMA-009 (a stream that will not stop) |
+| UART engine (`uart/dma/`), both IP versions | the UART runs on both Nucleos | UART-DMA-009 (a DMA channel that will not stop) |
 | SPI engines, DMA and polled | the SPI runs on both Nucleos | – |
 | Lane group, two-way lanes | F401: O, P, R; H753: Q | – |
 | Reset cause, ROM bootloader request | F401: L; Discovery: C (ROM DFU on CN5); H753: N, Z (ROM DFU on CN13) | RESET-004 on both families |
 | UID and die revision | every run's closing log line | – |
 | Caches and MPU shapes (H7) | H753: X; A to E with caches on | the SPI runs with caches on |
 | Constructor refusals | F401: V; H753: U; both smoke benches | – |
-| Injected faults | F401: W; H753: W, T (streams that will not stop, `fault-injection`) | – |
+| Injected faults | F401: W; H753: W, T (DMA channels that will not stop, `fault-injection`) | – |
 | No reachable panic, glue against metapac, host tests | `checks/run.sh`, no board | the `usb-device` stack above the bus (the firmware's) |
 
 ## Chip glue
@@ -111,4 +111,4 @@ RCC bits, peripheral addresses and vectors on the silicon: 87 checks on die 0x43
 | family | proven on | rows on glue check only |
 |---|---|---|
 | F4 | F401: every pin entry and DMA route of its three USARTs and three SPIs | the F405's USART3, UART4/5, TIM6-8, TIM12-14 |
-| H7 | H753: 7 of 8 U(S)ARTs, 24 of 46 TX/RX entries (Zio only), SPI1-5 on Zio pins, all 16 streams | UART8 TX, the morpho-only pins, the H743's TFBGA100 rows (pinned by a test) |
+| H7 | H753: 7 of 8 U(S)ARTs, 24 of 46 TX/RX entries (Zio only), SPI1-5 on Zio pins, all 16 DMA channels | UART8 TX, the morpho-only pins, the H743's TFBGA100 rows (pinned by a test) |

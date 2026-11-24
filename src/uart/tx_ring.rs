@@ -131,7 +131,7 @@ pub enum TxOutcome {
     Sent,
     /// A DMA error ended the frame; part of it may have gone out.
     Failed,
-    /// The queue was dropped, by a timeout or a stream that would not run,
+    /// The queue was dropped, by a timeout or a channel that would not run,
     /// before the frame finished; part of it may have gone out.
     Dropped,
     /// This many older outcomes were overwritten before they were taken,
