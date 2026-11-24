@@ -3,7 +3,7 @@
  "counts": {
   "documents": 102,
   "agent": 67,
-  "bytes": 576626
+  "bytes": 576530
  },
  "documents": [
   {
@@ -646,7 +646,7 @@
    "class": "agent",
    "title": "Safety policy",
    "purpose": "Normative. Goal G5 requirements/goals.md. Rat",
-   "bytes": 3029
+   "bytes": 2928
   },
   {
    "path": "docs/resolved/README.md",
@@ -737,7 +737,7 @@
    "class": "human",
    "title": "Bench Procedures: the injected faults and the cache matrix",
    "purpose": "The fault-injection and cache-matrix runs of ",
-   "bytes": 5976
+   "bytes": 5981
   },
   {
    "path": "requirements/benches-refusals.md",
