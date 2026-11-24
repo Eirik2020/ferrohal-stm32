@@ -47,7 +47,7 @@ USART6's DMA transmit request is disconnected before a 128-byte frame is
 queued; the bound expires, the queue is dropped and counted, and the next
 frame goes out whole. Pass: every check passes and the script exits zero.
 
-## Streams that will not stop on the Nucleo-H753ZI
+## DMA channels that will not stop on the Nucleo-H753ZI
 
 `hil/run-h753.sh t`, with Z2 and S1 fitted. Run T alone is built with the library's
 `fault-injection` feature: `dma::fault` marks a DMA channel to ignore stop requests, so a

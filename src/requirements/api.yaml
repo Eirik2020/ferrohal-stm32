@@ -89,4 +89,4 @@ requirements:
         - level: target
           environment: development
           method:
-            procedure: requirements/benches-faults.md#Streams that will not stop on the Nucleo-H753ZI
+            procedure: requirements/benches-faults.md#DMA channels that will not stop on the Nucleo-H753ZI
