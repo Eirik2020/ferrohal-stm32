@@ -3,7 +3,7 @@
  "counts": {
   "documents": 102,
   "agent": 67,
-  "bytes": 575318
+  "bytes": 575341
  },
  "documents": [
   {
@@ -141,7 +141,7 @@
    "class": "agent",
    "title": "ADR-014: Timer lanes as the lane port needs them (2026-11-19)",
    "purpose": "ADR-014 - Status: promoted",
-   "bytes": 2880,
+   "bytes": 2903,
    "adr": "ADR-014",
    "status": "promoted"
   },
