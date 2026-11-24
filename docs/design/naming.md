@@ -1,6 +1,6 @@
 # Naming: catalogs, IDs, features, modules, benches
 
-Source: ADR-017, [`../decisions/2026-11-23-naming-scheme.md`](../decisions/2026-11-23-naming-scheme.md).
+Source: ADR-021, [`../decisions/2026-11-24-naming-scheme.md`](../decisions/2026-11-24-naming-scheme.md).
 
 How FerroHAL names what it is made of.
 `tools/check_names.py` holds the rules that a checker can hold (in `checks/run.sh`).
@@ -8,8 +8,8 @@ How FerroHAL names what it is made of.
 ## Requirement catalogs
 
 - One catalog per IP or subsystem, all in `src/requirements/<ip>.yaml`.
-  A catalog holds a family and its part families: `uart.yaml` holds `UART`, `UARTDMA`,
-  `USART-V2` and `USART-V4`; `signature.yaml` holds `UID` and `REVISION`.
+  A catalog holds a family and its sub-categories: `uart.yaml` holds `UART`, `UART-DMA`,
+  `USART-V2` and `USART-V4`; `timer.yaml` holds `TIMER`, `TIMER-PWM` and `TIMER-LANES`.
   `check_names.py` lists each family's catalog and holds every family to exactly one
   (per IP, not a file per family).
 
@@ -17,10 +17,14 @@ How FerroHAL names what it is made of.
 
 - `<FAMILY>-<NNN>`: an upper-case family, three digits, no project prefix
   (the crate names the project: [`requirements-ids.md`](requirements-ids.md)).
-- A requirement only one IP version or chip family has takes the family, a
-  hyphen and the part: `USART-V2-001`, `SPI-V4-001`, `I2C-V1-001`, `IWDG-V2-001`,
-  `RESET-H7-001`, `USB-F4-001`. A driver kind is not a part and
-  stays one word: `UARTDMA`, `SPIPOLL`.
+- The family is the driver or subsystem. A sub-category takes the family, a hyphen
+  and its own name, never run together with the family:
+  - a driver kind: `UART-DMA-001`, `SPI-POLL-001`, `TIMER-PWM-001`, `TIMER-LANES-001`;
+  - an IP version: `USART-V2-001`, `SPI-V4-001`, `I2C-V1-001`, `IWDG-V2-001`;
+  - a chip family: `RESET-H7-001`, `USB-F4-001`;
+  - a CPU core: `WAIT-M4-001`, `WAIT-M7-001`.
+- What a chip's glue supplies is the glue's: the unique ID and the die revision are
+  `GLUE-011` and `GLUE-012`, not families of their own.
 - One family per prefix: `RESOURCE-001`, not `RES-001` beside `RESET-*`;
   the USART IP's own requirements are `UART-016` to `UART-020`, not a third UART
   prefix.
@@ -93,12 +97,19 @@ Which IP versions each series carries, as metapac measured them:
 
 ## Vocabulary
 
-- *channel*: a timer compare output. *lane*: a DMA-fed output. *stream*:
-  a DMA stream. *line*: a UART's wire and its USART's event enables (`mask`, `unmask`). *handle*: an ownerless view of a
-  running driver that another context, an interrupt handler above all, holds and copies
-  freely, because everything it does is a single read or a write no one else races:
-  `ExtiHandle`, `TimebaseHandle` (from `Timebase::handle`), `Watchdog::handle`. The DMA's `FlagHandle` follows it. The UART has no handle
-  since its single-owner redesign (ADR-011).
+- A hardware thing takes the name the first source gives it, in the order
+  stm32-metapac, ST's reference manual, embassy-stm32, FerroHAL. Where a source names
+  it differently between chips (F4, F7, H7, G4), or has no name for it, the next
+  source decides, so a thing has one name on every chip. Code yields to this: that the
+  code already says something is no reason to keep it.
+- Kept against that order: *IP* and *IP version*, where metapac says "peripheral
+  version".
+- FerroHAL's own terms. *lane*: a DMA-fed timer output. *handle*: an ownerless view
+  of a running driver that another context, an interrupt handler above all, holds and
+  copies freely, because all it does is one register read, or one register write
+  complete in itself: `ExtiHandle`, `TimebaseHandle` (from `Timebase::handle`),
+  `Watchdog::handle`. The DMA's `FlagHandle` follows it. The UART has no handle since
+  its single-owner redesign (ADR-011).
 - Constructors are `new`; `Watchdog::start` is the deliberate exception,
   because an independent watchdog cannot be stopped once started and the name says so.
   Its token is `chip::IWDG` on every chip (the H7's IWDG1).
