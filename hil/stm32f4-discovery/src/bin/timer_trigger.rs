@@ -2,7 +2,7 @@
 //! glue states it: TIM8 and TIM3 from TIM1 (ITR0), TIM2 from TIM3 (ITR2) and
 //! TIM5 from TIM3 (ITR1). For each, the slave must wait while its master is
 //! stopped, then start with it, 100 starts over, within 32 counts (GLUE-010,
-//! with PWM-004 and PWM-005's checks). The routes are die 0x413's alone, so
+//! with TIMER-PWM-004 and TIMER-PWM-005's checks). The routes are die 0x413's alone, so
 //! they run on the F407 here. Counters only, no pins, no links; everything
 //! is polled.
 

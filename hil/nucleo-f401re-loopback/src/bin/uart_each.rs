@@ -239,7 +239,7 @@ mod app {
         );
         report.check_for(
             "USART1 PA9->PA10",
-            "UARTDMA-002",
+            "UART-DMA-002",
             "a handler held off by the task's lock runs within half a ring",
             tests::lock_delay(
                 &mut loop1.uart.0,

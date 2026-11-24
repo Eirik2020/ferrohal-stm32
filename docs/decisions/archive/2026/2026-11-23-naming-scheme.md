@@ -1,10 +1,10 @@
 # ADR-017: Naming scheme (2026-11-23)
 
-ADR-017 - Status: promoted
+ADR-017 - Status: superseded by ADR-021
 
-Promoted to: [naming.md](../design/naming.md) (design).
+Promoted to: [naming.md](../../../design/naming.md) (design).
 
-Supersedes [ADR-003](archive/2026/2026-11-08-naming-scheme.md).
+Supersedes [ADR-003](2026-11-08-naming-scheme.md).
 
 ## Context
 

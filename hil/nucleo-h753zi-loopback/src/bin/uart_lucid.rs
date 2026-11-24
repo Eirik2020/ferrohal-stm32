@@ -287,7 +287,7 @@ mod app {
         );
         report.check_for(
             "USART1 PB6->PB7, SBUS 100000 8E2",
-            "UARTDMA-002",
+            "UART-DMA-002",
             "a handler held off by the task's lock runs within half a ring",
             tests::lock_delay(
                 &mut usart1.0,
@@ -415,7 +415,7 @@ mod app {
         );
         report.check_for(
             "USART6 PC6->PC7, CRSF 420000",
-            "UART-006 WAIT-001",
+            "UART-006 WAIT-M7-001",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {
@@ -428,7 +428,7 @@ mod app {
         );
         report.check_for(
             "USART1 PB6->PB7, SBUS 100000 8E2",
-            "UART-006 WAIT-001",
+            "UART-006 WAIT-M7-001",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {
@@ -441,7 +441,7 @@ mod app {
         );
         report.check_for(
             "USART3 PB10->PB11, MSP 115200",
-            "UART-006 WAIT-001",
+            "UART-006 WAIT-M7-001",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {
@@ -454,7 +454,7 @@ mod app {
         );
         report.check_for(
             "USART2 PD5->PD6, control",
-            "UART-006 WAIT-001",
+            "UART-006 WAIT-M7-001",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {

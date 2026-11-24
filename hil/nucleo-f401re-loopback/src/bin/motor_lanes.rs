@@ -196,7 +196,7 @@ mod app {
         let finished_ok = result.is_ok();
         report.check(
             name,
-            "all four lanes and the sampler finish [PWM-003]",
+            "all four lanes and the sampler finish [TIMER-PWM-003]",
             result,
         );
         if !finished_ok {
@@ -205,22 +205,22 @@ mod app {
         }
         report.check(
             name,
-            "the TIM3 CH3 lane's 16 bits, one period apart [PWM-002]",
+            "the TIM3 CH3 lane's 16 bits, one period apart [TIMER-PWM-002]",
             pwm::decode(sampler.samples(), 0, patterns.0, per_bit16, active_low),
         );
         report.check(
             name,
-            "the TIM3 CH4 lane's 16 bits, one period apart [PWM-002]",
+            "the TIM3 CH4 lane's 16 bits, one period apart [TIMER-PWM-002]",
             pwm::decode(sampler.samples(), 1, patterns.1, per_bit16, active_low),
         );
         report.check(
             name,
-            "the TIM2 CH3 lane's 16 bits, one period apart [PWM-002]",
+            "the TIM2 CH3 lane's 16 bits, one period apart [TIMER-PWM-002]",
             pwm::decode(sampler.samples(), 10, patterns.2, per_bit16, active_low),
         );
         report.check(
             name,
-            "the TIM2 CH2 lane's 16 bits, one period apart [PWM-002]",
+            "the TIM2 CH2 lane's 16 bits, one period apart [TIMER-PWM-002]",
             pwm::decode(sampler.samples(), 3, patterns.3, per_bit16, active_low),
         );
     }
@@ -292,7 +292,7 @@ mod app {
         if let Err(error) = sampler.set_rate(Hertz(pwm3.rate().0 * 12)) {
             report.check(
                 "run R",
-                "the sampler at 12 times the bit rate [PWM-003]",
+                "the sampler at 12 times the bit rate [TIMER-PWM-003]",
                 Err(Fail::Timer(error)),
             );
         } else {
@@ -378,11 +378,11 @@ mod app {
                         Ok((pacer, stream)) => {
                             let registered = awg.read_ahead_paced::<_, _, 'B'>(&pacer, stream);
                             pacer.start();
-                            report.check(name, "a reader paced by TIM1 registers [AWG-017]", holds(registered.is_ok()));
+                            report.check(name, "a reader paced by TIM1 registers [TIMER-LANES-017]", holds(registered.is_ok()));
                             let rate = awg.prepare_listen(pacer.rate(), 64);
-                            report.check(name, "the paced reader reads at its pacer's rate [AWG-017]",
+                            report.check(name, "the paced reader reads at its pacer's rate [TIMER-LANES-017]",
                                 holds(rate.ok() == Some(pacer.rate())));
-                            report.check(name, "every lane on port B shares the one reader [AWG-014]",
+                            report.check(name, "every lane on port B shares the one reader [TIMER-LANES-014]",
                                 holds((0..4).all(|lane| awg.reader_of(lane) == 0)));
                             let period = awg.period();
                             let frames = [
@@ -397,7 +397,7 @@ mod app {
                             // Only the last lane (TIM2 CH2, DMA1 stream 6)
                             // raises its end: streams 7, 2 and 1 are quiet.
                             let tcie = [7usize, 2, 1, 6].map(|n| pac::DMA1.st(n).cr().read().tcie());
-                            report.check(name, "only the last lane raises its end-of-transfer interrupt [AWG-020]",
+                            report.check(name, "only the last lane raises its end-of-transfer interrupt [TIMER-LANES-020]",
                                 holds(played && tcie == [false, false, false, true]));
                             let budget = cpu.0 / 100;
                             let ended = played && matches!(pwm::wait(budget, || awg.on_interrupt()), Some(Ok(_)));
@@ -407,17 +407,17 @@ mod app {
                                 && first.len() == 64
                                 && (1..4).all(|lane| awg.samples(lane).as_ptr() == first.as_ptr()
                                     && awg.samples(lane).len() == first.len());
-                            report.check(name, "every lane's frame ends, and every lane's samples are the one reader's 64 port words [AWG-014 AWG-020]",
+                            report.check(name, "every lane's frame ends, and every lane's samples are the one reader's 64 port words [TIMER-LANES-014 TIMER-LANES-020]",
                                 holds(shared));
                             let _ = awg.speak();
                             pacer.stop();
                         }
-                        Err(fail) => report.check(name, "the TIM1 pacer [AWG-017]", Err(fail)),
+                        Err(fail) => report.check(name, "the TIM1 pacer [TIMER-LANES-017]", Err(fail)),
                     }
                 }
                 Err(refused) => report.check(
                     "TIM3 starts TIM2, linked",
-                    "AWG: every lane on both timers finishes [AWG-005]",
+                    "AWG: every lane on both timers finishes [TIMER-LANES-005]",
                     Err(Fail::Timer(refused.error())),
                 ),
             }

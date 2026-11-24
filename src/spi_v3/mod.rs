@@ -23,7 +23,7 @@
 //! ES0360 2.11.1 and ES0290 2.11.2 (BSY can stay high after a transfer)
 //! concern slave mode only; FerroHAL is master only.
 //!
-//! Requirements: SPI-V3-001, SPI-V3-002, SPIPOLL-001, SPIPOLL-002, SPI-010
+//! Requirements: SPI-V3-001, SPI-V3-002, SPI-POLL-001, SPI-POLL-002, SPI-010
 
 use stm32_metapac::spi::vals::{Br, Cpha, Cpol, Ds, Frlvl, Frxth, Ftlvl, Lsbfirst, Mstr};
 

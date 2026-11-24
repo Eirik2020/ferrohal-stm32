@@ -159,7 +159,7 @@ History: items moved out of [DEBT.md](../DEBT.md) once done. The chip and featur
   to 0, kept time. `CompareLane::arm` now refuses a duty within `Pwm::top_margin`
   (100 ns of counter clock, at least one count; the margin over the 60 ns measured is
   inferred room for DMA latency) followed by 0, or ending a waveform, with
-  `Error::TopToZero` (new requirement PWM-009). Run J checks the refusal and that the
+  `Error::TopToZero` (new requirement TIMER-PWM-009). Run J checks the refusal and that the
   same waveform just clear of the margin keeps time. Measured on `timer_v3` only; the
   refusal is the shared lane code, so `timer_v1` refuses the same. Spawned by the ES0392
   row review (2026-11-17).

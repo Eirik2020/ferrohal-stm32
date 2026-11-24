@@ -6,7 +6,7 @@
 //! 2^32; the ring length is even, so they stay continuous when the half-lap
 //! count wraps.
 //!
-//! Requirements: UARTDMA-001, UARTDMA-003, UARTDMA-004, UARTDMA-005
+//! Requirements: UART-DMA-001, UART-DMA-003, UART-DMA-004, UART-DMA-005
 
 /// Bytes DMA has written, and its index in the ring, from the half-laps
 /// counted since the ring started (served by the interrupt, plus flags

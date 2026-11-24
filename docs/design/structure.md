@@ -4,7 +4,7 @@ Source: ADR-006 (archived: [`../decisions/archive/2026/2026-11-10-doc-map-dissol
 
 
 The module and feature
-naming scheme is [ADR-017](../decisions/2026-11-23-naming-scheme.md).
+naming scheme is [ADR-021](../decisions/2026-11-24-naming-scheme.md).
 
 - Hierarchy, bottom up: **IP modules → glue → chips → families → vendors**. Each level is a feature-flag bundle of the level below. Only one vendor exists for now.
 - One module per metapac IP version (`usart_v2`, `spi_v4`, `gpio_v2`, …), each behind its own feature. Chip features are thin bundles of IP-version features, and family features bundle chips. Each IP lives in its own folder, the unit a `ferrohal-<ip>` crate would be cut from ([naming.md](naming.md), ADR-012).

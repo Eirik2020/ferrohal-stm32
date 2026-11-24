@@ -234,7 +234,7 @@ requirements:
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
 
-  - id: SPIPOLL-001
+  - id: SPI-POLL-001
     title: Polled SPI carries the bus operations
     statement: >-
       The polled driver shall carry the embedded-hal bus operations in every
@@ -256,7 +256,7 @@ requirements:
           method:
             procedure: requirements/benches.md#SPI and EXTI on the Nucleo-H753ZI
 
-  - id: SPIPOLL-002
+  - id: SPI-POLL-002
     title: Polled SPI takes its real time on the wire
     statement: >-
       A polled transfer shall take at least its time on the wire before it

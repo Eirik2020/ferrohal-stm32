@@ -57,7 +57,7 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   SPI1's SCK and S1's MISO end share port A on both Nucleos, so the timer-paced sampler
   reads the wire. SPI-010 holds on `spi_v2` (F401 run E) and `spi_v4` (H753 run F).
 
-- **UARTDMA-009 has a method, and `free` no longer hands out buffers under a running
+- **UART-DMA-009 has a method, and `free` no longer hands out buffers under a running
   stream** (2026-11-15). No bench could make a stream refuse to stop (DEBT, since
   2026-11-03). The owner chose a bench-only `fault-injection` feature: `dma::fault`
   makes a stream ignore stop requests. Run T on the H753 proves the UART fails closed
@@ -75,8 +75,8 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   (2026-11-15). The F401 could not sample CHxN: its only break timer, TIM1, is also its
   only timer whose update reaches DMA2, the one DMA that reaches the GPIO ports (`ea7a9f8`,
   2026-10-31). The STM32F4 Discovery's run D drives TIM1 CH1N with TIM8 pacing the
-  sampler; PWM-008 names it and the H753's run J (TIM1 CH3N), whose CHxN duty had been
-  counted under PWM-001 only.
+  sampler; TIMER-PWM-008 names it and the H753's run J (TIM1 CH3N), whose CHxN duty had been
+  counted under TIMER-PWM-001 only.
 
 - **Errata are data, and `freeze` keeps PRFTEN off on an F405 revision A** (2026-11-15,
   ADR-010). Errata knowledge was spread over 15 cited sections in 11 files, the hand
@@ -204,8 +204,8 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   and FerroWasp track them. §6 now holds the API review's findings.
 - **API review findings D5, K2, K3, K5-K8 closed** (2026-11-13). D5 (erasure or tokens):
   the `free()` redesign put the token in every handle (`docs/design/free.md`). K2,
-  K3, K5, K6: W14 and #38 (`REVISION-001`, the part-family rule, wrapped trailers read
-  by reqtool and `tools/check_names.py`, `UARTDMA-011`/`-012` in the trailer). K7, K8:
+  K3, K5, K6: W14 and #38 (`GLUE-012`, the part-family rule, wrapped trailers read
+  by reqtool and `tools/check_names.py`, `UART-DMA-011`/`-012` in the trailer). K7, K8:
   fixed in place (`src/lib.rs` module list and comment, merged doc comments in
   `gpio_v2` and `sdmmc_v2`, ADC `Config`'s doc, a SAFETY note naming the wrong field,
   the plan's stale next-free IDs). The other 54 findings are DEBT §6.
@@ -221,7 +221,7 @@ in [crate-wide-to-2026-11-09.md](crate-wide-to-2026-11-09.md).
   from the freed tokens, so the fresh-boot runs U and T are gone and no token
   is stolen anywhere.
 - **`usart_v4` parity has hardware evidence** (2026-11-13). DEBT's "two UART faults
-  still have no evidence" kept only `UARTDMA-009`: the H753's links looked all
+  still have no evidence" kept only `UART-DMA-009`: the H753's links looked all
   loopbacks, but Z6 (PC10 to PC11) reaches two different UARTs, USART3's TX and
   UART4's RX, with their other pins on Z7 and Z5. H753 run Y crosses them: even
   parity into odd reaches UART4's reader as a parity error [UART-014], half the

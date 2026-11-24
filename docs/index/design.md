@@ -17,12 +17,12 @@
 | a | docs/design/i2c-interrupt.md | 3209 B | Source: ADR-013, ../decisions/2026-11-19-i2c- |
 | a | docs/design/lanes.md | 8422 B | Source: ADR-014, ../decisions/2026-11-19-time |
 | a | docs/design/layering.md | 1581 B | Source: ADR-006 archived: ../decisions/archiv |
-| a | docs/design/maturity.md | 3168 B | Source: ADR-009, ../decisions/2026-11-13-matu |
-| a | docs/design/naming.md | 9125 B | Source: ADR-017, ../decisions/2026-11-23-nami |
+| a | docs/design/maturity.md | 3195 B | Source: ADR-009, ../decisions/2026-11-13-matu |
+| a | docs/design/naming.md | 9802 B | Source: ADR-021, ../decisions/2026-11-24-nami |
 | a | docs/design/ownership.md | 2607 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-ids.md | 1669 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/requirements-system.md | 4068 B | Source: ADR-006 archived: ../decisions/archiv |
-| a | docs/design/requirements-tooling.md | 2630 B | Source: ADR-006 archived: ../decisions/archiv |
+| a | docs/design/requirements-tooling.md | 2631 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/scope.md | 3505 B | Source: ADR-006 archived: ../decisions/archiv |
 | a | docs/design/structure.md | 2131 B | Source: ADR-006 archived: ../decisions/archiv |
-| a | docs/design/uart-ownership.md | 5429 B | Source: ADR-011, ../decisions/2026-11-17-uart |
+| a | docs/design/uart-ownership.md | 5430 B | Source: ADR-011, ../decisions/2026-11-17-uart |

@@ -55,7 +55,7 @@ running one keeps EN set and every bounded stop on it times out. It uses run U's
 USART6's transmit stream is marked with `CR3.DMAT` off, so it waits for requests: the
 flush reports Halted with the stream still enabled; with DMAT back the stream drains its
 frame and the receiver takes it whole; once the stream has stopped the transmit side
-still refuses, until a free and a reopen echo again [UARTDMA-009]. With the receive ring
+still refuses, until a free and a reopen echo again [UART-DMA-009]. With the receive ring
 marked, `free` refuses with `StopTimeout`, the stream still running, and hands back the
 UART, whose reads report Halted; released, the retried `free` succeeds with both streams
 stopped [API-003]. A receive stream re-armed by hand at a scratch buffer, as an earlier

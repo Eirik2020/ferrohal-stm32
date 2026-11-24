@@ -153,7 +153,7 @@ for run, (summary, uarts) in RUNS.items():
         );
         report.check_for(
             "{label}",
-            "UARTDMA-002",
+            "UART-DMA-002",
             "a handler held off by the task's lock runs within half a ring",
             tests::lock_delay(
                 &mut {f}.0,
@@ -204,7 +204,7 @@ for run, (summary, uarts) in RUNS.items():
     bounds = "\n".join(
         f"""        report.check_for(
             "{label}",
-            "UART-006 WAIT-001",
+            "UART-006 WAIT-M7-001",
             "counted and clocked waits within their bounds, caches on",
             tests::wait_bounds(
                 &mut Loop {{

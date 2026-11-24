@@ -3,7 +3,7 @@
 //! set, otherwise counted as loop passes against the fewest cycles a pass
 //! can take, so a counted bound is never shorter than asked.
 //!
-//! Requirements: WAIT-001
+//! Requirements: WAIT-M4-001, WAIT-M7-001
 
 use crate::time::CycleClock;
 

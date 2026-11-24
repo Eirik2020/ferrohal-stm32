@@ -1,8 +1,8 @@
 //! Run D: `timer_v1`'s complementary output, which the F401 cannot sample.
 //! TIM1 drives CH1N on PE8 at a quarter duty, 100 kHz; TIM8's update request
 //! has DMA2 stream 1 copy port E's input register at 2 MHz. Checks: the
-//! complementary output carries the duty set on the channel (PWM-008), and a
-//! one-pulse period on it (PWM-007). No links; everything is polled.
+//! complementary output carries the duty set on the channel (TIMER-PWM-008), and a
+//! one-pulse period on it (TIMER-PWM-007). No links; everything is polled.
 
 #![no_std]
 #![no_main]

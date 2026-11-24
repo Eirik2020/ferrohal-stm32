@@ -1,7 +1,7 @@
 //! The arbitrary waveform generator, [`Awg`]; its documentation is on the type,
 //! since this module is private. Part of the timer module, for both IP versions.
 //!
-//! Requirements: AWG-001, AWG-002, AWG-003, AWG-004, AWG-005, AWG-006, AWG-007, AWG-008, AWG-009, AWG-010, AWG-011, AWG-012, AWG-013, AWG-014, AWG-015, AWG-016, AWG-017, AWG-018, AWG-019, AWG-020, AWG-021, API-002, RESOURCE-002
+//! Requirements: TIMER-LANES-001, TIMER-LANES-002, TIMER-LANES-003, TIMER-LANES-004, TIMER-LANES-005, TIMER-LANES-006, TIMER-LANES-007, TIMER-LANES-008, TIMER-LANES-009, TIMER-LANES-010, TIMER-LANES-011, TIMER-LANES-012, TIMER-LANES-013, TIMER-LANES-014, TIMER-LANES-015, TIMER-LANES-016, TIMER-LANES-017, TIMER-LANES-018, TIMER-LANES-019, TIMER-LANES-020, TIMER-LANES-021, API-002, RESOURCE-002
 
 use super::pwm::{CompareLane, Error, Frame, FrameLimits, PreparedRate, Pwm, lane_ccer_bits};
 use super::{ChannelTimer, ConfigError, TriggeredBy};

@@ -45,9 +45,9 @@ The car rule: [requirements-system.md](requirements-system.md).
   (`tools/glue-gen/src/tiers.rs`):
   - a requirement reqtool calls verified has every declaring file covered by a counting
     run (the car rule, per file); its tier is the weakest of the boards that verified it;
-  - it applies to a part unless a version suffix (`USART-V2`) or a series suffix
-    (`RESET-H7`) names another, or it is scoped to another die or series (GLUE-003 the H7,
-    GLUE-004 die 0x413);
+  - it applies to a part unless a version suffix (`USART-V2`), a series suffix
+    (`RESET-H7`) or a core suffix (`WAIT-M7`) names another, or it is scoped to another
+    die or series (GLUE-003 the H7, GLUE-004 die 0x413);
   - the die axis is the strongest board of the part's die whose glue probe (GLUE-001) is
     verified; a capability is its requirements and the die axis, the weakest; the platform
     likewise with the platform's requirements;

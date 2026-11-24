@@ -200,7 +200,7 @@ pub fn spi_suite<U: spi::Parts, B: Mutex<T = Bus<U>>, const P: char, const N: u8
 
     report.check(
         name,
-        "SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001]",
+        "SpiBus: in place, read, write, uneven transfer [SPI-007 SPI-POLL-001]",
         (|| {
             // 600 bytes: three transfers through the 256-byte buffers.
             let sent: [u8; 600] = pattern(2);
@@ -274,7 +274,7 @@ pub fn spi_suite<U: spi::Parts, B: Mutex<T = Bus<U>>, const P: char, const N: u8
 
     report.check(
         name,
-        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001]",
+        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPI-POLL-001 SPI-V2-001 SPI-V4-001]",
         (|| {
             let sent: [u8; 15] = pattern(4);
             for mode in [MODE_0, MODE_1, MODE_2, MODE_3] {
@@ -661,7 +661,7 @@ pub fn blocking_suite<U: ferrohal_stm32::spi::Parts, const P: char, const N: u8>
     sck.mask(ctrl);
     report.check(
         name,
-        "SpiBus: in place, read, write, uneven transfer [SPI-007 SPIPOLL-001]",
+        "SpiBus: in place, read, write, uneven transfer [SPI-007 SPI-POLL-001]",
         (|| {
             let sent: [u8; 600] = pattern(10);
             let mut buf = sent;
@@ -678,7 +678,7 @@ pub fn blocking_suite<U: ferrohal_stm32::spi::Parts, const P: char, const N: u8>
     );
     report.check(
         name,
-        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPIPOLL-001 SPI-V2-001 SPI-V4-001]",
+        "every mode: SCK idles at CPOL, bytes loop [SPI-004 SPI-POLL-001 SPI-V2-001 SPI-V4-001]",
         (|| {
             let sent: [u8; 15] = pattern(11);
             for mode in [MODE_0, MODE_1, MODE_2, MODE_3] {
@@ -700,7 +700,7 @@ pub fn blocking_suite<U: ferrohal_stm32::spi::Parts, const P: char, const N: u8>
     );
     report.check(
         name,
-        "64 bytes take at least their time on the wire [SPIPOLL-002]",
+        "64 bytes take at least their time on the wire [SPI-POLL-002]",
         (|| {
             let sent: [u8; 64] = pattern(12);
             let mut buf = sent;

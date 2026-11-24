@@ -300,21 +300,21 @@ pub fn lane_pair_check<
     if let Err(fail) = result {
         report.check(
             name,
-            "both lanes and the sampler finish [PWM-003]",
+            "both lanes and the sampler finish [TIMER-PWM-003]",
             Err(fail),
         );
         sampler.abort();
         return;
     }
-    report.check(name, "both lanes and the sampler finish [PWM-003]", Ok(()));
+    report.check(name, "both lanes and the sampler finish [TIMER-PWM-003]", Ok(()));
     report.check(
         name,
-        "first lane: its 16 bits, one period apart [PWM-002]",
+        "first lane: its 16 bits, one period apart [TIMER-PWM-002]",
         decode(sampler.samples(), pins.0, patterns.0, per_bit16, false),
     );
     report.check(
         name,
-        "second lane: its 16 bits, one period apart [PWM-002]",
+        "second lane: its 16 bits, one period apart [TIMER-PWM-002]",
         decode(sampler.samples(), pins.1, patterns.1, per_bit16, false),
     );
 }
@@ -326,7 +326,7 @@ pub fn lane_pair_check<
 /// first lane must refuse `[P/2, P-1, 0, P/2]` (P the period, so P-1 is ARR)
 /// with `TopToZero`; the same waveform just clear of `Pwm::top_margin` must play
 /// with every pulse starting with the second lane's steady P/2 reference
-/// pulse of its own period [PWM-009].
+/// pulse of its own period [TIMER-PWM-009].
 #[allow(clippy::too_many_arguments)]
 pub fn top_to_zero_check<
     T: ChannelTimer,
@@ -356,7 +356,7 @@ pub fn top_to_zero_check<
     let refused = arm(lanes.0, pwm, &wave(period - 1));
     report.check(
         name,
-        "a duty at the top followed by 0 is refused [PWM-009]",
+        "a duty at the top followed by 0 is refused [TIMER-PWM-009]",
         match refused {
             Err(ferrohal_stm32::timer::Error::TopToZero) => Ok(()),
             _ => Err(Fail::Count {
@@ -396,7 +396,7 @@ pub fn top_to_zero_check<
         sampler.abort();
         report.check(
             name,
-            "clear of the top margin, both lanes and the sampler finish [PWM-003]",
+            "clear of the top margin, both lanes and the sampler finish [TIMER-PWM-003]",
             Err(Fail::Count {
                 expected: 3,
                 got: 0,
@@ -440,7 +440,7 @@ pub fn top_to_zero_check<
     };
     report.check(
         name,
-        "clear of the top margin, a step to 0 keeps every later duty in its period [PWM-009]",
+        "clear of the top margin, a step to 0 keeps every later duty in its period [TIMER-PWM-009]",
         result,
     );
 }
@@ -522,7 +522,7 @@ pub fn awg_check<
     };
     report.check(
         name,
-        "AWG: each lane plays its own samples [AWG-001 AWG-002]",
+        "AWG: each lane plays its own samples [TIMER-LANES-001 TIMER-LANES-002]",
         played.and_then(|()| {
             decode(sampler.samples(), pins.0, patterns.0, per_bit16, false)?;
             decode(sampler.samples(), pins.1, patterns.1, per_bit16, false)
@@ -540,7 +540,7 @@ pub fn awg_check<
     };
     report.check(
         name,
-        "AWG: a ramp reads back in order, and ends low [AWG-001 AWG-003]",
+        "AWG: a ramp reads back in order, and ends low [TIMER-LANES-001 TIMER-LANES-003]",
         played.and_then(|()| {
             let mut found = [(0, 0); 32];
             let pulses = pulses(sampler.samples(), pins.0, false, &mut found);
@@ -579,7 +579,7 @@ pub fn awg_check<
     };
     report.check(
         name,
-        "AWG: an unloaded lane stays low [AWG-002]",
+        "AWG: an unloaded lane stays low [TIMER-LANES-002]",
         played.and_then(|()| {
             let high = sampler
                 .samples()
@@ -606,7 +606,7 @@ pub fn awg_check<
     let idle = !awg.is_busy();
     report.check(
         name,
-        "AWG: refuses what it can't do, and an abort leaves it ready [AWG-004 AWG-007]",
+        "AWG: refuses what it can't do, and an abort leaves it ready [TIMER-LANES-004 TIMER-LANES-007]",
         if nothing && past_end && started && while_playing && idle {
             Ok(())
         } else {
@@ -623,7 +623,7 @@ pub fn awg_check<
 }
 
 /// A generator on two timers, however it starts the second, plays a waveform
-/// on every lane of both and every lane finishes, ten rounds over [AWG-005].
+/// on every lane of both and every lane finishes, ten rounds over [TIMER-LANES-005].
 /// It needs no wire: finishing is what the requirement asks, and a second
 /// timer that never started would leave its lanes unfinished.
 pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<B>>(
@@ -668,7 +668,7 @@ pub fn awg_pair_check<A: ChannelTimer, B: ChannelTimer, LA: Lanes<A>, LB: Lanes<
     }
     report.check(
         name,
-        "AWG: every lane on both timers finishes [AWG-005]",
+        "AWG: every lane on both timers finishes [TIMER-LANES-005]",
         if done == ROUNDS {
             Ok(())
         } else {
@@ -744,7 +744,7 @@ pub fn awg_free_check<
     awg.abort();
     report.check(
         name,
-        "AWG: abort mid-waveform holds both lines low [AWG-007]",
+        "AWG: abort mid-waveform holds both lines low [TIMER-LANES-007]",
         quiet(sampler, started),
     );
 
@@ -906,7 +906,7 @@ pub fn awg_wire_out_check<
     })();
     report.check(
         name,
-        "AWG out over the wire: samples read back at the far end [AWG-008]",
+        "AWG out over the wire: samples read back at the far end [TIMER-LANES-008]",
         result,
     );
 
@@ -942,7 +942,7 @@ pub fn awg_wire_out_check<
     })();
     report.check(
         name,
-        "AWG: with the output off, nothing crosses the wire [AWG-011]",
+        "AWG: with the output off, nothing crosses the wire [TIMER-LANES-011]",
         result,
     );
     awg.set_outputs(true);
@@ -991,12 +991,12 @@ pub fn awg_wire_in_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     })();
     report.check(
         name,
-        "AWG in over the wire: a lane reads the samples on its own pin [AWG-009]",
+        "AWG in over the wire: a lane reads the samples on its own pin [TIMER-LANES-009]",
         result,
     );
     report.check(
         name,
-        "AWG: a lane turns back to sending after listening [AWG-009]",
+        "AWG: a lane turns back to sending after listening [TIMER-LANES-009]",
         near.speak().map_err(|_| Fail::Count {
             expected: 1,
             got: 0,
@@ -1048,7 +1048,7 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     })();
     report.check(
         name,
-        "AWG out over the wire: the far lane reads the samples [AWG-008 AWG-009]",
+        "AWG out over the wire: the far lane reads the samples [TIMER-LANES-008 TIMER-LANES-009]",
         result,
     );
     let spoke = far.speak().map_err(|_| short(1));
@@ -1077,7 +1077,7 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     });
     report.check(
         name,
-        "AWG in over the wire: the near lane reads the reply on its own pin [AWG-009]",
+        "AWG in over the wire: the near lane reads the reply on its own pin [TIMER-LANES-009]",
         result,
     );
     let spoke = near.speak().map_err(|_| short(1));
@@ -1111,14 +1111,14 @@ pub fn awg_two_way_check<N: ChannelTimer, const NC: u8, F: ChannelTimer, const F
     });
     report.check(
         name,
-        "AWG: with the output off, nothing crosses the wire [AWG-011]",
+        "AWG: with the output off, nothing crosses the wire [TIMER-LANES-011]",
         result,
     );
     near.set_outputs(true);
     let _ = far.speak();
 }
 
-/// What one reader round saw, for the caller's checks (AWG-012 to AWG-021).
+/// What one reader round saw, for the caller's checks (TIMER-LANES-012 to TIMER-LANES-021).
 #[derive(Clone, Copy)]
 pub struct ReaderRound {
     /// The rate `prepare_listen` returned, and whether `prepared` named it.
@@ -1286,7 +1286,7 @@ pub fn duty_check<T: ferrohal_stm32::timer::Instance, ST>(
 ) {
     report.check(
         name,
-        "duty as set, to 1/16 [PWM-001]",
+        "duty as set, to 1/16 [TIMER-PWM-001]",
         measure_duty(sampler, pin, sixteenths, cpu),
     );
 }
@@ -1303,7 +1303,7 @@ pub fn complementary_duty_check<T: ferrohal_stm32::timer::Instance, ST>(
 ) {
     report.check(
         name,
-        "the complementary output carries the duty as set, to 1/16 [PWM-008]",
+        "the complementary output carries the duty as set, to 1/16 [TIMER-PWM-008]",
         measure_duty(sampler, pin, sixteenths, cpu),
     );
 }
@@ -1401,7 +1401,7 @@ pub fn one_pulse_check<T: ChannelTimer, U: ferrohal_stm32::timer::Instance, SU>(
         }
         Ok(())
     })();
-    report.check(name, "one period, then the counter stops [PWM-007]", result);
+    report.check(name, "one period, then the counter stops [TIMER-PWM-007]", result);
 }
 
 /// One timer starting another: the slave sits still until the master starts,
@@ -1425,7 +1425,7 @@ pub fn trigger_suite<M, S>(
     let still = !slave.is_running();
     report.check(
         name,
-        "the slave waits for the master [PWM-004]",
+        "the slave waits for the master [TIMER-PWM-004]",
         if still {
             Ok(())
         } else {
@@ -1454,7 +1454,7 @@ pub fn trigger_suite<M, S>(
     slave.stop();
     report.check(
         name,
-        "100 starts: the master's starts the slave [PWM-005]",
+        "100 starts: the master's starts the slave [TIMER-PWM-005]",
         if stopped == 0 {
             Ok(())
         } else {
@@ -1466,7 +1466,7 @@ pub fn trigger_suite<M, S>(
     );
     report.check(
         name,
-        "100 starts: they begin together [PWM-005]",
+        "100 starts: they begin together [TIMER-PWM-005]",
         if worst <= max_skew {
             Ok(())
         } else {

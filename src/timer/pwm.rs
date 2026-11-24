@@ -21,7 +21,7 @@
 //! write the next duty, which the following update latches. The final 0
 //! holds the output low once the stream is done.
 //!
-//! Requirements: PWM-001, PWM-002, PWM-003, PWM-004, PWM-005, PWM-006, PWM-007, PWM-008, PWM-009, AWG-012, AWG-013, AWG-016, AWG-017, AWG-021, API-002, API-003, RESOURCE-002
+//! Requirements: TIMER-PWM-001, TIMER-PWM-002, TIMER-PWM-003, TIMER-PWM-004, TIMER-PWM-005, TIMER-PWM-006, TIMER-PWM-007, TIMER-PWM-008, TIMER-PWM-009, TIMER-LANES-012, TIMER-LANES-013, TIMER-LANES-016, TIMER-LANES-017, TIMER-LANES-021, API-002, API-003, RESOURCE-002
 
 use core::{
     marker::PhantomData,

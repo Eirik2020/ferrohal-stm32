@@ -117,7 +117,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
 
-  - id: PWM-001
+  - id: TIMER-PWM-001
     title: A channel's duty is as set
     statement: >-
       A PWM channel shall output its duty as set, to one sixteenth of the
@@ -138,7 +138,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: PWM-002
+  - id: TIMER-PWM-002
     title: A lane sends its values one period apart
     statement: >-
       A compare lane shall put out each of its values for one period, in
@@ -160,7 +160,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: PWM-003
+  - id: TIMER-PWM-003
     title: Lanes and sampler keep up at the rate
     statement: >-
       Two lanes and a sampler shall all finish, at the rate a DShot600 frame
@@ -182,7 +182,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: PWM-004
+  - id: TIMER-PWM-004
     title: A slave timer waits for its master
     statement: >-
       A timer set as a slave shall not count until its master starts it.
@@ -202,7 +202,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: PWM-005
+  - id: TIMER-PWM-005
     title: Linked timers begin together
     statement: >-
       A master's start shall start its slave in the same timer clock, on
@@ -223,7 +223,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: PWM-006
+  - id: TIMER-PWM-006
     title: A rounded rate is reported
     statement: >-
       A PWM rate that must round shall use the nearest and report what it
@@ -238,7 +238,7 @@ requirements:
           method:
             test: ferrohal_stm32::timer_v1::pwm::tests::nearest_rounds_and_reports
 
-  - id: PWM-007
+  - id: TIMER-PWM-007
     title: One pulse, then the counter stops
     statement: >-
       A one-pulse start shall output exactly one period and stop the counter.
@@ -258,7 +258,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: PWM-008
+  - id: TIMER-PWM-008
     title: A complementary output carries the channel's duty
     statement: >-
       A channel driving its complementary output shall put the duty set on
@@ -279,7 +279,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Complementary outputs on the STM32F4 Discovery
 
-  - id: PWM-009
+  - id: TIMER-PWM-009
     title: A lane refuses a duty step the timer would miss
     statement: >-
       A lane shall refuse a waveform with a duty within its timer's top
@@ -297,7 +297,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-001
+  - id: TIMER-LANES-001
     title: Each lane plays its own samples
     statement: >-
       Each lane of a waveform generator shall play its own samples in order,
@@ -305,7 +305,7 @@ requirements:
     rationale: >-
       A protocol or a signal is whatever its samples say, so the samples
       must reach the pin as given.
-    derived_from: [PWM-002]
+    derived_from: [TIMER-PWM-002]
     verification:
       entries:
         - level: target
@@ -319,7 +319,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-002
+  - id: TIMER-LANES-002
     title: One start plays every loaded lane
     statement: >-
       One start shall play every loaded lane, and leave a lane with nothing
@@ -327,7 +327,7 @@ requirements:
     rationale: >-
       Outputs that belong together must begin together, and an unused one
       must stay quiet.
-    derived_from: [PWM-005]
+    derived_from: [TIMER-PWM-005]
     verification:
       entries:
         - level: target
@@ -341,7 +341,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-003
+  - id: TIMER-LANES-003
     title: A waveform ends low
     statement: >-
       A waveform shall end with its output low until the next one.
@@ -361,7 +361,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-004
+  - id: TIMER-LANES-004
     title: The generator refuses what it cannot do
     statement: >-
       The generator shall refuse a lane it does not have, a load or play
@@ -383,7 +383,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-007
+  - id: TIMER-LANES-007
     title: An abort leaves the generator ready
     statement: >-
       An abort shall stop every lane at duty 0 and leave the generator ready
@@ -404,7 +404,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-005
+  - id: TIMER-LANES-005
     title: Two timers play together
     statement: >-
       A generator on two timers shall finish every lane's waveform, started
@@ -412,7 +412,7 @@ requirements:
     rationale: >-
       Boards spread their outputs over timers, and not every pair has a
       trigger route.
-    derived_from: [AWG-002]
+    derived_from: [TIMER-LANES-002]
     verification:
       entries:
         - level: target
@@ -436,13 +436,13 @@ requirements:
           method:
             procedure: requirements/benches-refusals.md#Constructor refusals on the Nucleo-H753ZI
 
-  - id: AWG-006
+  - id: TIMER-LANES-006
     title: Each channel opens its own request
     statement: >-
       Each lane shall open only its own channel's compare request.
     rationale: >-
       A request opened with no waveform behind it would disturb its channel.
-    derived_from: [AWG-002]
+    derived_from: [TIMER-LANES-002]
     verification:
       entries:
         - level: unit
@@ -450,14 +450,14 @@ requirements:
           method:
             test: ferrohal_stm32::timer_v1::awg::tests::each_channel_has_its_own_request_bit
 
-  - id: AWG-008
+  - id: TIMER-LANES-008
     title: A waveform crosses a wire intact
     statement: >-
       Samples played on one pin shall be recovered from the far end of a
       wire, each within one sixteenth of full scale.
     rationale: >-
       Reading a pin's own register cannot show the signal left the chip.
-    derived_from: [AWG-001]
+    derived_from: [TIMER-LANES-001]
     verification:
       entries:
         - level: target
@@ -471,14 +471,14 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-009
+  - id: TIMER-LANES-009
     title: A lane reads on the pin it sends on
     statement: >-
       A lane that releases its pin shall read a waveform arriving on it,
       each sample within one sixteenth of full scale, then send again.
     rationale: >-
       A bidirectional protocol answers on the wire it was sent on.
-    derived_from: [AWG-008]
+    derived_from: [TIMER-LANES-008]
     verification:
       entries:
         - level: target
@@ -492,7 +492,7 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-010
+  - id: TIMER-LANES-010
     title: Samples are recovered from captures
     statement: >-
       Recovering samples from captures shall give each sample's active share
@@ -536,14 +536,14 @@ requirements:
           method:
             test: ferrohal_stm32::timer_v1::awg::tests::it_stops_at_the_end_of_out
 
-  - id: AWG-011
+  - id: TIMER-LANES-011
     title: An output turned off sends nothing
     statement: >-
       With a lane's output off, a waveform played on it shall not reach its
       pin.
     rationale: >-
       Listening depends on a released pin staying released.
-    derived_from: [AWG-009]
+    derived_from: [TIMER-LANES-009]
     verification:
       entries:
         - level: target
@@ -556,13 +556,13 @@ requirements:
           part: timers
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
-  - id: AWG-012
+  - id: TIMER-LANES-012
     title: A lane plays and fills lent memory
     statement: >-
       A lane shall play a checked frame in the memory lent to it, and fill memory lent to it on a receive, and hand both back once it has stopped, copying neither.
     rationale: >-
       A port that lends its memory pays for no copy at the switch, and a lane keeps no buffer of its own.
-    derived_from: [AWG-001]
+    derived_from: [TIMER-LANES-001]
     verification:
       entries:
         - level: target
@@ -570,13 +570,13 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-013
+  - id: TIMER-LANES-013
     title: The switch is prepared
     statement: >-
       A listen shall start the read that the last prepare_listen computed, at the rate it returned.
     rationale: >-
       The switch then holds no arithmetic, so its time is fixed and short enough for a reply on the same wire.
-    derived_from: [AWG-009]
+    derived_from: [TIMER-LANES-009]
     verification:
       entries:
         - level: target
@@ -588,13 +588,13 @@ requirements:
           method:
             procedure: requirements/benches.md#The lane switch on the Nucleo-F401RE
 
-  - id: AWG-014
+  - id: TIMER-LANES-014
     title: One reader per timer and port
     statement: >-
       Every lane on one timer and one GPIO port shall share one reader, whose port words are each of those lanes' samples.
     rationale: >-
       One stream and one switch per port, whatever the lane count, so more lanes cost no more at the switch.
-    derived_from: [AWG-009]
+    derived_from: [TIMER-LANES-009]
     verification:
       entries:
         - level: target
@@ -602,13 +602,13 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
 
-  - id: AWG-015
+  - id: TIMER-LANES-015
     title: A reader armed ahead
     statement: >-
       A reader registered on a spare request of a lane timer shall read the port at the switch.
     rationale: >-
       A board with a spare stream reaching GPIO gets the fastest switch: the reader is enabled while the frame plays.
-    derived_from: [AWG-014]
+    derived_from: [TIMER-LANES-014]
     verification:
       entries:
         - level: target
@@ -616,13 +616,13 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-016
+  - id: TIMER-LANES-016
     title: A reader on the lane's own stream
     statement: >-
       Without a registered reader, the port's first lane shall read the port on its own stream, started at the switch.
     rationale: >-
       A board with no spare stream still receives, on the streams its lanes already have.
-    derived_from: [AWG-014]
+    derived_from: [TIMER-LANES-014]
     verification:
       entries:
         - level: target
@@ -630,13 +630,13 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-017
+  - id: TIMER-LANES-017
     title: A reader paced by another timer
     statement: >-
       A reader registered on the update request of a timer that is not a lane timer shall read the port at that timer's rate.
     rationale: >-
       Lanes whose streams cannot reach GPIO (the F4's DMA1) receive only through a stream that can, paced by another timer.
-    derived_from: [AWG-014]
+    derived_from: [TIMER-LANES-014]
     verification:
       entries:
         - level: target
@@ -650,13 +650,13 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
 
-  - id: AWG-018
+  - id: TIMER-LANES-018
     title: Timers run on at a frame's end
     statement: >-
       At a frame's end the lane timers shall keep running at the send rate with every lane's compare at 0, until the next listen, load or play.
     rationale: >-
       A listen then retimes running timers instead of stopping and restarting them, which shortens the switch.
-    derived_from: [AWG-003]
+    derived_from: [TIMER-LANES-003]
     verification:
       entries:
         - level: target
@@ -664,13 +664,13 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-019
+  - id: TIMER-LANES-019
     title: Listen in the run that sees the frame end
     statement: >-
       When asked to listen at the end, the interrupt run that sees the last lane end shall start the prepared listen.
     rationale: >-
       The caller's own return is then off the switch's path.
-    derived_from: [AWG-013]
+    derived_from: [TIMER-LANES-013]
     verification:
       entries:
         - level: target
@@ -678,13 +678,13 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-H753ZI
 
-  - id: AWG-020
+  - id: TIMER-LANES-020
     title: Only the last lane interrupts
     statement: >-
       Only the last lane of a played frame shall raise its end-of-transfer interrupt, a lane found still running getting its own back so that every lane's frame ends.
     rationale: >-
       One interrupt run per frame serves every lane, and frames of unequal length still end.
-    derived_from: [AWG-005]
+    derived_from: [TIMER-LANES-005]
     verification:
       entries:
         - level: target
@@ -692,13 +692,13 @@ requirements:
           method:
             procedure: requirements/benches.md#Timers on the Nucleo-F401RE
 
-  - id: AWG-021
+  - id: TIMER-LANES-021
     title: Outputs off in one store, polarity clear
     statement: >-
       A listen shall turn every lane output of a timer off in one CCER store, with its CCxP and CCxNP bits clear, for speak to restore.
     rationale: >-
       One store per timer releases the pins together, and a polarity bit left set while a channel is off is not allowed (RM0090 table 95 note 1, RM0433 table 337 note 1).
-    derived_from: [AWG-011]
+    derived_from: [TIMER-LANES-011]
     verification:
       entries:
         - level: target

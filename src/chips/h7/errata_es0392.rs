@@ -122,7 +122,7 @@ pub const ERRATA: &[Erratum] = &[
     erratum!("2.15.1", "Anticipated burst idle period entry and exit", [0x1003, 0x2001, 0x2003], None, NotReached("no HRTIM driver"), []),
     erratum!("2.15.2", "Delayed idle protection malfunction when IDLESx = 1", [0x1003, 0x2001, 0x2003], None, NotReached("no HRTIM driver"), []),
     erratum!("2.16.1", "One-pulse mode trigger not detected in master-slave reset + trigger configuration", [0x1003, 0x2001, 0x2003], Partial, Avoided("MSM is never set"), []),
-    erratum!("2.16.2", "Consecutive compare event missed in specific conditions", [0x1003, 0x2001, 0x2003], None, Workaround("a lane refuses a duty within `Pwm::top_margin` of the period's end followed by 0 (PWM-009; the H753 measured it, 2026-11-17)"), []),
+    erratum!("2.16.2", "Consecutive compare event missed in specific conditions", [0x1003, 0x2001, 0x2003], None, Workaround("a lane refuses a duty within `Pwm::top_margin` of the period's end followed by 0 (TIMER-PWM-009; the H753 measured it, 2026-11-17)"), []),
     erratum!("2.16.3", "Output compare clear not working with external counter reset", [0x1003, 0x2001, 0x2003], Partial, Avoided("no ocref_clr and no reset slave mode"), []),
     erratum!("2.16.4", "Unexpected PWM output when using ocref_clr", [0x1003, 0x2001, 0x2003], None, Avoided("no ocref_clr and no combined or asymmetric PWM mode"), []),
     erratum!("2.17.1", "Device may remain stuck in LPTIM interrupt when entering Stop mode", [0x1003, 0x2001, 0x2003], Workaround, NotReached("no LPTIM driver"), []),
