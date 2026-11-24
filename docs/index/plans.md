@@ -4,4 +4,4 @@
 
 | class | path | size | purpose |
 |---|---|---|---|
-| h | docs/plans/2026-11-17-f411-f722-f745.md | 12864 B | Opened 2026-11-17. The owner's fifth and last |
+| h | docs/plans/2026-11-17-f411-f722-f745.md | 12892 B | Opened 2026-11-17. The owner's fifth and last |

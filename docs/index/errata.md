@@ -15,4 +15,4 @@
 | h | docs/errata/ES0334.md | 10239 B | Generated from the chip's errata table src/ch |
 | h | docs/errata/ES0360.md | 4303 B | Generated from the chip's errata table src/ch |
 | h | docs/errata/ES0372.md | 11849 B | Generated from the chip's errata table src/ch |
-| h | docs/errata/ES0392.md | 23734 B | Generated from the chip's errata table src/ch |
+| h | docs/errata/ES0392.md | 23744 B | Generated from the chip's errata table src/ch |
