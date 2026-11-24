@@ -3,7 +3,7 @@
  "counts": {
   "documents": 102,
   "agent": 67,
-  "bytes": 576530
+  "bytes": 576554
  },
  "documents": [
   {
@@ -123,7 +123,7 @@
    "class": "agent",
    "title": "ADR-011: One owner per UART, and a scheduler-neutral `Service` trait (2026-11-17)",
    "purpose": "ADR-011 - Status: promoted",
-   "bytes": 2997,
+   "bytes": 2995,
    "adr": "ADR-011",
    "status": "promoted"
   },
@@ -141,7 +141,7 @@
    "class": "agent",
    "title": "ADR-014: Timer lanes as the lane port needs them (2026-11-19)",
    "purpose": "ADR-014 - Status: promoted",
-   "bytes": 2903,
+   "bytes": 2929,
    "adr": "ADR-014",
    "status": "promoted"
   },

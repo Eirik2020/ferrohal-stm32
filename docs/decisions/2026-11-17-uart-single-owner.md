@@ -11,7 +11,7 @@ one writer per register and no critical section in a driver, is kept.
 
 The UART was the one driver handed out in pieces: an interrupt handle, a line handle and
 separate transmit and receive halves. The pieces lived in different contexts, so their
-shared state was atomics in a static, and the transmit stream needed a protocol between
+shared state was atomics in a static, and the transmit DMA needed a protocol between
 task and interrupt. That put a concurrency protocol inside a HAL whose execution model
 gives execution to the scheduler, and a task could not name "the UART" as one type. SPI,
 I2C, ADC and the timers already had one owner each. Interrupt service also differed per
@@ -20,15 +20,15 @@ shapes.
 
 ## Decision
 
-1. One owner. `Uart<W>` holds the token, pins, streams, buffers and all driver state as
-   plain fields. Every operation takes `&mut self`. No handles, no `split` or `join`.
+1. One owner. `Uart<W>` holds the token, pins, DMA channels, buffers and all driver state
+   as plain fields. Every operation takes `&mut self`. No handles, no `split` or `join`.
 2. No atomics and no task-interrupt protocol in the driver.
 3. Concurrency is the scheduler's: a task and a handler share the UART under its lock.
    The driver has no critical section.
-4. `on_interrupt(&mut self) -> Events` serves the USART and both streams, from any of its
+4. `on_interrupt(&mut self) -> Events` serves the USART and its DMA, from any of its
    vectors or a task, and reports what happened. The handler acts on the
    events and reads nothing.
-5. A read serves the receive stream's flags itself before counting, so reception does
+5. A read serves the receive channel's flags itself before counting, so reception does
    not depend on its vector.
 6. A `Service` trait at the crate root,
    `trait Service { type Event; fn on_interrupt(&mut self) -> Self::Event; }`, is
